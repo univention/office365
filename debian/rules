@@ -39,5 +39,10 @@ override_dh_auto_install:
 	univention-install-config-registry
 	dh_auto_install
 
+override_dh_fixperms:
+	dh_fixperms
+	chmod 0750 debian/univention-office365/etc/univention-office365
+	chmod 0750 debian/univention-office365/var/lib/univention-office365
+
 %:
 	dh $@ --with 'python_support'

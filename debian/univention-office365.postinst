@@ -42,6 +42,10 @@ if [ "$1" = "configure" ]; then
 	[ -e "$uinst" ] && rm "$uinst"
 fi
 
+if [ -x /etc/init.d/univention-directory-listener ]; then
+	invoke-rc.d univention-directory-listener crestart
+fi
+
 . /usr/share/univention-lib/base.sh
 call_joinscript 40univention-office365.inst
 

@@ -1,3 +1,11 @@
+univention-office365 (0.0.3) unstable; urgency=low
+
+  * add extended attributes, LDAP schema (Bug #38950)
+  * move listener pickle file to safe location
+  * wrap token/id file access functions in setuid(0)
+
+ -- Daniel Troeder <troeder@univention.de>  Wed, 16 Dec 2015 17:08:43 +0100
+
 univention-office365 (0.0.2) unstable; urgency=low
 
   * oauth handling now uses client assertions with certificates (Bug #38950)

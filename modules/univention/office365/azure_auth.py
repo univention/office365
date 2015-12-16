@@ -45,6 +45,7 @@ import traceback
 import datetime
 import re
 from xml.dom.minidom import parseString
+from functools import wraps
 try:
 	from cryptography.x509 import load_pem_x509_certificate
 	from cryptography.hazmat.backends import default_backend
@@ -77,9 +78,8 @@ oauth2_token_issuer = "https://sts.windows.net/{tenant_id}/"
 federation_metadata_url = "https://login.microsoftonline.com/{tenant_id}/federationmetadata/2007-06/federationmetadata.xml"
 resource_url = "https://graph.windows.net"
 
-
-ud.init('/var/log/univention/office365-ud.log', ud.FLUSH, ud.FUNCTION)  # TODO: change to ud.NO_FLUSH, ud.NO_FUNCTION
-ud.set_level(ud.LISTENER, ud.ALL)
+# global listener variable for decorator for static methods
+glistener = None
 
 # python logging works better for development, we can remove it later
 logger = logging.getLogger("office365")
@@ -131,7 +131,7 @@ def log_e(msg):
 
 
 def log_ex(msg):
-	_log(ud.ERROR, "%s, Excpetion: %s" % (msg, traceback.format_exc()))
+	_log(ud.ERROR, "%s, Exception: %s" % (msg, traceback.format_exc()))
 	logger.exception(msg)
 
 
@@ -140,17 +140,33 @@ def log_p(msg):
 	logger.info(msg)
 
 
+def run_as_root(func):
+	@wraps(func)
+	def _decorated(*args, **kwargs):
+		if os.getuid == 0 or glistener is None:
+			return func(*args, **kwargs)
+
+		try:
+			glistener.setuid(0)
+			return func(*args, **kwargs)
+		finally:
+			glistener.unsetuid()
+	return _decorated
+
+
 class AzureAuth(object):
 	def __init__(self, listener, name):
-		global NAME
+		global NAME, glistener
 		self.listener = listener
 		NAME = name
+		glistener = listener
 
 		self.client_id, self.tenant_id = AzureAuth.load_azure_ids()
 		self._access_token = None
 		self._access_token_exp_at = None
 
 	@staticmethod
+	@run_as_root
 	def load_azure_ids():
 		with open(IDS_FILE, "r") as f:
 			ids = json.load(f)
@@ -159,6 +175,7 @@ class AzureAuth(object):
 		return ids["client_id"], ids["tenant_id"]
 
 	@staticmethod
+	@run_as_root
 	def store_azure_ids(client_id, tenant_id):
 		open(IDS_FILE, "w").close()  # touch
 		try:                                     # TODO: remove this line - the real UMC wizard runs as root
@@ -169,6 +186,7 @@ class AzureAuth(object):
 			json.dump(dict(client_id=client_id, tenant_id=tenant_id), f)
 
 	@staticmethod
+	@run_as_root
 	def load_tokens():
 		try:
 			with open(TOKEN_FILE, "r") as f:
@@ -181,6 +199,7 @@ class AzureAuth(object):
 		return tokens
 
 	@staticmethod
+	@run_as_root
 	def store_tokens(**kwargs):
 		tokens = AzureAuth.load_tokens()
 		tokens.update(kwargs)
@@ -379,9 +398,14 @@ class AzureAuth(object):
 			encoded_payload = base64.urlsafe_b64encode(payload_string).decode('utf-8').strip('=')
 			return '{0}.{1}'.format(encoded_header, encoded_payload)  # <base64-encoded-header>.<base64-encoded-payload>
 
+		@run_as_root
+		def _get_key_file_data():
+			with open(SSL_KEY, "rb") as pem_file:
+				key_data = pem_file.read()
+			return key_data
+
 		def _get_signature(message):
-			pem_file = open(SSL_KEY, 'rb')
-			key_data = pem_file.read()
+			key_data = _get_key_file_data()
 
 			priv_key = rsa.PrivateKey.load_pkcs1(key_data)
 			_signature = rsa.sign(message.encode('utf-8'), priv_key, 'SHA-256')

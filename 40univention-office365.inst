@@ -31,15 +31,16 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-VERSION=1
+VERSION=2
 
 . /usr/share/univention-join/joinscripthelper.lib
+. /usr/share/univention-lib/ldap.sh
 
 joinscript_init
 
-CONFDIR=/etc/univention-office365
+eval "$(ucr shell)"
 
-chmod 0750 $CONFDIR
+CONFDIR=/etc/univention-office365
 
 if ! [ -f $CONFDIR/key.pem -a -f $CONFDIR/cert.pem -a -f $CONFDIR/cert.fp ]; then
     cd $CONFDIR
@@ -59,6 +60,78 @@ if ! [ -f $CONFDIR/key.pem -a -f $CONFDIR/cert.pem -a -f $CONFDIR/cert.fp ]; the
     chgrp www-data /var/log/univention/office365-*.log # TODO: remove this line
     chmod 664 /var/log/univention/office365-*.log # TODO: remove this line
 fi
+
+ucs_addServiceToLocalhost "univention-office365" "$@"
+
+ucs_registerLDAPExtension "$@" --schema /usr/share/univention-office365/office365.schema
+
+udm settings/extended_attribute create "$@" --ignore_exists \
+	--position "cn=custom attributes,cn=univention,$ldap_base" \
+	--set name="UniventionOffice365ObjectID" \
+	--set CLIName="UniventionOffice365ObjectID" \
+	--set shortDescription="Object ID of user in Azure AD" \
+	--set translationShortDescription='"de_DE" "Objekt ID des Benutzers im Azure AD"' \
+	--set longDescription="Object ID of user in Azure AD" \
+	--set translationLongDescription='"de_DE" "Objekt ID des Benutzers im Azure AD"' \
+	--set tabAdvanced=0 \
+	--set tabName="Office 365" \
+	--set translationTabName='"de_DE" "Office 365"' \
+	--set module="users/user" \
+	--set syntax=string_numbers_letters_dots \
+	--set default="" \
+	--set multivalue=0 \
+	--set valueRequired=0 \
+	--set mayChange=0 \
+	--set doNotSearch=0 \
+	--set objectClass=univentionOffice365 \
+	--set ldapMapping=univentionOffice365ObjectID \
+	--set deleteObjectClass=0 \
+	--set overwriteTab=0 \
+	--set fullWidth=1
+
+udm settings/extended_attribute create "$@" --ignore_exists \
+	--position "cn=custom attributes,cn=univention,$ldap_base" \
+	--set name="UniventionOffice365Enabled" \
+	--set CLIName="UniventionOffice365Enabled" \
+	--set shortDescription="Enable user for Office 365" \
+	--set translationShortDescription='"de_DE" "Benutzer für Nutzung von Office 365 aktivieren"' \
+	--set longDescription="Enable user for Office 365" \
+	--set translationLongDescription='"de_DE" "Benutzer für Nutzung von Office 365 aktivieren"' \
+	--set tabAdvanced=0 \
+	--set tabName="Office 365" \
+	--set translationTabName='"de_DE" "Office 365"' \
+	--set module="users/user" \
+	--set syntax=boolean \
+	--set default=0 \
+	--set multivalue=0 \
+	--set valueRequired=0 \
+	--set mayChange=1 \
+	--set doNotSearch=0 \
+	--set objectClass=univentionOffice365 \
+	--set ldapMapping=univentionOffice365Enabled \
+	--set deleteObjectClass=0 \
+	--set overwriteTab=0 \
+	--set fullWidth=1
+
+udm settings/extended_attribute create "$@" --ignore_exists \
+	--position "cn=custom attributes,cn=univention,$ldap_base" \
+	--set name="UniventionOffice365Data" \
+	--set CLIName="UniventionOffice365Data" \
+	--set shortDescription="Data of user in Azure AD" \
+	--set translationShortDescription='"de_DE" "Daten des Benutzers im Azure AD"' \
+	--set longDescription="Data of user in Azure AD" \
+	--set translationLongDescription='"de_DE" "Daten des Benutzers im Azure AD"' \
+	--set module="users/user" \
+	--set syntax=Base64GzipText \
+	--set default="" \
+	--set multivalue=0 \
+	--set valueRequired=0 \
+	--set mayChange=1 \
+	--set doNotSearch=1 \
+	--set objectClass=univentionOffice365 \
+	--set ldapMapping=univentionOffice365Data \
+	--set deleteObjectClass=0 \
+	--set disableUDMWeb=1
 
 a2enmod wsgi
 a2ensite univention-office365

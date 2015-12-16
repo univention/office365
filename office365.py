@@ -37,19 +37,21 @@ import cPickle
 
 import listener
 from univention.office365.azure_handler import AzureHandler
+from univention.office365.azure_auth import log_a, log_e, log_ex, log_p
 
 
 name = 'office365'
 description = 'manage office 365 user'
-filter = '(&(objectClass=organizationalPerson)(uid=*))'
-attributes = ['description']
+filter = '(&(objectClass=univentionOffice365)(uid=*))'
+attributes = ['univentionOffice365Enabled']
 modrdn = "1"
 
-OFFICE365_OLD_PICKLE = os.path.join("/var/tmp", "office365_old_dn")
+OFFICE365_OLD_PICKLE = os.path.join("/var/lib/univention-office365", "office365_old_dn")
 
 
 class Office365Listener(AzureHandler):
-	pass
+	def __init__(self, listener, name):
+		super(Office365Listener, self).__init__(listener, name)
 
 
 def load_old(old):
@@ -82,29 +84,29 @@ def handler(dn, new, old, command):
 
 	listener.configRegistry.load()
 	ol = Office365Listener(listener, name)
-	old_description = old.get("description", [""])[0].lower()
-	new_description = new.get("description", [""])[0].lower()
+	old_enabled = old.get("univentionOffice365Enabled", [""])[0].lower()
+	new_enabled = new.get("univentionOffice365Enabled", [""])[0].lower()
 
-	ol.log_p("old_description: {}".format(old_description))
-	ol.log_p("new_description: {}".format(new_description))
+	log_p("old_enabled: {}".format(old_enabled))
+	log_p("new_enabled: {}".format(new_enabled))
 
 	#
 	# NEW account
 	#
 	if new and not old:
-		ol.log_p("new and not old -> NEW")
+		log_p("new and not old -> NEW")
 		return
 
 	#
 	# DELETE account
 	#
 	if old and not new:
-		ol.log_p("old and not new -> DELETE")
+		log_p("old and not new -> DELETE")
 		return
 
 	#
 	# MODIFY account
 	#
 	if old and new:
-		ol.log_p("old and new -> MODIFY")
+		log_p("old and new -> MODIFY")
 		return
