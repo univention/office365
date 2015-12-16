@@ -1,0 +1,18 @@
+univention-office365 (0.0.2) unstable; urgency=low
+
+  * oauth handling now uses client assertions with certificates (Bug #38950)
+  * cleaned up API calls
+  * UMC wizard simulation
+  * listener stub
+  * packaging fixes
+  * join script creates certificates
+  * JWT tokens are verified if newer versions of python-cryptography and
+    python-jwt are installed
+
+ -- Daniel Troeder <troeder@univention.de>  Wed, 16 Dec 2015 15:18:57 +0100
+
+univention-office365 (0.0.1) unstable; urgency=low
+
+  * Initial release. (Bug #38950)
+
+ -- Daniel Troeder <troeder@univention.de>  Tue, 11 Aug 2015 14:02:21 +0200

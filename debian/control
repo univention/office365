@@ -1,0 +1,26 @@
+Source: univention-office365
+Section: univention
+Priority: optional
+Build-Depends: debhelper (>> 7),
+ univention-config-dev,
+ ucslint-univention,
+ python2.7-dev,
+ python-support,
+ univention-config-dev
+Maintainer: Univention GmbH <packages@univention.de>
+Standards-Version: 3.8.2
+
+Package: univention-office365
+Architecture: all
+Depends: ${misc:Depends},
+ univention-config,
+ python-univention,
+ python-univention-lib,
+ shell-univention-lib,
+ univention-join,
+ libapache2-mod-wsgi,
+ python-rsa
+Description: Provision MS Office 365 accounts.
+ Synchronize user accounts to Microsoft Azure Active Directory and enable
+ them to use Microsoft Office 365.
+Homepage: https://products.office.com/office-365-home

@@ -1,0 +1,6 @@
+WSGIScriptAlias /univention-office365/reply /usr/lib/univention-office365/wizard/azure_callback.py
+WSGIScriptAlias /univention-office365/wizard /usr/lib/univention-office365/wizard/umc_wizard.py
+<Directory /usr/lib/univention-office365/wizard>
+	Order allow,deny
+	Allow from all
+</Directory>

@@ -1,0 +1,78 @@
+What is this?
+=============
+UMC code and a listener module to enable UCS users to provision MS Office 365 accounts to their domain users.
+
+Design
+======
+Azure is Microsofts cloud service. It has a so called Active Directory (Azure AD) component, that can manage Users, Groups, Applications, Roles, Permissions etc. We need it to manage users, groups, logins and Office365 licences.
+
+To synchronize an on-premises AD with Azure AD, "Azure AD Connect" can be used [aadc]. There is also a big C# library for communication for MS Azure. Since this non of this is not an option, we'll use the Azure API directly.
+
+The API is a moving target, but has stable versions that can be used explicitly. We're currently using Version 1.5, a REST API [aapi]. Version 1.6 has recently been released and does not break any of our code. Other protocols (WS, XML) exist.
+
+Prior to communication with the Azure API, authentication and authorization is done through OAuth2.
+
+After installing the App, a wizard (similar to UCS@school and UCC) will run that will request the UCS user to make some configuration on its behalf.
+That is:
+* register the UCS App as an application in Azure AD
+* configure the callback-URI in Azure AD
+* configure a key for the App in Azure AD
+
+Some of this can be supported pragmatically, some can't. I'm not sure how much is possible.
+
+The wizard must retrieve the following data from the user:
+* the users tenant ID
+* the app key
+* the client ID
+
+With this data the OAuth dance can begin. See "Authorization Code Grant Flow" [acgf].
+In short:
+* redirect the user to authenticate at an Azure-login
+* user authorizes the requested permissions for the UCS App
+* user gets redirected from Azure to the configured callback-URI (https://DC.DOM/office365/mycallback)
+* the callback extracts a token from the URL and uses it to get some other tokens
+* those tokens can be used to access the Azure AD and to refresh themselfs when they expire (3600s)
+* when the refresh token has expired the dance begins from the start. Currently it is unknown how long it lasts... at least 6h it seams... The Azure doc states: "Refresh tokens do not have specified lifetimes. Typically, the lifetimes of refresh tokens are relatively long. [..] The client application needs to expect and handle errors..." [hrft]
+
+We dance with a partner: requests-oauthlib [roal]. It does well, except for the refresh handling. This should be fixed in their code. But handling it ourselves is not a problem. Requests-oauthlib uses the "requests" lib for handling the HTTP requests. The requests lib might one day end up in the Python standard library.
+
+Now that we can authenticate, we can synchronize the selected users and groups with the Azure directory and manage the users licenses. "Synchronization" will be one-way: only from UCS to Azure AD. It should include the users contact data (and the groups that the users are in [together]?).
+
+Implementation
+==============
+State
+-----
+Currently there is
+* a commandline simulation for the listener module, usage: "./main.py --help"
+* a WSGI script simulating the UMC wizard
+* a callback (also WSGI script) for the OAuth interaction
+* a  k/v database for multiple clients IDs storing keys, IDs, URLs. This should be replaced with LDAP and appropriate ACLs.
+* a logging class to use the Python logging class automagically together with syslog and univention.debug (untested) depending on system it runs on
+
+Installation
+------------
+The debian package is mostly OK, but not really useful. Test this from your dev machine, there is no listener anyway.
+- the user login is hardcoded. That data must come from the UMC wizard. Copy secret_data.py to _secret_data.py, edit data and remove the import part.
+- mkdir -m 2770 /var/lib/office365; chown www-data:www-data /var/lib/office365
+- install and activate etc/apache2/sites-available/office365.conf
+- create symlinks /var/www/azure/{azure_callback.py, umc_wizard.py} -> .../svn/dev/branches/ucs-4.0/component/office365/univention-office365/office365/website/{azure_callback.py, umc_wizard.py}
+- echo "WSGIPythonPath .../svn/dev/branches/ucs-4.0/component/office365/univention-office365" >> /etc/apache2/apache2.conf
+- a2enmod ssl
+- a2ensite office365.conf
+- check debian/rules and debian/univention-office365.postinst for more installation related instructions
+- tail -f /var/log/syslog /var/log/apache2/error.log
+
+TODO
+====
+* Move this section to bugzilla once this thing leaves the simulation phase.
+* Automatic refreshing of expired tokens is currently only done in list_users().
+ - generalize
+ - make an issue at requests-oauthlib github [roal] for not handling Authentication_ExpiredToken
+* write a listener
+* actual UMC code
+
+[aadc] https://azure.microsoft.com/en-us/documentation/articles/active-directory-aadconnect/
+[aapi] https://msdn.microsoft.com/en-us/Library/Azure/Ad/Graph/api/api-catalog
+[acgf] https://msdn.microsoft.com/en-us/library/azure/dn645542.aspx
+[hrft] https://msdn.microsoft.com/en-us/library/azure/dn645536.aspx
+[roal] https://github.com/requests/requests-oauthlib
