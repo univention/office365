@@ -48,17 +48,18 @@ def _get_azure_uris(tenant_id):
 	graph_base_url = "{0}/{1}".format(resource_url, tenant_id)
 
 	return dict(
-		directoryObjects_url="%s/directoryObjects/{object_id}" % graph_base_url,
-		users_url="%s/users?{params}" % graph_base_url,
-		user_url="%s/users/{object_id}?{params}" % graph_base_url,
+		directoryObjects="%s/directoryObjects/{object_id}" % graph_base_url,
+		users="%s/users?{params}" % graph_base_url,
+		user="%s/users/{object_id}?{params}" % graph_base_url,
 		user_assign_license="%s/users/{user_id}/assignLicense?{params}" % graph_base_url,
-		getMemberObjects_url="%s/{resource_collection}/{resource_id}/getMemberObjects?{params}" % graph_base_url,
-		getMemberGroups_url="%s/{resource_collection}/{resource_id}/getMemberGroups?{params}" % graph_base_url,
+		getMemberObjects="%s/{resource_collection}/{resource_id}/getMemberObjects?{params}" % graph_base_url,
+		getMemberGroups="%s/{resource_collection}/{resource_id}/getMemberGroups?{params}" % graph_base_url,
 		getObjectsByObjectIds="%s/getObjectsByObjectIds?{params}" % graph_base_url,
-		groups_url="%s/groups?{params}" % graph_base_url,
-		group_url="%s/groups/{object_id}?{params}" % graph_base_url,
+		groups="%s/groups?{params}" % graph_base_url,
+		group="%s/groups/{object_id}?{params}" % graph_base_url,
 		group_members_direct="%s/groups/{group_id}/$links/members?{params}" % graph_base_url,
-		subscriptions="%s/subscribedSkus" % graph_base_url
+		subscriptions="%s/subscribedSkus" % graph_base_url,
+		domains="%s/domains" % graph_base_url,
 	)
 
 
@@ -161,9 +162,9 @@ class AzureHandler(object):
 		params = urllib.urlencode(params)
 		if object_id:
 			assert type(object_id) == str, 'The ObjectId must be a string of form "893801ca-e843-49b7-9f64-7a4590b72769".'
-			url = self.uris[object_type + "_url"].format(params=params, object_id=object_id)
+			url = self.uris[object_type].format(params=params, object_id=object_id)
 		else:
-			url = self.uris[object_type + "s_url"].format(params=params)
+			url = self.uris[object_type + "s"].format(params=params)
 		return self.call_api("GET", url)
 
 	def list_users(self, objectid=None, ofilter=None):
@@ -183,7 +184,7 @@ class AzureHandler(object):
 
 		data = json.dumps(attributes)
 		params = urllib.urlencode(azure_params)
-		url = self.uris[object_type + "s_url"].format(params=params)
+		url = self.uris[object_type + "s"].format(params=params)
 		return self.call_api("POST", url, data)
 
 	def create_user(self, name):
@@ -212,7 +213,7 @@ class AzureHandler(object):
 		log_p("Modifying {} with object_id {} and modifications {}...".format(object_type, object_id, modifications))
 
 		params = urllib.urlencode(azure_params)
-		url = self.uris[object_type + "_url"].format(object_id=object_id, params=params)
+		url = self.uris[object_type].format(object_id=object_id, params=params)
 		data = json.dumps(modifications)
 		return self.call_api("PATCH", url, data)
 
@@ -228,7 +229,7 @@ class AzureHandler(object):
 		log_p("Deleting {} with object_id {}...".format(object_type, object_id))
 
 		params = urllib.urlencode(azure_params)
-		url = self.uris[object_type + "_url"].format(object_id=object_id, params=params)
+		url = self.uris[object_type].format(object_id=object_id, params=params)
 		return self.call_api("DELETE", url)
 
 	def delete_user(self, object_id):
@@ -244,9 +245,9 @@ class AzureHandler(object):
 		data = json.dumps({"securityEnabledOnly": True})
 		params = urllib.urlencode(azure_params)
 		if obj == "groups":
-			url = self.uris["getMemberGroups_url"].format(resource_collection="users", resource_id=object_id, params=params)
+			url = self.uris["getMemberGroups"].format(resource_collection="users", resource_id=object_id, params=params)
 		else:
-			url = self.uris["getMemberObjects_url"].format(resource_collection="users", resource_id=object_id, params=params)
+			url = self.uris["getMemberObjects"].format(resource_collection="users", resource_id=object_id, params=params)
 		return self.call_api("POST", url, data)
 
 	def member_of_groups(self, object_id):
@@ -279,9 +280,9 @@ class AzureHandler(object):
 		log_p("Adding objects %r to group {}...".format(object_ids, group_id))
 
 		if len(object_ids) == 1:
-			objs = {"url": self.uris["directoryObjects_url"].format(object_id=object_ids[0])}
+			objs = {"url": self.uris["directoryObjects"].format(object_id=object_ids[0])}
 		else:
-			objs = {"url": [self.uris["directoryObjects_url"].format(object_id=oid) for oid in object_ids]}
+			objs = {"url": [self.uris["directoryObjects"].format(object_id=oid) for oid in object_ids]}
 			raise NotImplementedError("Adding multiple objects to a group doesn't work for unknown reason.")  # TODO: ask MS support
 
 		data = json.dumps(objs)
