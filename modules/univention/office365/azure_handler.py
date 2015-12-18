@@ -58,8 +58,9 @@ def _get_azure_uris(tenant_id):
 		groups="%s/groups?{params}" % graph_base_url,
 		group="%s/groups/{object_id}?{params}" % graph_base_url,
 		group_members_direct="%s/groups/{group_id}/$links/members?{params}" % graph_base_url,
-		subscriptions="%s/subscribedSkus" % graph_base_url,
-		domains="%s/domains" % graph_base_url,
+		subscriptions="%s/subscribedSkus?{params}" % graph_base_url,
+		domains="%s/domains?{params}" % graph_base_url,
+		domain="%s/domains({domain_name})?{params}" % graph_base_url,
 	)
 
 
@@ -153,10 +154,14 @@ class AzureHandler(object):
 			raise ApiError(response)
 		return response_json or response
 
-	def _list_objects(self, object_type, object_id=None, ofilter=None):
-		assert object_type in ["user", "group"], 'Currently only "user" and "group" supported.'
+	def _list_objects(self, object_type, object_id=None, ofilter=None, extra_params=None):
+		assert object_type in ["user", "group", "subscription", "domain"], 'Unsupported object type.'
+		if extra_params:
+			assert isinstance(extra_params, dict)
 
 		params = dict(**azure_params)
+		if extra_params:
+			params.update(extra_params)
 		if ofilter:
 			params["$filter"] = ofilter
 		params = urllib.urlencode(params)
@@ -308,7 +313,9 @@ class AzureHandler(object):
 	def remove_license(self, user_id, license_id):
 		self._change_license("remove", user_id, license_id)
 
-	def get_all_subscriptions(self):
-		log_a("get_all_subscriptions()")
-		url = self.uris["subscriptions"]
-		raise Exception("WIP")
+	def list_subscriptions(self, objectid=None, ofilter=None):
+		return self._list_objects(object_type="subscription", object_id=objectid, ofilter=ofilter)
+
+	def list_domains(self, objectid=None, ofilter=None):
+		# TODO: when API version > 1.6, check if "domains" is out of "beta"
+		return self._list_objects(object_type="domain", object_id=objectid, ofilter=ofilter, extra_params={"api-version": "beta"})

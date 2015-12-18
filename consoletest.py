@@ -112,7 +112,7 @@ if __name__ == "__main__":
 	parser.add_argument("-s", "--short", help="if action is 'list', only list object IDs [default off]", action="store_true")
 	parser.add_argument("-v", "--verbosity", help="once to send syslog output of level INFO to console, twice (-vv) for DEBUG output [default off]", action="count")
 	parser.add_argument("action", help="add/list/modify/delete/memberofgroups/memberofobjects/examples")
-	parser.add_argument("object", help="users/groups/license")
+	parser.add_argument("object", help="users/groups/licenses/domains/subscriptions")
 	parser.add_argument("set", help="if action is 'add' (TODO) or 'modify', set attribute 'key' of object to 'value' [required only for 'modify'].", nargs="*", metavar="key=value")
 	args = parser.parse_args()
 
@@ -130,7 +130,7 @@ if __name__ == "__main__":
 	if args.verbosity is None:
 		args.verbosity = 0
 
-	if args.object in ["users", "groups"]:
+	if args.object in ["users", "groups", "licenses", "domains", "subscriptions"]:
 		if args.action == "examples":
 			print "ADD USERS | GROUPS"
 			print "------------------"
@@ -140,8 +140,8 @@ if __name__ == "__main__":
 			print "------------------------------"
 			print "{0} add groups -o <objID of target group> <objID of a user or group>  # adding multiple is broken".format(sys.argv[0])
 			print ""
-			print "LIST USERS | GROUPS"
-			print "-------------------"
+			print "LIST USERS | GROUPS | DOMAINS | SUBSCRIPTIONS"
+			print "---------------------------------------------"
 			print "{0} list users".format(sys.argv[0])
 			print "{0} list users -s".format(sys.argv[0])
 			print "{0} list users -c".format(sys.argv[0])
@@ -149,6 +149,8 @@ if __name__ == "__main__":
 			print "{0} list users -s -f \"startswith(displayName,'John')\"".format(sys.argv[0])
 			print "{0} list users -s -f \"accountEnabled eq true and startswith(displayName,'John')\"".format(sys.argv[0])
 			print "{0} list groups -f \"displayName eq 'testgroup01'\"".format(sys.argv[0])
+			print "{0} list domains".format(sys.argv[0])
+			print "{0} list subscriptions".format(sys.argv[0])
 			print ""
 			print "MODIFY USERS | GROUPS"
 			print "---------------------"
@@ -164,10 +166,10 @@ if __name__ == "__main__":
 			print "{0} memberofgroups users -o bd5ea47e-cc70-4c5e-9c66-b6a07695b7d1".format(sys.argv[0])
 			print "{0} memberofobjects users -o bd5ea47e-cc70-4c5e-9c66-b6a07695b7d1".format(sys.argv[0])
 			print ""
-			print "LICENSE"
-			print "-------"
-			print "{0} modify license -o bd5ea47e-cc70-4c5e-9c66-b6a07695b7d1 add=189a915c-fe4f-4ffa-bde4-85b9628d07a0".format(sys.argv[0])
-			print "{0} modify license -o bd5ea47e-cc70-4c5e-9c66-b6a07695b7d1 remove=189a915c-fe4f-4ffa-bde4-85b9628d07a0".format(sys.argv[0])
+			print "LICENSES"
+			print "--------"
+			print "{0} modify licenses -o bd5ea47e-cc70-4c5e-9c66-b6a07695b7d1 add=189a915c-fe4f-4ffa-bde4-85b9628d07a0".format(sys.argv[0])
+			print "{0} modify licenses -o bd5ea47e-cc70-4c5e-9c66-b6a07695b7d1 remove=189a915c-fe4f-4ffa-bde4-85b9628d07a0".format(sys.argv[0])
 			sys.exit(0)
 		elif args.action == "list":
 			# see below
@@ -217,11 +219,17 @@ if __name__ == "__main__":
 					print "Error retrieving group members."
 					print members
 				print ""
+		elif args.object == "subscriptions":
+			subscriptions = ah.list_subscriptions()
+			pprint.pprint(subscriptions)
+		elif args.object == "domains":
+			domains = ah.list_domains()
+			pprint.pprint(domains)
 		else:
-			print "other object types not yet implemented"
+			print "object type '{}' not yet implemented".format(args.object)
 	elif args.action == "modify":
-		if args.object not in ["users", "groups", "license"]:
-			parser.error('Currently only object types "users", "groups" and "license" supported.')
+		if args.object not in ["users", "groups", "licenses"]:
+			parser.error('Currently only object types "users", "groups" and "licenses" supported.')
 		modifications = dict()
 		for kv in args.set:
 			try:
@@ -234,7 +242,7 @@ if __name__ == "__main__":
 			ah.modify_user(args.objectid, modifications)
 		elif args.object == "groups":
 			ah.modify_group(args.objectid, modifications)
-		elif args.object == "license":
+		elif args.object == "licenses":
 			for k, v in modifications:
 				if k == "add":
 					ah.add_license(args.objectid, v)
