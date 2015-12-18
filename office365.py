@@ -34,6 +34,7 @@ __package__ = ''  # workaround for PEP 366
 
 import os
 import cPickle
+from operator import itemgetter
 
 import listener
 from univention.office365.azure_handler import AzureHandler
@@ -53,6 +54,12 @@ class Office365Listener(AzureHandler):
 	def __init__(self, listener, name):
 		super(Office365Listener, self).__init__(listener, name)
 
+	@property
+	def verified_domains(self):
+		return map(itemgetter("name"), self.list_verified_domains())
+
+
+# entryUUID -> immutableId
 
 def load_old(old):
 	if os.path.exists(OFFICE365_OLD_PICKLE):

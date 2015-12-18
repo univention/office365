@@ -130,7 +130,7 @@ if __name__ == "__main__":
 	if args.verbosity is None:
 		args.verbosity = 0
 
-	if args.object in ["users", "groups", "licenses", "domains", "subscriptions"]:
+	if args.object in ["users", "groups", "licenses", "domains", "subscriptions", "tenant"]:
 		if args.action == "examples":
 			print "ADD USERS | GROUPS"
 			print "------------------"
@@ -138,10 +138,10 @@ if __name__ == "__main__":
 			print ""
 			print "ADD USERS or GROUPS TO A GROUP"
 			print "------------------------------"
-			print "{0} add groups -o <objID of target group> <objID of a user or group>  # adding multiple is broken".format(sys.argv[0])
+			print "{0} -o <objID of target group> add groups <objID of a user or group>  # adding multiple is broken".format(sys.argv[0])
 			print ""
-			print "LIST USERS | GROUPS | DOMAINS | SUBSCRIPTIONS"
-			print "---------------------------------------------"
+			print "LIST USERS | GROUPS | DOMAINS | SUBSCRIPTIONS | TENANT"
+			print "------------------------------------------------------"
 			print "{0} list users".format(sys.argv[0])
 			print "{0} list users -s".format(sys.argv[0])
 			print "{0} list users -c".format(sys.argv[0])
@@ -151,11 +151,12 @@ if __name__ == "__main__":
 			print "{0} list groups -f \"displayName eq 'testgroup01'\"".format(sys.argv[0])
 			print "{0} list domains".format(sys.argv[0])
 			print "{0} list subscriptions".format(sys.argv[0])
+			print "{0} list tenant".format(sys.argv[0])
 			print ""
 			print "MODIFY USERS | GROUPS"
 			print "---------------------"
-			print "{0} modify users -o bd5ea47e-cc70-4c5e-9c66-b6a07695b7d1 'displayName=John Doe' 'country=DE' 'accountEnabled=false'".format(sys.argv[0])
-			print '{0} modify groups -o a8fcc4d7-40ca-4648-9593-536e9d73ea77 "displayName=group9033" "mailNickname=group9033"'.format(sys.argv[0])
+			print "{0} -o bd5ea47e-cc70-4c5e-9c66-b6a07695b7d1 modify users 'displayName=John Doe' 'country=DE' 'accountEnabled=false'".format(sys.argv[0])
+			print '{0} -o a8fcc4d7-40ca-4648-9593-536e9d73ea77 modify groups "displayName=group9033" "mailNickname=group9033"'.format(sys.argv[0])
 			print ""
 			print "DELETE USERS | GROUPS"
 			print "---------------------"
@@ -163,13 +164,13 @@ if __name__ == "__main__":
 			print ""
 			print "MEMBEROF USERS"
 			print "--------------"
-			print "{0} memberofgroups users -o bd5ea47e-cc70-4c5e-9c66-b6a07695b7d1".format(sys.argv[0])
-			print "{0} memberofobjects users -o bd5ea47e-cc70-4c5e-9c66-b6a07695b7d1".format(sys.argv[0])
+			print "{0} -o bd5ea47e-cc70-4c5e-9c66-b6a07695b7d1 memberofgroups users".format(sys.argv[0])
+			print "{0} -o bd5ea47e-cc70-4c5e-9c66-b6a07695b7d1 memberofobjects users".format(sys.argv[0])
 			print ""
 			print "LICENSES"
 			print "--------"
-			print "{0} modify licenses -o bd5ea47e-cc70-4c5e-9c66-b6a07695b7d1 add=189a915c-fe4f-4ffa-bde4-85b9628d07a0".format(sys.argv[0])
-			print "{0} modify licenses -o bd5ea47e-cc70-4c5e-9c66-b6a07695b7d1 remove=189a915c-fe4f-4ffa-bde4-85b9628d07a0".format(sys.argv[0])
+			print "{0} -o bd5ea47e-cc70-4c5e-9c66-b6a07695b7d1 modify licenses add=189a915c-fe4f-4ffa-bde4-85b9628d07a0".format(sys.argv[0])
+			print "{0} -o bd5ea47e-cc70-4c5e-9c66-b6a07695b7d1 modify licenses remove=189a915c-fe4f-4ffa-bde4-85b9628d07a0".format(sys.argv[0])
 			sys.exit(0)
 		elif args.action == "list":
 			# see below
@@ -223,8 +224,11 @@ if __name__ == "__main__":
 			subscriptions = ah.list_subscriptions()
 			pprint.pprint(subscriptions)
 		elif args.object == "domains":
-			domains = ah.list_domains()
+			domains = ah.list_verified_domains()
 			pprint.pprint(domains)
+		elif args.object == "tenant":
+			tenant = ah.list_tenant_details()
+			pprint.pprint(tenant)
 		else:
 			print "object type '{}' not yet implemented".format(args.object)
 	elif args.action == "modify":

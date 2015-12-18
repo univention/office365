@@ -61,6 +61,7 @@ def _get_azure_uris(tenant_id):
 		subscriptions="%s/subscribedSkus?{params}" % graph_base_url,
 		domains="%s/domains?{params}" % graph_base_url,
 		domain="%s/domains({domain_name})?{params}" % graph_base_url,
+		tenantDetails="%s/tenantDetails?{params}" % graph_base_url,
 	)
 
 
@@ -97,7 +98,7 @@ class AzureHandler(object):
 		response = None
 		response_json = None
 		access_token = self.auth.get_access_token()
-		while tries < MAX_TRIES:   # TODO: is this really necessary? Does it always work? Shouldn't this be checked in get_access_token()?
+		while tries < MAX_TRIES:   # TODO: is this really necessary? Does it always work? Shouldn't this be checked in get_access_token()? Keep it during development, grep in log for 'TRY' to check.
 			tries += 1
 			log_a("_call_api() **** TRY {} ****".format(tries))
 			headers["Authorization"] = "Bearer {}".format(access_token)
@@ -119,10 +120,11 @@ class AzureHandler(object):
 					if callable(response_json):
 						response_json = response_json()
 				except ValueError:
-					# not JSON - probably from "modify" operation
-					log_ex("response is not JSON? response: {}".format(response))
-					pass
-				# log_a("_call_api() response.__dict__: {}".format(pprint.pformat(response.__dict__)))
+					if method.upper() in ["DELETE", "PATCH", "PUT"]:
+						# no response expected
+						pass
+					else:
+						log_ex("response is not JSON. response.__dict__: {}".format(response.__dict__))
 				log_p("_call_api() status: {}".format(response.status_code))
 				if hasattr(response, "reason"):
 					log_p("_call_api() reason: {}".format(response.reason))
@@ -154,20 +156,23 @@ class AzureHandler(object):
 			raise ApiError(response)
 		return response_json or response
 
-	def _list_objects(self, object_type, object_id=None, ofilter=None, extra_params=None):
-		assert object_type in ["user", "group", "subscription", "domain"], 'Unsupported object type.'
-		if extra_params:
-			assert isinstance(extra_params, dict)
+	def _list_objects(self, object_type, object_id=None, ofilter=None, params_extra=None, url_extra=None):
+		assert object_type in ["user", "group", "subscription", "domain", "tenantDetail"], 'Unsupported object type.'
+		if params_extra:
+			assert isinstance(params_extra, dict)
 
 		params = dict(**azure_params)
-		if extra_params:
-			params.update(extra_params)
+		if params_extra:
+			params.update(params_extra)
 		if ofilter:
 			params["$filter"] = ofilter
 		params = urllib.urlencode(params)
 		if object_id:
 			assert type(object_id) == str, 'The ObjectId must be a string of form "893801ca-e843-49b7-9f64-7a4590b72769".'
-			url = self.uris[object_type].format(params=params, object_id=object_id)
+			url = self.uris[object_type].format(
+				params=params,
+				object_id=object_id,
+				**url_extra if url_extra else {})
 		else:
 			url = self.uris[object_type + "s"].format(params=params)
 		return self.call_api("GET", url)
@@ -316,6 +321,23 @@ class AzureHandler(object):
 	def list_subscriptions(self, objectid=None, ofilter=None):
 		return self._list_objects(object_type="subscription", object_id=objectid, ofilter=ofilter)
 
-	def list_domains(self, objectid=None, ofilter=None):
-		# TODO: when API version > 1.6, check if "domains" is out of "beta"
-		return self._list_objects(object_type="domain", object_id=objectid, ofilter=ofilter, extra_params={"api-version": "beta"})
+	def list_domains(self, domain_name=None):
+		"""
+		All domains registered for this tenant, incl. not-verified ones
+		:param domain_name: FQDN
+		"""
+		if domain_name and not domain_name[0] == "'":
+			domain_name = "'{}'".format(domain_name)
+		return self._list_objects(
+			object_type="domain",
+			params_extra={"api-version": "beta"},  # TODO: when API version > 1.6, check if "domains" is out of "beta"
+			url_extra={"domain_name": domain_name} if domain_name else None)
+
+	def list_tenant_details(self):
+		return self._list_objects(object_type="tenantDetail")
+
+	def list_verified_domains(self):
+		"""
+		Verified domains - only those can be used for userPrincipalName!
+		"""
+		return self.list_tenant_details()["value"][0]["verifiedDomains"]
