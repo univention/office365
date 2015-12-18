@@ -52,5 +52,8 @@ keyCredentials = dict(
 
 manifest["keyCredentials"].append(keyCredentials)
 manifest["oauth2AllowImplicitFlow"] = True
+manifest["requiredResourceAccess"][0]["resourceAccess"].append({
+	"id": "78c8a3c8-a07e-4b9e-af1b-b5ccab50a175",
+	"type": "Role"})
 
 json.dump(manifest, sys.stdout, indent=2, separators=(',', ': '), sort_keys=True)
