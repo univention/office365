@@ -1,3 +1,9 @@
+univention-office365 (0.0.4) unstable; urgency=low
+
+  * rework UCR handling (Bug #40295)
+
+ -- Daniel Troeder <troeder@univention.de>  Mon, 21 Dec 2015 16:47:03 +0100
+
 univention-office365 (0.0.3) unstable; urgency=low
 
   * add extended attributes, LDAP schema (Bug #38950)

@@ -48,20 +48,20 @@ fi
 #
 # TODO: sync only minimal by default - this is the maximum for testing purposes
 univention-config-registry set \
-	office365/attributes/sync/city?city \
-	office365/attributes/sync/country?country \
-	office365/attributes/sync/displayName?displayName \
-	office365/attributes/sync/givenName?givenName \
-	office365/attributes/sync/mailPrimaryAddress?mail \
-	office365/attributes/sync/mailPrimaryAddress?mailNickname \
-	office365/attributes/sync/mobileTelephoneNumber?mobile \
-	office365/attributes/sync/sambaRID?onPremisesSecurityIdentifier \
-	office365/attributes/sync/mailAlternativeAddress?otherMails \
-	office365/attributes/sync/postcode?postalCode \
-	office365/attributes/sync/street?streetAddress \
-	office365/attributes/sync/lastname?surname \
-	office365/attributes/sync/phone?telephoneNumber \
-	office365/attributes/sync/jpegPhoto?thumbnailPhoto
+	office365/attributes/mapping/city?city \
+	office365/attributes/mapping/country?country \
+	office365/attributes/mapping/displayName?displayName \
+	office365/attributes/mapping/firstname?givenName \
+	office365/attributes/mapping/mailPrimaryAddress?mail \
+	office365/attributes/mapping/mobileTelephoneNumber?mobile \
+	office365/attributes/mapping/sambaRID?onPremisesSecurityIdentifier \
+	office365/attributes/mapping/mailAlternativeAddress?otherMails \
+	office365/attributes/mapping/postcode?postalCode \
+	office365/attributes/mapping/street?streetAddress \
+	office365/attributes/mapping/lastname?surname \
+	office365/attributes/mapping/phone?telephoneNumber \
+	office365/attributes/mapping/jpegPhoto?thumbnailPhoto \
+	office365/attributes/sync?city,country,displayName,firstname,mailPrimaryAddress,mobileTelephoneNumber,sambaRID,mailAlternativeAddress,postcode,street,lastname,phone,jpegPhotof
 
 #
 # TODO: test, remove me
@@ -71,15 +71,17 @@ univention-config-registry set \
 # city        -> never
 # country     -> never
 # lastname    -> never
-# givenName   -> anonymize
+# firstname   -> anonymize
 # mobileTelephoneNumber -> static (+49.30-123456)
+# nomapping -> ignored (error msg when initializeing listener)
 #
 univention-config-registry set \
-	office365/attributes/anonymize?city,givenName,lastname \
+	office365/attributes/anonymize?city,firstname,lastname \
 	office365/attributes/never?city,country,lastname \
 	office365/attributes/static/mobileTelephoneNumber?+49.30-123456 \
 	office365/attributes/static/city?Berlin \
-	office365/attributes/static/givenName?Daniel
+	office365/attributes/static/firstname?Daniel \
+	office365/attributes/static/nomapping?NoMapping
 
 
 if [ -x /etc/init.d/univention-directory-listener ]; then

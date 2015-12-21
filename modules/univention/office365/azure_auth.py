@@ -1,7 +1,7 @@
 #!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
 #
-# Univention Office 365 - oauth handling
+# Univention Office 365 - handle Azure oauth calls
 #
 # Copyright 2015 Univention GmbH
 #

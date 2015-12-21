@@ -1,23 +1,29 @@
 [office365/attributes/anonymize]
-Description[de]=Kommaseparierte Liste von UDM Benutzerattributen die in anonymisierter Form zum Azure Active Directory synchronisiert werden sollen. Die Namen der möglichen Attribute werden angezeigt, wenn "udm users/user" an der Kommandozeile ausgeführt wird. Wird gegenüber Attributen in .../static und .../sync vorrangig ausgewertet. Standard ist: keine.
-Description[en]=Comma separated list of UDM user attributes that should be synchronized in anonymized form to the Azure Active Directory. The names of possible attributes are listed when "udm users/user" is executed on the command line. Will be be given precedence over attributes in .../static und .../sync. Default is: none.
+Description[de]=Kommaseparierte Liste von UDM Benutzerattributen die in anonymisierter Form zum Azure Active Directory synchronisiert werden sollen. Wird gegenüber Attributen in .../static und .../sync vorrangig ausgewertet. Standard ist: keine.
+Description[en]=Comma separated list of UDM user attributes that should be synchronized in anonymized form to the Azure Active Directory. Will be be given precedence over attributes in .../static und .../sync. Default is: none.
+Type=str
+Categories=service-collaboration
+
+[office365/attributes/mapping/.*]
+Description[de]=Variablen der Form office365/attributes/mapping/ATTRIBUT-HIER=ATTRIBUT-DORT können verwendet werden, um das automatische Synchronisieren von Benutzerattributen mit dem Azure Active Directory (AAD) zu konfigurieren. ATTRIBUT-HIER ist der Name eines UDM Attributes im UCS Server. Die Namen der Attribute im UCS Server werden angezeigt, wenn "udm users/user" an der Kommandozeile ausgeführt wird. ATTRIBUT-DORT ist der Name des Attributs im AAD.
+Description[en]=Variables in the format office365/attributes/mapping/ATTRIBUTE-HERE=ATTRIBUTE-THERE can be used to configure synchronization of user attributes to the Azure Active Directory (AAD). ATTRIBUTE-HERE is the name of an attribute in the UCS Server. The names of possible attributes in the UCS server are listed when "udm users/user" is executed on the command line. ATTRIBUTE-THERE is the name of the attribute in AAD.
 Type=str
 Categories=service-collaboration
 
 [office365/attributes/never]
-Description[de]=Kommaseparierte Liste von UDM Benutzerattributen die nie mit dem Azure Active Directory synchronisiert werden sollen. Die Namen der möglichen Attribute werden angezeigt, wenn "udm users/user" an der Kommandozeile ausgeführt wird. Wird gegenüber Attributen in .../anonymize, .../static und .../sync vorrangig ausgewertet. Standard ist: keine.
-Description[en]=Comma separated list ist user attributes that should never be synchronized with the Azure Active Directory. The names of possible attributes are listed when "udm users/user" is executed on the command line. Will be be given precedence over attributes in .../anonymize, .../static und .../sync. Default is: none.
+Description[de]=Kommaseparierte Liste von UDM Benutzerattributen die nie mit dem Azure Active Directory synchronisiert werden sollen. Wird gegenüber Attributen in .../anonymize, .../static und .../sync vorrangig ausgewertet. Standard ist: keine.
+Description[en]=Comma separated list ist user attributes that should never be synchronized with the Azure Active Directory. Will be be given precedence over attributes in .../anonymize, .../static und .../sync. Default is: none.
 Type=str
 Categories=service-collaboration
 
 [office365/attributes/static/.*]
-Description[de]=Variablen der Form office365/attributes/static/ATTRIBUT-DORT=WERT können verwendet werden, um das automatische Synchronisieren von Benutzerattributen mit dem Azure Active Directory (AAD) zu konfigurieren. ATTRIBUT-DORT ist der Name des Attributs im AAD, in das, beim Aktivieren eines Benutzers für Office 365, immer WERT geschrieben werden soll. Wird gegenüber Attributen in .../sync vorrangig ausgewertet.
-Description[en]=Variables in the format office365/attributes/static/ATTRIBUTE-THERE=VALUE can be used to configure synchronization of user attributes to the Azure Active Directory (AAD). ATTRIBUTE-THERE is the name of the attribute in AAD in which VALUE will be written when a user is enabled for Office 365. Will be be given precedence over attributes in .../sync.
+Description[de]=Variablen der Form office365/attributes/static/ATTRIBUT-HIER=WERT können verwendet werden, um das automatische Synchronisieren von Benutzerattributen mit dem Azure Active Directory (AAD) zu konfigurieren. ATTRIBUT-HIER ist der Name des Attributs in UCS. Beim Aktivieren eines Benutzers für Office 365, wird WERT unabhängig vom Wert in UCS immer geschrieben ins entsprechende Attribut in AAD geschrieben. Wird gegenüber Attributen in .../sync vorrangig ausgewertet. Die Attributnamen müssen als ATTRIBUT-HIER in office365/attributes/mapping/.* auftauchen.
+Description[en]=Variables in the format office365/attributes/static/ATTRIBUTE-HERE=VALUE can be used to configure synchronization of user attributes to the Azure Active Directory (AAD). ATTRIBUTE-HERE is the name of the attribute in UCS. VALUE will be written to the corresponding attribute in AAD when a user is enabled for Office 365. Will be be given precedence over attributes in .../sync. The names of the attributes must be included in office365/attributes/mapping/.* as ATTRIBUTE-HERE.
 Type=str
 Categories=service-collaboration
 
-[office365/attributes/sync/.*]
-Description[de]=Variablen der Form office365/attributes/sync/ATTRIBUT-HIER=ATTRIBUT-DORT können verwendet werden, um das automatische Synchronisieren von Benutzerattributen mit dem Azure Active Directory (AAD) zu konfigurieren. ATTRIBUT-HIER ist der Name eines UDM Attributes im UCS Server. ATTRIBUT-DORT ist der Name des Attributs im AAD. Die Namen der möglichen Attribute im UCS Server werden angezeigt, wenn "udm users/user" an der Kommandozeile ausgeführt wird.
-Description[en]=Variables in the format office365/attributes/sync/ATTRIBUTE-HERE=ATTRIBUTE-THERE can be used to configure synchronization of user attributes to the Azure Active Directory (AAD). ATTRIBUTE-HERE is the name of an attribute in the UCS Server. ATTRIBUTE-THERE is the name of the attribute in AAD. The names of possible attributes in the UCS server are listed when "udm users/user" is executed on the command line.
+[office365/attributes/sync]
+Description[de]=Kommaseparierte Liste von UDM Benutzerattributen die mit dem Azure Active Directory synchronisiert werden sollen. Die Attributnamen müssen als ATTRIBUT-HIER in office365/attributes/mapping/.* auftauchen.
+Description[en]=Comma separated list ist user attributes that should synchronized with the Azure Active DirectoryAAD. The names of the attributes must be included in office365/attributes/mapping/.* as ATTRIBUTE-HERE.
 Type=str
 Categories=service-collaboration

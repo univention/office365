@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Univention Office 365 - listener module
+# Univention Office 365 - listener module to provision accounts in MS Azure
 #
 # Copyright 2015 Univention GmbH
 #
@@ -34,32 +34,97 @@ __package__ = ''  # workaround for PEP 366
 
 import os
 import cPickle
-from operator import itemgetter
 
 import listener
-from univention.office365.azure_handler import AzureHandler
 from univention.office365.azure_auth import log_a, log_e, log_ex, log_p
+from univention.office365.listener import Office365Listener
+
+
+listener.configRegistry.load()
+attributes_anonymize = list()
+attributes_mapping = dict()
+attributes_never = list()
+attributes_static = dict()
+attributes_sync = list()
+
+
+def get_listener_attributes():
+	global attributes_anonymize, attributes_mapping, attributes_never, attributes_static, attributes_sync
+
+	def rm_objs_from_list_or_dict(rm_objs_list, list_of_listsdicts):
+		for rm_obj in rm_objs_list:
+			for obj in list_of_listsdicts:
+				if isinstance(obj, list):
+					try:
+						obj.remove(rm_obj)
+					except ValueError:
+						pass
+				elif isinstance(obj, dict):
+					try:
+						del obj[rm_obj]
+					except KeyError:
+						pass
+				else:
+					raise ValueError("Can only deal with dicts and lists: rm_objs_from_list_or_dict({}, {})".format(
+						rm_objs_list, list_of_listsdicts))
+
+	attrs = ["univentionOffice365Enabled"]
+	for k, v in listener.configRegistry.items():
+		if k == "office365/attributes/anonymize":
+			attributes_anonymize = [x.strip() for x in v.split(",") if x.strip()]
+			attrs.extend(attributes_anonymize)
+		elif k.startswith("office365/attributes/mapping/"):
+			at = k.split("/")[-1]
+			attributes_mapping[at] = v.strip()
+		elif k == "office365/attributes/never":
+			attributes_never = [x.strip() for x in v.split(",") if x.strip()]
+		elif k.startswith("office365/attributes/static/"):
+			at = k.split("/")[-1]
+			attributes_static[at] = v.strip()
+			attrs.append(at)
+		elif k == "office365/attributes/sync":
+			attributes_sync = [x.strip() for x in v.split(",") if x.strip()]
+			attrs.extend(attributes_sync)
+		else:
+			pass
+
+	# never > anonymize > static > sync
+	rm_objs_from_list_or_dict(attributes_never, [attrs, attributes_anonymize, attributes_static, attributes_sync])
+	rm_objs_from_list_or_dict(attributes_anonymize, [attributes_static, attributes_sync])
+	rm_objs_from_list_or_dict(attributes_static, [attributes_sync])
+
+	# sanity check
+	no_mapping = [a for a in attrs if a not in attributes_mapping.keys() and a != "univentionOffice365Enabled"]
+	if no_mapping:
+		log_e("No mappings for attributes {} found - ignoring.".format(no_mapping))
+		rm_objs_from_list_or_dict(no_mapping, [attrs, attributes_anonymize, attributes_static, attributes_sync])
+
+	return attrs
 
 
 name = 'office365'
 description = 'manage office 365 user'
 filter = '(&(objectClass=univentionOffice365)(uid=*))'
-attributes = ['univentionOffice365Enabled']
+attributes = get_listener_attributes()
 modrdn = "1"
 
 OFFICE365_OLD_PICKLE = os.path.join("/var/lib/univention-office365", "office365_old_dn")
 
+_attrs = dict(
+	anonymize=attributes_anonymize,
+	mapping=attributes_mapping,
+	never=attributes_never,
+	static=attributes_static,
+	sync=attributes_sync
+)
 
-class Office365Listener(AzureHandler):
-	def __init__(self, listener, name):
-		super(Office365Listener, self).__init__(listener, name)
+log_p("listener observing attributes: {}".format(attributes))
+log_p("attributes mapping UCS->AAD: {}".format(attributes_mapping))
+log_p("attributes to sync anonymized: {}".format(attributes_anonymize))
+log_p("attributes to never sync: {}".format(attributes_never))
+log_p("attributes to statically set in AAD: {}".format(attributes_static))
+log_p("attributes to sync: {}".format(attributes_sync))
 
-	@property
-	def verified_domains(self):
-		return map(itemgetter("name"), self.list_verified_domains())
-
-
-# entryUUID -> immutableId
 
 def load_old(old):
 	if os.path.exists(OFFICE365_OLD_PICKLE):
@@ -83,37 +148,41 @@ def save_old(old):
 
 
 def handler(dn, new, old, command):
+	log_a("command: {}".format(command))
 	if command == 'r':
 		save_old(old)
 		return
 	elif command == 'a':
 		old = load_old(old)
 
-	listener.configRegistry.load()
-	ol = Office365Listener(listener, name)
-	old_enabled = old.get("univentionOffice365Enabled", [""])[0].lower()
-	new_enabled = new.get("univentionOffice365Enabled", [""])[0].lower()
+	ol = Office365Listener(listener, name, _attrs)
+	old_enabled = bool(int(old.get("univentionOffice365Enabled", ["0"])[0]))  # "" when disabled, "1" when enabled
+	new_enabled = bool(int(new.get("univentionOffice365Enabled", ["0"])[0]))
 
+	log_a("old: {}".format(old))
+	log_a("new: {}".format(new))
 	log_p("old_enabled: {}".format(old_enabled))
 	log_p("new_enabled: {}".format(new_enabled))
 
 	#
 	# NEW account
 	#
-	if new and not old:
-		log_p("new and not old -> NEW")
+	if new_enabled and not old_enabled:
+		log_p("new and not old and new_enabled -> NEW")
+		new_user = ol.create_user(new)
+		# TODO: new["univentionOffice365ObjectID"] = new_user["objectId"]
 		return
 
 	#
 	# DELETE account
 	#
-	if old and not new:
-		log_p("old and not new -> DELETE")
+	if not new_enabled:
+		log_p("not new_enabled -> DELETE")
 		return
 
 	#
 	# MODIFY account
 	#
-	if old and new:
-		log_p("old and new -> MODIFY")
+	if old_enabled and new_enabled:
+		log_p("old_enabled and new_enabled -> MODIFY")
 		return

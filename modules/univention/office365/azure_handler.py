@@ -1,7 +1,7 @@
 #!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
 #
-# Univention Office 365 - listener module to provision accounts in MS Azure
+# Univention Office 365 - handle Azure API calls
 #
 # Copyright 2015 Univention GmbH
 #
@@ -197,15 +197,7 @@ class AzureHandler(object):
 		url = self.uris[object_type + "s"].format(params=params)
 		return self.call_api("POST", url, data)
 
-	def create_user(self, name):
-		attributes = {
-			"accountEnabled": True,
-			"displayName": name,
-			"mailNickname": name,
-			"passwordProfile": {
-				"password": "univention.99",
-				"forceChangePasswordNextLogin": False},
-			"userPrincipalName": "{0}@{1}".format(name, "univentiontest.onmicrosoft.com")}  # TODO: retrieve domain from Azure
+	def create_user(self, attributes):
 		return self._create_object(object_type="user", attributes=attributes)
 
 	def create_group(self, name):

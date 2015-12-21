@@ -190,7 +190,15 @@ if __name__ == "__main__":
 			name = "name{0}".format(random.randint(1000, 9999))
 			print "adding {0} with random name '{1}'...".format(args.object, name)
 			if args.object == "users":
-				new_user = ah.create_user(name)
+				attributes = {
+					"accountEnabled": True,
+					"displayName": name,
+					"mailNickname": name,
+					"passwordProfile": {
+						"password": "univention.99",
+						"forceChangePasswordNextLogin": False},
+					"userPrincipalName": "{0}@{1}".format(name, ah.list_verified_domains()[0])}
+				new_user = ah.create_user(attributes)
 				if new_user:
 					print_users([new_user], args.complete, args.short)
 			elif args.object == "groups":
