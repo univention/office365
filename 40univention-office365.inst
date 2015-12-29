@@ -81,7 +81,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set default="" \
 	--set multivalue=0 \
 	--set valueRequired=0 \
-	--set mayChange=0 \
+	--set mayChange=1 \
 	--set doNotSearch=0 \
 	--set objectClass=univentionOffice365 \
 	--set ldapMapping=univentionOffice365ObjectID \

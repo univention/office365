@@ -34,8 +34,12 @@ __package__ = ''  # workaround for PEP 366
 
 import os
 import cPickle
+import json
+import base64
+import zlib
 
 import listener
+from univention.admin.uexceptions import noObject
 from univention.office365.azure_auth import log_a, log_e, log_ex, log_p
 from univention.office365.listener import Office365Listener
 
@@ -99,6 +103,10 @@ def get_listener_attributes():
 		log_e("No mappings for attributes {} found - ignoring.".format(no_mapping))
 		rm_objs_from_list_or_dict(no_mapping, [attrs, attributes_anonymize, attributes_static, attributes_sync])
 
+	if "univentionOffice365ObjectID" in attrs or "UniventionOffice365Data" in attrs:
+		log_e("Nice try.")
+		rm_objs_from_list_or_dict(["univentionOffice365ObjectID", "univentionOffice365Data"], [attrs, attributes_anonymize, attributes_static, attributes_sync])
+
 	return attrs
 
 
@@ -117,6 +125,8 @@ _attrs = dict(
 	static=attributes_static,
 	sync=attributes_sync
 )
+
+ldap_cred = dict()
 
 log_p("listener observing attributes: {}".format(attributes))
 log_p("attributes mapping UCS->AAD: {}".format(attributes_mapping))
@@ -147,6 +157,11 @@ def save_old(old):
 	f.close()
 
 
+def setdata(key, value):
+	global ldap_cred
+	ldap_cred[key] = value
+
+
 def handler(dn, new, old, command):
 	log_a("command: {}".format(command))
 	if command == 'r':
@@ -159,8 +174,8 @@ def handler(dn, new, old, command):
 	old_enabled = bool(int(old.get("univentionOffice365Enabled", ["0"])[0]))  # "" when disabled, "1" when enabled
 	new_enabled = bool(int(new.get("univentionOffice365Enabled", ["0"])[0]))
 
-	log_a("old: {}".format(old))
-	log_a("new: {}".format(new))
+	# log_a("old: {}".format(old))
+	# log_a("new: {}".format(new))
 	log_p("old_enabled: {}".format(old_enabled))
 	log_p("new_enabled: {}".format(new_enabled))
 
@@ -168,9 +183,15 @@ def handler(dn, new, old, command):
 	# NEW account
 	#
 	if new_enabled and not old_enabled:
-		log_p("new and not old and new_enabled -> NEW")
+		log_p("new_enabled and not old_enabled -> NEW")
 		new_user = ol.create_user(new)
-		# TODO: new["univentionOffice365ObjectID"] = new_user["objectId"]
+		udm_user = ol.get_udm_user(ldap_cred, dn)
+		udm_user["UniventionOffice365ObjectID"] = new_user["objectId"]
+		# fix Bug #40348 first
+		# udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(new_user)))  # TODO: just a test, should be more specific
+		udm_user.modify()
+		log_p("User creation success. userPrincipalName: {} objectId: {}".format(
+				new_user["userPrincipalName"], new_user["objectId"]))
 		return
 
 	#
@@ -178,7 +199,17 @@ def handler(dn, new, old, command):
 	#
 	if not new_enabled:
 		log_p("not new_enabled -> DELETE")
-		return
+		ol.delete_user(old)
+		try:
+			udm_user = ol.get_udm_user(ldap_cred, dn)
+			udm_user["UniventionOffice365ObjectID"] = "deactivated"
+			# fix Bug #40348 first
+			# udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(None)))
+			udm_user.modify()
+		except noObject:
+			# user was deleted (not just deactivated)
+			pass
+		log_p("Deleted user '{}'.".format(old["univentionOffice365ObjectID"][0]))
 
 	#
 	# MODIFY account

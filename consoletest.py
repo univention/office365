@@ -72,6 +72,7 @@ def print_users(users, complete=False, short=False):
 			if not user["provisionedPlans"]:
 				print "            None"
 
+
 def print_groups(groups, complete=False, short=False):
 	if not groups:
 		print "None."
@@ -255,10 +256,10 @@ if __name__ == "__main__":
 		elif args.object == "groups":
 			ah.modify_group(args.objectid, modifications)
 		elif args.object == "licenses":
-			for k, v in modifications:
+			for k, v in modifications.items():
 				if k == "add":
 					ah.add_license(args.objectid, v)
-				elif v == "remove":
+				elif k == "remove":
 					ah.remove_license(args.objectid, v)
 				else:
 					parser.error("Only 'add' and 'remove' are allowed for license modifications.")

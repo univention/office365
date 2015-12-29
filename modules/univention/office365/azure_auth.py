@@ -98,8 +98,9 @@ class TokenError(Exception):
 			msg = j["error_description"]
 		else:
 			msg = response.__dict__
-		super(TokenError, self).__init__(msg)
 		self.response = response
+		log_e(msg)
+		super(TokenError, self).__init__(msg)
 
 
 class IDTokenError(Exception):
@@ -143,7 +144,7 @@ def log_p(msg):
 def run_as_root(func):
 	@wraps(func)
 	def _decorated(*args, **kwargs):
-		if os.getuid == 0 or glistener is None:
+		if os.geteuid() == 0 or glistener is None:
 			return func(*args, **kwargs)
 
 		try:
@@ -386,6 +387,7 @@ class AzureAuth(object):
 			raise TokenError(response.json())
 
 	def _get_client_assertion(self):
+		@run_as_root
 		def _load_certificate_fingerprint():
 			with open(SSL_CERT_FP, "r") as f:
 				fp = f.read()
@@ -417,7 +419,6 @@ class AzureAuth(object):
 			'alg': 'RS256',
 			'x5t': _load_certificate_fingerprint(),
 		}
-		log_a('_get_client_assertion() client_assertion_header: {}'.format(client_assertion_header))  # DEBUG
 
 		# thanks to Vittorio Bertocci for this:
 		# http://www.cloudidentity.com/blog/2015/02/06/requesting-an-aad-token-with-a-certificate-without-adal/
@@ -431,9 +432,6 @@ class AzureAuth(object):
 			'nbf': not_before,
 			'aud': oauth2_token_url.format(tenant_id=self.tenant_id)
 		}
-
-		string_assertion = json.dumps(client_assertion_payload)
-		log_a('_get_client_assertion() string_assertion: {}'.format(string_assertion))  # DEBUG
 
 		assertion_blob = _get_assertion_blob(client_assertion_header, client_assertion_payload)
 		signature = _get_signature(assertion_blob)

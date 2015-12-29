@@ -52,12 +52,14 @@ def _get_azure_uris(tenant_id):
 		users="%s/users?{params}" % graph_base_url,
 		user="%s/users/{object_id}?{params}" % graph_base_url,
 		user_assign_license="%s/users/{user_id}/assignLicense?{params}" % graph_base_url,
+		user_direct_groups="%s/users/{user_id}/$links/memberOf?{params}" % graph_base_url,
 		getMemberObjects="%s/{resource_collection}/{resource_id}/getMemberObjects?{params}" % graph_base_url,
 		getMemberGroups="%s/{resource_collection}/{resource_id}/getMemberGroups?{params}" % graph_base_url,
 		getObjectsByObjectIds="%s/getObjectsByObjectIds?{params}" % graph_base_url,
 		groups="%s/groups?{params}" % graph_base_url,
 		group="%s/groups/{object_id}?{params}" % graph_base_url,
-		group_members_direct="%s/groups/{group_id}/$links/members?{params}" % graph_base_url,
+		group_members="%s/groups/{group_id}/$links/members?{params}" % graph_base_url,
+		group_member="%s/groups/{group_id}/$links/members/{member_id}?{params}" % graph_base_url,
 		subscriptions="%s/subscribedSkus?{params}" % graph_base_url,
 		domains="%s/domains?{params}" % graph_base_url,
 		domain="%s/domains({domain_name})?{params}" % graph_base_url,
@@ -73,8 +75,9 @@ class ApiError(Exception):
 			if callable(j):  # requests version compatibility
 				j = j()
 			msg = j["odata.error"]
-		super(ApiError, self).__init__(msg)
 		self.response = response
+		log_e(msg)
+		super(ApiError, self).__init__(msg)
 
 
 class AzureHandler(object):
@@ -100,12 +103,10 @@ class AzureHandler(object):
 		access_token = self.auth.get_access_token()
 		while tries < MAX_TRIES:   # TODO: is this really necessary? Does it always work? Shouldn't this be checked in get_access_token()? Keep it during development, grep in log for 'TRY' to check.
 			tries += 1
-			log_a("_call_api() **** TRY {} ****".format(tries))
+			log_a("call_api() **** TRY {} ****".format(tries))
 			headers["Authorization"] = "Bearer {}".format(access_token)
 
-			log_p("_call_api() {} {} data: {}".format(method.upper(), url, data))
-			# log_a("_call_api() headers: {}".format(headers))
-			# log_a("_call_api() my request id: {}".format(request_id))
+			log_p("call_api() {} {} data: {}".format(method.upper(), url, data))
 
 			requests_func = getattr(requests, method.lower())
 			args = dict(url=url, headers=headers, data=data, verify=True)
@@ -119,38 +120,34 @@ class AzureHandler(object):
 					response_json = response.json
 					if callable(response_json):
 						response_json = response_json()
-				except ValueError:
+				except (TypeError, ValueError):
 					if method.upper() in ["DELETE", "PATCH", "PUT"]:
 						# no response expected
 						pass
 					else:
 						log_ex("response is not JSON. response.__dict__: {}".format(response.__dict__))
-				log_p("_call_api() status: {}".format(response.status_code))
+				log_p("call_api() status: {} ({})".format(
+						response.status_code,
+						"OK" if 200 <= response.status_code <= 299 else "FAIL"))
 				if hasattr(response, "reason"):
-					log_p("_call_api() reason: {}".format(response.reason))
+					log_p("call_api() reason: {}".format(response.reason))
 
 				if 200 <= response.status_code <= 299:
 					break
 				else:
-					log_a("_call_api() my request id: {} server request id: {}".format(request_id, response.headers.get("request-id")))
-					log_a("_call_api() response(type: {}): {}".format(type(response), pprint.pformat(response.__dict__)))
-					if response_json:
-						log_a("_call_api() response_json(type: {}): JSON: {}".format(type(response_json), pprint.pformat(response_json)))
-
 					if response_json and "odata.error" in response_json:
 						err_code = response_json["odata.error"]["code"]
 					else:
 						err_code = "Unknown error code, complete response: {}".format(response)
-					log_e("Error: {}".format(response.status_code, err_code))
+					log_e("Error calling API: {}, {}".format(response.status_code, err_code))
 					if response.status_code == 401 and err_code in ["Authentication_ExpiredToken", "Authentication_MissingOrMalformed"]:
-						log_p("Retrying with fresh token...")
+						log_p("call_api() Retrying with fresh token...")
 						access_token = self.auth.retrieve_access_token()
 						continue
 					else:
-						log_e("Calling API: {}".format(response))
 						raise ApiError(response)
 			else:
-				log_e("_call_api() response is None")
+				log_e("call_api() response is None")
 		else:
 			log_e("Calling API: {}".format(response))
 			raise ApiError(response)
@@ -180,6 +177,11 @@ class AzureHandler(object):
 	def list_users(self, objectid=None, ofilter=None):
 		return self._list_objects(object_type="user", object_id=objectid, ofilter=ofilter)
 
+	def get_users_direct_groups(self, user_id):
+		params = urllib.urlencode(azure_params)
+		url = self.uris["user_direct_groups"].format(user_id=user_id, params=params)
+		return self.call_api("GET", url)
+
 	def list_groups(self, objectid=None, ofilter=None):
 		return self._list_objects(object_type="group", object_id=objectid, ofilter=ofilter)
 
@@ -187,6 +189,7 @@ class AzureHandler(object):
 		assert object_type in ["user", "group"], 'Currently only "user" and "group" supported.'
 		assert type(attributes) == dict
 		assert "displayName" in attributes
+
 		attrs = dict(attributes)
 		if "password" in attrs:
 			attrs["password"] = "******"
@@ -198,7 +201,13 @@ class AzureHandler(object):
 		return self.call_api("POST", url, data)
 
 	def create_user(self, attributes):
-		return self._create_object(object_type="user", attributes=attributes)
+		# if user exists, modify it instead
+		user = self.list_users(ofilter="userPrincipalName eq '{}'".format(attributes["userPrincipalName"]))
+		if user["value"]:
+			log_p("User '{}' exists, modifying it.".format(user["value"][0]["userPrincipalName"]))
+			return self.modify_user(user["value"][0]["objectId"], attributes)
+		else:
+			return self._create_object(object_type="user", attributes=attributes)
 
 	def create_group(self, name):
 		attributes = {
@@ -212,7 +221,12 @@ class AzureHandler(object):
 		assert object_type in ["user", "group"], 'Currently only "user" and "group" supported.'
 		assert type(object_id) == str, "The ObjectId must be a string of form '893801ca-e843-49b7-9f64-7a4590b72769'."
 		assert type(modifications) == dict, "Please supply a dict of attr->value to change."
-		log_p("Modifying {} with object_id {} and modifications {}...".format(object_type, object_id, modifications))
+
+		if "passwordProfile" in modifications:
+			# read text at beginning delete_user()
+			del modifications["passwordProfile"]
+			log_e("Modifying passwords is currently not supported. 'passwordProfile' removed from modification list.")
+		log_a("Modifying {} with object_id {} and modifications {}...".format(object_type, object_id, modifications))
 
 		params = urllib.urlencode(azure_params)
 		url = self.uris[object_type].format(object_id=object_id, params=params)
@@ -228,19 +242,34 @@ class AzureHandler(object):
 	def _delete_objects(self, object_type, object_id):
 		assert object_type in ["user", "group"], 'Currently only "user" and "group" supported.'
 		assert type(object_id) == str, "The ObjectId must be a string of form '893801ca-e843-49b7-9f64-7a4590b72769'."
-		log_p("Deleting {} with object_id {}...".format(object_type, object_id))
+		log_a("Deleting {} with object_id {}...".format(object_type, object_id))
 
 		params = urllib.urlencode(azure_params)
 		url = self.uris[object_type].format(object_id=object_id, params=params)
 		return self.call_api("DELETE", url)
 
 	def delete_user(self, object_id):
-		return self._delete_objects(object_type="user", object_id=object_id)
+		#
+		# MS has changed the permissions: "due to recent security enhancement to AAD the application which is
+		# accessing the AAD through Graph API should have a role called Company Administrator"...
+		#
+		# https://github.com/Azure-Samples/active-directory-dotnet-graphapi-console/issues/27
+		# https://support.microsoft.com/en-us/kb/3004133
+		# http://stackoverflow.com/questions/31834003/azure-ad-change-user-password-from-custom-app
+		#
+		# So for now use deactivte_user() instead of _delete_objects().
+		#
+
+		# return self._delete_objects(object_type="user", object_id=object_id)
+		return self.deactivate_user(object_id)
 
 	def delete_group(self, object_id):
 		return self._delete_objects(object_type="group", object_id=object_id)
 
 	def _member_of_(self, obj, object_id):
+		"""
+		Transitive versions (incl nested groups)
+		"""
 		log_p("Querying memberOf {} for user with object_id {}...".format(obj, object_id))
 		assert type(object_id) == str, "The ObjectId must be a string of form '893801ca-e843-49b7-9f64-7a4590b72769'."
 
@@ -259,7 +288,7 @@ class AzureHandler(object):
 		return self._member_of_("objects", object_id)
 
 	def resolve_object_ids(self, object_ids, object_types=None):
-		log_p("Looking for objects with IDs: {}...".format(object_ids))
+		log_a("Looking for objects with IDs: {}...".format(object_ids))
 		assert type(object_ids) == list, "Parameter object_ids must be a list of object IDs."
 
 		data = json.dumps({"objectIds": object_ids})
@@ -268,18 +297,18 @@ class AzureHandler(object):
 		return self.call_api("POST", url, data)
 
 	def get_groups_direct_members(self, group_id):
-		log_p("Fetching direct members of group {}...".format(group_id))
+		log_a("Fetching direct members of group {}...".format(group_id))
 		assert type(group_id) in [str, unicode], "The ObjectId must be a string of form '893801ca-e843-49b7-9f64-7a4590b72769'."
 
 		params = urllib.urlencode(azure_params)
-		url = self.uris["group_members_direct"].format(group_id=group_id, params=params)
+		url = self.uris["group_members"].format(group_id=group_id, params=params)
 		return self.call_api("GET", url)
 
 	def add_objects_to_group(self, group_id, object_ids):
 		assert type(group_id) == str, "The ObjectId must be a string of form '893801ca-e843-49b7-9f64-7a4590b72769'."
 		assert type(object_ids) == list, "object_ids must be a non-empty list of objectID strings."
 		assert len(object_ids) > 0, "object_ids must be a non-empty list of objectID strings."
-		log_p("Adding objects %r to group {}...".format(object_ids, group_id))
+		log_a("Adding objects %r to group {}...".format(object_ids, group_id))
 
 		if len(object_ids) == 1:
 			objs = {"url": self.uris["directoryObjects"].format(object_id=object_ids[0])}
@@ -289,7 +318,7 @@ class AzureHandler(object):
 
 		data = json.dumps(objs)
 		params = urllib.urlencode(azure_params)
-		url = self.uris["group_members_direct"].format(group_id=group_id, params=params)
+		url = self.uris["group_members"].format(group_id=group_id, params=params)
 		return self.call_api("POST", url, data=data)
 
 	def _change_license(self, operation, user_id, license_id):  # TODO: possibly change signature to support disabling plans
@@ -333,3 +362,21 @@ class AzureHandler(object):
 		Verified domains - only those can be used for userPrincipalName!
 		"""
 		return self.list_tenant_details()["value"][0]["verifiedDomains"]
+
+	def deactivate_user(self, user_id):
+		user_obj = self.list_users(objectid=user_id)
+
+		# deactivate user, remove email addresses
+		self.modify_user(user_id, modifications={"accountEnabled": False, "immutableId": None, "otherMails": []})
+
+		# remove user from all groups
+		groups = self.get_users_direct_groups(user_id)
+		params = urllib.urlencode(azure_params)
+		for gr in groups["value"]:
+			group_obj = self.call_api("GET", "{}?{}".format(gr["url"], params))
+			url = self.uris["group_member"].format(group_id=group_obj["objectId"], member_id=user_id, params=params)
+			self.call_api("DELETE", url)
+
+		# remove all licenses
+		for lic in user_obj["assignedLicenses"]:
+			self.remove_license(user_id, lic["skuId"])

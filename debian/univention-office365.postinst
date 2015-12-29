@@ -49,19 +49,23 @@ fi
 # TODO: sync only minimal by default - this is the maximum for testing purposes
 univention-config-registry set \
 	office365/attributes/mapping/city?city \
-	office365/attributes/mapping/country?country \
+	office365/attributes/mapping/st?country \
 	office365/attributes/mapping/displayName?displayName \
-	office365/attributes/mapping/firstname?givenName \
-	office365/attributes/mapping/mailPrimaryAddress?mail \
-	office365/attributes/mapping/mobileTelephoneNumber?mobile \
-	office365/attributes/mapping/sambaRID?onPremisesSecurityIdentifier \
+	office365/attributes/mapping/givenName?givenName \
+	office365/attributes/mapping/mailPrimaryAddress?otherMails \
+	office365/attributes/mapping/mobile?mobile \
+	office365/attributes/mapping/sambaSID?onPremisesSecurityIdentifier \
 	office365/attributes/mapping/mailAlternativeAddress?otherMails \
-	office365/attributes/mapping/postcode?postalCode \
+	office365/attributes/mapping/postalCode?postalCode \
 	office365/attributes/mapping/street?streetAddress \
-	office365/attributes/mapping/lastname?surname \
-	office365/attributes/mapping/phone?telephoneNumber \
+	office365/attributes/mapping/sn?surname \
+	office365/attributes/mapping/telephoneNumber?telephoneNumber \
 	office365/attributes/mapping/jpegPhoto?thumbnailPhoto \
-	office365/attributes/sync?city,country,displayName,firstname,mailPrimaryAddress,mobileTelephoneNumber,sambaRID,mailAlternativeAddress,postcode,street,lastname,phone,jpegPhotof
+	office365/attributes/sync?city,st,displayName,givenName,mailPrimaryAddress,mobile,sambaSID,mailAlternativeAddress,postalCode,street,sn,telephoneNumber,jpegPhoto
+
+#
+# AAD::otherMails sould contain email addresses of both mailPrimaryAddress and mailAlternativeAddress
+#
 
 #
 # TODO: test, remove me
@@ -69,18 +73,18 @@ univention-config-registry set \
 # never > anonymize > static > sync
 # ---------------------------------
 # city        -> never
-# country     -> never
-# lastname    -> never
-# firstname   -> anonymize
-# mobileTelephoneNumber -> static (+49.30-123456)
-# nomapping -> ignored (error msg when initializeing listener)
+# st          -> never
+# sn          -> never
+# givenName   -> anonymize
+# mobile      -> static (+49.30-123456)
+# nomapping   -> ignored (error msg when initializing listener)
 #
 univention-config-registry set \
-	office365/attributes/anonymize?city,firstname,lastname \
-	office365/attributes/never?city,country,lastname \
-	office365/attributes/static/mobileTelephoneNumber?+49.30-123456 \
+	office365/attributes/anonymize?city,givenName,sn \
+	office365/attributes/never?city,st,sn \
+	office365/attributes/static/mobile?+49.30-123456 \
 	office365/attributes/static/city?Berlin \
-	office365/attributes/static/firstname?Daniel \
+	office365/attributes/static/givenName?Daniel \
 	office365/attributes/static/nomapping?NoMapping
 
 
