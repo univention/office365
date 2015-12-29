@@ -195,7 +195,7 @@ class AzureAuth(object):
 		except IOError:
 			tokens = dict()
 		if not isinstance(tokens, dict):
-			log_e("Bad content of tokens file: '{}'.".format(tokens))
+			log_e("AzureAuth.load_tokens() Bad content of tokens file: '{}'.".format(tokens))
 			tokens = dict()
 		return tokens
 
@@ -214,14 +214,14 @@ class AzureAuth(object):
 
 	def get_access_token(self):
 		if not self._access_token:
-			log_a("get_access_token() loading token from disk...")
+			log_a("AzureAuth.get_access_token() loading token from disk...")
 			tokens = AzureAuth.load_tokens()
 			self._access_token = tokens.get("access_token")
 			self._access_token_exp_at = datetime.datetime.fromtimestamp(int(tokens.get("access_token_exp_at")))
 		if not self._access_token_exp_at or datetime.datetime.now() > self._access_token_exp_at:
-			log_a("get_access_token() retrieving token from azure...")
+			log_a("AzureAuth.get_access_token() retrieving token from azure...")
 			self._access_token = self.retrieve_access_token()
-		log_a("get_access_token() token valid until: {} : {}...{}".format(
+		log_a("AzureAuth.get_access_token() token valid until: {} : {}...{}".format(
 			self._access_token_exp_at.isoformat(), self._access_token[:10], self._access_token[-10:]))
 		return self._access_token
 
@@ -264,7 +264,7 @@ class AzureAuth(object):
 				decoded_body = _decode_b64(_body)
 				return json.loads(decoded_header), json.loads(decoded_body), _signature
 			except:
-				log_ex(u"parse_token(): Invalid token value: {0}".format(unicode(encoded_token, 'utf8')))
+				log_ex(u"AzureAuth.parse_token(): Invalid token value: {0}".format(unicode(encoded_token, 'utf8')))
 				raise IDTokenError("Error parsing token: {}".format(traceback.format_exc()))
 
 		def _get_azure_certs(tenant_id):
@@ -301,7 +301,7 @@ class AzureAuth(object):
 
 		def _old_cryptography_checks(client_id, tenant_id, id_token, header, body):
 			# TODO: cannot verify signature, because ancient python-cryptography cannot load x509 certificates
-			log_e("Running old cryptography checks - NO signature verification.")
+			log_e("AzureAuth._old_cryptography_checks() Running old cryptography checks - NO signature verification.")
 			if header["alg"] == "none":
 				raise TokenValidationError("Received an unsigned token. ID token: '{}'.".format(id_token))
 			if header["alg"] != "RS256":
@@ -312,11 +312,11 @@ class AzureAuth(object):
 			m = re.search("^https://(.*)/(.*)/$", body["iss"])
 			if client_id != body["aud"] or m.groups()[-1] != tenant_id:
 				raise TokenValidationError("Wrong audience ({}) or issuer ({}) in token. ID token: '{}'".format(body["aud"], m.groups()[-1], id_token))
-			log_p("Checked ID token.")
+			log_p("AzureAuth._old_cryptography_checks() Checked ID token.")
 
 		def _new_cryptography_checks(client_id, tenant_id, id_token):
 			# check JWT validity, incl. signature
-			log_p("Running new cryptography checks incl signature verification.")
+			log_p("AzureAuth._new_cryptography_checks() Running new cryptography checks incl signature verification.")
 			azure_certs = list(_get_azure_certs(tenant_id))
 			verified = False
 			jwt_exceptions = list()
@@ -341,7 +341,7 @@ class AzureAuth(object):
 					jwt_exceptions.append(e)
 			if not verified:
 				raise TokenValidationError("JWT verification error(s): {}\nID token: {}".format(" ".join(map(str, jwt_exceptions)), id_token))
-			log_p("Verified ID token.")
+			log_p("AzureAuth._new_cryptography_checks() Verified ID token.")
 
 		# get the tenant ID from the id token
 		header, body, _ = _parse_token(id_token)
@@ -369,15 +369,15 @@ class AzureAuth(object):
 		}
 		url = oauth2_token_url.format(tenant_id=self.tenant_id)
 
-		log_a("retrieve_access_token() POST to URL={} with data={}".format(url, post_form))
+		log_a("AzureAuth.retrieve_access_token() POST to URL={} with data={}".format(url, post_form))
 		response = requests.post(url, data=post_form, verify=True)
 		if response.status_code != 200:
-			log_e("Error retrieving token (status {}), response: {}".format(response.status_code, response.__dict__))
+			log_e("AzureAuth.retrieve_access_token() Error retrieving token (status {}), response: {}".format(response.status_code, response.__dict__))
 			raise TokenError(response)
 		at = response.json
 		if callable(at):  # requests version compatibility
 			at = at()
-		log_a("retrieve_access_token() response: {}".format(at))
+		log_a("AzureAuth.retrieve_access_token() response: {}".format(at))
 		if "access_token" in at and at["access_token"]:
 			self._access_token = at["access_token"]
 			self._access_token_exp_at = datetime.datetime.fromtimestamp(int(at["expires_on"]))

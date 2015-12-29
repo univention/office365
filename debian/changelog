@@ -1,3 +1,13 @@
+univention-office365 (0.0.6) unstable; urgency=low
+
+  * add support to modify azure user (Bug #40295)
+  * prepare date according to azure attribute types
+  * create azure compatible secure passwords
+  * log function name
+  * hide user password when logging
+
+ -- Daniel Troeder <troeder@univention.de>  Tue, 29 Dec 2015 20:52:16 +0100
+
 univention-office365 (0.0.5) unstable; urgency=low
 
   * Create and delete (deactivate) azure user (Bug #40295)

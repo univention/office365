@@ -54,7 +54,6 @@ univention-config-registry set \
 	office365/attributes/mapping/givenName?givenName \
 	office365/attributes/mapping/mailPrimaryAddress?otherMails \
 	office365/attributes/mapping/mobile?mobile \
-	office365/attributes/mapping/sambaSID?onPremisesSecurityIdentifier \
 	office365/attributes/mapping/mailAlternativeAddress?otherMails \
 	office365/attributes/mapping/postalCode?postalCode \
 	office365/attributes/mapping/street?streetAddress \
@@ -64,7 +63,7 @@ univention-config-registry set \
 	office365/attributes/sync?city,st,displayName,givenName,mailPrimaryAddress,mobile,sambaSID,mailAlternativeAddress,postalCode,street,sn,telephoneNumber,jpegPhoto
 
 #
-# AAD::otherMails sould contain email addresses of both mailPrimaryAddress and mailAlternativeAddress
+# AAD::otherMails should contain email addresses of both mailPrimaryAddress and mailAlternativeAddress
 #
 
 #

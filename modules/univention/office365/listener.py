@@ -31,6 +31,8 @@
 
 from operator import itemgetter
 import uuid
+import random
+import string
 
 import univention.admin.uldap
 import univention.admin.objects
@@ -50,12 +52,12 @@ class Office365Listener(AzureHandler):
 	def _anonymize(self, txt):
 		return uuid.uuid4().get_hex()
 
-	def _get_udm_attributes_and_values(self, attrs, user):
+	def _get_sync_values(self, attrs, user):
 		# anonymize > static > sync
 		res = dict()
 		for attr in attrs:
-			if attr not in user:
-				# user has attribute not set
+			if attr not in user or attr == "univentionOffice365Enabled":
+				# user has attribute not set | ignore univentionOffice365Enabled
 				continue
 
 			if attr in self.attrs["anonymize"]:
@@ -69,21 +71,25 @@ class Office365Listener(AzureHandler):
 		return res
 
 	def create_user(self, new):
+		# have at least one char from each category in password
+		# https://msdn.microsoft.com/en-us/library/azure/jj943764.aspx
+		pw = list(random.choice(string.lowercase))
+		pw.append(random.choice(string.uppercase))
+		pw.append(random.choice(string.digits))
+		pw.append(random.choice(u"@#$%^&*-_+=[]{}|\:,.?/`~();"))
+		pw.extend(random.choice(string.ascii_letters + string.digits + u"@#$%^&*-_+=[]{}|\:,.?/`~();") for _ in range(12))
+		random.shuffle(pw)
 		attributes = {
 			"immutableId": new["entryUUID"][0],
 			"accountEnabled": True,
 			"passwordProfile": {
-				"password": "univention.99",
+				"password": u"".join(pw),
 				"forceChangePasswordNextLogin": False},
 		}
-		all_attrs = list(self.attrs["anonymize"])
-		all_attrs.extend(self.attrs["static"])
-		all_attrs.extend(self.attrs["sync"])
-		udm_attrs = self._get_udm_attributes_and_values(all_attrs, new)
+		udm_attrs = self._get_sync_values(self.attrs["listener"], new)
 
 		for k, v in udm_attrs.items():
 			attributes[self.attrs["mapping"][k]] = v
-
 
 		# mandatory attributes
 		attributes["userPrincipalName"] = "{0}@{1}".format(new["uid"][0], self.verified_domains[0])  # TODO: make the domain choosable
@@ -91,7 +97,6 @@ class Office365Listener(AzureHandler):
 		if "displayName" not in attributes:
 			attributes["displayName"] = "no name"
 
-		log_p("Creating user with attributes: {}...".format(attributes))
 		super(Office365Listener, self).create_user(attributes)
 
 		user = self.list_users(ofilter="userPrincipalName eq '{}'".format(attributes["userPrincipalName"]))
@@ -116,3 +121,19 @@ class Office365Listener(AzureHandler):
 		user = usersmod.object(None, lo, po, userdn)
 		user.open()
 		return user
+
+	def modify_user(self, old, new):
+		modifications = [attr for attr in self.attrs["listener"]
+			if attr in new and attr not in old or
+			attr in old and attr not in new or
+			(attr in old and attr in new and old[attr] != new[attr])
+		]
+		log_a("Office365Listener.modify_user() modifications={}".format(modifications))
+		udm_attrs = self._get_sync_values(modifications, new)
+
+		attributes = dict()
+		for k, v in udm_attrs.items():
+			attributes[self.attrs["mapping"][k]] = v
+
+		object_id = new["univentionOffice365ObjectID"][0]
+		return super(Office365Listener, self).modify_user(object_id=object_id, modifications=attributes)

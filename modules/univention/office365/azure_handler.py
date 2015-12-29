@@ -35,14 +35,44 @@ __package__ = ''  # workaround for PEP 366
 import json
 import urllib
 import uuid
-import pprint
 import requests
+import collections
 
 from univention.office365.azure_auth import AzureAuth, log_a, log_e, log_ex, log_p, resource_url
 
 
 azure_params = {"api-version": "1.6"}
-
+azure_attribute_types = dict(
+	accountEnabled=bool,
+	assignedLicenses=list,
+	city=unicode,
+	country=unicode,
+	department=unicode,
+	displayName=unicode,
+	facsimileTelephoneNumber=unicode,
+	givenName=unicode,
+	immutableId=unicode,
+	jobTitle=unicode,
+	mail=unicode,
+	mailNickname=unicode,
+	mobile=unicode,
+	otherMails=list,
+	passwordPolicies=unicode,
+	passwordProfile=dict,
+	password=unicode,
+	forceChangePasswordNextLogin=bool,
+	physicalDeliveryOfficeName=unicode,
+	postalCode=unicode,
+	preferredLanguage=unicode,
+	state=unicode,
+	streetAddress=unicode,
+	surname=unicode,
+	telephoneNumber=unicode,
+	thumbnailPhoto=bytes,
+	usageLocation=unicode,
+	userPrincipalName=unicode,
+	userType=unicode
+)
 
 def _get_azure_uris(tenant_id):
 	graph_base_url = "{0}/{1}".format(resource_url, tenant_id)
@@ -80,6 +110,10 @@ class ApiError(Exception):
 		super(ApiError, self).__init__(msg)
 
 
+class UnkownTypeError(Exception):
+	pass
+
+
 class AzureHandler(object):
 	def __init__(self, listener, name):
 		self.listener = listener
@@ -103,16 +137,20 @@ class AzureHandler(object):
 		access_token = self.auth.get_access_token()
 		while tries < MAX_TRIES:   # TODO: is this really necessary? Does it always work? Shouldn't this be checked in get_access_token()? Keep it during development, grep in log for 'TRY' to check.
 			tries += 1
-			log_a("call_api() **** TRY {} ****".format(tries))
+			log_a("AzureHandler.call_api() **** TRY {} ****".format(tries))
 			headers["Authorization"] = "Bearer {}".format(access_token)
 
-			log_p("call_api() {} {} data: {}".format(method.upper(), url, data))
+			data = AzureHandler._prepare_data(data)
+			# hide password
+			msg = AzureHandler._fprints_hide_pw(data, "AzureHandler.call_api() %s %s data: {data}" % (method.upper(), url))
+			log_p(msg)
 
-			requests_func = getattr(requests, method.lower())
-			args = dict(url=url, headers=headers, data=data, verify=True)
+			args = dict(url=url, headers=headers, verify=True)
 			if method.upper() in ["PATCH", "POST"]:
 				headers["Content-Type"] = "application/json"
-				args["data"] = data
+				args["data"] = json.dumps(data)
+
+			requests_func = getattr(requests, method.lower())
 			response = requests_func(**args)
 
 			if response is not None:
@@ -125,12 +163,13 @@ class AzureHandler(object):
 						# no response expected
 						pass
 					else:
-						log_ex("response is not JSON. response.__dict__: {}".format(response.__dict__))
-				log_p("call_api() status: {} ({})".format(
+						log_ex("AzureHandler.call_api() response is not JSON. response.__dict__: {}".format(response.__dict__))
+
+				log_p("AzureHandler.call_api() status: {} ({})".format(
 						response.status_code,
 						"OK" if 200 <= response.status_code <= 299 else "FAIL"))
 				if hasattr(response, "reason"):
-					log_p("call_api() reason: {}".format(response.reason))
+					log_p("AzureHandler.call_api() reason: {}".format(response.reason))
 
 				if 200 <= response.status_code <= 299:
 					break
@@ -139,17 +178,17 @@ class AzureHandler(object):
 						err_code = response_json["odata.error"]["code"]
 					else:
 						err_code = "Unknown error code, complete response: {}".format(response)
-					log_e("Error calling API: {}, {}".format(response.status_code, err_code))
+					log_e("AzureHandler.call_api() Error calling API: {}, {}".format(response.status_code, err_code))
 					if response.status_code == 401 and err_code in ["Authentication_ExpiredToken", "Authentication_MissingOrMalformed"]:
-						log_p("call_api() Retrying with fresh token...")
+						log_p("AzureHandler.call_api() Retrying with fresh token...")
 						access_token = self.auth.retrieve_access_token()
 						continue
 					else:
 						raise ApiError(response)
 			else:
-				log_e("call_api() response is None")
+				log_e("AzureHandler.call_api() response is None")
 		else:
-			log_e("Calling API: {}".format(response))
+			log_e("AzureHandler.call_api() calling API: {}".format(response))
 			raise ApiError(response)
 		return response_json or response
 
@@ -190,22 +229,20 @@ class AzureHandler(object):
 		assert type(attributes) == dict
 		assert "displayName" in attributes
 
-		attrs = dict(attributes)
-		if "password" in attrs:
-			attrs["password"] = "******"
-		log_p("Creating {} with properties: {}.".format(object_type, attrs))
+		# hide password
+		msg = AzureHandler._fprints_hide_pw(attributes, "AzureHandler._create_object() Creating %s with properties: {data}" % object_type)
+		log_p(msg)
 
-		data = json.dumps(attributes)
 		params = urllib.urlencode(azure_params)
 		url = self.uris[object_type + "s"].format(params=params)
-		return self.call_api("POST", url, data)
+		return self.call_api("POST", url, attributes)
 
 	def create_user(self, attributes):
 		# if user exists, modify it instead
 		user = self.list_users(ofilter="userPrincipalName eq '{}'".format(attributes["userPrincipalName"]))
 		if user["value"]:
-			log_p("User '{}' exists, modifying it.".format(user["value"][0]["userPrincipalName"]))
-			return self.modify_user(user["value"][0]["objectId"], attributes)
+			log_p("AzureHandler.create_user() User '{}' exists, modifying it.".format(user["value"][0]["userPrincipalName"]))
+			return self._modify_objects(object_type="user", object_id=user["value"][0]["objectId"], modifications=attributes)
 		else:
 			return self._create_object(object_type="user", attributes=attributes)
 
@@ -225,13 +262,12 @@ class AzureHandler(object):
 		if "passwordProfile" in modifications:
 			# read text at beginning delete_user()
 			del modifications["passwordProfile"]
-			log_e("Modifying passwords is currently not supported. 'passwordProfile' removed from modification list.")
-		log_a("Modifying {} with object_id {} and modifications {}...".format(object_type, object_id, modifications))
+			log_e("AzureHandler._modify_objects() Modifying passwords is currently not supported. 'passwordProfile' removed from modification list.")
+		log_a("AzureHandler._modify_objects() Modifying {} with object_id {} and modifications {}...".format(object_type, object_id, modifications))
 
 		params = urllib.urlencode(azure_params)
 		url = self.uris[object_type].format(object_id=object_id, params=params)
-		data = json.dumps(modifications)
-		return self.call_api("PATCH", url, data)
+		return self.call_api("PATCH", url, modifications)
 
 	def modify_user(self, object_id, modifications):
 		return self._modify_objects(object_type="user", object_id=object_id, modifications=modifications)
@@ -242,7 +278,7 @@ class AzureHandler(object):
 	def _delete_objects(self, object_type, object_id):
 		assert object_type in ["user", "group"], 'Currently only "user" and "group" supported.'
 		assert type(object_id) == str, "The ObjectId must be a string of form '893801ca-e843-49b7-9f64-7a4590b72769'."
-		log_a("Deleting {} with object_id {}...".format(object_type, object_id))
+		log_a("AzureHandler._delete_objects() Deleting {} with object_id {}...".format(object_type, object_id))
 
 		params = urllib.urlencode(azure_params)
 		url = self.uris[object_type].format(object_id=object_id, params=params)
@@ -270,10 +306,10 @@ class AzureHandler(object):
 		"""
 		Transitive versions (incl nested groups)
 		"""
-		log_p("Querying memberOf {} for user with object_id {}...".format(obj, object_id))
+		log_p("AzureHandler._member_of_() Querying memberOf {} for user with object_id {}...".format(obj, object_id))
 		assert type(object_id) == str, "The ObjectId must be a string of form '893801ca-e843-49b7-9f64-7a4590b72769'."
 
-		data = json.dumps({"securityEnabledOnly": True})
+		data = {"securityEnabledOnly": True}
 		params = urllib.urlencode(azure_params)
 		if obj == "groups":
 			url = self.uris["getMemberGroups"].format(resource_collection="users", resource_id=object_id, params=params)
@@ -288,16 +324,16 @@ class AzureHandler(object):
 		return self._member_of_("objects", object_id)
 
 	def resolve_object_ids(self, object_ids, object_types=None):
-		log_a("Looking for objects with IDs: {}...".format(object_ids))
+		log_a("AzureHandler.resolve_object_ids() Looking for objects with IDs: {}...".format(object_ids))
 		assert type(object_ids) == list, "Parameter object_ids must be a list of object IDs."
 
-		data = json.dumps({"objectIds": object_ids})
+		data = {"objectIds": object_ids}
 		params = urllib.urlencode(azure_params)
 		url = self.uris["getObjectsByObjectIds"].format(params=params)
 		return self.call_api("POST", url, data)
 
 	def get_groups_direct_members(self, group_id):
-		log_a("Fetching direct members of group {}...".format(group_id))
+		log_a("AzureHandler.get_groups_direct_members() Fetching direct members of group {}...".format(group_id))
 		assert type(group_id) in [str, unicode], "The ObjectId must be a string of form '893801ca-e843-49b7-9f64-7a4590b72769'."
 
 		params = urllib.urlencode(azure_params)
@@ -308,7 +344,7 @@ class AzureHandler(object):
 		assert type(group_id) == str, "The ObjectId must be a string of form '893801ca-e843-49b7-9f64-7a4590b72769'."
 		assert type(object_ids) == list, "object_ids must be a non-empty list of objectID strings."
 		assert len(object_ids) > 0, "object_ids must be a non-empty list of objectID strings."
-		log_a("Adding objects %r to group {}...".format(object_ids, group_id))
+		log_a("AzureHandler.add_objects_to_group() Adding objects %r to group {}...".format(object_ids, group_id))
 
 		if len(object_ids) == 1:
 			objs = {"url": self.uris["directoryObjects"].format(object_id=object_ids[0])}
@@ -316,19 +352,17 @@ class AzureHandler(object):
 			objs = {"url": [self.uris["directoryObjects"].format(object_id=oid) for oid in object_ids]}
 			raise NotImplementedError("Adding multiple objects to a group doesn't work for unknown reason.")  # TODO: ask MS support
 
-		data = json.dumps(objs)
 		params = urllib.urlencode(azure_params)
 		url = self.uris["group_members"].format(group_id=group_id, params=params)
-		return self.call_api("POST", url, data=data)
+		return self.call_api("POST", url, data=objs)
 
 	def _change_license(self, operation, user_id, license_id):  # TODO: possibly change signature to support disabling plans
-		log_a("_change_license() operation: {} user_id: {} license_id: {}".format(operation, user_id, license_id))
-		_data = dict(addLicenses=list(), removeLicenses=list())
+		log_a("AzureHandler._change_license() operation: {} user_id: {} license_id: {}".format(operation, user_id, license_id))
+		data = dict(addLicenses=list(), removeLicenses=list())
 		if operation == "add":
-			_data["addLicenses"].append(dict(disabledPlans=[], skuId=license_id))
+			data["addLicenses"].append(dict(disabledPlans=[], skuId=license_id))
 		elif operation == "remove":
-			_data["removeLicenses"].append(license_id)
-		data = json.dumps(_data)
+			data["removeLicenses"].append(license_id)
 		params = urllib.urlencode(azure_params)
 		url = self.uris["user_assign_license"].format(user_id=user_id, params=params)
 		return self.call_api("POST", url, data)
@@ -367,7 +401,7 @@ class AzureHandler(object):
 		user_obj = self.list_users(objectid=user_id)
 
 		# deactivate user, remove email addresses
-		self.modify_user(user_id, modifications={"accountEnabled": False, "immutableId": None, "otherMails": []})
+		self._modify_objects(object_type="user", object_id=user_id, modifications={"accountEnabled": False, "immutableId": None, "otherMails": []})
 
 		# remove user from all groups
 		groups = self.get_users_direct_groups(user_id)
@@ -380,3 +414,40 @@ class AzureHandler(object):
 		# remove all licenses
 		for lic in user_obj["assignedLicenses"]:
 			self.remove_license(user_id, lic["skuId"])
+
+	@staticmethod
+	def _fprints_hide_pw(data, msg):
+		"""
+		Create string for logging without password.
+
+		:param data: dict to print in {data}, data["passwordProfile"]["password"] will be replaced with "******"
+		:param msg: string containing {data}
+		:return: msg formatted
+		"""
+		tmppw = None
+		if isinstance(data, dict) and "passwordProfile" in data and "password" in data["passwordProfile"]:
+			tmppw = data["passwordProfile"]["password"]
+			data["passwordProfile"]["password"] = "******"
+		msg = msg.format(data=data)
+		if tmppw:
+			data["passwordProfile"]["password"] = tmppw
+		return msg
+
+	@staticmethod
+	def _prepare_data(data):
+		if not data:
+			return data
+		assert isinstance(data, dict)
+
+		res = dict()
+		for k, v in data.items():
+			if isinstance(v, dict):
+				res[k] = AzureHandler._prepare_data(v)
+			try:
+				if azure_attribute_types[k] == list and not isinstance(v, list) and isinstance(v, collections.Iterable):
+					res[k] = [v]  # list("str") -> ["s", "t", "r"] and list(dict) -> [k, e, y, s]  :/
+				else:
+					res[k] = azure_attribute_types[k](v)
+			except KeyError:
+				raise UnkownTypeError("Attribute '{}' not in azure_attribute_types mapping.".format(k))
+		return res

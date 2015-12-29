@@ -120,6 +120,7 @@ OFFICE365_OLD_PICKLE = os.path.join("/var/lib/univention-office365", "office365_
 
 _attrs = dict(
 	anonymize=attributes_anonymize,
+	listener=attributes,
 	mapping=attributes_mapping,
 	never=attributes_never,
 	static=attributes_static,
@@ -176,8 +177,8 @@ def handler(dn, new, old, command):
 
 	# log_a("old: {}".format(old))
 	# log_a("new: {}".format(new))
-	log_p("old_enabled: {}".format(old_enabled))
-	log_p("new_enabled: {}".format(new_enabled))
+	# log_p("old_enabled: {}".format(old_enabled))
+	# log_p("new_enabled: {}".format(new_enabled))
 
 	#
 	# NEW account
@@ -210,10 +211,12 @@ def handler(dn, new, old, command):
 			# user was deleted (not just deactivated)
 			pass
 		log_p("Deleted user '{}'.".format(old["univentionOffice365ObjectID"][0]))
+		return
 
 	#
 	# MODIFY account
 	#
 	if old_enabled and new_enabled:
 		log_p("old_enabled and new_enabled -> MODIFY")
+		ol.modify_user(old, new)
 		return
