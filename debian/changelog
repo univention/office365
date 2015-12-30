@@ -1,3 +1,12 @@
+univention-office365 (0.0.7) unstable; urgency=low
+
+  * add support for multiple value objects (Bug #40295)
+  * when deactivating a user, do not set immutableId=None, as that is not
+    unique...
+  * remove strange data from attributes
+
+ -- Daniel Troeder <troeder@univention.de>  Wed, 30 Dec 2015 10:15:33 +0100
+
 univention-office365 (0.0.6) unstable; urgency=low
 
   * add support to modify azure user (Bug #40295)

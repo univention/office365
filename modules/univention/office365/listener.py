@@ -49,9 +49,6 @@ class Office365Listener(AzureHandler):
 	def verified_domains(self):
 		return map(itemgetter("name"), self.list_verified_domains())
 
-	def _anonymize(self, txt):
-		return uuid.uuid4().get_hex()
-
 	def _get_sync_values(self, attrs, user):
 		# anonymize > static > sync
 		res = dict()
@@ -61,41 +58,60 @@ class Office365Listener(AzureHandler):
 				continue
 
 			if attr in self.attrs["anonymize"]:
-				res[attr] = self._anonymize(user[attr][0])  # TODO: multiple value attributes
+				tmp = map(self._anonymize, user[attr])
 			elif attr in self.attrs["static"]:
-				res[attr] = self.attrs["static"][attr]
+				tmp = [self.attrs["static"][attr]]
 			elif attr in self.attrs["sync"]:
-				res[attr] = user[attr][0]  # TODO: multiple value attributes
+				tmp = user[attr]
 			else:
 				raise RuntimeError("Attribute to sync '{}' is not configured through UCR.".format(attr))
+
+			if attr in res:
+				if isinstance(res[attr], list):
+					res[attr].append(tmp)
+				else:
+					raise RuntimeError(
+						"Office365Listener._get_sync_values() res[{}] already exists with type {} and value '{}'.".format(
+							attr,
+							type(res[attr]),
+							res[attr]))
+			else:
+				if len(tmp) == 1:
+					res[attr] = tmp[0]
+				else:
+					res[attr] = tmp
 		return res
 
 	def create_user(self, new):
-		# have at least one char from each category in password
-		# https://msdn.microsoft.com/en-us/library/azure/jj943764.aspx
-		pw = list(random.choice(string.lowercase))
-		pw.append(random.choice(string.uppercase))
-		pw.append(random.choice(string.digits))
-		pw.append(random.choice(u"@#$%^&*-_+=[]{}|\:,.?/`~();"))
-		pw.extend(random.choice(string.ascii_letters + string.digits + u"@#$%^&*-_+=[]{}|\:,.?/`~();") for _ in range(12))
-		random.shuffle(pw)
-		attributes = {
-			"immutableId": new["entryUUID"][0],
-			"accountEnabled": True,
-			"passwordProfile": {
-				"password": u"".join(pw),
-				"forceChangePasswordNextLogin": False},
-		}
 		udm_attrs = self._get_sync_values(self.attrs["listener"], new)
 
+		attributes = dict()
 		for k, v in udm_attrs.items():
-			attributes[self.attrs["mapping"][k]] = v
+			azure_ldap_attribute_name = self.attrs["mapping"][k]
+			if azure_ldap_attribute_name in attributes:
+				if isinstance(v, list):
+					list_method = list.extend
+				else:
+					list_method = list.append
+				if not isinstance(attributes[azure_ldap_attribute_name], list):
+					attributes[azure_ldap_attribute_name] = [attributes[azure_ldap_attribute_name]]
+				list_method(attributes[azure_ldap_attribute_name], v)
+			else:
+				attributes[azure_ldap_attribute_name] = v
 
-		# mandatory attributes
-		attributes["userPrincipalName"] = "{0}@{1}".format(new["uid"][0], self.verified_domains[0])  # TODO: make the domain choosable
-		attributes["mailNickname"] = new["uid"][0]
-		if "displayName" not in attributes:
-			attributes["displayName"] = "no name"
+		# mandatory attributes, not to be overwritten by user
+		mandatory_attributes = dict(
+			immutableId=new["entryUUID"][0],
+			accountEnabled=True,
+			passwordProfile=dict(
+				password=u"".join(Office365Listener._get_random_pw()),
+				forceChangePasswordNextLogin=False
+			),
+			userPrincipalName="{0}@{1}".format(new["uid"][0], self.verified_domains[0]),  # TODO: make the domain choosable
+			mailNickname=new["uid"][0],
+			displayName=attributes["displayName"] if "displayName" in attributes else "no name"
+		)
+		attributes.update(mandatory_attributes)
 
 		super(Office365Listener, self).create_user(attributes)
 
@@ -103,7 +119,7 @@ class Office365Listener(AzureHandler):
 		if user["value"]:
 			return user["value"][0]
 		else:
-			raise RuntimeError("Created user '{}' cannot be retrieved.".format(attributes["userPrincipalName"]))
+			raise RuntimeError("Office365Listener.create_user() created user '{}' cannot be retrieved.".format(attributes["userPrincipalName"]))
 
 	def delete_user(self, old):
 		return super(Office365Listener, self).delete_user(old["univentionOffice365ObjectID"][0])
@@ -128,12 +144,32 @@ class Office365Listener(AzureHandler):
 			attr in old and attr not in new or
 			(attr in old and attr in new and old[attr] != new[attr])
 		]
-		log_a("Office365Listener.modify_user() modifications={}".format(modifications))
-		udm_attrs = self._get_sync_values(modifications, new)
+		if modifications:
+			log_a("Office365Listener.modify_user() modifications={}".format(modifications))
 
-		attributes = dict()
-		for k, v in udm_attrs.items():
-			attributes[self.attrs["mapping"][k]] = v
+			udm_attrs = self._get_sync_values(modifications, new)
 
-		object_id = new["univentionOffice365ObjectID"][0]
-		return super(Office365Listener, self).modify_user(object_id=object_id, modifications=attributes)
+			attributes = dict()
+			for k, v in udm_attrs.items():
+				attributes[self.attrs["mapping"][k]] = v
+
+			object_id = new["univentionOffice365ObjectID"][0]
+			return super(Office365Listener, self).modify_user(object_id=object_id, modifications=attributes)
+		else:
+			log_a("Office365Listener.modify_user() no modifications - nothing to do.")
+			return
+
+	def _anonymize(self, txt):
+		return uuid.uuid4().get_hex()
+
+	@staticmethod
+	def _get_random_pw():
+		# have at least one char from each category in password
+		# https://msdn.microsoft.com/en-us/library/azure/jj943764.aspx
+		pw = list(random.choice(string.lowercase))
+		pw.append(random.choice(string.uppercase))
+		pw.append(random.choice(string.digits))
+		pw.append(random.choice(u"@#$%^&*-_+=[]{}|\:,.?/`~();"))
+		pw.extend(random.choice(string.ascii_letters + string.digits + u"@#$%^&*-_+=[]{}|\:,.?/`~();") for _ in range(12))
+		random.shuffle(pw)
+		return pw

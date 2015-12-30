@@ -37,6 +37,7 @@ import cPickle
 import json
 import base64
 import zlib
+import copy
 
 import listener
 from univention.admin.uexceptions import noObject
@@ -120,7 +121,7 @@ OFFICE365_OLD_PICKLE = os.path.join("/var/lib/univention-office365", "office365_
 
 _attrs = dict(
 	anonymize=attributes_anonymize,
-	listener=attributes,
+	listener=copy.deepcopy(attributes),  # when handler() runs, all kinds of stuff is suddenly in attributes
 	mapping=attributes_mapping,
 	never=attributes_never,
 	static=attributes_static,

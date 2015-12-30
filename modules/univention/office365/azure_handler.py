@@ -259,10 +259,12 @@ class AzureHandler(object):
 		assert type(object_id) == str, "The ObjectId must be a string of form '893801ca-e843-49b7-9f64-7a4590b72769'."
 		assert type(modifications) == dict, "Please supply a dict of attr->value to change."
 
-		if "passwordProfile" in modifications:
-			# read text at beginning delete_user()
-			del modifications["passwordProfile"]
-			log_e("AzureHandler._modify_objects() Modifying passwords is currently not supported. 'passwordProfile' removed from modification list.")
+		can_only_be_created_not_modified = ["mobile", "passwordProfile"]
+		for attrib in can_only_be_created_not_modified:
+			if attrib in modifications:
+				# read text at beginning delete_user()
+				del modifications[attrib]
+				log_e("AzureHandler._modify_objects() Modifying '{attrib}' is currently not supported. '{attrib}' removed from modification list.".format(attrib=attrib))
 		log_a("AzureHandler._modify_objects() Modifying {} with object_id {} and modifications {}...".format(object_type, object_id, modifications))
 
 		params = urllib.urlencode(azure_params)
@@ -401,7 +403,7 @@ class AzureHandler(object):
 		user_obj = self.list_users(objectid=user_id)
 
 		# deactivate user, remove email addresses
-		self._modify_objects(object_type="user", object_id=user_id, modifications={"accountEnabled": False, "immutableId": None, "otherMails": []})
+		self._modify_objects(object_type="user", object_id=user_id, modifications={"accountEnabled": False, "otherMails": []})
 
 		# remove user from all groups
 		groups = self.get_users_direct_groups(user_id)
@@ -447,7 +449,10 @@ class AzureHandler(object):
 				if azure_attribute_types[k] == list and not isinstance(v, list) and isinstance(v, collections.Iterable):
 					res[k] = [v]  # list("str") -> ["s", "t", "r"] and list(dict) -> [k, e, y, s]  :/
 				else:
-					res[k] = azure_attribute_types[k](v)
+					if k in res and isinstance(res[k], list):
+						res[k].append(azure_attribute_types[k](v))
+					else:
+						res[k] = azure_attribute_types[k](v)
 			except KeyError:
 				raise UnkownTypeError("Attribute '{}' not in azure_attribute_types mapping.".format(k))
 		return res
