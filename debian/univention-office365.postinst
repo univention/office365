@@ -60,7 +60,7 @@ univention-config-registry set \
 	office365/attributes/mapping/sn?surname \
 	office365/attributes/mapping/telephoneNumber?telephoneNumber \
 	office365/attributes/mapping/jpegPhoto?thumbnailPhoto \
-	office365/attributes/sync?city,st,displayName,givenName,mailPrimaryAddress,mobile,sambaSID,mailAlternativeAddress,postalCode,street,sn,telephoneNumber,jpegPhoto
+	office365/attributes/sync?city,st,displayName,givenName,mailPrimaryAddress,mobile,mailAlternativeAddress,postalCode,street,sn,telephoneNumber,jpegPhoto
 
 #
 # AAD::otherMails should contain email addresses of both mailPrimaryAddress and mailAlternativeAddress

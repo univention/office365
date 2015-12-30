@@ -130,66 +130,45 @@ class AzureHandler(object):
 			"client-request-id": request_id,
 			"return-client-request-id": "true"}
 
-		tries = 0
-		MAX_TRIES = 2
-		response = None
 		response_json = None
 		access_token = self.auth.get_access_token()
-		while tries < MAX_TRIES:   # TODO: is this really necessary? Does it always work? Shouldn't this be checked in get_access_token()? Keep it during development, grep in log for 'TRY' to check.
-			tries += 1
-			log_a("AzureHandler.call_api() **** TRY {} ****".format(tries))
-			headers["Authorization"] = "Bearer {}".format(access_token)
+		headers["Authorization"] = "Bearer {}".format(access_token)
 
-			data = AzureHandler._prepare_data(data)
-			# hide password
-			msg = AzureHandler._fprints_hide_pw(data, "AzureHandler.call_api() %s %s data: {data}" % (method.upper(), url))
-			log_p(msg)
+		data = AzureHandler._prepare_data(data)
+		# hide password
+		msg = AzureHandler._fprints_hide_pw(data, "AzureHandler.call_api() %s %s data: {data}" % (method.upper(), url))
+		log_p(msg)
 
-			args = dict(url=url, headers=headers, verify=True)
-			if method.upper() in ["PATCH", "POST"]:
-				headers["Content-Type"] = "application/json"
-				args["data"] = json.dumps(data)
+		args = dict(url=url, headers=headers, verify=True)
+		if method.upper() in ["PATCH", "POST"]:
+			headers["Content-Type"] = "application/json"
+			args["data"] = json.dumps(data)
 
-			requests_func = getattr(requests, method.lower())
-			response = requests_func(**args)
+		requests_func = getattr(requests, method.lower())
+		response = requests_func(**args)
 
-			if response is not None:
-				try:
-					response_json = response.json
-					if callable(response_json):
-						response_json = response_json()
-				except (TypeError, ValueError):
-					if method.upper() in ["DELETE", "PATCH", "PUT"]:
-						# no response expected
-						pass
-					else:
-						log_ex("AzureHandler.call_api() response is not JSON. response.__dict__: {}".format(response.__dict__))
-
-				log_p("AzureHandler.call_api() status: {} ({})".format(
-						response.status_code,
-						"OK" if 200 <= response.status_code <= 299 else "FAIL"))
-				if hasattr(response, "reason"):
-					log_p("AzureHandler.call_api() reason: {}".format(response.reason))
-
-				if 200 <= response.status_code <= 299:
-					break
+		if response is not None:
+			try:
+				response_json = response.json
+				if callable(response_json):
+					response_json = response_json()
+			except (TypeError, ValueError):
+				if method.upper() in ["DELETE", "PATCH", "PUT"]:
+					# no response expected
+					pass
 				else:
-					if response_json and "odata.error" in response_json:
-						err_code = response_json["odata.error"]["code"]
-					else:
-						err_code = "Unknown error code, complete response: {}".format(response)
-					log_e("AzureHandler.call_api() Error calling API: {}, {}".format(response.status_code, err_code))
-					if response.status_code == 401 and err_code in ["Authentication_ExpiredToken", "Authentication_MissingOrMalformed"]:
-						log_p("AzureHandler.call_api() Retrying with fresh token...")
-						access_token = self.auth.retrieve_access_token()
-						continue
-					else:
-						raise ApiError(response)
-			else:
-				log_e("AzureHandler.call_api() response is None")
+					log_ex("AzureHandler.call_api() response is not JSON. response.__dict__: {}".format(response.__dict__))
+
+			log_p("AzureHandler.call_api() status: {} ({})".format(
+					response.status_code,
+					"OK" if 200 <= response.status_code <= 299 else "FAIL"))
+			if hasattr(response, "reason"):
+				log_p("AzureHandler.call_api() reason: {}".format(response.reason))
+
+			if not (200 <= response.status_code <= 299):
+				raise ApiError(response)
 		else:
-			log_e("AzureHandler.call_api() calling API: {}".format(response))
-			raise ApiError(response)
+			log_e("AzureHandler.call_api() response is None")
 		return response_json or response
 
 	def _list_objects(self, object_type, object_id=None, ofilter=None, params_extra=None, url_extra=None):
@@ -403,7 +382,11 @@ class AzureHandler(object):
 		user_obj = self.list_users(objectid=user_id)
 
 		# deactivate user, remove email addresses
-		self._modify_objects(object_type="user", object_id=user_id, modifications={"accountEnabled": False, "otherMails": []})
+		self._modify_objects(object_type="user", object_id=user_id, modifications={
+			"accountEnabled": False,
+			"otherMails": [],
+			"immutableId": "deactivated_{}".format(user_obj["immutableId"])
+		})
 
 		# remove user from all groups
 		groups = self.get_users_direct_groups(user_id)

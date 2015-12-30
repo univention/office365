@@ -73,11 +73,11 @@ def get_listener_attributes():
 					raise ValueError("Can only deal with dicts and lists: rm_objs_from_list_or_dict({}, {})".format(
 						rm_objs_list, list_of_listsdicts))
 
-	attrs = ["univentionOffice365Enabled"]
+	attrs = {"univentionOffice365Enabled"}
 	for k, v in listener.configRegistry.items():
 		if k == "office365/attributes/anonymize":
 			attributes_anonymize = [x.strip() for x in v.split(",") if x.strip()]
-			attrs.extend(attributes_anonymize)
+			attrs.update(attributes_anonymize)
 		elif k.startswith("office365/attributes/mapping/"):
 			at = k.split("/")[-1]
 			attributes_mapping[at] = v.strip()
@@ -86,12 +86,13 @@ def get_listener_attributes():
 		elif k.startswith("office365/attributes/static/"):
 			at = k.split("/")[-1]
 			attributes_static[at] = v.strip()
-			attrs.append(at)
+			attrs.add(at)
 		elif k == "office365/attributes/sync":
 			attributes_sync = [x.strip() for x in v.split(",") if x.strip()]
-			attrs.extend(attributes_sync)
+			attrs.update(attributes_sync)
 		else:
 			pass
+	attrs = list(attrs)
 
 	# never > anonymize > static > sync
 	rm_objs_from_list_or_dict(attributes_never, [attrs, attributes_anonymize, attributes_static, attributes_sync])
@@ -107,6 +108,12 @@ def get_listener_attributes():
 	if "univentionOffice365ObjectID" in attrs or "UniventionOffice365Data" in attrs:
 		log_e("Nice try.")
 		rm_objs_from_list_or_dict(["univentionOffice365ObjectID", "univentionOffice365Data"], [attrs, attributes_anonymize, attributes_static, attributes_sync])
+
+	# just for log readability
+	attrs.sort()
+	attributes_anonymize.sort()
+	attributes_never.sort()
+	attributes_sync.sort()
 
 	return attrs
 

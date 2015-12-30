@@ -1,3 +1,10 @@
+univention-office365 (0.0.8) unstable; urgency=low
+
+  * fix duplicate attributes (Bug #40295)
+  * mark immutableId for possible UMC cleanup page
+
+ -- Daniel Troeder <troeder@univention.de>  Wed, 30 Dec 2015 15:55:46 +0100
+
 univention-office365 (0.0.7) unstable; urgency=low
 
   * add support for multiple value objects (Bug #40295)
