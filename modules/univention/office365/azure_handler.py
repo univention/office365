@@ -37,6 +37,7 @@ import urllib
 import uuid
 import requests
 import collections
+import time
 
 from univention.office365.azure_auth import AzureAuth, log_a, log_e, log_ex, log_p, resource_url
 
@@ -217,13 +218,17 @@ class AzureHandler(object):
 		return self.call_api("POST", url, attributes)
 
 	def create_user(self, attributes):
-		# if user exists, modify it instead
+		"""
+		if user exists, modify it instead
+		"""
 		user = self.list_users(ofilter="userPrincipalName eq '{}'".format(attributes["userPrincipalName"]))
 		if user["value"]:
 			log_p("AzureHandler.create_user() User '{}' exists, modifying it.".format(user["value"][0]["userPrincipalName"]))
 			return self._modify_objects(object_type="user", object_id=user["value"][0]["objectId"], modifications=attributes)
 		else:
 			return self._create_object(object_type="user", attributes=attributes)
+
+		# TODO: create / modify groups user is in
 
 	def create_group(self, name):
 		attributes = {
@@ -278,7 +283,7 @@ class AzureHandler(object):
 		#
 
 		# return self._delete_objects(object_type="user", object_id=object_id)
-		return self.deactivate_user(object_id)
+		return self.deactivate_user(object_id, rename=True)
 
 	def delete_group(self, object_id):
 		return self._delete_objects(object_type="group", object_id=object_id)
@@ -378,15 +383,18 @@ class AzureHandler(object):
 		"""
 		return self.list_tenant_details()["value"][0]["verifiedDomains"]
 
-	def deactivate_user(self, user_id):
+	def deactivate_user(self, user_id, rename=False):
 		user_obj = self.list_users(objectid=user_id)
 
 		# deactivate user, remove email addresses
-		self._modify_objects(object_type="user", object_id=user_id, modifications={
-			"accountEnabled": False,
-			"otherMails": [],
-			"immutableId": "deactivated_{}".format(user_obj["immutableId"])
-		})
+		modifications = dict(
+			accountEnabled=False,
+			otherMails=list(),
+			immutableId="deactivated_{}_{}".format(user_obj["immutableId"], time.time())
+		)
+		if rename:
+			modifications["userPrincipalName"] = "ZZZ_deleted_{}_{}".format(user_obj["userPrincipalName"], time.time())
+		self._modify_objects(object_type="user", object_id=user_id, modifications=modifications)
 
 		# remove user from all groups
 		groups = self.get_users_direct_groups(user_id)
@@ -395,6 +403,7 @@ class AzureHandler(object):
 			group_obj = self.call_api("GET", "{}?{}".format(gr["url"], params))
 			url = self.uris["group_member"].format(group_id=group_obj["objectId"], member_id=user_id, params=params)
 			self.call_api("DELETE", url)
+		# TODO: delete group if empty
 
 		# remove all licenses
 		for lic in user_obj["assignedLicenses"]:

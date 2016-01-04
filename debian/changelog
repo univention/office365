@@ -1,3 +1,13 @@
+univention-office365 (0.0.9) unstable; urgency=low
+
+  * deleting a UCS user renames the Azure user, so a new user with the name
+    won't have access to the old users data, deactivated UCS users are still
+    kept and just deactivated on the Azure side (Bug #40295)
+  * use aggregation instead of inheritance in listener impl
+  * use UniventionOffice365Data
+
+ -- Daniel Troeder <troeder@univention.de>  Mon, 04 Jan 2016 10:48:12 +0100
+
 univention-office365 (0.0.8) unstable; urgency=low
 
   * fix duplicate attributes (Bug #40295)

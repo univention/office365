@@ -40,14 +40,15 @@ from univention.office365.azure_auth import log_a, log_e, log_ex, log_p
 from univention.office365.azure_handler import AzureHandler
 
 
-class Office365Listener(AzureHandler):
+class Office365Listener():
 	def __init__(self, listener, name, attrs):
-		super(Office365Listener, self).__init__(listener, name)
+		self.ah = AzureHandler(listener, name)
+		self.listener = listener
 		self.attrs = attrs
 
 	@property
 	def verified_domains(self):
-		return map(itemgetter("name"), self.list_verified_domains())
+		return map(itemgetter("name"), self.ah.list_verified_domains())
 
 	def _get_sync_values(self, attrs, user):
 		# anonymize > static > sync
@@ -58,7 +59,7 @@ class Office365Listener(AzureHandler):
 				continue
 
 			if attr in self.attrs["anonymize"]:
-				tmp = map(self._anonymize, user[attr])
+				tmp = map(Office365Listener._anonymize, user[attr])
 			elif attr in self.attrs["static"]:
 				tmp = [self.attrs["static"][attr]]
 			elif attr in self.attrs["sync"]:
@@ -113,16 +114,19 @@ class Office365Listener(AzureHandler):
 		)
 		attributes.update(mandatory_attributes)
 
-		super(Office365Listener, self).create_user(attributes)
+		self.ah.create_user(attributes)
 
-		user = self.list_users(ofilter="userPrincipalName eq '{}'".format(attributes["userPrincipalName"]))
+		user = self.ah.list_users(ofilter="userPrincipalName eq '{}'".format(attributes["userPrincipalName"]))
 		if user["value"]:
 			return user["value"][0]
 		else:
 			raise RuntimeError("Office365Listener.create_user() created user '{}' cannot be retrieved.".format(attributes["userPrincipalName"]))
 
 	def delete_user(self, old):
-		return super(Office365Listener, self).delete_user(old["univentionOffice365ObjectID"][0])
+		return self.ah.delete_user(old["univentionOffice365ObjectID"][0])
+
+	def deactivate_user(self, old):
+		return self.ah.deactivate_user(old["univentionOffice365ObjectID"][0])
 
 	def get_udm_user(self, ldap_cred, userdn):
 		lo = univention.admin.uldap.access(
@@ -154,12 +158,27 @@ class Office365Listener(AzureHandler):
 				attributes[self.attrs["mapping"][k]] = v
 
 			object_id = new["univentionOffice365ObjectID"][0]
-			return super(Office365Listener, self).modify_user(object_id=object_id, modifications=attributes)
+			return self.ah.modify_user(object_id=object_id, modifications=attributes)
 		else:
 			log_a("Office365Listener.modify_user() no modifications - nothing to do.")
 			return
 
-	def _anonymize(self, txt):
+	def get_user(self, user):
+		"""
+		fetch Azure user object
+		:param user: listener old or new
+		:return: dict
+		"""
+		object_id = user["univentionOffice365ObjectID"][0]
+		if not object_id:
+			upn = "{0}@{1}".format(user["uid"][0], self.verified_domains[0]),  # TODO: make the domain choosable
+			user = self.ah.list_users(ofilter="userPrincipalName eq '{}'".format(upn))
+			if user["value"]:
+				object_id = user["value"][0]["objectId"]
+		return self.ah.list_users(objectid=object_id)
+
+	@staticmethod
+	def _anonymize(txt):
 		return uuid.uuid4().get_hex()
 
 	@staticmethod
