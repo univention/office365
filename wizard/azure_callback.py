@@ -3,7 +3,7 @@
 # Univention Office 365 - WSGI script to receive authentication tokens
 # from MS Azure
 #
-# Copyright 2015 Univention GmbH
+# Copyright 2016 Univention GmbH
 #
 # http://www.univention.de/
 #

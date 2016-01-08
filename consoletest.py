@@ -3,7 +3,7 @@
 #
 # Univention Office 365 - cmdline tests
 #
-# Copyright 2015 Univention GmbH
+# Copyright 2016 Univention GmbH
 #
 # http://www.univention.de/
 #
@@ -198,14 +198,14 @@ if __name__ == "__main__":
 					"passwordProfile": {
 						"password": "univention.99",
 						"forceChangePasswordNextLogin": False},
-					"userPrincipalName": "{0}@{1}".format(name, ah.list_verified_domains()[0])}
-				new_user = ah.create_user(attributes)
-				if new_user:
-					print_users([new_user], args.complete, args.short)
+					"userPrincipalName": "{0}@{1}".format(name, ah.list_verified_domains()[0]["name"])}
+				ah.create_user(attributes)
+				new_user = ah.list_users(ofilter="userPrincipalName eq '{}'".format(attributes["userPrincipalName"]))
+				print_users(new_user, args.complete, args.short)
 			elif args.object == "groups":
-				new_group = ah.create_group(name)
-				if new_group:
-					print_groups([new_group], args.complete, args.short)
+				ah.create_group(name)
+				new_group = ah.list_groups(ofilter="displayName eq '{}'".format(name))
+				print_groups(new_group, args.complete, args.short)
 			else:
 				print "other object types not yet implemented"
 	elif args.action == "list":

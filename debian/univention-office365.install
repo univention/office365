@@ -3,5 +3,6 @@
 etc/apache2/sites-available/univention-office365 etc/apache2/sites-available/
 wizard usr/lib/univention-office365/
 modules/univention/office365/*.py usr/share/pyshared/univention/office365/
-office365.py usr/lib/univention-directory-listener/system/
+office365-user.py usr/lib/univention-directory-listener/system/
+office365-group.py usr/lib/univention-directory-listener/system/
 office365.schema usr/share/univention-office365/

@@ -1,3 +1,14 @@
+univention-office365 (0.1.0) unstable; urgency=low
+
+  * add group listener (Bug #40295)
+  * add extended attribute for Azure object ID of syncronized groups
+  * fix None being converted to str
+  * fix group membership handling
+  * support nested groups
+  * make listener methods useable outside of listener
+
+ -- Daniel Troeder <troeder@univention.de>  Fri, 08 Jan 2016 14:22:53 +0100
+
 univention-office365 (0.0.9) unstable; urgency=low
 
   * deleting a UCS user renames the Azure user, so a new user with the name

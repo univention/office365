@@ -3,7 +3,7 @@
 #
 # Univention Office 365 - handle Azure API calls
 #
-# Copyright 2015 Univention GmbH
+# Copyright 2016 Univention GmbH
 #
 # http://www.univention.de/
 #
@@ -38,6 +38,8 @@ import uuid
 import requests
 import collections
 import time
+import re
+from operator import itemgetter
 
 from univention.office365.azure_auth import AzureAuth, log_a, log_e, log_ex, log_p, resource_url
 
@@ -49,12 +51,14 @@ azure_attribute_types = dict(
 	city=unicode,
 	country=unicode,
 	department=unicode,
+	description=unicode,
 	displayName=unicode,
 	facsimileTelephoneNumber=unicode,
 	givenName=unicode,
 	immutableId=unicode,
 	jobTitle=unicode,
 	mail=unicode,
+	mailEnabled=bool,
 	mailNickname=unicode,
 	mobile=unicode,
 	otherMails=list,
@@ -65,11 +69,13 @@ azure_attribute_types = dict(
 	physicalDeliveryOfficeName=unicode,
 	postalCode=unicode,
 	preferredLanguage=unicode,
+	securityEnabled=bool,
 	state=unicode,
 	streetAddress=unicode,
 	surname=unicode,
 	telephoneNumber=unicode,
 	thumbnailPhoto=bytes,
+	url=str,
 	usageLocation=unicode,
 	userPrincipalName=unicode,
 	userType=unicode
@@ -105,10 +111,15 @@ class ApiError(Exception):
 			j = response.json
 			if callable(j):  # requests version compatibility
 				j = j()
-			msg = j["odata.error"]
+			msg = j["odata.error"]["message"]["value"]
+			self.json = j
 		self.response = response
 		log_e(msg)
 		super(ApiError, self).__init__(msg)
+
+
+class ResourceNotFoundError(ApiError):
+	pass
 
 
 class UnkownTypeError(Exception):
@@ -138,7 +149,7 @@ class AzureHandler(object):
 		data = AzureHandler._prepare_data(data)
 		# hide password
 		msg = AzureHandler._fprints_hide_pw(data, "AzureHandler.call_api() %s %s data: {data}" % (method.upper(), url))
-		log_p(msg)
+		log_a(msg)
 
 		args = dict(url=url, headers=headers, verify=True)
 		if method.upper() in ["PATCH", "POST"]:
@@ -151,25 +162,32 @@ class AzureHandler(object):
 		if response is not None:
 			try:
 				response_json = response.json
-				if callable(response_json):
+				if callable(response_json):  # requests version compatibility
 					response_json = response_json()
 			except (TypeError, ValueError):
 				if method.upper() in ["DELETE", "PATCH", "PUT"]:
 					# no response expected
 					pass
+				elif method.upper() == "POST" and "members" in url:
+					# no response expected (add_objects_to_group())
+					pass
 				else:
 					log_ex("AzureHandler.call_api() response is not JSON. response.__dict__: {}".format(response.__dict__))
+					raise ApiError(response)
 
-			log_p("AzureHandler.call_api() status: {} ({})".format(
-					response.status_code,
-					"OK" if 200 <= response.status_code <= 299 else "FAIL"))
-			if hasattr(response, "reason"):
-				log_p("AzureHandler.call_api() reason: {}".format(response.reason))
+			log_a("AzureHandler.call_api() status: {} ({}){}".format(
+				response.status_code,
+				"OK" if 200 <= response.status_code <= 299 else "FAIL",
+				" Code: {}".format(response_json["odata.error"]["code"]) if response_json and "odata.error" in response_json else ""))
 
 			if not (200 <= response.status_code <= 299):
-				raise ApiError(response)
+				if response.status_code == 404 and response_json["odata.error"]["code"] == "Request_ResourceNotFound":
+					raise ResourceNotFoundError(response)
+				else:
+					raise ApiError(response)
 		else:
 			log_e("AzureHandler.call_api() response is None")
+			raise ApiError("Response is None")
 		return response_json or response
 
 	def _list_objects(self, object_type, object_id=None, ofilter=None, params_extra=None, url_extra=None):
@@ -204,39 +222,57 @@ class AzureHandler(object):
 	def list_groups(self, objectid=None, ofilter=None):
 		return self._list_objects(object_type="group", object_id=objectid, ofilter=ofilter)
 
-	def _create_object(self, object_type, attributes):
+	def _create_object(self, object_type, attributes, obj_id):
 		assert object_type in ["user", "group"], 'Currently only "user" and "group" supported.'
 		assert type(attributes) == dict
 		assert "displayName" in attributes
+		assert type(obj_id) == dict
+		assert "key" in obj_id
+		assert "value" in obj_id
 
 		# hide password
 		msg = AzureHandler._fprints_hide_pw(attributes, "AzureHandler._create_object() Creating %s with properties: {data}" % object_type)
 		log_p(msg)
 
-		params = urllib.urlencode(azure_params)
-		url = self.uris[object_type + "s"].format(params=params)
-		return self.call_api("POST", url, attributes)
+		obj = self._list_objects(object_type=object_type, ofilter="{key} eq '{value}'".format(**obj_id))
+		if obj["value"]:
+			log_p("AzureHandler._create_object() {} '{}' exists, modifying it.".format(
+					object_type,
+					obj["value"][0]["displayName"]))
+
+			return self._modify_objects(
+					object_type=object_type,
+					object_id=obj["value"][0]["objectId"],
+					modifications=attributes)
+		else:
+			params = urllib.urlencode(azure_params)
+			url = self.uris[object_type + "s"].format(params=params)
+			return self.call_api("POST", url, attributes)
 
 	def create_user(self, attributes):
 		"""
 		if user exists, modify it instead
 		"""
-		user = self.list_users(ofilter="userPrincipalName eq '{}'".format(attributes["userPrincipalName"]))
-		if user["value"]:
-			log_p("AzureHandler.create_user() User '{}' exists, modifying it.".format(user["value"][0]["userPrincipalName"]))
-			return self._modify_objects(object_type="user", object_id=user["value"][0]["objectId"], modifications=attributes)
-		else:
-			return self._create_object(object_type="user", attributes=attributes)
+		return self._create_object(
+				object_type="user",
+				attributes=attributes,
+				obj_id={"key": "userPrincipalName", "value": attributes["userPrincipalName"]})
 
-		# TODO: create / modify groups user is in
-
-	def create_group(self, name):
-		attributes = {
-			"displayName": name,
-			"mailEnabled": False,
-			"mailNickname": name,
-			"securityEnabled": True}
-		return self._create_object(object_type="group", attributes=attributes)
+	def create_group(self, name, description=None):
+		"""
+		if group exists, modify it instead
+		"""
+		attributes = dict(
+			description=description,
+			displayName=name,
+			mailEnabled=False,
+			mailNickname=name.replace(" ", "_-_"),
+			securityEnabled=True
+		)
+		return self._create_object(
+				object_type="group",
+				attributes=attributes,
+				obj_id={"key": "displayName", "value": name})
 
 	def _modify_objects(self, object_type, object_id, modifications):
 		assert object_type in ["user", "group"], 'Currently only "user" and "group" supported.'
@@ -249,7 +285,7 @@ class AzureHandler(object):
 				# read text at beginning delete_user()
 				del modifications[attrib]
 				log_e("AzureHandler._modify_objects() Modifying '{attrib}' is currently not supported. '{attrib}' removed from modification list.".format(attrib=attrib))
-		log_a("AzureHandler._modify_objects() Modifying {} with object_id {} and modifications {}...".format(object_type, object_id, modifications))
+		log_p("AzureHandler._modify_objects() Modifying {} with object_id {} and modifications {}...".format(object_type, object_id, modifications))
 
 		params = urllib.urlencode(azure_params)
 		url = self.uris[object_type].format(object_id=object_id, params=params)
@@ -259,21 +295,29 @@ class AzureHandler(object):
 		return self._modify_objects(object_type="user", object_id=object_id, modifications=modifications)
 
 	def modify_group(self, object_id, modifications):
+		if "uniqueMember" in modifications:
+			raise RuntimeError("Attribute uniqueMember must be dealt with in listener.")
 		return self._modify_objects(object_type="group", object_id=object_id, modifications=modifications)
 
 	def _delete_objects(self, object_type, object_id):
 		assert object_type in ["user", "group"], 'Currently only "user" and "group" supported.'
 		assert type(object_id) == str, "The ObjectId must be a string of form '893801ca-e843-49b7-9f64-7a4590b72769'."
-		log_a("AzureHandler._delete_objects() Deleting {} with object_id {}...".format(object_type, object_id))
+		log_p("AzureHandler._delete_objects() Deleting {} with object_id {}...".format(object_type, object_id))
 
 		params = urllib.urlencode(azure_params)
 		url = self.uris[object_type].format(object_id=object_id, params=params)
-		return self.call_api("DELETE", url)
+		try:
+			return self.call_api("DELETE", url)
+		except ResourceNotFoundError, e:
+			log_e("Object '{}' didn't exist: {}".format(object_id, e))
+			return
 
 	def delete_user(self, object_id):
+		# https://msdn.microsoft.com/Library/Azure/Ad/Graph/howto/azure-ad-graph-api-permission-scopes#DirectoryRWDetail
 		#
 		# MS has changed the permissions: "due to recent security enhancement to AAD the application which is
 		# accessing the AAD through Graph API should have a role called Company Administrator"...
+		#
 		#
 		# https://github.com/Azure-Samples/active-directory-dotnet-graphapi-console/issues/27
 		# https://support.microsoft.com/en-us/kb/3004133
@@ -286,7 +330,9 @@ class AzureHandler(object):
 		return self.deactivate_user(object_id, rename=True)
 
 	def delete_group(self, object_id):
-		return self._delete_objects(object_type="group", object_id=object_id)
+		# see delete_user()
+		# return self._delete_objects(object_type="group", object_id=object_id)
+		return self.deactivate_group(object_id)
 
 	def _member_of_(self, obj, object_id):
 		"""
@@ -310,7 +356,6 @@ class AzureHandler(object):
 		return self._member_of_("objects", object_id)
 
 	def resolve_object_ids(self, object_ids, object_types=None):
-		log_a("AzureHandler.resolve_object_ids() Looking for objects with IDs: {}...".format(object_ids))
 		assert type(object_ids) == list, "Parameter object_ids must be a list of object IDs."
 
 		data = {"objectIds": object_ids}
@@ -319,7 +364,6 @@ class AzureHandler(object):
 		return self.call_api("POST", url, data)
 
 	def get_groups_direct_members(self, group_id):
-		log_a("AzureHandler.get_groups_direct_members() Fetching direct members of group {}...".format(group_id))
 		assert type(group_id) in [str, unicode], "The ObjectId must be a string of form '893801ca-e843-49b7-9f64-7a4590b72769'."
 
 		params = urllib.urlencode(azure_params)
@@ -330,17 +374,46 @@ class AzureHandler(object):
 		assert type(group_id) == str, "The ObjectId must be a string of form '893801ca-e843-49b7-9f64-7a4590b72769'."
 		assert type(object_ids) == list, "object_ids must be a non-empty list of objectID strings."
 		assert len(object_ids) > 0, "object_ids must be a non-empty list of objectID strings."
-		log_a("AzureHandler.add_objects_to_group() Adding objects %r to group {}...".format(object_ids, group_id))
+		log_p("AzureHandler.add_objects_to_group() Adding objects {} to group {}...".format(object_ids, group_id))
 
-		if len(object_ids) == 1:
-			objs = {"url": self.uris["directoryObjects"].format(object_id=object_ids[0])}
-		else:
-			objs = {"url": [self.uris["directoryObjects"].format(object_id=oid) for oid in object_ids]}
-			raise NotImplementedError("Adding multiple objects to a group doesn't work for unknown reason.")  # TODO: ask MS support
+		# While the Graph API clearly states that multiple objects can be added
+		# at once to a group that is no entirely true, as the usual API syntax
+		# does not allow it. In the end a MS employee found out, that a OAuth
+		# Batch request has to be created and then still only 5 objects can be
+		# added at once (https://social.msdn.microsoft.com/Forums/azure/en-US/04113864-51af-4d46-8b13-725e4120433b/graphi-api-how-to-add-many-members-to-a-group).
+		# The added complexity is entirely out of proportion for the benefit,
+		# so here comes a loop instead.
+		for object_id in object_ids:
+			# Check if object is already there, because adding it again leads
+			# to an error: "One or more added object references already exist
+			# for the following modified properties: 'members'."
+			dir_obj_url = self.uris["directoryObjects"].format(object_id=object_ids[0])
+			objs = {"url": dir_obj_url}
+			members = self.get_groups_direct_members(group_id)
+			object_ids_already_in_azure = self.directory_object_urls_to_object_ids(members["value"])
+			if object_id in object_ids_already_in_azure:
+				log_a("AzureHandler.add_objects_to_group() object {} already in group.".format(object_ids[0]))
+				continue
+			params = urllib.urlencode(azure_params)
+			url = self.uris["group_members"].format(group_id=group_id, params=params)
+			self.call_api("POST", url, data=objs)
 
+	def delete_group_member(self, group_id, member_id):
+		log_p("AzureHandler.delete_group_member() Removing member {} from group {}...".format(member_id, group_id))
 		params = urllib.urlencode(azure_params)
-		url = self.uris["group_members"].format(group_id=group_id, params=params)
-		return self.call_api("POST", url, data=objs)
+		url = self.uris["group_member"].format(group_id=group_id, member_id=member_id, params=params)
+		# TODO: delete group if empty... but not from here...
+		try:
+			return self.call_api("DELETE", url)
+		except ApiError, ae:
+			log_ex("ApiError deleting a group member")
+			log_e("ae.__dict__={}".format(ae.__dict__))
+			if hasattr(ae, "json"):
+				log_e("ae.json={}".format(ae.json))
+			log_e("ae.response={}".format(ae.response))
+			# if ae.response["code"] == "Request_ResourceNotFound":
+			# group didn't exist in Azure
+			pass
 
 	def _change_license(self, operation, user_id, license_id):  # TODO: possibly change signature to support disabling plans
 		log_a("AzureHandler._change_license() operation: {} user_id: {} license_id: {}".format(operation, user_id, license_id))
@@ -359,8 +432,8 @@ class AzureHandler(object):
 	def remove_license(self, user_id, license_id):
 		self._change_license("remove", user_id, license_id)
 
-	def list_subscriptions(self, objectid=None, ofilter=None):
-		return self._list_objects(object_type="subscription", object_id=objectid, ofilter=ofilter)
+	def list_subscriptions(self, object_id=None, ofilter=None):
+		return self._list_objects(object_type="subscription", object_id=object_id, ofilter=ofilter)
 
 	def list_domains(self, domain_name=None):
 		"""
@@ -383,31 +456,63 @@ class AzureHandler(object):
 		"""
 		return self.list_tenant_details()["value"][0]["verifiedDomains"]
 
-	def deactivate_user(self, user_id, rename=False):
-		user_obj = self.list_users(objectid=user_id)
+	def deactivate_user(self, object_id, rename=False):
+		user_obj = self.list_users(objectid=object_id)
+		log_p("AzureHandler.deactivate_user() deactivating{} user '{}' / '{}'...".format(
+				" and renaming" if rename else "",
+				user_obj["displayName"],
+				object_id))
 
 		# deactivate user, remove email addresses
 		modifications = dict(
 			accountEnabled=False,
 			otherMails=list(),
-			immutableId="deactivated_{}_{}".format(user_obj["immutableId"], time.time())
+			immutableId="deactivated_{}_{}".format(time.time(), user_obj["immutableId"])
 		)
 		if rename:
-			modifications["userPrincipalName"] = "ZZZ_deleted_{}_{}".format(user_obj["userPrincipalName"], time.time())
-		self._modify_objects(object_type="user", object_id=user_id, modifications=modifications)
+			name_pattern = "ZZZ_deleted_{time}_{orig}"
+			modifications["displayName"] = name_pattern.format(time=time.time(), orig=user_obj["displayName"])
+			modifications["mailNickname"] = name_pattern.format(time=time.time(), orig=user_obj["mailNickname"])
+			modifications["userPrincipalName"] = name_pattern.format(time=time.time(), orig=user_obj["userPrincipalName"])
+		self.modify_user(object_id=object_id, modifications=modifications)
 
 		# remove user from all groups
-		groups = self.get_users_direct_groups(user_id)
-		params = urllib.urlencode(azure_params)
-		for gr in groups["value"]:
-			group_obj = self.call_api("GET", "{}?{}".format(gr["url"], params))
-			url = self.uris["group_member"].format(group_id=group_obj["objectId"], member_id=user_id, params=params)
-			self.call_api("DELETE", url)
-		# TODO: delete group if empty
+		groups = self.get_users_direct_groups(object_id)
+		group_ids = self.directory_object_urls_to_object_ids(groups["value"])
+		for group_id in group_ids:
+			self.delete_group_member(group_id=group_id, member_id=object_id)
 
 		# remove all licenses
 		for lic in user_obj["assignedLicenses"]:
-			self.remove_license(user_id, lic["skuId"])
+			self.remove_license(object_id, lic["skuId"])
+
+	def deactivate_group(self, object_id):
+		log_a("AzureHandler.deactivate_group() object_id={}".format(object_id))
+		group_obj = self.list_groups(objectid=object_id)
+		members = self.get_groups_direct_members(object_id)
+		member_ids = self.directory_object_urls_to_object_ids(members["value"])
+		for member_id in member_ids:
+			self.delete_group_member(object_id, member_id)
+		name = "ZZZ_deleted_{}_{}".format(time.time(), group_obj["displayName"])
+		modifications = dict(
+			description="deleted group",
+			displayName=name,
+			mailEnabled=False,
+			mailNickname=name,
+		)
+		return self.modify_group(object_id=object_id, modifications=modifications)
+
+	def directory_object_urls_to_object_ids(self, urls):
+		"""
+		:param urls: list of dicts {"url": "https://graph.windows.net/.../directoryObjects/.../..."}
+		:return: list of object ids
+		"""
+		object_ids = list()
+		for url in map(itemgetter("url"), urls):
+			m = re.match(r"{}/Microsoft.DirectoryServices.*".format(self.uris["directoryObjects"].format(object_id="(.*?)")), url)
+			if m:
+				object_ids.append(m.groups()[0])
+		return object_ids
 
 	@staticmethod
 	def _fprints_hide_pw(data, msg):
@@ -441,10 +546,16 @@ class AzureHandler(object):
 				if azure_attribute_types[k] == list and not isinstance(v, list) and isinstance(v, collections.Iterable):
 					res[k] = [v]  # list("str") -> ["s", "t", "r"] and list(dict) -> [k, e, y, s]  :/
 				else:
-					if k in res and isinstance(res[k], list):
-						res[k].append(azure_attribute_types[k](v))
+					if v is None:
+						# don't do unicode(None)
+						val = None
 					else:
-						res[k] = azure_attribute_types[k](v)
+						val = azure_attribute_types[k](v)
+
+					if k in res and isinstance(res[k], list):
+						res[k].append(val)
+					else:
+						res[k] = val
 			except KeyError:
 				raise UnkownTypeError("Attribute '{}' not in azure_attribute_types mapping.".format(k))
 		return res

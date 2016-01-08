@@ -2,7 +2,7 @@
 #
 # Univention Office 365 - listener module to provision accounts in MS Azure
 #
-# Copyright 2015 Univention GmbH
+# Copyright 2016 Univention GmbH
 #
 # http://www.univention.de/
 #
@@ -117,13 +117,13 @@ def get_listener_attributes():
 	return attrs
 
 
-name = 'office365'
-description = 'manage office 365 user'
+name = 'office365-user'
+description = 'manage office 365 users'
 filter = '(&(objectClass=univentionOffice365)(uid=*))'
 attributes = get_listener_attributes()
 modrdn = "1"
 
-OFFICE365_OLD_PICKLE = os.path.join("/var/lib/univention-office365", "office365_old_dn")
+OFFICE365_OLD_PICKLE = os.path.join("/var/lib/univention-office365", "office365-user_old_dn")
 
 _attrs = dict(
 	anonymize=attributes_anonymize,
@@ -171,14 +171,14 @@ def setdata(key, value):
 
 
 def handler(dn, new, old, command):
-	log_a("command: {}".format(command))
+	log_a("command: {}".format(command))  # DEBUG
 	if command == 'r':
 		save_old(old)
 		return
 	elif command == 'a':
 		old = load_old(old)
 
-	ol = Office365Listener(listener, name, _attrs)
+	ol = Office365Listener(listener, name, _attrs, ldap_cred)
 
 	old_enabled = bool(int(old.get("univentionOffice365Enabled", ["0"])[0]))  # "" when disabled, "1" when enabled
 	new_enabled = bool(int(new.get("univentionOffice365Enabled", ["0"])[0]))
@@ -187,10 +187,10 @@ def handler(dn, new, old, command):
 	# NEW or REACTIVATED account
 	#
 	if new_enabled and not old_enabled:
-		log_a("new_enabled and not old_enabled -> NEW or REACTIVATED")  # DEBUG
+		log_a("new_enabled and not old_enabled -> NEW or REACTIVATED ({})".format(dn))  # DEBUG
 		new_user = ol.create_user(new)
-
-		udm_user = ol.get_udm_user(ldap_cred, dn)
+		# save/update Azure objectId and object data in UDM object
+		udm_user = ol.get_udm_user(dn)
 		udm_user["UniventionOffice365ObjectID"] = new_user["objectId"]
 		udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(new_user)))
 		udm_user.modify()
@@ -202,34 +202,36 @@ def handler(dn, new, old, command):
 	# DELETE account
 	#
 	if old and not new:
-		log_a("old and not new -> DELETE")  # DEBUG
+		log_a("old and not new -> DELETE ({})".format(dn))  # DEBUG
 		ol.delete_user(old)
-		log_p("Deleted user '{}'.".format(old["username"][0]))
+		log_p("Deleted user '{}'.".format(old["uid"][0]))
 		return
 
 	#
 	# DEACTIVATE account
 	#
-	if new and not not new_enabled:
-		log_a("new and not new_enabled -> DEACTIVATE")  # DEBUG
+	if new and not new_enabled:
+		log_a("new and not new_enabled -> DEACTIVATE ({})".format(dn))  # DEBUG
 		ol.deactivate_user(old)
-
-		udm_user = ol.get_udm_user(ldap_cred, dn)
-		udm_user["UniventionOffice365ObjectID"] = "deactivated"
+		# update Azure objectId and object data in UDM object
+		udm_user = ol.get_udm_user(dn)
+		# Cannot delete UniventionOffice365Data, because it would result in:
+		# ldapError: Inappropriate matching: modify/delete: univentionOffice365Data: no equality matching rule
+		# Explanation: http://gcolpart.evolix.net/blog21/delete-facsimiletelephonenumber-attribute/
 		udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(None)))
 		udm_user.modify()
-		log_p("Deactivated user '{}'.".format(old["username"][0]))
+		log_p("Deactivated user '{}'.".format(old["uid"][0]))
 		return
 
 	#
 	# MODIFY account
 	#
 	if old_enabled and new_enabled:
-		log_a("old_enabled and new_enabled -> MODIFY")  # DEBUG
+		log_a("old_enabled and new_enabled -> MODIFY ({})".format(dn))  # DEBUG
 		ol.modify_user(old, new)
-
-		udm_user = ol.get_udm_user(ldap_cred, dn)
+		# update Azure object data in UDM object
+		udm_user = ol.get_udm_user(dn)
 		azure_user = ol.get_user(old)
 		udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(azure_user)))
-		log_p("Modified user '{}'.".format(old["username"][0]))
+		log_p("Modified user '{}'.".format(old["uid"][0]))
 		return

@@ -4,7 +4,7 @@
 # MS Office 365 provisioning
 #  join script
 #
-# Copyright 2015 Univention GmbH
+# Copyright 2016 Univention GmbH
 #
 # http://www.univention.de/
 #
@@ -57,7 +57,7 @@ if ! [ -f $CONFDIR/key.pem -a -f $CONFDIR/cert.pem -a -f $CONFDIR/cert.fp ]; the
     chmod 660 ids.json token.json # TODO: remove this line - the real UMC wizard runs as root
     chgrp www-data *              # TODO: remove this line - the real UMC wizard runs as root
     touch /var/log/univention/office365-py.log /var/log/univention/office365-ud.log # TODO: remove this line
-    chgrp www-data /var/log/univention/office365-*.log # TODO: remove this line
+    chown listener:www-data /var/log/univention/office365-*.log # TODO: remove this line
     chmod 664 /var/log/univention/office365-*.log # TODO: remove this line
 fi
 
@@ -130,6 +130,26 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set doNotSearch=1 \
 	--set objectClass=univentionOffice365 \
 	--set ldapMapping=univentionOffice365Data \
+	--set deleteObjectClass=0 \
+	--set disableUDMWeb=1
+
+udm settings/extended_attribute create "$@" --ignore_exists \
+	--position "cn=custom attributes,cn=univention,$ldap_base" \
+	--set name="UniventionOffice365GroupObjectID" \
+	--set CLIName="UniventionOffice365ObjectID" \
+	--set shortDescription="Object ID of group in Azure AD" \
+	--set translationShortDescription='"de_DE" "Objekt ID der Gruppe im Azure AD"' \
+	--set longDescription="Object ID of user in Azure AD" \
+	--set translationLongDescription='"de_DE" "Objekt ID der Gruppe im Azure AD"' \
+	--set module="groups/group" \
+	--set syntax=string_numbers_letters_dots \
+	--set default="" \
+	--set multivalue=0 \
+	--set valueRequired=0 \
+	--set mayChange=1 \
+	--set doNotSearch=1 \
+	--set objectClass=univentionOffice365 \
+	--set ldapMapping=univentionOffice365ObjectID \
 	--set deleteObjectClass=0 \
 	--set disableUDMWeb=1
 

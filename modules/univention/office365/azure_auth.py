@@ -3,7 +3,7 @@
 #
 # Univention Office 365 - handle Azure oauth calls
 #
-# Copyright 2015 Univention GmbH
+# Copyright 2016 Univention GmbH
 #
 # http://www.univention.de/
 #
@@ -67,7 +67,7 @@ SSL_CERT_FP = CONFDIR + "/cert.fp"
 IDS_FILE = CONFDIR + "/ids.json"
 TOKEN_FILE = CONFDIR + "/token.json"
 REDIRECT_URI = "https://{0}/univention-office365/reply".format(socket.getfqdn()).lower()
-SCOPE = ["Directory.ReadWrite.All"]
+SCOPE = ["Directory.ReadWrite.All"]  # https://msdn.microsoft.com/Library/Azure/Ad/Graph/howto/azure-ad-graph-api-permission-scopes#DirectoryRWDetail
 DEBUG_FORMAT = '%(asctime)s %(levelname)-8s %(module)s.%(funcName)s:%(lineno)d  %(message)s'
 LOG_DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
