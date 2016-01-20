@@ -74,7 +74,6 @@ HTML_STEP1 = """		<h1>Step 1 - Register App</h1>
 HTML_STEP2 = """		<h1>Step 2 - Get admin consent</h1>
 		<ul>
 			<li>Got from user: client_id = <code>%(client_id)s</code></li>
-			<li>Got from user: domain name = <code>%(domain)s</code>  # TODO: retrieve this from azure (currently hardcoded)</li>
 		</ul>
 
 		<h1>Authenticate</h1>
@@ -124,7 +123,6 @@ def application(environ, start_response):
 		"client_id": client_id,
 		"redirect_uri": REDIRECT_URI,
 		"scope": SCOPE,
-		"authorization_url": sign_in_url,
-		"domain": "univentiontest.onmicrosoft.com"  # TODO: may not be needed, or can be retrieved later
+		"authorization_url": sign_in_url
 	}
 	return _response("200 OK", html)

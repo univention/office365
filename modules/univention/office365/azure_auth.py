@@ -221,7 +221,7 @@ class AzureAuth(object):
 			self._access_token = tokens.get("access_token")
 			self._access_token_exp_at = datetime.datetime.fromtimestamp(int(tokens.get("access_token_exp_at")))
 		if not self._access_token_exp_at or datetime.datetime.now() > self._access_token_exp_at:
-			log_a("AzureAuth.get_access_token() retrieving token from azure...")
+			log_a("AzureAuth.get_access_token() token expired, retrieving now one from azure...")
 			self._access_token = self.retrieve_access_token()
 		log_a("AzureAuth.get_access_token() token valid until: {} : {}...{}".format(
 			self._access_token_exp_at.isoformat(), self._access_token[:10], self._access_token[-10:]))

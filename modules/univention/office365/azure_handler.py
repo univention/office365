@@ -47,6 +47,7 @@ from univention.office365.azure_auth import AzureAuth, log_a, log_e, log_ex, log
 azure_params = {"api-version": "1.6"}
 azure_attribute_types = dict(
 	accountEnabled=bool,
+	addLicenses=list,
 	assignedLicenses=list,
 	city=unicode,
 	country=unicode,
@@ -54,6 +55,7 @@ azure_attribute_types = dict(
 	description=unicode,
 	displayName=unicode,
 	facsimileTelephoneNumber=unicode,
+	forceChangePasswordNextLogin=bool,
 	givenName=unicode,
 	immutableId=unicode,
 	jobTitle=unicode,
@@ -65,10 +67,10 @@ azure_attribute_types = dict(
 	passwordPolicies=unicode,
 	passwordProfile=dict,
 	password=unicode,
-	forceChangePasswordNextLogin=bool,
 	physicalDeliveryOfficeName=unicode,
 	postalCode=unicode,
 	preferredLanguage=unicode,
+	removeLicenses=list,
 	securityEnabled=bool,
 	state=unicode,
 	streetAddress=unicode,
@@ -80,6 +82,8 @@ azure_attribute_types = dict(
 	userPrincipalName=unicode,
 	userType=unicode
 )
+servicePlanId_SHAREPOINTWAC = "e95bec33-7c88-4a70-8e19-b10bd9d0c014"  # Office Web Apps
+
 
 def _get_azure_uris(tenant_id):
 	graph_base_url = "{0}/{1}".format(resource_url, tenant_id)
@@ -223,6 +227,9 @@ class AzureHandler(object):
 		return self._list_objects(object_type="group", object_id=objectid, ofilter=ofilter)
 
 	def _create_object(self, object_type, attributes, obj_id):
+		"""
+		if object exists, it will be modified instead
+		"""
 		assert object_type in ["user", "group"], 'Currently only "user" and "group" supported.'
 		assert type(attributes) == dict
 		assert "displayName" in attributes
@@ -251,7 +258,7 @@ class AzureHandler(object):
 
 	def create_user(self, attributes):
 		"""
-		if user exists, modify it instead
+		if user exists, it will be modified instead
 		"""
 		return self._create_object(
 				object_type="user",
@@ -260,7 +267,7 @@ class AzureHandler(object):
 
 	def create_group(self, name, description=None):
 		"""
-		if group exists, modify it instead
+		if group exists, it will be modified instead
 		"""
 		attributes = dict(
 			description=description,
@@ -384,6 +391,9 @@ class AzureHandler(object):
 		# The added complexity is entirely out of proportion for the benefit,
 		# so here comes a loop instead.
 		for object_id in object_ids:
+			if not object_id:
+				log_e("AzureHandler.add_objects_to_group() empty object_id should be added to {}, ignoring.".format(group_id))
+				continue
 			# Check if object is already there, because adding it again leads
 			# to an error: "One or more added object references already exist
 			# for the following modified properties: 'members'."
@@ -415,25 +425,35 @@ class AzureHandler(object):
 			# group didn't exist in Azure
 			pass
 
-	def _change_license(self, operation, user_id, license_id):  # TODO: possibly change signature to support disabling plans
-		log_a("AzureHandler._change_license() operation: {} user_id: {} license_id: {}".format(operation, user_id, license_id))
+	def _change_license(self, operation, user_id, sku_id):
+		log_a("AzureHandler._change_license() operation: {} user_id: {} sku_id: {}".format(operation, user_id, sku_id))
 		data = dict(addLicenses=list(), removeLicenses=list())
 		if operation == "add":
-			data["addLicenses"].append(dict(disabledPlans=[], skuId=license_id))
+			data["addLicenses"].append(dict(disabledPlans=[], skuId=sku_id))
 		elif operation == "remove":
-			data["removeLicenses"].append(license_id)
+			data["removeLicenses"].append(sku_id)
 		params = urllib.urlencode(azure_params)
 		url = self.uris["user_assign_license"].format(user_id=user_id, params=params)
 		return self.call_api("POST", url, data)
 
-	def add_license(self, user_id, license_id):
-		self._change_license("add", user_id, license_id)
+	def add_license(self, user_id, sku_id):
+		self._change_license("add", user_id, sku_id)
 
-	def remove_license(self, user_id, license_id):
-		self._change_license("remove", user_id, license_id)
+	def remove_license(self, user_id, sku_id):
+		self._change_license("remove", user_id, sku_id)
 
 	def list_subscriptions(self, object_id=None, ofilter=None):
 		return self._list_objects(object_type="subscription", object_id=object_id, ofilter=ofilter)
+
+	def get_office_web_apps_subscriptions(self):
+		subscriptions = list()
+		for subscription in self.list_subscriptions()["value"]:
+			if subscription["appliesTo"] == "User" and subscription["capabilityStatus"] == "Enabled":
+				for plan in subscription["servicePlans"]:
+					if plan["servicePlanId"] == servicePlanId_SHAREPOINTWAC:
+						# found a office web apps plan
+						subscriptions.append(subscription)
+		return subscriptions
 
 	def list_domains(self, domain_name=None):
 		"""

@@ -1,3 +1,10 @@
+univention-office365 (0.1.1) unstable; urgency=low
+
+  * find and add license to user account (Bug #40295)
+  * fix SSL certificate generation
+
+ -- Daniel Troeder <troeder@univention.de>  Wed, 20 Jan 2016 18:21:11 +0100
+
 univention-office365 (0.1.0) unstable; urgency=low
 
   * add group listener (Bug #40295)

@@ -41,6 +41,12 @@ from univention.office365.azure_auth import log_a, log_e, log_ex, log_p
 from univention.office365.azure_handler import AzureHandler, ResourceNotFoundError
 
 
+class NoAllocatableSubscriptions(Exception):
+	def __init__(self, user_id, *args, **kwargs):
+		self.user_id = user_id
+		super(NoAllocatableSubscriptions, self).__init__(args, kwargs)
+
+
 class Office365Listener(object):
 	def __init__(self, listener, name, attrs, ldap_cred):
 		"""
@@ -91,32 +97,48 @@ class Office365Listener(object):
 			immutableId=new["entryUUID"][0],
 			accountEnabled=True,
 			passwordProfile=dict(
-				password=u"".join(Office365Listener._get_random_pw()),
+				password=Office365Listener._get_random_pw(),
 				forceChangePasswordNextLogin=False
 			),
 			# TODO: make these anonymizable
 			userPrincipalName="{0}@{1}".format(new["uid"][0], self.verified_domains[0]),  # TODO: make the domain choosable
 			mailNickname=new["uid"][0],
-			displayName=attributes["displayName"] if "displayName" in attributes else "no name"
+			displayName=attributes.get("displayName", "no name"),
+			usageLocation=new.get["st"][0] if new.get("st") else self.ucr["ssl/country"],
 		)
 		attributes.update(mandatory_attributes)
 
 		self.ah.create_user(attributes)
 
-		# TODO: assign a office license!
-		# self.ah.add_license(self, user_id, license_id)
-
 		user = self.ah.list_users(ofilter="userPrincipalName eq '{}'".format(attributes["userPrincipalName"]))
 		if user["value"]:
-			return user["value"][0]
+			new_user = user["value"][0]
 		else:
 			raise RuntimeError("Office365Listener.create_user() created user '{}' cannot be retrieved.".format(attributes["userPrincipalName"]))
+
+		subscriptions = self.ah.get_office_web_apps_subscriptions()
+		if len(subscriptions) > 1:
+			log_e("Office365Listener.create_user() more than one Office 365 subscription found. Currently not fully supported. Using first one found, that has an allocatable subscription.")
+		sku_id = None
+		for subscription in subscriptions:
+			if subscription["consumedUnits"] < subscription["prepaidUnits"]["enabled"]:
+				sku_id = subscription["skuId"]
+				break
+		log_p("Office365Listener.create_user() using subscription {} for user {}.".format(sku_id, new_user["objectId"]))
+		if sku_id:
+			self.ah.add_license(new_user["objectId"], sku_id)
+		else:
+			msg = "user {} created, but no allocatable subscriptions found. All known subscriptions: {}".format(new_user["objectId"], subscriptions)
+			log_e("Office365Listener.create_user() {}".format(msg))
+			raise NoAllocatableSubscriptions(new_user["objectId"], msg)
+
+		return new_user
 
 	def delete_user(self, old):
 		try:
 			return self.ah.delete_user(old["univentionOffice365ObjectID"][0])
 		except ResourceNotFoundError as exc:
-			log_e("User '{}' didn't exist in Azure: {}.".format(old["uid"][0], exc))
+			log_e("Office365Listener.delete_user() user '{}' didn't exist in Azure: {}.".format(old["uid"][0], exc))
 			return
 
 	def deactivate_user(self, old):
@@ -141,6 +163,10 @@ class Office365Listener(object):
 			attributes = dict()
 			for k, v in udm_attrs.items():
 				attributes[self.attrs["mapping"][k]] = v
+
+			if "st" in modifications:
+				udm_user = self.get_udm_user(new["entryDN"][0])
+				attributes["usageLocation"] = udm_user["country"]
 
 			object_id = new["univentionOffice365ObjectID"][0]
 			return self.ah.modify_user(object_id=object_id, modifications=attributes)
@@ -381,7 +407,7 @@ class Office365Listener(object):
 		pw.append(random.choice(u"@#$%^&*-_+=[]{}|\:,.?/`~();"))
 		pw.extend(random.choice(string.ascii_letters + string.digits + u"@#$%^&*-_+=[]{}|\:,.?/`~();") for _ in range(12))
 		random.shuffle(pw)
-		return pw
+		return u"".join(pw)
 
 	def _get_sync_values(self, attrs, user):
 		# anonymize > static > sync
