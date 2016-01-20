@@ -33,8 +33,13 @@
 __package__ = ''  # workaround for PEP 366
 
 import os
-import cPickle
+try:
+	import cPickle as pickle
+except ImportError:
+	# py3
+	import pickle
 import copy
+from stat import S_IRUSR, S_IWUSR
 
 import listener
 from univention.office365.azure_auth import log_a, log_e, log_ex, log_p
@@ -58,7 +63,7 @@ attributes_copy = copy.deepcopy(attributes)  # when handler() runs, all kinds of
 def load_old(old):
 	if os.path.exists(OFFICE365_OLD_PICKLE):
 		f = open(OFFICE365_OLD_PICKLE, "r")
-		p = cPickle.Unpickler(f)
+		p = pickle.Unpickler(f)
 		old = p.load()
 		f.close()
 		os.unlink(OFFICE365_OLD_PICKLE)
@@ -69,8 +74,8 @@ def load_old(old):
 
 def save_old(old):
 	f = open(OFFICE365_OLD_PICKLE, "w+")
-	os.chmod(OFFICE365_OLD_PICKLE, 0600)
-	p = cPickle.Pickler(f)
+	os.chmod(OFFICE365_OLD_PICKLE, S_IRUSR | S_IWUSR)
+	p = pickle.Pickler(f)
 	p.dump(old)
 	p.clear_memo()
 	f.close()

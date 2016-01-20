@@ -308,8 +308,8 @@ class AzureHandler(object):
 		url = self.uris[object_type].format(object_id=object_id, params=params)
 		try:
 			return self.call_api("DELETE", url)
-		except ResourceNotFoundError, e:
-			log_e("Object '{}' didn't exist: {}".format(object_id, e))
+		except ResourceNotFoundError as exc:
+			log_e("Object '{}' didn't exist: {}".format(object_id, exc))
 			return
 
 	def delete_user(self, object_id):
@@ -405,12 +405,12 @@ class AzureHandler(object):
 		# TODO: delete group if empty... but not from here...
 		try:
 			return self.call_api("DELETE", url)
-		except ApiError, ae:
+		except ApiError as exc:
 			log_ex("ApiError deleting a group member")
-			log_e("ae.__dict__={}".format(ae.__dict__))
-			if hasattr(ae, "json"):
-				log_e("ae.json={}".format(ae.json))
-			log_e("ae.response={}".format(ae.response))
+			log_e("ae.__dict__={}".format(exc.__dict__))
+			if hasattr(exc, "json"):
+				log_e("ae.json={}".format(exc.json))
+			log_e("ae.response={}".format(exc.response))
 			# if ae.response["code"] == "Request_ResourceNotFound":
 			# group didn't exist in Azure
 			pass

@@ -115,8 +115,8 @@ class Office365Listener(object):
 	def delete_user(self, old):
 		try:
 			return self.ah.delete_user(old["univentionOffice365ObjectID"][0])
-		except ResourceNotFoundError, e:
-			log_e("User '{}' didn't exist in Azure: {}.".format(old["uid"][0], e))
+		except ResourceNotFoundError as exc:
+			log_e("User '{}' didn't exist in Azure: {}.".format(old["uid"][0], exc))
 			return
 
 	def deactivate_user(self, old):
@@ -189,8 +189,8 @@ class Office365Listener(object):
 	def delete_group(self, old):
 		try:
 			return self.ah.delete_group(old["univentionOffice365ObjectID"][0])
-		except ResourceNotFoundError, e:
-			log_e("Group '{}' didn't exist in Azure: {}.".format(old["cn"][0], e))
+		except ResourceNotFoundError as exc:
+			log_e("Group '{}' didn't exist in Azure: {}.".format(old["cn"][0], exc))
 			return
 
 	def modify_group(self, old, new):

@@ -30,7 +30,11 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-from urlparse import parse_qs
+try:
+	from urlparse import parse_qs
+except ImportError:
+	# py3
+	from urllib.parse import parse_qs
 import cgi
 import pprint
 

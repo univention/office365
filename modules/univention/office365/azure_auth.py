@@ -44,8 +44,10 @@ import os
 import traceback
 import datetime
 import re
+import sys
 from xml.dom.minidom import parseString
 from functools import wraps
+from stat import S_IRUSR, S_IWUSR
 try:
 	from cryptography.x509 import load_pem_x509_certificate
 	from cryptography.hazmat.backends import default_backend
@@ -180,7 +182,7 @@ class AzureAuth(object):
 	def store_azure_ids(client_id, tenant_id):
 		open(IDS_FILE, "w").close()  # touch
 		try:                                     # TODO: remove this line - the real UMC wizard runs as root
-			os.chmod(IDS_FILE, 0660)
+			os.chmod(IDS_FILE, S_IRUSR | S_IWUSR)
 		except OSError:                          # TODO: remove this line - the real UMC wizard runs as root
 			pass                                 # TODO: remove this line - the real UMC wizard runs as root
 		with open(IDS_FILE, "w") as f:
@@ -206,7 +208,7 @@ class AzureAuth(object):
 		tokens.update(kwargs)
 		open(TOKEN_FILE, "w").close()  # touch
 		try:                                     # TODO: remove this line - the real UMC wizard runs as root
-			os.chmod(TOKEN_FILE, 0660)
+			os.chmod(TOKEN_FILE, S_IRUSR | S_IWUSR)
 		except OSError:                          # TODO: remove this line - the real UMC wizard runs as root
 			pass                                 # TODO: remove this line - the real UMC wizard runs as root
 		with open(TOKEN_FILE, "w") as f:
@@ -264,7 +266,11 @@ class AzureAuth(object):
 				decoded_body = _decode_b64(_body)
 				return json.loads(decoded_header), json.loads(decoded_body), _signature
 			except:
-				log_ex(u"AzureAuth.parse_token(): Invalid token value: {0}".format(unicode(encoded_token, 'utf8')))
+				if sys.version_info < (3,):
+					et = unicode(encoded_token, 'utf8')
+				else:
+					et = encoded_token
+				log_ex(u"AzureAuth.parse_token(): Invalid token value: {0}".format(et))
 				raise IDTokenError("Error parsing token: {}".format(traceback.format_exc()))
 
 		def _get_azure_certs(tenant_id):
