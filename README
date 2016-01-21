@@ -6,25 +6,18 @@ Design
 ======
 Azure is Microsofts cloud service. It has a so called Active Directory (Azure AD) component, that can manage Users, Groups, Applications, Roles, Permissions etc. We need it to manage users, groups, logins and Office365 licences.
 
-To synchronize an on-premises AD with Azure AD, "Azure AD Connect" can be used [aadc]. There is also a big C# library for communication for MS Azure. Since this non of this is not an option, we'll use the Azure API directly.
+To synchronize an on-premises AD with Azure AD, "Azure AD Connect" can be used [aadc]. There is also a big C# library for communication for MS Azure. Since this non of this is not an option, we'll use the Azure Graph API.
 
-The API is a moving target, but has stable versions that can be used explicitly. We're currently using Version 1.5, a REST API [aapi]. Version 1.6 has recently been released and does not break any of our code. Other protocols (WS, XML) exist.
+The API is a moving target, but has stable versions that can be used explicitly. We're currently using Version 1.6 of the REST API [aapi]. Other protocols (WS, XML) exist.
 
 Prior to communication with the Azure API, authentication and authorization is done through OAuth2.
 
-After installing the App, a wizard (similar to UCS@school and UCC) will run that will request the UCS user to make some configuration on its behalf.
-That is:
-* register the UCS App as an application in Azure AD
-* configure the callback-URI in Azure AD
-* configure a key for the App in Azure AD
-
-Some of this can be supported pragmatically, some can't. I'm not sure how much is possible.
+After installing the App, a wizard (similar to UCS@school and UCC) will run that will request the UCS user to make some configuration on its behalf. Mainly that is registering and configuring an application in Azure AD. Some of this can be supported pragmatically, some can't...
 
 The wizard must retrieve the following data from the user:
-* the users tenant ID
-* the app key
 * the client ID
 
+-- Authorization Code Grant Flow - not used by listener! --
 With this data the OAuth dance can begin. See "Authorization Code Grant Flow" [acgf].
 In short:
 * redirect the user to authenticate at an Azure-login
@@ -36,39 +29,57 @@ In short:
 
 We dance with a partner: requests-oauthlib [roal]. It does well, except for the refresh handling. This should be fixed in their code. But handling it ourselves is not a problem. Requests-oauthlib uses the "requests" lib for handling the HTTP requests. The requests lib might one day end up in the Python standard library.
 
-Now that we can authenticate, we can synchronize the selected users and groups with the Azure directory and manage the users licenses. "Synchronization" will be one-way: only from UCS to Azure AD. It should include the users contact data (and the groups that the users are in [together]?).
+-- Client credentials flow - use by listener --
+
+With the help of the UMC wizard a SSL certificate is uploaded to Azure. The secret key is used by us to sign our requests and to verify their tokens. No user interaction is required to fetch new tokens.
+
+The downside of the client credentials flow is, that some operations on the AAD are excluded from application permissions. Most notable an application does not hae the rights to reset user passwords or to delete entities (including users or groups) [gaps].
+
+Now that we can authenticate, we can synchronize the selected users and groups with the Azure directory and manage the users licenses. "Synchronization" will be one-way: only from UCS to Azure AD. It should include the users minimal contact data and the groups that the users are in. It is possible to configure through UCRVs which attributes are synchronized and which not. It can also be configured if attributes should be anonymized.
 
 Implementation
 ==============
 State
 -----
 Currently there is
-* a commandline simulation for the listener module, usage: "./main.py --help"
-* a WSGI script simulating the UMC wizard
-* a callback (also WSGI script) for the OAuth interaction
-* a  k/v database for multiple clients IDs storing keys, IDs, URLs. This should be replaced with LDAP and appropriate ACLs.
-* a logging class to use the Python logging class automagically together with syslog and univention.debug (untested) depending on system it runs on
+* a commandline simulation for the listener module, usage: consoletest.py
+* a WSGI script simulating the UMC wizard: wizard/umc_wizard.py
+* a callback (also WSGI script) for the OAuth interaction: wizard/azure_callback.py
+* a logging class to use the Python logging class automagically together with syslog and univention.debug (untested) depending on system it runs on --> will be removed, all logging will go to univention.debug, LISTENER facility.
+
+Classes
+-------
+
+|-  UDM obj only   -|-  UDM <-> AAD obj  -|- AAD obj only -|
+
+office365-user.py  --\
+                     +--> listener.py --> azure_handler.py ---(HTTP)--> AzureAD
+office365-group.py --/                         |                          |
+                                               |                          |
+                                               v                          |
+                                           azure_auth.py -----(HTTP)--> OAuth2
+                                               ^                          |
+                                               |                          |
+                                         azure_callback.py <--(HTTP)------+
+
+
+listener.py, azure_handler.py and azure_auth.py are written so that they can be used outside the listener code.
+When modifying code, please keep the separation of where which objects are used.
+
 
 Installation
-------------
-The debian package is mostly OK, but not really useful. Test this from your dev machine, there is no listener anyway.
-- the user login is hardcoded. That data must come from the UMC wizard. Copy secret_data.py to _secret_data.py, edit data and remove the import part.
-- mkdir -m 2770 /var/lib/office365; chown www-data:www-data /var/lib/office365
-- install and activate etc/apache2/sites-available/office365.conf
-- create symlinks /var/www/azure/{azure_callback.py, umc_wizard.py} -> .../svn/dev/branches/ucs-4.0/component/office365/univention-office365/office365/website/{azure_callback.py, umc_wizard.py}
-- echo "WSGIPythonPath .../svn/dev/branches/ucs-4.0/component/office365/univention-office365" >> /etc/apache2/apache2.conf
-- a2enmod ssl
-- a2ensite office365.conf
-- check debian/rules and debian/univention-office365.postinst for more installation related instructions
-- tail -f /var/log/syslog /var/log/apache2/error.log
+============
+* install ucs-4.1/component/univention-office365
+* go to https://FQDN/univention-office365/wizard
+* register app in Azure
+* go to https://FQDN/univention-office365/wizard?client_id=<........-....-....-....-............>
+* Authorize
+* Enable UDM property UniventionOffice365Enabled for users/groups
+* observe listener.log (and during development office365-py.log)
 
 TODO
 ====
 * Move this section to bugzilla once this thing leaves the simulation phase.
-* Automatic refreshing of expired tokens is currently only done in list_users().
- - generalize
- - make an issue at requests-oauthlib github [roal] for not handling Authentication_ExpiredToken
-* write a listener
 * actual UMC code
 
 [aadc] https://azure.microsoft.com/en-us/documentation/articles/active-directory-aadconnect/
@@ -76,3 +87,4 @@ TODO
 [acgf] https://msdn.microsoft.com/en-us/library/azure/dn645542.aspx
 [hrft] https://msdn.microsoft.com/en-us/library/azure/dn645536.aspx
 [roal] https://github.com/requests/requests-oauthlib
+[gaps] https://msdn.microsoft.com/Library/Azure/Ad/Graph/howto/azure-ad-graph-api-permission-scopes#DirectoryRWDetail

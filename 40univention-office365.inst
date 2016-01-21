@@ -44,8 +44,9 @@ CONFDIR=/etc/univention-office365
 
 if ! [ -f $CONFDIR/key.pem -a -f $CONFDIR/cert.pem -a -f $CONFDIR/cert.fp ]; then
     cd $CONFDIR
-    rm -fv _key.pem key.pem cert.pem cert.fp openssl.cnf
-    cat >>openssl.cnf <<__SSLCONF__
+    rm -fv _key.pem key.pem cert.pem cert.fp
+    if ! [ -f openssl.cnf ]; then
+        cat >>openssl.cnf <<__SSLCONF__
 [ req ]
 prompt = no
 encrypt_key = no
@@ -53,7 +54,8 @@ distinguished_name = req_distinguished_name
 
 [ req_distinguished_name ]
 __SSLCONF__
-    egrep '^countryName_default|^stateOrProvinceName_default|^localityName_default|^postalCode_default|^streetAddress_default|organizationName_default|^organizationalUnitName_default|^commonName_default|^emailAddress_default' "/etc/univention/ssl/$hostname.$domainname/openssl.cnf" | sed 's/_default//' >> openssl.cnf
+        egrep '^countryName_default|^stateOrProvinceName_default|^localityName_default|^postalCode_default|^streetAddress_default|organizationName_default|^organizationalUnitName_default|^commonName_default|^emailAddress_default' "/etc/univention/ssl/$hostname.$domainname/openssl.cnf" | sed 's/_default//' >> openssl.cnf
+    fi
     openssl req -x509  -newkey rsa:2048 -keyout _key.pem -out cert.pem -nodes -config openssl.cnf
     openssl rsa -in _key.pem -out key.pem
     rm -fv _key.pem
