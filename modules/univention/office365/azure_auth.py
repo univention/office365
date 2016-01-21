@@ -157,6 +157,15 @@ def run_as_root(func):
 	return _decorated
 
 
+def is_initialized():
+	try:
+		AzureAuth.load_azure_ids()
+		return True
+	except (NoIDsStored, IOError) as exc:
+		log_e("is_initialized() {}".format(exc))
+		return False
+
+
 class AzureAuth(object):
 	def __init__(self, listener, name):
 		global NAME, glistener

@@ -42,7 +42,7 @@ import copy
 from stat import S_IRUSR, S_IWUSR
 
 import listener
-from univention.office365.azure_auth import log_a, log_e, log_ex, log_p
+from univention.office365.azure_auth import log_a, log_e, log_ex, log_p, is_initialized
 from univention.office365.listener import Office365Listener
 
 
@@ -86,8 +86,25 @@ def setdata(key, value):
 	ldap_cred[key] = value
 
 
+def initialize():
+	if not is_initialized():
+		raise RuntimeError("Office 365 App not initialized yet, please run wizard.")
+
+
+def clean():
+	"""
+	Remove  univentionOffice365ObjectID and univentionOffice365Data from all
+	user objects.
+	"""
+	log_p("clean() removing Office 365 ObjectID and Data from all groups.")
+	Office365Listener.clean_udm_objects("groups/group", listener.configRegistry["ldap/base"], ldap_cred)
+
+
 def handler(dn, new, old, command):
-	log_a("command: {}".format(command))  # DEBUG
+	log_a("{}.handler() command: {}".format(name, command))  # DEBUG
+	if not is_initialized():
+		raise RuntimeError("{}.handler() Office 365 App not initialized yet, please run wizard.".format(name))
+
 	if command == 'r':
 		save_old(old)
 		return

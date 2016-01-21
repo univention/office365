@@ -34,6 +34,9 @@ import uuid
 import random
 import string
 import re
+import json
+import base64
+import zlib
 
 import univention.admin.uldap
 import univention.admin.objects
@@ -104,7 +107,7 @@ class Office365Listener(object):
 			userPrincipalName="{0}@{1}".format(new["uid"][0], self.verified_domains[0]),  # TODO: make the domain choosable
 			mailNickname=new["uid"][0],
 			displayName=attributes.get("displayName", "no name"),
-			usageLocation=new.get["st"][0] if new.get("st") else self.ucr["ssl/country"],
+			usageLocation=new["st"][0] if new.get("st") else self.ucr["ssl/country"],
 		)
 		attributes.update(mandatory_attributes)
 
@@ -152,6 +155,45 @@ class Office365Listener(object):
 		user = usersmod.object(None, lo, po, userdn)
 		user.open()
 		return user
+
+	@staticmethod
+	def find_udm_objects(module_s, filter_s, base, ldap_cred):
+		"""
+		search LDAP for UDM objects, static for listener.clean()
+		:param module_s: "users/user", "groups/group", etc
+		:param filter_s: LDAP filter string
+		:return: list of (not yet opened) UDM objects
+		"""
+		lo = univention.admin.uldap.access(
+					host=ldap_cred["ldapserver"],
+					base=ldap_cred["basedn"],
+					binddn=ldap_cred["binddn"],
+					bindpw=ldap_cred["bindpw"])
+		po = univention.admin.uldap.position(base)
+		univention.admin.modules.update()
+		module = univention.admin.modules.get(module_s)
+		univention.admin.modules.init(lo, po, module)
+		config = univention.admin.config.config()
+		return module.lookup(config, lo, filter_s=filter_s, base=base)
+
+	@staticmethod
+	def clean_udm_objects(module_s, base, ldap_cred):
+		"""
+		Remove  univentionOffice365ObjectID and univentionOffice365Data from all
+		user/group objects, static for listener.clean().
+		"""
+		log_p("Office365Listener.clean_udm_objects() cleaning '{}' objects.".format(module_s))
+		filter_s = "(|(univentionOffice365ObjectID=*)(univentionOffice365Data=*))"
+		udm_objs = Office365Listener.find_udm_objects(module_s, filter_s, base, ldap_cred)
+		for udm_obj in udm_objs:
+			udm_obj.open()
+			log_p("Office365Listener.clean_udm_objects() {}...".format(
+					udm_obj["username"] if "username" in udm_obj else udm_obj["name"]))
+			udm_obj["UniventionOffice365ObjectID"] = None
+			if "UniventionOffice365Data" in udm_obj:
+				udm_obj["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(None)))
+			udm_obj.modify()
+		log_p("Office365Listener.clean_udm_objects() done.")
 
 	def modify_user(self, old, new):
 		modifications = Office365Listener._diff_old_new(self.attrs["listener"], old, new)
