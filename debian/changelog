@@ -1,3 +1,10 @@
+univention-office365 (0.1.3) unstable; urgency=low
+
+  * add UCRV office365/groups/sync to enable syncing of groups to AzureAD,
+    default is off (Bug #40295)
+
+ -- Daniel Troeder <troeder@univention.de>  Fri, 22 Jan 2016 18:47:55 +0100
+
 univention-office365 (0.1.2) unstable; urgency=low
 
   * use entryUUID as immutableId for searching users in absence of an Azure

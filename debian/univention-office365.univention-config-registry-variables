@@ -27,3 +27,9 @@ Description[de]=Kommaseparierte Liste von LDAP Attributen die mit dem Azure Acti
 Description[en]=Comma separated list of LDAP attributes that should synchronized with the Azure Active DirectoryAAD. The names of the attributes must be included in office365/attributes/mapping/.* as ATTRIBUTE-HERE.
 Type=str
 Categories=service-collaboration
+
+[office365/groups/sync]
+Description[de]=Sollen Gruppen in denen sich Benutzer mit Office 365 Konto befinden, synchronisiert werden? Standard ist 'no'.
+Description[en]=Should groups that contain users with a Office 365 account be syncronized? Defaults to 'no'.
+Type=bool
+Categories=service-collaboration

@@ -50,8 +50,8 @@ listener.configRegistry.load()
 
 
 name = 'office365-group'
-description = 'manage office 365 groups'
-filter = '(objectClass=posixGroup)'
+description = 'sync groups to office 365'
+filter = '(objectClass=posixGroup)' if listener.configRegistry.is_true("office365/groups/sync", False) else '(foo=bar)'
 attributes = ["cn", "description", "uniqueMember"]
 modrdn = "1"
 
@@ -87,6 +87,9 @@ def setdata(key, value):
 
 
 def initialize():
+	if not listener.configRegistry.is_true("office365/groups/sync", False):
+		raise RuntimeError("Office 365 App: syncing of groups is deactivated.")
+
 	if not is_initialized():
 		raise RuntimeError("Office 365 App not initialized yet, please run wizard.")
 
@@ -102,6 +105,8 @@ def clean():
 
 def handler(dn, new, old, command):
 	log_a("{}.handler() command: {}".format(name, command))  # DEBUG
+	if not listener.configRegistry.is_true("office365/groups/sync", False):
+		return
 	if not is_initialized():
 		# TODO: store [dn] = action for replay later
 		raise RuntimeError("{}.handler() Office 365 App not initialized yet, please run wizard.".format(name))

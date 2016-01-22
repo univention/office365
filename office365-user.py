@@ -123,7 +123,7 @@ def get_listener_attributes():
 
 
 name = 'office365-user'
-description = 'manage office 365 users'
+description = 'sync users to office 365'
 filter = '(&(objectClass=univentionOffice365)(uid=*))'
 attributes = get_listener_attributes()
 modrdn = "1"
