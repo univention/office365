@@ -137,7 +137,7 @@ class AzureHandler(object):
 		self.auth = AzureAuth(listener, name)
 		self.uris = _get_azure_uris(self.auth.tenant_id)
 
-	def call_api(self, method, url, data=None):
+	def call_api(self, method, url, data=None, retry=0):
 		request_id = str(uuid.uuid4())
 		headers = {
 			"User-Agent": "ucs-office365/1.0",
@@ -187,6 +187,14 @@ class AzureHandler(object):
 			if not (200 <= response.status_code <= 299):
 				if response.status_code == 404 and response_json["odata.error"]["code"] == "Request_ResourceNotFound":
 					raise ResourceNotFoundError(response)
+				elif 500 <= response.status_code <= 599:
+					# server error
+					if retry > 0:
+						raise ApiError(response)
+					else:
+						log_e("AzureHandler.call_api() Server error. Azure said: '{}'. Will sleep 10s and then retry one time.".format(response_json["odata.error"]["message"]["value"]))
+						time.sleep(10)
+						self.call_api(method, url, data=data, retry=retry+1)
 				else:
 					raise ApiError(response)
 		else:
@@ -263,7 +271,7 @@ class AzureHandler(object):
 		return self._create_object(
 				object_type="user",
 				attributes=attributes,
-				obj_id={"key": "userPrincipalName", "value": attributes["userPrincipalName"]})
+				obj_id={"key": "immutableId", "value": attributes["immutableId"]})
 
 	def create_group(self, name, description=None):
 		"""
@@ -486,8 +494,7 @@ class AzureHandler(object):
 		# deactivate user, remove email addresses
 		modifications = dict(
 			accountEnabled=False,
-			otherMails=list(),
-			immutableId="deactivated_{}_{}".format(time.time(), user_obj["immutableId"])
+			otherMails=list()
 		)
 		if rename:
 			name_pattern = "ZZZ_deleted_{time}_{orig}"

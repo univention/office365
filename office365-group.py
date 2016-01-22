@@ -103,7 +103,11 @@ def clean():
 def handler(dn, new, old, command):
 	log_a("{}.handler() command: {}".format(name, command))  # DEBUG
 	if not is_initialized():
+		# TODO: store [dn] = action for replay later
 		raise RuntimeError("{}.handler() Office 365 App not initialized yet, please run wizard.".format(name))
+	else:
+		# TODO: replay postponed actions
+		pass
 
 	if command == 'r':
 		save_old(old)
@@ -150,7 +154,7 @@ def handler(dn, new, old, command):
 			if "univentionOffice365ObjectID" in new:
 				object_id = new["univentionOffice365ObjectID"][0]
 			else:
-				azure_group = ol.get_azure_group(new["cn"][0])
+				azure_group = ol.find_aad_group_by_name(new["cn"][0])
 				if azure_group:
 					object_id = azure_group["objectId"]
 					udm_group = ol.get_udm_group(dn)

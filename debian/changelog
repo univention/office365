@@ -1,3 +1,15 @@
+univention-office365 (0.1.2) unstable; urgency=low
+
+  * use entryUUID as immutableId for searching users in absence of an Azure
+    object ID (Bug #40295)
+  * cope with missing object ID (during listner resync)
+  * retry on server error (500)
+  * joinscript backups previous files (keys etc)
+  * permissions set for listener only, wizard will have to temporarily change
+    them when its running
+
+ -- Daniel Troeder <troeder@univention.de>  Fri, 22 Jan 2016 18:22:30 +0100
+
 univention-office365 (0.1.1) unstable; urgency=low
 
   * find and add license to user account (Bug #40295)

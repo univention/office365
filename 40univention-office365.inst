@@ -44,9 +44,17 @@ CONFDIR=/etc/univention-office365
 
 if ! [ -f $CONFDIR/key.pem -a -f $CONFDIR/cert.pem -a -f $CONFDIR/cert.fp ]; then
     cd $CONFDIR
-    rm -fv _key.pem key.pem cert.pem cert.fp
-    if ! [ -f openssl.cnf ]; then
-        cat >>openssl.cnf <<__SSLCONF__
+
+    # make backup
+    DATE=$(date +%Y-%m-%d_%H.%M.%S)
+    for FILE in _key.pem key.pem cert.pem cert.fp openssl.cnf ids.json token.json; do
+        if [ -f "$FILE" ]; then
+            mv -v "$FILE" "${FILE}_${DATE}.bak"
+        fi
+    done
+
+    # create OpenSSL config
+    cat >>openssl.cnf <<__SSLCONF__
 [ req ]
 prompt = no
 encrypt_key = no
@@ -54,22 +62,30 @@ distinguished_name = req_distinguished_name
 
 [ req_distinguished_name ]
 __SSLCONF__
-        egrep '^countryName_default|^stateOrProvinceName_default|^localityName_default|^postalCode_default|^streetAddress_default|organizationName_default|^organizationalUnitName_default|^commonName_default|^emailAddress_default' "/etc/univention/ssl/$hostname.$domainname/openssl.cnf" | sed 's/_default//' >> openssl.cnf
-    fi
+    egrep '^countryName_default|^stateOrProvinceName_default|^localityName_default|^postalCode_default|^streetAddress_default|organizationName_default|^organizationalUnitName_default|^commonName_default|^emailAddress_default' "/etc/univention/ssl/$hostname.$domainname/openssl.cnf" | sed 's/_default//' >> openssl.cnf
+
+    # set permissions
+    touch _key.pem key.pem cert.pem cert.fp ids.json token.json
+    chown -R listener:root $CONFDIR
+    chmod 0700 $CONFDIR
+    chmod 0600 _key.pem key.pem cert.pem cert.fp ids.json token.json
+
+    # create SSL key, cert and fp
     openssl req -x509  -newkey rsa:2048 -keyout _key.pem -out cert.pem -nodes -config openssl.cnf
     openssl rsa -in _key.pem -out key.pem
     rm -fv _key.pem
     openssl x509 -in cert.pem -fingerprint -noout | sed 's/SHA1 Fingerprint=//g' | sed 's/://g' | xxd -r -ps | base64 > cert.fp
-    chmod 0440 key.pem cert.pem cert.fp
 
-    chown root:www-data $CONFDIR  # TODO: remove this line - the real UMC wizard runs as root... although it may be needed by the callback script...
-    chmod 0770 $CONFDIR           # TODO: remove this line - the real UMC wizard runs as root... although it may be needed by the callback script...
-    python -c 'import json; json.dump({}, open("ids.json","w")); json.dump({}, open("token.json","w"))' # TODO: remove this line
-    chmod 660 ids.json token.json # TODO: remove this line - the real UMC wizard runs as root
-    chgrp www-data *              # TODO: remove this line - the real UMC wizard runs as root
-    touch /var/log/univention/office365-py.log /var/log/univention/office365-ud.log # TODO: remove this line
-    chown listener:www-data /var/log/univention/office365-*.log # TODO: remove this line
-    chmod 664 /var/log/univention/office365-*.log # TODO: remove this line
+    # create empty id and token stores
+    python -c 'import json; json.dump({}, open("ids.json","w")); json.dump({}, open("token.json","w"))'
+
+    # set paranoid permissions
+    chmod 0400 key.pem cert.pem cert.fp
+
+    # DEBUG, remove later
+    touch /var/log/univention/office365-py.log /var/log/univention/office365-ud.log
+    chown listener:www-data /var/log/univention/office365-*.log
+    chmod 664 /var/log/univention/office365-*.log
 fi
 
 ucs_addServiceToLocalhost "univention-office365" "$@"

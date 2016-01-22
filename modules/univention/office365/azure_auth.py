@@ -190,10 +190,10 @@ class AzureAuth(object):
 	@run_as_root
 	def store_azure_ids(client_id, tenant_id):
 		open(IDS_FILE, "w").close()  # touch
-		try:                                     # TODO: remove this line - the real UMC wizard runs as root
+		try:
 			os.chmod(IDS_FILE, S_IRUSR | S_IWUSR)
-		except OSError:                          # TODO: remove this line - the real UMC wizard runs as root
-			pass                                 # TODO: remove this line - the real UMC wizard runs as root
+		except OSError:
+			pass
 		with open(IDS_FILE, "w") as f:
 			json.dump(dict(client_id=client_id, tenant_id=tenant_id), f)
 
@@ -216,10 +216,10 @@ class AzureAuth(object):
 		tokens = AzureAuth.load_tokens()
 		tokens.update(kwargs)
 		open(TOKEN_FILE, "w").close()  # touch
-		try:                                     # TODO: remove this line - the real UMC wizard runs as root
+		try:
 			os.chmod(TOKEN_FILE, S_IRUSR | S_IWUSR)
-		except OSError:                          # TODO: remove this line - the real UMC wizard runs as root
-			pass                                 # TODO: remove this line - the real UMC wizard runs as root
+		except OSError:
+			pass
 		with open(TOKEN_FILE, "w") as f:
 			json.dump(tokens, f)
 
@@ -315,7 +315,7 @@ class AzureAuth(object):
 			return certs
 
 		def _old_cryptography_checks(client_id, tenant_id, id_token, header, body):
-			# TODO: cannot verify signature, because ancient python-cryptography cannot load x509 certificates
+			# cannot verify signature, because ancient python-cryptography cannot load x509 certificates
 			log_e("AzureAuth._old_cryptography_checks() Running old cryptography checks - NO signature verification.")
 			if header["alg"] == "none":
 				raise TokenValidationError("Received an unsigned token. ID token: '{}'.".format(id_token))

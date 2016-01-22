@@ -97,19 +97,20 @@ class Office365Listener(object):
 
 		# mandatory attributes, not to be overwritten by user
 		mandatory_attributes = dict(
-			immutableId=new["entryUUID"][0],
+			immutableId=base64.encodestring(new["entryUUID"][0]),
 			accountEnabled=True,
 			passwordProfile=dict(
 				password=Office365Listener._get_random_pw(),
 				forceChangePasswordNextLogin=False
 			),
-			# TODO: make these anonymizable
-			userPrincipalName="{0}@{1}".format(new["uid"][0], self.verified_domains[0]),  # TODO: make the domain choosable
+			userPrincipalName="{0}@{1}".format(new["uid"][0], self.verified_domains[0]),
 			mailNickname=new["uid"][0],
 			displayName=attributes.get("displayName", "no name"),
 			usageLocation=new["st"][0] if new.get("st") else self.ucr["ssl/country"],
 		)
 		attributes.update(mandatory_attributes)
+		log_e("Office365Listener.create_user() attributes={}".format(attributes))
+		log_e("Office365Listener.create_user() new[entryUUID][0]={}".format(new["entryUUID"][0]))
 
 		self.ah.create_user(attributes)
 
@@ -132,7 +133,6 @@ class Office365Listener(object):
 			self.ah.add_license(new_user["objectId"], sku_id)
 		else:
 			msg = "user {} created, but no allocatable subscriptions found. All known subscriptions: {}".format(new_user["objectId"], subscriptions)
-			log_e("Office365Listener.create_user() {}".format(msg))
 			raise NoAllocatableSubscriptions(new_user["objectId"], msg)
 
 		return new_user
@@ -145,7 +145,13 @@ class Office365Listener(object):
 			return
 
 	def deactivate_user(self, old):
-		return self.ah.deactivate_user(old["univentionOffice365ObjectID"][0])
+		if "univentionOffice365ObjectID" in old and old["univentionOffice365ObjectID"][0]:
+			object_id = old["univentionOffice365ObjectID"][0]
+		else:
+			object_id = self._find_aad_user_by_entryUUID(old["entryUUID"][0])
+			if not object_id:
+				return
+		return self.ah.deactivate_user(object_id)
 
 	def get_udm_user(self, userdn):
 		lo, po = self._get_ldap_connection()
@@ -222,26 +228,23 @@ class Office365Listener(object):
 		:param user: listener old or new
 		:return: dict
 		"""
-		object_id = user["univentionOffice365ObjectID"][0]
-		if not object_id:
-			upn = "{0}@{1}".format(user["uid"][0], self.verified_domains[0]),  # TODO: make the domain choosable
-			user = self.ah.list_users(ofilter="userPrincipalName eq '{}'".format(upn))
-			if user["value"]:
-				object_id = user["value"][0]["objectId"]
+		if "univentionOffice365ObjectID" in user and user["univentionOffice365ObjectID"][0]:
+			object_id = user["univentionOffice365ObjectID"][0]
+		else:
+			object_id = self._find_aad_user_by_entryUUID(user["entryUUID"][0])
+			if not object_id:
+				return list()
 		return self.ah.list_users(objectid=object_id)
 
 	def create_group(self, name, description, group_dn, add_members=True):
-		# TODO: support anonymization, etc
 		self.ah.create_group(name, description)
 
-		group = self.ah.list_groups(ofilter="displayName eq '{}'".format(name))
-		if group["value"]:
-			new_group = group["value"][0]
-			if add_members:
-				self.add_ldap_members_to_azure_group(group_dn, new_group["objectId"])
-			return new_group
-		else:
+		new_group = self.find_aad_group_by_name(name)
+		if not new_group:
 			raise RuntimeError("Office365Listener.create_group() created group '{}' cannot be retrieved.".format(name))
+		if add_members:
+			self.add_ldap_members_to_azure_group(group_dn, new_group["objectId"])
+		return new_group
 
 	def create_group_from_new(self, new):
 		desc = new.get("description", [""])[0] or None
@@ -263,7 +266,6 @@ class Office365Listener(object):
 
 	def modify_group(self, old, new):
 		modification_attributes = Office365Listener._diff_old_new(self.attrs["listener"], old, new)
-		# TODO: support anonymization, etc
 		log_a("Office365Listener.modify_group() DN={} modification_attributes={}".format(
 			old["entryDN"], modification_attributes))
 
@@ -336,9 +338,9 @@ class Office365Listener(object):
 							member_id = azure_user["value"][0]["objectId"]
 						else:
 							# try with a group
-							azure_group = self.ah.list_groups(ofilter="displayName eq '{}'".format(object_name))
-							if azure_group["value"]:
-								member_id = azure_group["value"][0]["objectId"]
+							azure_group = self.find_aad_group_by_name(object_name)
+							if azure_group:
+								member_id = azure_group["objectId"]
 						if not member_id:
 							# not an Azure user or group or already deleted in Azure
 							continue
@@ -428,11 +430,20 @@ class Office365Listener(object):
 		group.open()
 		return group
 
-	def get_azure_group(self, name):
+	def find_aad_user_by_entryUUID(self, entryUUID):
+		user = self.ah.list_users(ofilter="immutableId eq '{}'".format(base64.encodestring(entryUUID)))
+		if user["value"]:
+			return user["value"][0]["objectId"]
+		else:
+			log_e("Office365Listener._find_aad_user_by_dn() could not find user with dn='{}'.".format(entryUUID))
+			return None
+
+	def find_aad_group_by_name(self, name):
 		group = self.ah.list_groups(ofilter="displayName eq '{}'".format(name))
 		if group["value"]:
 			return group["value"][0]
 		else:
+			log_e("Office365Listener.find_aad_group_by_name() could not find group with name='{}'.".format(name))
 			return None
 
 	@staticmethod
