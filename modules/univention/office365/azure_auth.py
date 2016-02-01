@@ -43,21 +43,15 @@ import socket
 import os
 import traceback
 import datetime
-import re
 import sys
 from xml.dom.minidom import parseString
 from functools import wraps
 from stat import S_IRUSR, S_IWUSR
-try:
-	from cryptography.x509 import load_pem_x509_certificate
-	from cryptography.hazmat.backends import default_backend
-	import OpenSSL.crypto
-	import jwt
-	old_cryptography = False
-except ImportError:
-	# get python-cryptography from jessie-backports (0.8.2-2)
-	# get python-jwt from stretch (1.3.0-1)
-	old_cryptography = True
+
+from cryptography.x509 import load_pem_x509_certificate
+from cryptography.hazmat.backends import default_backend
+import OpenSSL.crypto
+import jwt
 
 import univention.debug as ud
 
@@ -314,21 +308,6 @@ class AzureAuth(object):
 				raise TokenValidationError("Could not find certificate in federation metadata:\n{}".format(_discard_garbage(fed.text)))
 			return certs
 
-		def _old_cryptography_checks(client_id, tenant_id, id_token, header, body):
-			# cannot verify signature, because ancient python-cryptography cannot load x509 certificates
-			log_e("AzureAuth._old_cryptography_checks() Running old cryptography checks - NO signature verification.")
-			if header["alg"] == "none":
-				raise TokenValidationError("Received an unsigned token. ID token: '{}'.".format(id_token))
-			if header["alg"] != "RS256":
-				raise TokenValidationError("Received a token signed using an expected algorithm: '{}'. ID token: '{}'.".format(header["alg"], id_token))
-			nonce_old = AzureAuth.load_tokens()["nonce"]
-			if not body["nonce"] == nonce_old:
-				raise TokenValidationError("Stored ({}) and received ({}) nonce of token do not match. ID token: '{}'.".format(nonce_old, body["nonce"], id_token))
-			m = re.search("^https://(.*)/(.*)/$", body["iss"])
-			if client_id != body["aud"] or m.groups()[-1] != tenant_id:
-				raise TokenValidationError("Wrong audience ({}) or issuer ({}) in token. ID token: '{}'".format(body["aud"], m.groups()[-1], id_token))
-			log_p("AzureAuth._old_cryptography_checks() Checked ID token.")
-
 		def _new_cryptography_checks(client_id, tenant_id, id_token):
 			# check JWT validity, incl. signature
 			log_p("AzureAuth._new_cryptography_checks() Running new cryptography checks incl signature verification.")
@@ -359,14 +338,14 @@ class AzureAuth(object):
 			log_p("AzureAuth._new_cryptography_checks() Verified ID token.")
 
 		# get the tenant ID from the id token
-		header, body, _ = _parse_token(id_token)
+		_, body, _ = _parse_token(id_token)
 		tenant_id = body['tid']
 		client_id, _ = AzureAuth.load_azure_ids()
+		nonce_old = AzureAuth.load_tokens()["nonce"]
+		if not body["nonce"] == nonce_old:
+			raise TokenValidationError("Stored ({}) and received ({}) nonce of token do not match. ID token: '{}'.".format(nonce_old, body["nonce"], id_token))
 		# check validity of token
-		if old_cryptography:
-			_old_cryptography_checks(client_id, tenant_id, id_token, header, body)
-		else:
-			_new_cryptography_checks(client_id, tenant_id, id_token)
+		_new_cryptography_checks(client_id, tenant_id, id_token)
 		AzureAuth.store_azure_ids(client_id, tenant_id)
 		return tenant_id
 
