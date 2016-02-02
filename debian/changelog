@@ -1,3 +1,9 @@
+univention-office365 (0.1.5) unstable; urgency=low
+
+  * use univention-certificate to create SSL certificate (Bug #38950)
+
+ -- Daniel Troeder <troeder@univention.de>  Tue, 02 Feb 2016 12:58:52 +0100
+
 univention-office365 (0.1.4) unstable; urgency=low
 
   * Bug #40291: current python-jwt and python-cryptography were imported into

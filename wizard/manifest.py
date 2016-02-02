@@ -38,10 +38,18 @@ txt = sys.stdin.read()
 manifest = json.loads(txt)
 
 cert = open("/etc/univention-office365/cert.pem", "r").read()
-cert_split = cert.split("\n")
-cert_start = 1  # TODO: verify by looking for -----BEGIN CERTIFICATE-----
-cert_end = -2  # TODO: verify by looking for -----END CERTIFICATE-----
-key = "".join(cert_split[cert_start:cert_end])
+in_key = False
+cert_key = list()
+for num, line in enumerate(cert.split("\n")):
+	if line == "-----BEGIN CERTIFICATE-----":
+		in_key = True
+		continue
+	elif line == "-----END CERTIFICATE-----":
+		break
+	if in_key:
+		cert_key.append(line)
+key = "".join(cert_key)
+
 cert_fp = open("/etc/univention-office365/cert.fp", "r").read().strip()
 keyCredentials = dict(
 	customKeyIdentifier=cert_fp,

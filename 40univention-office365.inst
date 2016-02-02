@@ -46,34 +46,25 @@ if ! [ -f $CONFDIR/key.pem -a -f $CONFDIR/cert.pem -a -f $CONFDIR/cert.fp ]; the
     cd $CONFDIR
 
     # make backup
-    DATE=$(date +%Y-%m-%d_%H.%M.%S)
+    DATE=$(date +%Y-%m-%d-%H.%M.%S)
     for FILE in _key.pem key.pem cert.pem cert.fp openssl.cnf ids.json token.json; do
         if [ -f "$FILE" ]; then
             mv -v "$FILE" "${FILE}_${DATE}.bak"
         fi
     done
 
-    # create OpenSSL config
-    cat >>openssl.cnf <<__SSLCONF__
-[ req ]
-prompt = no
-encrypt_key = no
-distinguished_name = req_distinguished_name
-
-[ req_distinguished_name ]
-__SSLCONF__
-    egrep '^countryName_default|^stateOrProvinceName_default|^localityName_default|^postalCode_default|^streetAddress_default|organizationName_default|^organizationalUnitName_default|^commonName_default|^emailAddress_default' "/etc/univention/ssl/$hostname.$domainname/openssl.cnf" | sed 's/_default//' >> openssl.cnf
-
     # set permissions
-    touch _key.pem key.pem cert.pem cert.fp ids.json token.json
+    touch key.pem cert.pem cert.fp ids.json token.json
     chown -R listener:root $CONFDIR
     chmod 0700 $CONFDIR
-    chmod 0600 _key.pem key.pem cert.pem cert.fp ids.json token.json
+    chmod 0600 key.pem cert.pem cert.fp ids.json token.json
 
     # create SSL key, cert and fp
-    openssl req -x509  -newkey rsa:2048 -keyout _key.pem -out cert.pem -nodes -config openssl.cnf
-    openssl rsa -in _key.pem -out key.pem
-    rm -fv _key.pem
+    SSL_NAME="office365.sync.$DATE@$hostname.$domainname"
+    SSL_DIR="/etc/univention/ssl/$SSL_NAME"
+    univention-certificate new -name $SSL_NAME -days 3650
+    cat $SSL_DIR/cert.pem > cert.pem
+    cat $SSL_DIR/private.key > key.pem
     openssl x509 -in cert.pem -fingerprint -noout | sed 's/SHA1 Fingerprint=//g' | sed 's/://g' | xxd -r -ps | base64 > cert.fp
 
     # create empty id and token stores
