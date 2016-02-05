@@ -62,9 +62,9 @@ if ! [ -f $CONFDIR/key.pem -a -f $CONFDIR/cert.pem -a -f $CONFDIR/cert.fp ]; the
     # create SSL key, cert and fp
     SSL_NAME="office365.sync.$DATE@$hostname.$domainname"
     SSL_DIR="/etc/univention/ssl/$SSL_NAME"
-    univention-certificate new -name $SSL_NAME -days 3650
-    cat $SSL_DIR/cert.pem > cert.pem
-    cat $SSL_DIR/private.key > key.pem
+    univention-certificate new -name "$SSL_NAME" -days 3650
+    cat "$SSL_DIR/cert.pem" > cert.pem
+    cat "$SSL_DIR/private.key" > key.pem
     openssl x509 -in cert.pem -fingerprint -noout | sed 's/SHA1 Fingerprint=//g' | sed 's/://g' | xxd -r -ps | base64 > cert.fp
 
     # create empty id and token stores

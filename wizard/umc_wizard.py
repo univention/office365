@@ -66,7 +66,6 @@ HTML_STEP1 = """		<h1>Step 1 - Register App</h1>
 			<li>retrieve data from user:</li>
 			<ul>
 				<li>client ID</li>
-				<li>domain name    # TODO: retrieve this from azure (currently hardcoded)</li>
 			</ul>
 			<li>next step: get admin consent by appending to this URL <code>?client_id=client-ID</code></li>
 		</ul>
