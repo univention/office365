@@ -259,5 +259,6 @@ def handler(dn, new, old, command):
 		udm_user = ol.get_udm_user(dn)
 		azure_user = ol.get_user(old)
 		udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(azure_user)))
+		udm_user.modify()
 		log_p("Modified user '{}'.".format(old["uid"][0]))
 		return
