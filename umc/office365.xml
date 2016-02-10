@@ -5,7 +5,7 @@
 		<description></description>
 		<keywords>microsoft,azure,office,sync</keywords>
 		<categories>
-			<category name="system"/>
+			<category name="users"/>
 		</categories>
 		<command name="office365/" function=""/>
 	</module>
