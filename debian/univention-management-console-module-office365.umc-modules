@@ -1,0 +1,5 @@
+Module: office365
+Python: umc/python
+Definition: umc/office365.xml
+Javascript: umc/js
+Icons: umc/icons

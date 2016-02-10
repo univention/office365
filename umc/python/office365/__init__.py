@@ -1,7 +1,8 @@
-#!/usr/bin/make -f
+#!/usr/bin/python2.7
+# -*- coding: utf-8 -*-
 #
-# Univention Office 365
-#  rules file for the debian package
+# Univention Management Console
+#  module: Office 365 setup wizard
 #
 # Copyright 2016 Univention GmbH
 #
@@ -30,24 +31,16 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
+from univention.lib.i18n import Translation
+from univention.management.console.base import Base
+from univention.management.console.log import MODULE
 
-override_dh_auto_test:
-	ucslint
-	dh_auto_test
+from univention.management.console.modules.decorators import sanitize
+from univention.management.console.modules.sanitizers import StringSanitizer
 
-override_dh_auto_build:
-	dh-umc-module-build
-	dh_auto_build
+_ = Translation('univention-management-console-module-office365').translate
 
-override_dh_auto_install:
-	univention-install-config-registry
-	dh-umc-module-install
-	dh_auto_install
 
-override_dh_fixperms:
-	dh_fixperms
-	chmod 0750 debian/univention-office365/etc/univention-office365
-	chmod 0750 debian/univention-office365/var/lib/univention-office365
+class Instance(Base):
 
-%:
-	dh $@ --with 'python_support'
+	pass
