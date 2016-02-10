@@ -49,10 +49,10 @@ class Instance(Base):
 		fqdn = '%s.%s' % (ucr.get('hostname'), ucr.get('domainname'))
 		return {
 			'initialized': True,#AzureAuth.is_initialized(),
-			'login-url': 'https://%s/univention-office365/reply' % (fqdn,)
-			'appid-url': 'https://%s/office365' % (fqdn,)
-			'reply-url': 'https://%s/univention-office365/reply' % (fqdn,)
-			'base-url': 'https://%s.%s/' % (fqdn,)
+			'login-url': 'https://%s/univention-office365/reply' % (fqdn,),
+			'appid-url': 'https://%s/office365' % (fqdn,),
+			'reply-url': 'https://%s/univention-office365/reply' % (fqdn,),
+			'base-url': 'https://%s.%s/' % (fqdn,),
 		}
 
 	@file_upload
