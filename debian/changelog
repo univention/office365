@@ -1,6 +1,6 @@
 univention-office365 (0.1.6) unstable; urgency=medium
 
-  * Bug #40294: wizard skelett
+  * Bug #40294: Implement wizard
 
  -- Florian Best <best@univention.de>  Wed, 10 Feb 2016 14:43:27 +0100
 

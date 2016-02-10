@@ -34,8 +34,9 @@
 from univention.lib.i18n import Translation
 from univention.management.console.base import Base
 from univention.management.console.log import MODULE
+from univention.management.console.config import ucr
 
-from univention.management.console.modules.decorators import sanitize
+from univention.management.console.modules.decorators import sanitize, simple_response, file_upload
 from univention.management.console.modules.sanitizers import StringSanitizer
 
 _ = Translation('univention-management-console-module-office365').translate
@@ -43,4 +44,26 @@ _ = Translation('univention-management-console-module-office365').translate
 
 class Instance(Base):
 
-	pass
+	@simple_response
+	def query(self):
+		return {
+			'initialized': True,#AzureAuth.is_initialized(),
+			'login-url': 'https://%s.%s/univention-office365/reply' % (ucr.get('hostname'), ucr.get('domainname')),
+			'appid-url': ' https://%s.%s/office365' % (ucr.get('hostname'), ucr.get('domainname')),
+			'base-url': 'https://%s.%s/' % (ucr.get('hostname'), ucr.get('domainname')),
+		}
+
+	@file_upload
+	def upload(self, request):
+		self.finished(request.id, {
+			'manifest': ''.encode('base64'),
+			'authorizationurl': '/'  # AzureAuth.get_authorization_url(client_id),
+		})
+
+	@simple_response
+	def test_configuration(self):
+		return {
+			'errors': [],
+			'critical': False,
+			'finished': True,
+		}
