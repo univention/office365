@@ -202,6 +202,8 @@ define([
 	return declare("umc.modules.office365", [ Module ], {
 		_wizard: null,
 
+		unique: true,
+
 		postMixInProperties: function() {
 			this.inherited(arguments);
 			this._wizard = new OfficeWizard({});
