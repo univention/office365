@@ -65,7 +65,7 @@ SSL_CERT = CONFDIR + "/cert.pem"
 SSL_CERT_FP = CONFDIR + "/cert.fp"
 IDS_FILE = CONFDIR + "/ids.json"
 TOKEN_FILE = CONFDIR + "/token.json"
-REDIRECT_URI = "https://{0}/univention-office365/reply".format(socket.getfqdn()).lower()
+REDIRECT_URI = "https://{host}/univention-office365/reply"
 SCOPE = ["Directory.ReadWrite.All"]  # https://msdn.microsoft.com/Library/Azure/Ad/Graph/howto/azure-ad-graph-api-permission-scopes#DirectoryRWDetail
 DEBUG_FORMAT = '%(asctime)s %(levelname)-8s %(module)s.%(funcName)s:%(lineno)d  %(message)s'
 LOG_DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
@@ -172,7 +172,7 @@ def is_initialized():
 
 
 def uninitialize():
-	AzureAuth.store_azure_ids(None, None)
+	AzureAuth.store_azure_ids(None, None, None)
 	AzureAuth.store_tokens(nonce=None, access_token=None, access_token_exp_at=None)
 
 
@@ -235,7 +235,7 @@ class AzureAuth(object):
 		NAME = name
 		glistener = listener
 
-		self.client_id, self.tenant_id = AzureAuth.load_azure_ids()
+		self.client_id, self.tenant_id, self.host = AzureAuth.load_azure_ids()
 		self._access_token = None
 		self._access_token_exp_at = None
 
@@ -247,20 +247,21 @@ class AzureAuth(object):
 				ids = json.load(f)
 		except (IOError, ValueError):
 			ids = dict()
-		if not isinstance(ids, dict) or "client_id" not in ids or "tenant_id" not in ids or not ids["client_id"]:
-			raise NoIDsStored("Could not load client_id (and tenant_id) from {}.".format(IDS_FILE))
-		return ids["client_id"], ids["tenant_id"]
+		if not isinstance(ids, dict) or not all(map(lambda x: x in ids, ["client_id", "tenant_id", "host"])) or \
+			not ids["client_id"] or not ids["host"]:
+			raise NoIDsStored("Could not find client_id, tenant_id or host in {}.".format(IDS_FILE))
+		return ids["client_id"], ids["tenant_id"], ids["host"]
 
 	@staticmethod
 	@run_as_root
-	def store_azure_ids(client_id, tenant_id):
+	def store_azure_ids(client_id, tenant_id, host):
 		open(IDS_FILE, "w").close()  # touch
 		try:
 			os.chmod(IDS_FILE, S_IRUSR | S_IWUSR)
 		except OSError:
 			pass
 		with open(IDS_FILE, "w") as f:
-			json.dump(dict(client_id=client_id, tenant_id=tenant_id), f)
+			json.dump(dict(client_id=client_id, tenant_id=tenant_id, host=host), f)
 
 	@staticmethod
 	@run_as_root
@@ -302,13 +303,16 @@ class AzureAuth(object):
 		return self._access_token
 
 	@staticmethod
-	def get_authorization_url(client_id, tenant="common"):
+	def get_authorization_url():
 		nonce = str(uuid.uuid4())
 		AzureAuth.store_tokens(nonce=nonce)
+		client_id, tenant, host = AzureAuth.load_azure_ids()
+		if not tenant:
+			tenant="common"
 
 		params = {
 			'client_id': client_id,
-			'redirect_uri': REDIRECT_URI,
+			'redirect_uri': REDIRECT_URI.format(host=host).lower(),
 			'response_type': 'code id_token',
 			'scope': 'openid',
 			'nonce': nonce,
@@ -411,13 +415,13 @@ class AzureAuth(object):
 		# get the tenant ID from the id token
 		_, body, _ = _parse_token(id_token)
 		tenant_id = body['tid']
-		client_id, _ = AzureAuth.load_azure_ids()
+		client_id, _, host = AzureAuth.load_azure_ids()
 		nonce_old = AzureAuth.load_tokens()["nonce"]
 		if not body["nonce"] == nonce_old:
 			raise TokenValidationError("Stored ({}) and received ({}) nonce of token do not match. ID token: '{}'.".format(nonce_old, body["nonce"], id_token))
 		# check validity of token
 		_new_cryptography_checks(client_id, tenant_id, id_token)
-		AzureAuth.store_azure_ids(client_id, tenant_id)
+		AzureAuth.store_azure_ids(client_id, tenant_id, host)
 		return tenant_id
 
 	def retrieve_access_token(self):
@@ -429,7 +433,7 @@ class AzureAuth(object):
 			'client_assertion_type': 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
 			'client_assertion': assertion,
 			'grant_type': 'client_credentials',
-			'redirect_uri': REDIRECT_URI,
+			'redirect_uri': REDIRECT_URI.format(host=self.host).lower(),
 			'scope': SCOPE
 		}
 		url = oauth2_token_url.format(tenant_id=self.tenant_id)

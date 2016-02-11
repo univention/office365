@@ -106,10 +106,10 @@ def application(environ, start_response):
 		client_id = _parse_GET(environ)["client_id"]
 	except KeyError:
 		html = HTML_STEP1 % {
-			"redirect_uri": REDIRECT_URI,
+			"redirect_uri": REDIRECT_URI.format(host="HOSTNAME_FROM_URL").lower(),
 			"scope": SCOPE}
 		return _response("412 Precondition Failed", html)
-	AzureAuth.store_azure_ids(client_id=client_id, tenant_id=None)
+	AzureAuth.store_azure_ids(client_id=client_id, tenant_id=None, host="HOSTNAME_FROM_URL")
 
 	#
 	# Step 2: using the Apps client ID get the URL for the admin consent,
@@ -120,7 +120,7 @@ def application(environ, start_response):
 
 	html = HTML_STEP2 % {
 		"client_id": client_id,
-		"redirect_uri": REDIRECT_URI,
+		"redirect_uri": REDIRECT_URI.format(host="HOSTNAME_FROM_URL").lower(),
 		"scope": SCOPE,
 		"authorization_url": sign_in_url
 	}
