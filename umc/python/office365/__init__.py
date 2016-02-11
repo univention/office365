@@ -73,7 +73,10 @@ class Instance(Base):
 			raise UMC_Error(str(exc))
 
 		try:
-			manifest.store(request.body.get('tenant_id'))
+			tenant_id = request.body.get('tenant_id')
+			if tenant_id == "null":
+				tenant_id = None
+			manifest.store(tenant_id)
 		except AzureError as exc:
 			raise UMC_Error(str(exc))
 

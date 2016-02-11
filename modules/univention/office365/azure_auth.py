@@ -300,7 +300,7 @@ class AzureAuth(object):
 		AzureAuth.store_tokens(nonce=nonce)
 		client_id, tenant, reply_url = AzureAuth.load_azure_ids()
 		if not tenant:
-			tenant="common"
+			tenant = "common"
 
 		params = {
 			'client_id': client_id,
