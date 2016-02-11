@@ -170,7 +170,7 @@ class Manifest(object):
 	@property
 	def reply_url(self):
 		try:
-			return self.metadata["replyUrls"][0]
+			return self.manifest["replyUrls"][0]
 		except (IndexError, KeyError):
 			pass
 
