@@ -68,7 +68,7 @@ if ! [ -f $CONFDIR/key.pem -a -f $CONFDIR/cert.pem -a -f $CONFDIR/cert.fp ]; the
     openssl x509 -in cert.pem -fingerprint -noout | sed 's/SHA1 Fingerprint=//g' | sed 's/://g' | xxd -r -ps | base64 > cert.fp
 
     # create empty id and token stores
-    python -c 'import json; json.dump({}, open("ids.json","w")); json.dump({}, open("token.json","w"))'
+    python -c 'from univention.office365.azure_auth import uninitialize; uninitialize()'
 
     # set paranoid permissions
     chmod 0400 key.pem cert.pem cert.fp

@@ -160,6 +160,11 @@ def is_initialized():
 		return False
 
 
+def uninitialize():
+	AzureAuth.store_azure_ids(None, None)
+	AzureAuth.store_tokens(nonce=None, access_token=None, access_token_exp_at=None)
+
+
 class AzureAuth(object):
 	def __init__(self, listener, name):
 		global NAME, glistener
@@ -176,8 +181,8 @@ class AzureAuth(object):
 	def load_azure_ids():
 		with open(IDS_FILE, "r") as f:
 			ids = json.load(f)
-		if not isinstance(ids, dict) or "client_id" not in ids or "tenant_id" not in ids:
-			raise NoIDsStored("Could not load client_id and tenant_id from {}.".format(IDS_FILE))
+		if not isinstance(ids, dict) or "client_id" not in ids or "tenant_id" not in ids or not ids["client_id"]:
+			raise NoIDsStored("Could not load client_id (and tenant_id) from {}.".format(IDS_FILE))
 		return ids["client_id"], ids["tenant_id"]
 
 	@staticmethod

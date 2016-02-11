@@ -33,7 +33,7 @@
 #DEBHELPER#
 
 if [ "$1" = "configure" -a -z "$2" ] ; then
-	a2ensite univention-office365.conf
+	a2ensite univention-office365
     invoke-rc.d apache2 reload
 fi
 
