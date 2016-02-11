@@ -38,7 +38,7 @@ from univention.management.console.base import Base, UMC_Error
 from univention.management.console.config import ucr
 
 from univention.management.console.modules.decorators import sanitize, simple_response, file_upload
-from univention.management.console.modules.sanitizers import StringSanitizer, DictSanitizer
+from univention.management.console.modules.sanitizers import StringSanitizer, DictSanitizer, BooleanSanitizer
 
 from univention.office365.azure_auth import AzureAuth, AzureError, Manifest, ManifestError, is_initialized, uninitialize
 from univention.office365.azure_handler import AzureHandler
@@ -53,7 +53,7 @@ class Instance(Base):
 		fqdn = '%s.%s' % (ucr.get('hostname'), ucr.get('domainname'))
 		return {
 			'initialized': is_initialized(),
-			'login-url': 'https://%s/univention-office365/reply' % (fqdn,),
+			'login-url': 'https://%s/univention-management-console/command/office365/reply' % (fqdn,),
 			'appid-url': 'https://%s/office365' % (fqdn,),
 			'base-url': 'https://%s/' % (fqdn,),
 		}
@@ -103,3 +103,31 @@ class Instance(Base):
 			'critical': bool(errors),
 			'finished': finished,
 		}
+
+	@sanitize(
+		id_token=StringSanitizer(required=True),
+		code=StringSanitizer(),
+		session_state=StringSanitizer(),
+		admin_consent=BooleanSanitizer()
+	)
+	def reply(self, request):
+		try:
+			AzureAuth.parse_id_token(request.options['id_token'])
+			aa = AzureAuth(None, "office365")
+			access_token = aa.retrieve_access_token()  # not really necessary, but it'll make sure everything worked
+		except AzureError as exc:
+			raise UMC_Error(str(exc))
+		content = """<!DOCTYPE html>
+<html>
+<head>
+<title>Office 365 Configurarion finished</title>
+<script type="application/javascript">
+window.close();
+</script>
+</head>
+<body>
+The configuration was successful! You can now close this tab and continue the configuration wizard.
+</body>
+</html>
+		"""
+		self.finished(request.id, content, mimetype='text/html')

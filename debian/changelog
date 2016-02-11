@@ -1,3 +1,10 @@
+univention-office365 (0.1.7-1) unstable; urgency=medium
+
+  * Bug #40294: remove the apache mod_wsgi thing. It is handled by UMC
+  	directly.
+
+ -- Florian Best <best@univention.de>  Thu, 11 Feb 2016 16:56:30 +0100
+
 univention-office365 (0.1.6) unstable; urgency=medium
 
   * Bug #40294: Implement wizard

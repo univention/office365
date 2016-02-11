@@ -10,5 +10,6 @@
 		<command name="office365/query" function="query"/>
 		<command name="office365/upload" function="upload"/>
 		<command name="office365/test_configuration" function="test_configuration"/>
+		<command name="office365/reply" function="reply"/>
 	</module>
 </umc>
