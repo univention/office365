@@ -53,7 +53,7 @@ class Instance(Base):
 		fqdn = '%s.%s' % (ucr.get('hostname'), ucr.get('domainname'))
 		return {
 			'initialized': is_initialized(),
-			'login-url': 'https://%s/univention-management-console/command/office365/reply' % (fqdn,),
+			'login-url': '{origin}/univention-management-console/command/office365/reply',
 			'appid-url': 'https://%s/office365' % (fqdn,),
 			'base-url': 'https://%s/' % (fqdn,),
 		}
@@ -73,12 +73,12 @@ class Instance(Base):
 			raise UMC_Error(str(exc))
 
 		try:
-			AzureAuth.store_azure_ids(manifest.app_id, None)
+			manifest.store(request.body.get('tenant_id'))
 		except AzureError as exc:
 			raise UMC_Error(str(exc))
 
 		try:
-			authorizationurl = AzureAuth.get_authorization_url(manifest.app_id)
+			authorizationurl = AzureAuth.get_authorization_url()
 		except AzureError as exc:
 			raise UMC_Error(str(exc))
 
@@ -120,14 +120,18 @@ class Instance(Base):
 		content = """<!DOCTYPE html>
 <html>
 <head>
-<title>Office 365 Configuration finished</title>
+<title>%(title)s</title>
 <script type="application/javascript">
 window.close();
+window.top.close();
 </script>
 </head>
 <body>
-The configuration was successful! You can now close this tab and continue the configuration wizard.
+%(content)s
 </body>
 </html>
-		"""
+		""" % {
+			'title': _('Office 365 Configuration finished'),
+			'content': _('The configuration was successful! You can now close this page and continue the configuration wizard.'),
+		}
 		self.finished(request.id, content, mimetype='text/html')

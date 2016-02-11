@@ -26,7 +26,7 @@
  * /usr/share/common-licenses/AGPL-3; if not, see
  * <http://www.gnu.org/licenses/>.
  */
-/*global define*/
+/*global define,window*/
 
 define([
 	"dojo/_base/declare",
@@ -48,6 +48,10 @@ define([
 
 		constructor: function() {
 			this.inherited(arguments);
+			this.origin = window.location.protocol + '//' + window.location.host + (window.location.port ? ':' + window.location.port : '');
+			this._progressBar = new ProgressBar();
+			this._progressDeferred = new Deferred();
+
 			lang.mixin(this, {
 				pages: [{
 					name: 'start',
@@ -81,8 +85,8 @@ define([
 							'<li>' + _('Paste the following values into the respective fields in the Azure wizard:') + '<ul>' +
 							'<li>' + _('SIGN-ON URL: {login-url}') + '</li>' +
 							'<li>' + _('APP ID URI: {appid-url}') + '</li></ul></li>' +
-							'<li>' + _('Make sure that your browser can resolve {base-url}.') + '</li>' +
-							'<li>' + _('In Azure dashboard: Complete the <i>Add application wizard</i>.') + '</li></ol>'
+//							'<li>' + _('Make sure that your browser can resolve {base-url}.') + '</li>' +
+							'<li>' + _('In Azure dashboard: Complete the <i>Add application</i> wizard.') + '</li></ol>'
 					}]
 				}, {
 					name: 'ucs-integration',
@@ -99,10 +103,13 @@ define([
 						name: 'upload',
 						buttonLabel: _('Upload manifest'),
 						command: 'office365/upload',
+						dynamicOptions: {
+							tenant_id: null
+						},
 						onUploadStarted: lang.hitch(this, function() {
 							this._uploadDeferred = new Deferred();
-							this._uploadDeferred.progress(_('Uploading...'));
-							this.onManifestUpload(this._uploadDeferred);
+							this.standbyDuring(this._uploadDeferred);
+							this._uploadDeferred.then(lang.hitch(this, 'manifestUploaded'));
 						}),
 						onUploaded: lang.hitch(this, function(result) {
 							this._uploadDeferred.resolve(result);
@@ -110,11 +117,6 @@ define([
 						onError: lang.hitch(this, function(error) {
 							this._uploadDeferred.reject(error);
 						})
-					}, {
-						type: Text,
-						name: 'upload-error',
-						visible: false,
-						orgContent: _('Uploading manifest failed: {message}')
 					}]
 				}, {
 					name: 'azure-integration',
@@ -143,21 +145,36 @@ define([
 			});
 		},
 
+		initWizard: function(data) {
+			this.getWidget('start', 'already-initialized').set('visible', data.result.initialized);
+			var infos = this.getWidget('add-external-application', 'infos');
+			infos.set('content', lang.replace(lang.replace(infos.get('content'), data.result), {origin: this.origin}));
+		},
+
+		manifestUploaded: function(data) {
+			var infos = this.getWidget('azure-integration', 'infos');
+			infos.set('content', lang.replace(infos.get('content'), data.result));
+
+			// start polling for success in the background. This is important here to make sure no session timeout occurs.
+			this._progressBar.auto('office365/test_configuration', {}, lang.hitch(this, function() {
+				this._progressDeferred.resolve('connectiontest');  // switch to the last page
+			}));
+
+			this._next('ucs-integration');
+		},
+
 		next: function(pageName) {
 			var nextPage = this.inherited(arguments);
 			if (nextPage == 'connectiontest') {
-				return this._connectionTest(nextPage);
+				return this._connectionTest();
 			}
 			return nextPage;
 		},
 
-		_connectionTest: function(pageName) {
-			var progress = new ProgressBar();
-			progress.setInfo(_('Office 365 configuration'), _('Waiting for configuration to be completed.'), Infinity);
-			var deferred = new Deferred();
-			progress.auto('office365/test_configuration', {}, function() { deferred.resolve(pageName); });
-			this.standbyDuring(deferred, progress);
-			return deferred;
+		_connectionTest: function() {
+			this._progressBar.setInfo(_('Office 365 configuration'), _('Waiting for configuration to be completed.'), Infinity);
+			this.standbyDuring(this._progressDeferred, this._progressBar);
+			return this._progressDeferred;
 		},
 
 		getFooterButtons: function(pageName) {
@@ -193,10 +210,6 @@ define([
 				return false;
 			}
 			return this.inherited(arguments);
-		},
-
-		onManifestUpload: function() {
-			// event stub
 		}
 	});
 	return declare("umc.modules.office365", [ Module ], {
@@ -206,31 +219,12 @@ define([
 
 		postMixInProperties: function() {
 			this.inherited(arguments);
-			this._wizard = new OfficeWizard({});
-			this.standbyDuring(this.umcpCommand('office365/query').then(lang.hitch(this, 'initWizard')));
-			this._wizard.on('manifestUpload', lang.hitch(this, 'startManifestUpload'));
+			this._wizard = new OfficeWizard({
+				umcpCommand: lang.hitch(this, 'umcpCommand')
+			});
+			this.standbyDuring(this.umcpCommand('office365/query').then(lang.hitch(this._wizard, 'initWizard')));
 			this._wizard.on('finished', lang.hitch(this, 'closeModule'));
 			this._wizard.on('cancel', lang.hitch(this, 'closeModule'));
-		},
-
-		initWizard: function(data) {
-			this._wizard.getWidget('start', 'already-initialized').set('visible', data.result.initialized);
-			var infos = this._wizard.getWidget('add-external-application', 'infos');
-			infos.set('content', lang.replace(infos.get('content'), data.result));
-		},
-
-		startManifestUpload: function(deferred) {
-			this.standbyDuring(deferred);
-			this._wizard.getWidget('ucs-integration', 'upload-error').set('visible', false);
-			deferred.then(lang.hitch(this, function(data) {
-				var infos = this._wizard.getWidget('azure-integration', 'infos');
-				infos.set('content', lang.replace(infos.get('content'), data.result));
-				this._wizard._next('ucs-integration');
-			}), lang.hitch(this, function(error) {
-				var widget = this._wizard.getWidget('ucs-integration', 'upload-error');
-				widget.set('content', lang.replace(widget.orgContent, error));
-				widget.set('visible', true);
-			}));
 		},
 
 		buildRendering: function() {

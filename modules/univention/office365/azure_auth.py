@@ -65,7 +65,6 @@ SSL_CERT = CONFDIR + "/cert.pem"
 SSL_CERT_FP = CONFDIR + "/cert.fp"
 IDS_FILE = CONFDIR + "/ids.json"
 TOKEN_FILE = CONFDIR + "/token.json"
-REDIRECT_URI = "https://{host}/univention-office365/reply"
 SCOPE = ["Directory.ReadWrite.All"]  # https://msdn.microsoft.com/Library/Azure/Ad/Graph/howto/azure-ad-graph-api-permission-scopes#DirectoryRWDetail
 DEBUG_FORMAT = '%(asctime)s %(levelname)-8s %(module)s.%(funcName)s:%(lineno)d  %(message)s'
 LOG_DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
@@ -168,10 +167,17 @@ class Manifest(object):
 	def app_id(self):
 		return self.manifest.get('appId')
 
+	@property
+	def reply_url(self):
+		try:
+			return self.metadata["replyUrls"][0]
+		except (IndexError, KeyError):
+			pass
+
 	def __init__(self, fd):
 		try:
 			self.manifest = json.load(fd)
-			if not isinstance(self.manifest, dict):  # TODO: do schema validation
+			if not isinstance(self.manifest, dict) or not self.app_id or not self.reply_url:  # TODO: do schema validation
 				raise ValueError()
 		except ValueError:
 			raise ManifestError(_('The manifest is invalid: Invalid JSON document.'))
@@ -213,45 +219,49 @@ class Manifest(object):
 			"id": "78c8a3c8-a07e-4b9e-af1b-b5ccab50a175",
 			"type": "Role"})
 
+	def store(self, tenant_id=None):
+		AzureAuth.store_azure_ids(self.app_id, tenant_id, self.reply_url)
+
 
 class AzureAuth(object):
+
 	def __init__(self, listener, name):
 		global NAME, glistener
 		self.listener = listener
 		NAME = name
 		glistener = listener
 
-		self.client_id, self.tenant_id, self.host = AzureAuth.load_azure_ids()
+		self.client_id, self.tenant_id, self.reply_url = AzureAuth.load_azure_ids()
 		self._access_token = None
 		self._access_token_exp_at = None
 
 	@staticmethod
 	def load_azure_ids():
 		try:
-			with open(IDS_FILE, "r") as f:
-				ids = json.load(f)
+			with open(IDS_FILE, "r") as fd:
+				ids = json.load(fd)
 		except (IOError, ValueError):
 			ids = dict()
-		if not isinstance(ids, dict) or not all(map(lambda x: x in ids, ["client_id", "tenant_id", "host"])) or \
-			not ids["client_id"] or not ids["host"]:
-			raise NoIDsStored("Could not find client_id, tenant_id or host in {}.".format(IDS_FILE))
-		return ids["client_id"], ids["tenant_id"], ids["host"]
+		if not isinstance(ids, dict) or not all(map(lambda x: x in ids, ["client_id", "tenant_id", "reply_url"])) or \
+			not ids["client_id"] or not ids["reply_url"]:
+			raise NoIDsStored("Could not find client_id, tenant_id or reply_url in {}.".format(IDS_FILE))
+		return ids["client_id"], ids["tenant_id"], ids["reply_url"]
 
 	@staticmethod
-	def store_azure_ids(client_id, tenant_id, host):
+	def store_azure_ids(client_id, tenant_id, reply_url):
 		open(IDS_FILE, "w").close()  # touch
 		try:
 			os.chmod(IDS_FILE, S_IRUSR | S_IWUSR)
 		except OSError:
 			pass
-		with open(IDS_FILE, "w") as f:
-			json.dump(dict(client_id=client_id, tenant_id=tenant_id, host=host), f)
+		with open(IDS_FILE, "w") as fd:
+			json.dump(dict(client_id=client_id, tenant_id=tenant_id, reply_url=reply_url), fd)
 
 	@staticmethod
 	def load_tokens():
 		try:
-			with open(TOKEN_FILE, "r") as f:
-				tokens = json.load(f)
+			with open(TOKEN_FILE, "r") as fd:
+				tokens = json.load(fd)
 		except (IOError, ValueError):
 			tokens = dict()
 		if not isinstance(tokens, dict):
@@ -268,15 +278,15 @@ class AzureAuth(object):
 			os.chmod(TOKEN_FILE, S_IRUSR | S_IWUSR)
 		except OSError:
 			pass
-		with open(TOKEN_FILE, "w") as f:
-			json.dump(tokens, f)
+		with open(TOKEN_FILE, "wb") as fd:
+			json.dump(tokens, fd)
 
 	def get_access_token(self):
 		if not self._access_token:
 			log_a("AzureAuth.get_access_token() loading token from disk...")
 			tokens = AzureAuth.load_tokens()
 			self._access_token = tokens.get("access_token")
-			self._access_token_exp_at = datetime.datetime.fromtimestamp(int(tokens.get("access_token_exp_at")))
+			self._access_token_exp_at = datetime.datetime.fromtimestamp(int(tokens.get("access_token_exp_at", 0)))
 		if not self._access_token_exp_at or datetime.datetime.now() > self._access_token_exp_at:
 			log_a("AzureAuth.get_access_token() token expired, retrieving now one from azure...")
 			self._access_token = self.retrieve_access_token()
@@ -288,13 +298,13 @@ class AzureAuth(object):
 	def get_authorization_url():
 		nonce = str(uuid.uuid4())
 		AzureAuth.store_tokens(nonce=nonce)
-		client_id, tenant, host = AzureAuth.load_azure_ids()
+		client_id, tenant, reply_url = AzureAuth.load_azure_ids()
 		if not tenant:
 			tenant="common"
 
 		params = {
 			'client_id': client_id,
-			'redirect_uri': REDIRECT_URI.format(host=host).lower(),
+			'redirect_uri': reply_url,
 			'response_type': 'code id_token',
 			'scope': 'openid',
 			'nonce': nonce,
@@ -397,13 +407,13 @@ class AzureAuth(object):
 		# get the tenant ID from the id token
 		_, body, _ = _parse_token(id_token)
 		tenant_id = body['tid']
-		client_id, _, host = AzureAuth.load_azure_ids()
+		client_id, _, reply_url = AzureAuth.load_azure_ids()
 		nonce_old = AzureAuth.load_tokens()["nonce"]
 		if not body["nonce"] == nonce_old:
 			raise TokenValidationError("Stored ({}) and received ({}) nonce of token do not match. ID token: '{}'.".format(nonce_old, body["nonce"], id_token))
 		# check validity of token
 		_new_cryptography_checks(client_id, tenant_id, id_token)
-		AzureAuth.store_azure_ids(client_id, tenant_id, host)
+		AzureAuth.store_azure_ids(client_id, tenant_id, reply_url)
 		return tenant_id
 
 	def retrieve_access_token(self):
@@ -415,7 +425,7 @@ class AzureAuth(object):
 			'client_assertion_type': 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
 			'client_assertion': assertion,
 			'grant_type': 'client_credentials',
-			'redirect_uri': REDIRECT_URI.format(host=self.host).lower(),
+			'redirect_uri': self.reply_url,
 			'scope': SCOPE
 		}
 		url = oauth2_token_url.format(tenant_id=self.tenant_id)
@@ -439,8 +449,8 @@ class AzureAuth(object):
 
 	def _get_client_assertion(self):
 		def _load_certificate_fingerprint():
-			with open(SSL_CERT_FP, "r") as f:
-				fp = f.read()
+			with open(SSL_CERT_FP, "r") as fd:
+				fp = fd.read()
 			return fp.strip()
 
 		def _get_assertion_blob(header, payload):
