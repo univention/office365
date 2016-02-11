@@ -79,9 +79,8 @@ define([
 							'<li>' + _('Enter a Name for your application, e.g. <i>UCS Office 365</i>') + '</li>' +
 							'<li>' + _('Select the <i>web-application and/or web-api</i> option and click Next') + '</li>' +
 							'<li>' + _('Paste the following values into the respective fields in the Azure wizard:') + '<ul>' +
-							'<li>' + _('Login URL: {login-url}') + '</li>' +
-							'<li>' + _('APP-ID-URL: {appid-url}') + '</li>' +
-							'<li>' + _('Reply-URL: {reply-url}') + '</li></ul></li>' +
+							'<li>' + _('SIGN-ON URL: {login-url}') + '</li>' +
+							'<li>' + _('APP ID URI: {appid-url}') + '</li>' +
 							'<li>' + _('Make sure that your browser can resolve {base-url}.') + '</li>' +
 							'<li>' + _('In Azure dashboard: Complete the <i>Add application wizard</i>.') + '</li></ol>'
 					}]
@@ -124,7 +123,7 @@ define([
 					widgets: [{
 						type: Text,
 						name: 'infos',
-						content: '<ol><li>' + _('Download <a href="data:application/octet-stream;charset=utf-8;base64,{manifest}">manifest.json</a>') + '</li><li>' +
+						content: '<ol><li>' + _('Download <a download="manifest.json" href="data:application/octet-stream;charset=utf-8;base64,{manifest}">manifest.json</a>') + '</li><li>' +
 							_('Upload the manifest.json file in the Azure dashboard by selecting <i>manage manifest</i> and <i>upload manifest</i>') + '</li><li>' +
 							_('After the file was uploaded successfully, click <a href="{authorizationurl}" target="_blank">here</a> to authorize the connection between this App and Microsoft Azure.') + '</li><li>' +
 							_('Click on <i>finish</i> to test the configuration and end this wizard.') + '</li></ol>'

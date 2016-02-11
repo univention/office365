@@ -55,7 +55,6 @@ class Instance(Base):
 			'initialized': is_initialized(),
 			'login-url': 'https://%s/univention-office365/reply' % (fqdn,),
 			'appid-url': 'https://%s/office365' % (fqdn,),
-			'reply-url': 'https://%s/univention-office365/reply' % (fqdn,),
 			'base-url': 'https://%s/' % (fqdn,),
 		}
 
