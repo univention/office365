@@ -120,7 +120,7 @@ class Instance(Base):
 		content = """<!DOCTYPE html>
 <html>
 <head>
-<title>Office 365 Configurarion finished</title>
+<title>Office 365 Configuration finished</title>
 <script type="application/javascript">
 window.close();
 </script>

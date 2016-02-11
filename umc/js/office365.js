@@ -209,7 +209,7 @@ define([
 			this._wizard = new OfficeWizard({});
 			this.standbyDuring(this.umcpCommand('office365/query').then(lang.hitch(this, 'initWizard')));
 			this._wizard.on('manifestUpload', lang.hitch(this, 'startManifestUpload'));
-			this._wizard.on('finish', lang.hitch(this, 'closeModule'));
+			this._wizard.on('finished', lang.hitch(this, 'closeModule'));
 			this._wizard.on('cancel', lang.hitch(this, 'closeModule'));
 		},
 
