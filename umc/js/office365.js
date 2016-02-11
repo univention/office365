@@ -80,7 +80,7 @@ define([
 							'<li>' + _('Select the <i>web-application and/or web-api</i> option and click Next') + '</li>' +
 							'<li>' + _('Paste the following values into the respective fields in the Azure wizard:') + '<ul>' +
 							'<li>' + _('SIGN-ON URL: {login-url}') + '</li>' +
-							'<li>' + _('APP ID URI: {appid-url}') + '</li>' +
+							'<li>' + _('APP ID URI: {appid-url}') + '</li></ul></li>' +
 							'<li>' + _('Make sure that your browser can resolve {base-url}.') + '</li>' +
 							'<li>' + _('In Azure dashboard: Complete the <i>Add application wizard</i>.') + '</li></ol>'
 					}]
