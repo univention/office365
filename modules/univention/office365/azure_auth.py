@@ -71,7 +71,7 @@ DEBUG_FORMAT = '%(asctime)s %(levelname)-8s %(module)s.%(funcName)s:%(lineno)d  
 LOG_DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 
-oauth2_auth_url = "https://login.microsoftonline.com/common/oauth2/authorize?{params}"
+oauth2_auth_url = "https://login.microsoftonline.com/{tenant}/oauth2/authorize?{params}"
 oauth2_token_url = "https://login.microsoftonline.com/{tenant_id}/oauth2/token"
 oauth2_token_issuer = "https://sts.windows.net/{tenant_id}/"
 federation_metadata_url = "https://login.microsoftonline.com/{tenant_id}/federationmetadata/2007-06/federationmetadata.xml"
@@ -117,8 +117,10 @@ class TokenValidationError(AzureError):
 class NoIDsStored(AzureError):
 	pass
 
+
 class ManifestError(AzureError):
 	pass
+
 
 def _log(level, msg):
 	if isinstance(msg, unicode):
@@ -300,7 +302,7 @@ class AzureAuth(object):
 		return self._access_token
 
 	@staticmethod
-	def get_authorization_url(client_id):
+	def get_authorization_url(client_id, tenant="common"):
 		nonce = str(uuid.uuid4())
 		AzureAuth.store_tokens(nonce=nonce)
 
@@ -314,7 +316,7 @@ class AzureAuth(object):
 			'response_mode': 'form_post',
 			'resource': resource_url,
 		}
-		return oauth2_auth_url.format(params=urlencode(params))
+		return oauth2_auth_url.format(tenant=tenant, params=urlencode(params))
 
 	@staticmethod
 	def parse_id_token(id_token):
