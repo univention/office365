@@ -62,13 +62,13 @@ if ! [ -f $CONFDIR/key.pem -a -f $CONFDIR/cert.pem -a -f $CONFDIR/cert.fp ]; the
     # create SSL key, cert and fp
     SSL_NAME="office365.sync.$DATE@$hostname.$domainname"
     SSL_DIR="/etc/univention/ssl/$SSL_NAME"
-    univention-certificate new -name "$SSL_NAME" -days 3650
+    univention-certificate new -name "$SSL_NAME" -days 3650 || die
     cat "$SSL_DIR/cert.pem" > cert.pem
     cat "$SSL_DIR/private.key" > key.pem
-    openssl x509 -in cert.pem -fingerprint -noout | sed 's/SHA1 Fingerprint=//g' | sed 's/://g' | xxd -r -ps | base64 > cert.fp
+    openssl x509 -in cert.pem -fingerprint -noout | sed 's/SHA1 Fingerprint=//g' | sed 's/://g' | xxd -r -ps | base64 > cert.fp || die
 
     # create empty id and token stores
-    python -c 'from univention.office365.azure_auth import uninitialize; uninitialize()'
+    python -c 'from univention.office365.azure_auth import uninitialize; uninitialize()' || die
 
     # set paranoid permissions
     chmod 0400 key.pem cert.pem cert.fp
@@ -79,9 +79,9 @@ if ! [ -f $CONFDIR/key.pem -a -f $CONFDIR/cert.pem -a -f $CONFDIR/cert.fp ]; the
     chmod 664 /var/log/univention/office365-*.log
 fi
 
-ucs_addServiceToLocalhost "univention-office365" "$@"
+ucs_addServiceToLocalhost "univention-office365" "$@" || die
 
-ucs_registerLDAPExtension "$@" --schema /usr/share/univention-office365/office365.schema
+ucs_registerLDAPExtension "$@" --schema /usr/share/univention-office365/office365.schema || die
 
 udm settings/extended_attribute create "$@" --ignore_exists \
 	--position "cn=custom attributes,cn=univention,$ldap_base" \
@@ -105,7 +105,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set ldapMapping=univentionOffice365ObjectID \
 	--set deleteObjectClass=0 \
 	--set overwriteTab=0 \
-	--set fullWidth=1
+	--set fullWidth=1 || die
 
 udm settings/extended_attribute create "$@" --ignore_exists \
 	--position "cn=custom attributes,cn=univention,$ldap_base" \
@@ -129,7 +129,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set ldapMapping=univentionOffice365Enabled \
 	--set deleteObjectClass=0 \
 	--set overwriteTab=0 \
-	--set fullWidth=1
+	--set fullWidth=1 || die
 
 udm settings/extended_attribute create "$@" --ignore_exists \
 	--position "cn=custom attributes,cn=univention,$ldap_base" \
@@ -149,7 +149,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set objectClass=univentionOffice365 \
 	--set ldapMapping=univentionOffice365Data \
 	--set deleteObjectClass=0 \
-	--set disableUDMWeb=1
+	--set disableUDMWeb=1 || die
 
 udm settings/extended_attribute create "$@" --ignore_exists \
 	--position "cn=custom attributes,cn=univention,$ldap_base" \
@@ -169,7 +169,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set objectClass=univentionOffice365 \
 	--set ldapMapping=univentionOffice365ObjectID \
 	--set deleteObjectClass=0 \
-	--set disableUDMWeb=1
+	--set disableUDMWeb=1 || die
 
 a2enmod wsgi
 a2ensite univention-office365
