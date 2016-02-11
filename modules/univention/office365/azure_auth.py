@@ -240,8 +240,11 @@ class AzureAuth(object):
 	@staticmethod
 	@run_as_root
 	def load_azure_ids():
-		with open(IDS_FILE, "r") as f:
-			ids = json.load(f)
+		try:
+			with open(IDS_FILE, "r") as f:
+				ids = json.load(f)
+		except (IOError, ValueError):
+			ids = dict()
 		if not isinstance(ids, dict) or "client_id" not in ids or "tenant_id" not in ids or not ids["client_id"]:
 			raise NoIDsStored("Could not load client_id (and tenant_id) from {}.".format(IDS_FILE))
 		return ids["client_id"], ids["tenant_id"]
@@ -263,7 +266,7 @@ class AzureAuth(object):
 		try:
 			with open(TOKEN_FILE, "r") as f:
 				tokens = json.load(f)
-		except IOError:
+		except (IOError, ValueError):
 			tokens = dict()
 		if not isinstance(tokens, dict):
 			log_e("AzureAuth.load_tokens() Bad content of tokens file: '{}'.".format(tokens))
