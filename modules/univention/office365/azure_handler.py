@@ -41,7 +41,7 @@ import time
 import re
 from operator import itemgetter
 
-from univention.office365.azure_auth import AzureAuth, log_a, log_e, log_ex, log_p, resource_url
+from univention.office365.azure_auth import AzureAuth, AzureError, log_a, log_e, log_ex, log_p, resource_url
 
 
 azure_params = {"api-version": "1.6"}
@@ -108,7 +108,7 @@ def _get_azure_uris(tenant_id):
 	)
 
 
-class ApiError(Exception):
+class ApiError(AzureError):
 	def __init__(self, response):
 		msg = "Communication error."
 		if hasattr(response, "json"):
@@ -126,7 +126,7 @@ class ResourceNotFoundError(ApiError):
 	pass
 
 
-class UnkownTypeError(Exception):
+class UnkownTypeError(AzureError):
 	pass
 
 

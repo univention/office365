@@ -31,13 +31,17 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
+import json
+
 from univention.lib.i18n import Translation
-from univention.management.console.base import Base
-from univention.management.console.log import MODULE
+from univention.management.console.base import Base, UMC_Error
 from univention.management.console.config import ucr
 
 from univention.management.console.modules.decorators import sanitize, simple_response, file_upload
-from univention.management.console.modules.sanitizers import StringSanitizer
+from univention.management.console.modules.sanitizers import StringSanitizer, DictSanitizer
+
+from univention.office365.azure_auth import AzureAuth, AzureError, Manifest, ManifestError, is_initialized, uninitialize
+from univention.office365.azure_handler import AzureHandler
 
 _ = Translation('univention-management-console-module-office365').translate
 
@@ -48,24 +52,55 @@ class Instance(Base):
 	def query(self):
 		fqdn = '%s.%s' % (ucr.get('hostname'), ucr.get('domainname'))
 		return {
-			'initialized': True,#AzureAuth.is_initialized(),
+			'initialized': is_initialized(),
 			'login-url': 'https://%s/univention-office365/reply' % (fqdn,),
 			'appid-url': 'https://%s/office365' % (fqdn,),
 			'reply-url': 'https://%s/univention-office365/reply' % (fqdn,),
-			'base-url': 'https://%s.%s/' % (fqdn,),
+			'base-url': 'https://%s/' % (fqdn,),
 		}
 
 	@file_upload
+	@sanitize(DictSanitizer(dict(
+		tmpfile=StringSanitizer(required=True)
+	), required=True))
 	def upload(self, request):
+		uninitialize()
+
+		try:
+			with open(request.options[0]['tmpfile']) as fd:
+				manifest = Manifest(fd)
+			manifest.transform()
+		except ManifestError as exc:
+			raise UMC_Error(str(exc))
+
+		try:
+			AzureAuth.store_azure_ids(manifest.app_id, None)
+		except AzureError as exc:
+			raise UMC_Error(str(exc))
+
+		try:
+			authorizationurl = AzureAuth.get_authorization_url(manifest.app_id)
+		except AzureError as exc:
+			raise UMC_Error(str(exc))
+
+		data = json.dumps(manifest.as_dict(), indent=2, separators=(',', ': '), sort_keys=True)
 		self.finished(request.id, {
-			'manifest': ''.encode('base64'),
-			'authorizationurl': '/'  # AzureAuth.get_authorization_url(client_id),
+			'manifest': data.encode('base64'),
+			'authorizationurl': authorizationurl,
 		})
 
 	@simple_response
 	def test_configuration(self):
+		finished = is_initialized()
+		errors = []
+		if finished:
+			try:
+				ah = AzureHandler(None, "wizard")
+				ah.list_users()
+			except AzureError as exc:
+				errors.append(str(exc))
 		return {
-			'errors': [],
-			'critical': False,
-			'finished': True,
+			'errors': errors,
+			'critical': bool(errors),
+			'finished': finished,
 		}

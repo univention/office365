@@ -54,6 +54,9 @@ import OpenSSL.crypto
 import jwt
 
 import univention.debug as ud
+from univention.lib.i18n import Translation
+
+_ = Translation('univention-office365').translate
 
 NAME = "office365"
 CONFDIR = "/etc/univention-office365"
@@ -85,7 +88,11 @@ fh.setFormatter(logging.Formatter(fmt=DEBUG_FORMAT, datefmt=LOG_DATETIME_FORMAT)
 logger.addHandler(fh)
 
 
-class TokenError(Exception):
+class AzureError(Exception):
+	pass
+
+
+class TokenError(AzureError):
 	def __init__(self, response):
 		if hasattr(response, "json"):
 			j = response.json
@@ -99,17 +106,19 @@ class TokenError(Exception):
 		super(TokenError, self).__init__(msg)
 
 
-class IDTokenError(Exception):
+class IDTokenError(AzureError):
 	pass
 
 
-class TokenValidationError(Exception):
+class TokenValidationError(AzureError):
 	pass
 
 
-class NoIDsStored(Exception):
+class NoIDsStored(AzureError):
 	pass
 
+class ManifestError(AzureError):
+	pass
 
 def _log(level, msg):
 	if isinstance(msg, unicode):
@@ -163,6 +172,58 @@ def is_initialized():
 def uninitialize():
 	AzureAuth.store_azure_ids(None, None)
 	AzureAuth.store_tokens(nonce=None, access_token=None, access_token_exp_at=None)
+
+
+class Manifest(object):
+
+	@property
+	def app_id(self):
+		return self.manifest.get('appId')
+
+	def __init__(self, fd):
+		try:
+			self.manifest = json.load(fd)
+			if not isinstance(self.manifest, dict):  # TODO: do schema validation
+				raise ValueError()
+		except ValueError:
+			raise ManifestError(_('The manifest is invalid: Invalid JSON document.'))
+
+	def as_dict(self):
+		return self.manifest.copy()
+
+	def transform(self):
+		try:
+			with open("/etc/univention-office365/cert.pem", "rb") as fd:
+				cert = fd.read()
+			with open("/etc/univention-office365/cert.fp", "rb") as fd:
+				cert_fp = fd.read().strip()
+		except (OSError, IOError):
+			raise ManifestError(_('Could not read certificates. Please make sure the joinscript 40univention-office365.inst is executed successfully or execute it again!'))
+
+		in_key = False
+		cert_key = list()
+		for num, line in enumerate(cert.split("\n")):
+			if line == "-----BEGIN CERTIFICATE-----":
+				in_key = True
+				continue
+			elif line == "-----END CERTIFICATE-----":
+				break
+			if in_key:
+				cert_key.append(line)
+		key = "".join(cert_key)
+
+		keyCredentials = dict(
+			customKeyIdentifier=cert_fp,
+			keyId=str(uuid.uuid4()),
+			type="AsymmetricX509Cert",
+			usage="verify",
+			value=key)
+
+		self.manifest["keyCredentials"].append(keyCredentials)
+		self.manifest["oauth2AllowImplicitFlow"] = True
+		self.manifest["requiredResourceAccess"][0]["resourceAccess"].append({
+			"id": "78c8a3c8-a07e-4b9e-af1b-b5ccab50a175",
+			"type": "Role"})
 
 
 class AzureAuth(object):
