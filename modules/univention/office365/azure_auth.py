@@ -148,20 +148,6 @@ def log_p(msg):
 	logger.info(msg)
 
 
-def run_as_root(func):
-	@wraps(func)
-	def _decorated(*args, **kwargs):
-		if os.geteuid() == 0 or glistener is None:
-			return func(*args, **kwargs)
-
-		try:
-			glistener.setuid(0)
-			return func(*args, **kwargs)
-		finally:
-			glistener.unsetuid()
-	return _decorated
-
-
 def is_initialized():
 	try:
 		AzureAuth.load_azure_ids()
@@ -240,7 +226,6 @@ class AzureAuth(object):
 		self._access_token_exp_at = None
 
 	@staticmethod
-	@run_as_root
 	def load_azure_ids():
 		try:
 			with open(IDS_FILE, "r") as f:
@@ -253,7 +238,6 @@ class AzureAuth(object):
 		return ids["client_id"], ids["tenant_id"], ids["host"]
 
 	@staticmethod
-	@run_as_root
 	def store_azure_ids(client_id, tenant_id, host):
 		open(IDS_FILE, "w").close()  # touch
 		try:
@@ -264,7 +248,6 @@ class AzureAuth(object):
 			json.dump(dict(client_id=client_id, tenant_id=tenant_id, host=host), f)
 
 	@staticmethod
-	@run_as_root
 	def load_tokens():
 		try:
 			with open(TOKEN_FILE, "r") as f:
@@ -277,7 +260,6 @@ class AzureAuth(object):
 		return tokens
 
 	@staticmethod
-	@run_as_root
 	def store_tokens(**kwargs):
 		tokens = AzureAuth.load_tokens()
 		tokens.update(kwargs)
@@ -456,7 +438,6 @@ class AzureAuth(object):
 			raise TokenError(response.json())
 
 	def _get_client_assertion(self):
-		@run_as_root
 		def _load_certificate_fingerprint():
 			with open(SSL_CERT_FP, "r") as f:
 				fp = f.read()
@@ -469,7 +450,6 @@ class AzureAuth(object):
 			encoded_payload = base64.urlsafe_b64encode(payload_string).decode('utf-8').strip('=')
 			return '{0}.{1}'.format(encoded_header, encoded_payload)  # <base64-encoded-header>.<base64-encoded-payload>
 
-		@run_as_root
 		def _get_key_file_data():
 			with open(SSL_KEY, "rb") as pem_file:
 				key_data = pem_file.read()

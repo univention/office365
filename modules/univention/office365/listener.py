@@ -109,8 +109,6 @@ class Office365Listener(object):
 			usageLocation=new["st"][0] if new.get("st") else self.ucr["ssl/country"],
 		)
 		attributes.update(mandatory_attributes)
-		log_e("Office365Listener.create_user() attributes={}".format(attributes))
-		log_e("Office365Listener.create_user() new[entryUUID][0]={}".format(new["entryUUID"][0]))
 
 		self.ah.create_user(attributes)
 
@@ -148,7 +146,7 @@ class Office365Listener(object):
 		if "univentionOffice365ObjectID" in old and old["univentionOffice365ObjectID"][0]:
 			object_id = old["univentionOffice365ObjectID"][0]
 		else:
-			object_id = self._find_aad_user_by_entryUUID(old["entryUUID"][0])
+			object_id = self.find_aad_user_by_entryUUID(old["entryUUID"][0])
 			if not object_id:
 				return
 		return self.ah.deactivate_user(object_id)
@@ -231,7 +229,7 @@ class Office365Listener(object):
 		if "univentionOffice365ObjectID" in user and user["univentionOffice365ObjectID"][0]:
 			object_id = user["univentionOffice365ObjectID"][0]
 		else:
-			object_id = self._find_aad_user_by_entryUUID(user["entryUUID"][0])
+			object_id = self.find_aad_user_by_entryUUID(user["entryUUID"][0])
 			if not object_id:
 				return list()
 		return self.ah.list_users(objectid=object_id)
