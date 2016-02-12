@@ -299,8 +299,6 @@ class AzureAuth(object):
 		nonce = str(uuid.uuid4())
 		AzureAuth.store_tokens(nonce=nonce)
 		client_id, tenant, reply_url = AzureAuth.load_azure_ids()
-		if not tenant:
-			tenant = "common"
 
 		params = {
 			'client_id': client_id,
@@ -312,7 +310,7 @@ class AzureAuth(object):
 			'response_mode': 'form_post',
 			'resource': resource_url,
 		}
-		return oauth2_auth_url.format(tenant=tenant, params=urlencode(params))
+		return oauth2_auth_url.format(tenant=tenant or "common", params=urlencode(params))
 
 	@staticmethod
 	def parse_id_token(id_token):
@@ -428,7 +426,7 @@ class AzureAuth(object):
 			'redirect_uri': self.reply_url,
 			'scope': SCOPE
 		}
-		url = oauth2_token_url.format(tenant_id=self.tenant_id)
+		url = oauth2_token_url.format(tenant_id=self.tenant_id or "common")
 
 		log_a("AzureAuth.retrieve_access_token() POST to URL={} with data={}".format(url, post_form))
 		response = requests.post(url, data=post_form, verify=True)
