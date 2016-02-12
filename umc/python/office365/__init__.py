@@ -40,7 +40,7 @@ from univention.management.console.config import ucr
 from univention.management.console.modules.decorators import sanitize, simple_response, file_upload
 from univention.management.console.modules.sanitizers import StringSanitizer, DictSanitizer, BooleanSanitizer
 
-from univention.office365.azure_auth import AzureAuth, AzureError, Manifest, ManifestError, is_initialized, uninitialize
+from univention.office365.azure_auth import AzureAuth, AzureError, Manifest, ManifestError
 from univention.office365.azure_handler import AzureHandler
 
 _ = Translation('univention-management-console-module-office365').translate
@@ -52,7 +52,7 @@ class Instance(Base):
 	def query(self):
 		fqdn = '%s.%s' % (ucr.get('hostname'), ucr.get('domainname'))
 		return {
-			'initialized': is_initialized(),
+			'initialized': AzureAuth.is_initialized(),
 			'login-url': '{origin}/univention-management-console/command/office365/reply',
 			'appid-url': 'https://%s/office365' % (fqdn,),
 			'base-url': 'https://%s/' % (fqdn,),
@@ -63,7 +63,7 @@ class Instance(Base):
 		tmpfile=StringSanitizer(required=True)
 	), required=True))
 	def upload(self, request):
-		uninitialize()
+		AzureAuth.uninitialize()
 
 		try:
 			with open(request.options[0]['tmpfile']) as fd:
@@ -91,7 +91,7 @@ class Instance(Base):
 
 	@simple_response
 	def test_configuration(self):
-		finished = is_initialized()
+		finished = AzureAuth.is_initialized()
 		errors = []
 		if finished:
 			try:

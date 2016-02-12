@@ -146,20 +146,6 @@ def log_p(msg):
 	logger.info(msg)
 
 
-def is_initialized():
-	try:
-		AzureAuth.load_azure_ids()
-		return True
-	except (NoIDsStored, IOError) as exc:
-		log_e("is_initialized() {}".format(exc))
-		return False
-
-
-def uninitialize():
-	AzureAuth.store_azure_ids(None, None, None)
-	AzureAuth.store_tokens(nonce=None, access_token=None, access_token_exp_at=None)
-
-
 class Manifest(object):
 
 	@property
@@ -221,7 +207,38 @@ class Manifest(object):
 			self.manifest["requiredResourceAccess"][0]["resourceAccess"].append(permission)
 
 	def store(self, tenant_id=None):
-		AzureAuth.store_azure_ids(self.app_id, tenant_id, self.reply_url)
+		AzureAuth.store_azure_ids(client_id=self.app_id, tenant_id=tenant_id, reply_url=self.reply_url)
+
+
+class JsonStorage(object):
+
+	def __init__(self, filename):
+		self.filename = filename
+
+	def read(self):
+		try:
+			with open(self.filename, "r") as fd:
+				data = json.load(fd)
+		except (IOError, ValueError):
+			data = dict()
+		if not isinstance(data, dict):
+			log_e("AzureAuth._load_data() Expected dict in file '{}', got '{}'.".format(self.filename, data))
+			data = dict()
+		return data
+
+	def write(self, **kwargs):
+		data = self.read()
+		data.update(kwargs)
+		self._save(kwargs)
+
+	def purge(self):
+		self._save({})
+
+	def _save(self, data):
+		open(self.filename, "w").close()  # touch
+		os.chmod(self.filename, S_IRUSR | S_IWUSR)
+		with open(self.filename, "wb") as fd:
+			json.dump(data, fd)
 
 
 class AzureAuth(object):
@@ -232,55 +249,47 @@ class AzureAuth(object):
 		NAME = name
 		glistener = listener
 
-		self.client_id, self.tenant_id, self.reply_url = AzureAuth.load_azure_ids()
+		ids = self.load_azure_ids()
+		try:
+			self.client_id = ids["client_id"]
+			self.tenant_id = ids["tenant_id"]
+			self.reply_url = ids["reply_url"]
+			if not all([self.client_id, self.tenant_id, self.reply_url]):
+				raise NoIDsStored()
+		except (KeyError, NoIDsStored):
+			raise NoIDsStored("AzureAuth() Unset or empty client_id, tenant_id or reply_url in {}.".format(IDS_FILE))
 		self._access_token = None
 		self._access_token_exp_at = None
 
-	@staticmethod
-	def load_azure_ids():
+	@classmethod
+	def is_initialized(cls):
 		try:
-			with open(IDS_FILE, "r") as fd:
-				ids = json.load(fd)
-		except (IOError, ValueError):
-			ids = dict()
-		if not isinstance(ids, dict) or not all(map(lambda x: x in ids, ["client_id", "tenant_id", "reply_url"])) or \
-			not ids["client_id"] or not ids["reply_url"]:
-			raise NoIDsStored("Could not find client_id, tenant_id or reply_url in {}.".format(IDS_FILE))
-		return ids["client_id"], ids["tenant_id"], ids["reply_url"]
+			ids = cls.load_azure_ids()
+			return all([ids["client_id"], ids["tenant_id"], ids["reply_url"]])
+		except (NoIDsStored, KeyError) as exc:
+			log_e("AzureAuth.is_initialized() {}".format(exc))
+			return False
 
 	@staticmethod
-	def store_azure_ids(client_id, tenant_id, reply_url):
-		open(IDS_FILE, "w").close()  # touch
-		try:
-			os.chmod(IDS_FILE, S_IRUSR | S_IWUSR)
-		except OSError:
-			pass
-		with open(IDS_FILE, "w") as fd:
-			json.dump(dict(client_id=client_id, tenant_id=tenant_id, reply_url=reply_url), fd)
+	def uninitialize():
+		JsonStorage(IDS_FILE).purge()
+		JsonStorage(TOKEN_FILE).purge()
+
+	@staticmethod
+	def load_azure_ids():
+		return JsonStorage(IDS_FILE).read()
+
+	@staticmethod
+	def store_azure_ids(**kwargs):
+		JsonStorage(IDS_FILE).write(**kwargs)
 
 	@staticmethod
 	def load_tokens():
-		try:
-			with open(TOKEN_FILE, "r") as fd:
-				tokens = json.load(fd)
-		except (IOError, ValueError):
-			tokens = dict()
-		if not isinstance(tokens, dict):
-			log_e("AzureAuth.load_tokens() Bad content of tokens file: '{}'.".format(tokens))
-			tokens = dict()
-		return tokens
+		return JsonStorage(TOKEN_FILE).read()
 
 	@staticmethod
 	def store_tokens(**kwargs):
-		tokens = AzureAuth.load_tokens()
-		tokens.update(kwargs)
-		open(TOKEN_FILE, "w").close()  # touch
-		try:
-			os.chmod(TOKEN_FILE, S_IRUSR | S_IWUSR)
-		except OSError:
-			pass
-		with open(TOKEN_FILE, "wb") as fd:
-			json.dump(tokens, fd)
+		JsonStorage(TOKEN_FILE).write(**kwargs)
 
 	def get_access_token(self):
 		if not self._access_token:
@@ -299,8 +308,13 @@ class AzureAuth(object):
 	def get_authorization_url():
 		nonce = str(uuid.uuid4())
 		AzureAuth.store_tokens(nonce=nonce)
-		client_id, tenant, reply_url = AzureAuth.load_azure_ids()
-
+		ids = AzureAuth.load_azure_ids()
+		try:
+			client_id = ids["client_id"]
+			reply_url = ids["reply_url"]
+		except KeyError:
+			raise NoIDsStored("Could not find client_id or reply_url in {}.".format(IDS_FILE))
+		tenant = ids.get("tenant_id") or "common"
 		params = {
 			'client_id': client_id,
 			'redirect_uri': reply_url,
@@ -311,7 +325,7 @@ class AzureAuth(object):
 			'response_mode': 'form_post',
 			'resource': resource_url,
 		}
-		return oauth2_auth_url.format(tenant=tenant or "common", params=urlencode(params))
+		return oauth2_auth_url.format(tenant=tenant, params=urlencode(params))
 
 	@staticmethod
 	def parse_id_token(id_token):
@@ -406,13 +420,19 @@ class AzureAuth(object):
 		# get the tenant ID from the id token
 		_, body, _ = _parse_token(id_token)
 		tenant_id = body['tid']
-		client_id, _, reply_url = AzureAuth.load_azure_ids()
+		ids = AzureAuth.load_azure_ids()
+		try:
+			client_id = ids["client_id"]
+			reply_url = ids["reply_url"]
+		except KeyError:
+			raise NoIDsStored("Could not find client_id or reply_url in {}.".format(IDS_FILE))
+
 		nonce_old = AzureAuth.load_tokens()["nonce"]
 		if not body["nonce"] == nonce_old:
 			raise TokenValidationError("Stored ({}) and received ({}) nonce of token do not match. ID token: '{}'.".format(nonce_old, body["nonce"], id_token))
 		# check validity of token
 		_new_cryptography_checks(client_id, tenant_id, id_token)
-		AzureAuth.store_azure_ids(client_id, tenant_id, reply_url)
+		AzureAuth.store_azure_ids(client_id=client_id, tenant_id=tenant_id, reply_url=reply_url)
 		return tenant_id
 
 	def retrieve_access_token(self):
@@ -427,7 +447,7 @@ class AzureAuth(object):
 			'redirect_uri': self.reply_url,
 			'scope': SCOPE
 		}
-		url = oauth2_token_url.format(tenant_id=self.tenant_id or "common")
+		url = oauth2_token_url.format(tenant_id=self.tenant_id)
 
 		log_a("AzureAuth.retrieve_access_token() POST to URL={} with data={}".format(url, post_form))
 		response = requests.post(url, data=post_form, verify=True)
