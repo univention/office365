@@ -39,14 +39,13 @@ import logging
 import uuid
 import time
 import rsa
-import socket
 import os
 import traceback
 import datetime
 import sys
 from xml.dom.minidom import parseString
-from functools import wraps
 from stat import S_IRUSR, S_IWUSR
+import operator
 
 from cryptography.x509 import load_pem_x509_certificate
 from cryptography.hazmat.backends import default_backend
@@ -194,30 +193,32 @@ class Manifest(object):
 		except (OSError, IOError):
 			raise ManifestError(_('Could not read certificates. Please make sure the joinscript 40univention-office365.inst is executed successfully or execute it again!'))
 
-		in_key = False
-		cert_key = list()
-		for num, line in enumerate(cert.split("\n")):
-			if line == "-----BEGIN CERTIFICATE-----":
-				in_key = True
-				continue
-			elif line == "-----END CERTIFICATE-----":
-				break
-			if in_key:
-				cert_key.append(line)
-		key = "".join(cert_key)
+		if cert_fp not in map(operator.itemgetter("customKeyIdentifier"), self.manifest["keyCredentials"]):
+			in_key = False
+			cert_key = list()
+			for num, line in enumerate(cert.split("\n")):
+				if line == "-----BEGIN CERTIFICATE-----":
+					in_key = True
+					continue
+				elif line == "-----END CERTIFICATE-----":
+					break
+				if in_key:
+					cert_key.append(line)
+			key = "".join(cert_key)
 
-		keyCredentials = dict(
-			customKeyIdentifier=cert_fp,
-			keyId=str(uuid.uuid4()),
-			type="AsymmetricX509Cert",
-			usage="verify",
-			value=key)
+			keyCredentials = dict(
+				customKeyIdentifier=cert_fp,
+				keyId=str(uuid.uuid4()),
+				type="AsymmetricX509Cert",
+				usage="verify",
+				value=key)
 
-		self.manifest["keyCredentials"].append(keyCredentials)
+			self.manifest["keyCredentials"].append(keyCredentials)
 		self.manifest["oauth2AllowImplicitFlow"] = True
-		self.manifest["requiredResourceAccess"][0]["resourceAccess"].append({
-			"id": "78c8a3c8-a07e-4b9e-af1b-b5ccab50a175",
-			"type": "Role"})
+
+		permission = {"id": "78c8a3c8-a07e-4b9e-af1b-b5ccab50a175", "type": "Role"}
+		if not self.manifest["requiredResourceAccess"][0]["resourceAccess"].count(permission):
+			self.manifest["requiredResourceAccess"][0]["resourceAccess"].append(permission)
 
 	def store(self, tenant_id=None):
 		AzureAuth.store_azure_ids(self.app_id, tenant_id, self.reply_url)
