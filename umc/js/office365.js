@@ -36,10 +36,11 @@ define([
 	"umc/widgets/Module",
 	"umc/widgets/Wizard",
 	"umc/widgets/Text",
+	"umc/widgets/TextBox",
 	"umc/widgets/Uploader",
 	"umc/widgets/ProgressBar",
 	"umc/i18n!umc/modules/office365"
-], function(declare, lang, array, Deferred, Module, Wizard, Text, Uploader, ProgressBar, _) {
+], function(declare, lang, array, Deferred, Module, Wizard, Text, TextBox, Uploader, ProgressBar, _) {
 	var OfficeWizard = declare('umc.modules.office365.OfficeWizard', [Wizard], {
 
 		_uploadDeferred: null,
@@ -97,14 +98,26 @@ define([
 						name: 'infos',
 						content: '<ol><li>' + _('In Azure Dashboard, the new application should be selected. Click on configure.') + '</li><li>' +
 							_('In Azure dashboard, click <i>manage manifest</i> and then <i>download manifest</i>') + '</li><li>' +
+							_('Optionally paste the tenant ID if you have more than one Active Directory set up') + '</li><li>' +
 							_('Save the manifest file and upload it.') + '</li></ol>'
+					}, {
+						type: TextBox,
+						name: 'tenant_id',
+						label: _('Tenant Id'),
+						value: 'common',
+						onChange: lang.hitch(this, function(value) {
+							this.getWidget('ucs-integration', 'upload').set('dynamicOptions', {
+								tenant_id: value
+							});
+						})
 					}, {
 						type: Uploader,
 						name: 'upload',
 						buttonLabel: _('Upload manifest'),
 						command: 'office365/upload',
+						depends: 'tenant_id',
 						dynamicOptions: {
-							tenant_id: null
+							tenant_id: ''
 						},
 						onUploadStarted: lang.hitch(this, function() {
 							this._uploadDeferred = new Deferred();
@@ -179,13 +192,14 @@ define([
 
 		getFooterButtons: function(pageName) {
 			var buttons = this.inherited(arguments);
-			if (pageName == 'azure-integration') {
-				array.forEach(buttons, function(button) {
-					if (button.name == 'next') {
-						button.label = _('Finish');
-					}
-				});
-			} else if (pageName == "ucs-integration") {
+		//	if (pageName == 'azure-integration') {
+		//		array.forEach(buttons, function(button) {
+		//			if (button.name == 'next') {
+		//				button.label = _('Finish');
+		//			}
+		//		});
+		//	} else
+			if (pageName == "ucs-integration") {
 				buttons = array.filter(buttons, function(button) { return button.name != 'next'; });
 			}
 			return buttons;
