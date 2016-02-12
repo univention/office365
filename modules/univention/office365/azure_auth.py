@@ -294,7 +294,7 @@ class AzureAuth(object):
 	def get_access_token(self):
 		if not self._access_token:
 			log_a("AzureAuth.get_access_token() loading token from disk...")
-			tokens = AzureAuth.load_tokens()
+			tokens = self.load_tokens()
 			self._access_token = tokens.get("access_token")
 			self._access_token_exp_at = datetime.datetime.fromtimestamp(int(tokens.get("access_token_exp_at") or 0))
 		if not self._access_token_exp_at or datetime.datetime.now() > self._access_token_exp_at:
@@ -304,11 +304,11 @@ class AzureAuth(object):
 			self._access_token_exp_at.isoformat(), self._access_token[:10], self._access_token[-10:]))
 		return self._access_token
 
-	@staticmethod
-	def get_authorization_url():
+	@classmethod
+	def get_authorization_url(cls):
 		nonce = str(uuid.uuid4())
-		AzureAuth.store_tokens(nonce=nonce)
-		ids = AzureAuth.load_azure_ids()
+		cls.store_tokens(nonce=nonce)
+		ids = cls.load_azure_ids()
 		try:
 			client_id = ids["client_id"]
 			reply_url = ids["reply_url"]
@@ -327,8 +327,8 @@ class AzureAuth(object):
 		}
 		return oauth2_auth_url.format(tenant=tenant, params=urlencode(params))
 
-	@staticmethod
-	def parse_id_token(id_token):
+	@classmethod
+	def parse_id_token(cls, id_token):
 		def _decode_b64(base64data):
 			# base64 strings should have a length divisible by 4
 			# If this one doesn't, add the '=' padding to fix it
@@ -420,19 +420,19 @@ class AzureAuth(object):
 		# get the tenant ID from the id token
 		_, body, _ = _parse_token(id_token)
 		tenant_id = body['tid']
-		ids = AzureAuth.load_azure_ids()
+		ids = cls.load_azure_ids()
 		try:
 			client_id = ids["client_id"]
 			reply_url = ids["reply_url"]
 		except KeyError:
 			raise NoIDsStored("Could not find client_id or reply_url in {}.".format(IDS_FILE))
 
-		nonce_old = AzureAuth.load_tokens()["nonce"]
+		nonce_old = cls.load_tokens()["nonce"]
 		if not body["nonce"] == nonce_old:
 			raise TokenValidationError("Stored ({}) and received ({}) nonce of token do not match. ID token: '{}'.".format(nonce_old, body["nonce"], id_token))
 		# check validity of token
 		_new_cryptography_checks(client_id, tenant_id, id_token)
-		AzureAuth.store_azure_ids(client_id=client_id, tenant_id=tenant_id, reply_url=reply_url)
+		cls.store_azure_ids(client_id=client_id, tenant_id=tenant_id, reply_url=reply_url)
 		return tenant_id
 
 	def retrieve_access_token(self):
@@ -461,7 +461,7 @@ class AzureAuth(object):
 		if "access_token" in at and at["access_token"]:
 			self._access_token = at["access_token"]
 			self._access_token_exp_at = datetime.datetime.fromtimestamp(int(at["expires_on"]))
-			AzureAuth.store_tokens(access_token=at["access_token"], access_token_exp_at=at["expires_on"])
+			self.store_tokens(access_token=at["access_token"], access_token_exp_at=at["expires_on"])
 			return at["access_token"]
 		else:
 			raise TokenError(response.json())

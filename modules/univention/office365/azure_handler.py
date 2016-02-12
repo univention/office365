@@ -150,9 +150,9 @@ class AzureHandler(object):
 		access_token = self.auth.get_access_token()
 		headers["Authorization"] = "Bearer {}".format(access_token)
 
-		data = AzureHandler._prepare_data(data)
+		data = self._prepare_data(data)
 		# hide password
-		msg = AzureHandler._fprints_hide_pw(data, "AzureHandler.call_api() %s %s data: {data}" % (method.upper(), url))
+		msg = self._fprints_hide_pw(data, "AzureHandler.call_api() %s %s data: {data}" % (method.upper(), url))
 		log_a(msg)
 
 		args = dict(url=url, headers=headers, verify=True)
@@ -246,7 +246,7 @@ class AzureHandler(object):
 		assert "value" in obj_id
 
 		# hide password
-		msg = AzureHandler._fprints_hide_pw(attributes, "AzureHandler._create_object() Creating %s with properties: {data}" % object_type)
+		msg = self._fprints_hide_pw(attributes, "AzureHandler._create_object() Creating %s with properties: {data}" % object_type)
 		log_p(msg)
 
 		obj = self._list_objects(object_type=object_type, ofilter="{key} eq '{value}'".format(**obj_id))
@@ -559,8 +559,8 @@ class AzureHandler(object):
 			data["passwordProfile"]["password"] = tmppw
 		return msg
 
-	@staticmethod
-	def _prepare_data(data):
+	@classmethod
+	def _prepare_data(cls, data):
 		if not data:
 			return data
 		assert isinstance(data, dict)
@@ -568,7 +568,7 @@ class AzureHandler(object):
 		res = dict()
 		for k, v in data.items():
 			if isinstance(v, dict):
-				res[k] = AzureHandler._prepare_data(v)
+				res[k] = cls._prepare_data(v)
 			try:
 				if azure_attribute_types[k] == list and not isinstance(v, list) and isinstance(v, collections.Iterable):
 					res[k] = [v]  # list("str") -> ["s", "t", "r"] and list(dict) -> [k, e, y, s]  :/

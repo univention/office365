@@ -100,7 +100,7 @@ class Office365Listener(object):
 			immutableId=base64.encodestring(new["entryUUID"][0]),
 			accountEnabled=True,
 			passwordProfile=dict(
-				password=Office365Listener._get_random_pw(),
+				password=self._get_random_pw(),
 				forceChangePasswordNextLogin=False
 			),
 			userPrincipalName="{0}@{1}".format(new["uid"][0], self.verified_domains[0]),
@@ -180,15 +180,15 @@ class Office365Listener(object):
 		config = univention.admin.config.config()
 		return module.lookup(config, lo, filter_s=filter_s, base=base)
 
-	@staticmethod
-	def clean_udm_objects(module_s, base, ldap_cred):
+	@classmethod
+	def clean_udm_objects(cls, module_s, base, ldap_cred):
 		"""
 		Remove  univentionOffice365ObjectID and univentionOffice365Data from all
 		user/group objects, static for listener.clean().
 		"""
 		log_p("Office365Listener.clean_udm_objects() cleaning '{}' objects.".format(module_s))
 		filter_s = "(|(univentionOffice365ObjectID=*)(univentionOffice365Data=*))"
-		udm_objs = Office365Listener.find_udm_objects(module_s, filter_s, base, ldap_cred)
+		udm_objs = cls.find_udm_objects(module_s, filter_s, base, ldap_cred)
 		for udm_obj in udm_objs:
 			udm_obj.open()
 			log_p("Office365Listener.clean_udm_objects() {}...".format(
@@ -200,7 +200,7 @@ class Office365Listener(object):
 		log_p("Office365Listener.clean_udm_objects() done.")
 
 	def modify_user(self, old, new):
-		modifications = Office365Listener._diff_old_new(self.attrs["listener"], old, new)
+		modifications = self._diff_old_new(self.attrs["listener"], old, new)
 		if modifications:
 			log_a("Office365Listener.modify_user() modifications={}".format(modifications))
 
@@ -263,7 +263,7 @@ class Office365Listener(object):
 			return
 
 	def modify_group(self, old, new):
-		modification_attributes = Office365Listener._diff_old_new(self.attrs["listener"], old, new)
+		modification_attributes = self._diff_old_new(self.attrs["listener"], old, new)
 		log_a("Office365Listener.modify_group() DN={} modification_attributes={}".format(
 			old["entryDN"], modification_attributes))
 
@@ -469,7 +469,7 @@ class Office365Listener(object):
 				continue
 
 			if attr in self.attrs["anonymize"]:
-				tmp = map(Office365Listener._anonymize, user[attr])
+				tmp = map(self._anonymize, user[attr])
 			elif attr in self.attrs["static"]:
 				tmp = [self.attrs["static"][attr]]
 			elif attr in self.attrs["sync"]:

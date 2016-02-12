@@ -42,7 +42,7 @@ import copy
 from stat import S_IRUSR, S_IWUSR
 
 import listener
-from univention.office365.azure_auth import log_a, log_e, log_ex, log_p, is_initialized
+from univention.office365.azure_auth import log_a, log_e, log_ex, log_p, AzureAuth
 from univention.office365.listener import Office365Listener
 
 
@@ -90,7 +90,7 @@ def initialize():
 	if not listener.configRegistry.is_true("office365/groups/sync", False):
 		raise RuntimeError("Office 365 App: syncing of groups is deactivated.")
 
-	if not is_initialized():
+	if not AzureAuth.is_initialized():
 		raise RuntimeError("Office 365 App not initialized yet, please run wizard.")
 
 
@@ -107,7 +107,7 @@ def handler(dn, new, old, command):
 	log_a("{}.handler() command: {}".format(name, command))  # DEBUG
 	if not listener.configRegistry.is_true("office365/groups/sync", False):
 		return
-	if not is_initialized():
+	if not AzureAuth.is_initialized():
 		# TODO: store [dn] = action for replay later
 		raise RuntimeError("{}.handler() Office 365 App not initialized yet, please run wizard.".format(name))
 	else:
