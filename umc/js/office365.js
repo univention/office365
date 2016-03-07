@@ -79,7 +79,7 @@ define([
 						name: 'infos',
 						type: Text,
 						content: '<ol>' +
-							'<li>' + _('In your Azure accounts Active Directory configuration, start the wizard to add a new application to your directory') + '</li>' +
+							'<li>' + _('In your Azure account, select your Active Directory. On the "Application" tab, start the wizard to add a new application to your directory') + '</li>' +
 							'<li>' + _('Choose the option that you want to configure an application developed by your company') + '</li>' +
 							'<li>' + _('Enter a Name for your application, e.g. <i>UCS Office 365</i>') + '</li>' +
 							'<li>' + _('Select the <i>web-application and/or web-api</i> option and click Next') + '</li>' +
@@ -96,10 +96,10 @@ define([
 					widgets: [{
 						type: Text,
 						name: 'infos',
-						content: '<ol><li>' + _('In Azure Dashboard, the new application should be selected. Click on configure.') + '</li><li>' +
-							_('In Azure dashboard, click <i>manage manifest</i> and then <i>download manifest</i>') + '</li><li>' +
+						content: '<ol><li>' + _('In the Azure Dashboard, the new application should be selected after the wizard has completed. Click on configure') + '</li><li>' +
+							_('In the Azure dashboard, click <i>manage manifest</i> and then <i>download manifest</i>. Save the manifest file on your computer') + '</li><li>' +
 							_('Optionally paste the tenant ID if you have more than one Active Directory set up') + '</li><li>' +
-							_('Save the manifest file and upload it.') + '</li></ol>'
+							_('UCS now has to modify the downloaded manifest file. Please upload the manifest by using the file upload option below') + '</li></ol>'
 					}, {
 						type: TextBox,
 						name: 'tenant_id',
@@ -138,9 +138,11 @@ define([
 					widgets: [{
 						type: Text,
 						name: 'infos',
-						content: '<ol><li>' + _('Download <a download="manifest.json" href="data:application/octet-stream;charset=utf-8;base64,{manifest}">manifest.json</a>') + '</li><li>' +
-							_('Upload the manifest.json file in the Azure dashboard by selecting <i>manage manifest</i> and <i>upload manifest</i>') + '</li><li>' +
+						content: '<ol><li>' + _('To connect this Office365 App to your Microsoft Azure account, download the updated <a download="manifest.json" href="data:application/octet-stream;charset=utf-8;base64,{manifest}">manifest.json</a>') + '</li><li>' +
+							_('Upload the manifest.json file via the Azure dashboard by selecting <i>manage manifest</i> and <i>upload manifest</i>') + '</li><li>' +
 							_('After the file was uploaded successfully, click <a href="{authorizationurl}" target="_blank">here</a> to authorize the connection between this App and Microsoft Azure.') + '</li><li>' +
+							_('Authenticate on the Azure Webpage and complete the Authorization process by accepting the permission request.') + '</li><li>' +
+							_('After accepting the permission request, the browser window or tab will close itself.') + '</li><li>' +
 							_('Click on <i>finish</i> to test the configuration and end this wizard.') + '</li></ol>'
 					}]
 				}, {

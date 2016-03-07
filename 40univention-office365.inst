@@ -42,7 +42,7 @@ eval "$(ucr shell)"
 
 CONFDIR=/etc/univention-office365
 
-if ! [ -f $CONFDIR/key.pem -a -f $CONFDIR/cert.pem -a -f $CONFDIR/cert.fp ]; then
+if ! joinscript_check_any_version_executed; then
     cd $CONFDIR
 
     # make backup
@@ -68,7 +68,7 @@ if ! [ -f $CONFDIR/key.pem -a -f $CONFDIR/cert.pem -a -f $CONFDIR/cert.fp ]; the
     openssl x509 -in cert.pem -fingerprint -noout | sed 's/SHA1 Fingerprint=//g' | sed 's/://g' | xxd -r -ps | base64 > cert.fp || die
 
     # create empty id and token stores
-    python -c 'from univention.office365.azure_auth import uninitialize; uninitialize()' || die
+    python -c 'from univention.office365.azure_auth import AzureAuth; AzureAuth.uninitialize()' || die
 
     # set paranoid permissions
     chmod 0400 key.pem cert.pem cert.fp
