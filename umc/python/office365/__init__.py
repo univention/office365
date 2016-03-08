@@ -95,7 +95,7 @@ class Instance(Base):
 		errors = []
 		if finished:
 			try:
-				ah = AzureHandler(None, "wizard")
+				ah = AzureHandler(ucr, "wizard")
 				ah.list_users()
 			except AzureError as exc:
 				errors.append(str(exc))
@@ -114,7 +114,7 @@ class Instance(Base):
 	def reply(self, request):
 		try:
 			AzureAuth.parse_id_token(request.options['id_token'])
-			aa = AzureAuth(None, "office365")
+			aa = AzureAuth("office365")
 			access_token = aa.retrieve_access_token()  # not really necessary, but it'll make sure everything worked
 		except AzureError as exc:
 			raise UMC_Error(str(exc))

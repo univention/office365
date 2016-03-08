@@ -1,3 +1,11 @@
+univention-office365 (0.1.8-1) unstable; urgency=low
+
+  * Bug #40295: make list of plan names used to detect office 365 subscription
+    configurable with UCRV office365/subscriptions/service_plan_names
+  * handle insufficient subscriptions
+
+ -- Daniel Troeder <troeder@univention.de>  Tue, 08 Mar 2016 09:48:39 +0100
+
 univention-office365 (0.1.7-1) unstable; urgency=medium
 
   * Bug #40294: remove the apache mod_wsgi thing. It is handled by UMC

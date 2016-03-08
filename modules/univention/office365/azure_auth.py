@@ -75,9 +75,6 @@ oauth2_token_issuer = "https://sts.windows.net/{tenant_id}/"
 federation_metadata_url = "https://login.microsoftonline.com/{tenant_id}/federationmetadata/2007-06/federationmetadata.xml"
 resource_url = "https://graph.windows.net"
 
-# global listener variable for decorator for static methods
-glistener = None
-
 # python logging works better for development, we can remove it later
 logger = logging.getLogger("office365")
 logger.setLevel(logging.DEBUG)
@@ -243,11 +240,9 @@ class JsonStorage(object):
 
 class AzureAuth(object):
 
-	def __init__(self, listener, name):
-		global NAME, glistener
-		self.listener = listener
+	def __init__(self, name):
+		global NAME
 		NAME = name
-		glistener = listener
 
 		ids = self.load_azure_ids()
 		try:

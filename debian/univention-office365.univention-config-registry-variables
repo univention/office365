@@ -33,3 +33,9 @@ Description[de]=Sollen Gruppen in denen sich Benutzer mit Office 365 Konto befin
 Description[en]=Should groups that contain users with a Office 365 account be syncronized? Defaults to 'no'.
 Type=bool
 Categories=service-collaboration
+
+[office365/subscriptions/service_plan_names]
+Description[de]=Kommaseparierte Liste an Lizenznamen, die zur Erkennung der zu wählenden Subskriptionen verwendet wird. Standard, wenn nicht gesetzt, ist 'SHAREPOINTWAC, SHAREPOINTWAC_DEVELOPER'.
+Description[en]=Comma separated list of service plans. Will be used to detect which subscriptions to use. Defaults, if not set, to 'SHAREPOINTWAC, SHAREPOINTWAC_DEVELOPER'.
+Type=str
+Categories=service-collaboration

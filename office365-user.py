@@ -46,7 +46,7 @@ from stat import S_IRUSR, S_IWUSR
 
 import listener
 from univention.office365.azure_auth import log_a, log_e, log_ex, log_p, AzureAuth
-from univention.office365.listener import Office365Listener
+from univention.office365.listener import Office365Listener, NoAllocatableSubscriptions
 
 
 listener.configRegistry.load()
@@ -124,7 +124,7 @@ def get_listener_attributes():
 
 name = 'office365-user'
 description = 'sync users to office 365'
-filter = '(&(objectClass=univentionOffice365)(uid=*))'
+filter = '(&(objectClass=univentionOffice365)(uid=*))' if AzureAuth.is_initialized() else '(foo=bar)'
 attributes = get_listener_attributes()
 modrdn = "1"
 
@@ -214,14 +214,18 @@ def handler(dn, new, old, command):
 	#
 	if new_enabled and not old_enabled:
 		log_a("new_enabled and not old_enabled -> NEW or REACTIVATED ({})".format(dn))  # DEBUG
-		new_user = ol.create_user(new)
+		try:
+			new_user = ol.create_user(new)
+		except NoAllocatableSubscriptions as exc:
+			log_e(str(exc))
+			new_user = exc.user
 		# save/update Azure objectId and object data in UDM object
 		udm_user = ol.get_udm_user(dn)
 		udm_user["UniventionOffice365ObjectID"] = new_user["objectId"]
 		udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(new_user)))
 		udm_user.modify()
-		log_p("User creation success. userPrincipalName: {} objectId: {}".format(
-				new_user["userPrincipalName"], new_user["objectId"]))
+		log_p("User creation success. userPrincipalName: {} objectId: {} dn: {}".format(
+			new_user["userPrincipalName"], new_user["objectId"], dn))
 		return
 
 	#

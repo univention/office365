@@ -45,9 +45,9 @@ from univention.office365.azure_handler import AzureHandler, ResourceNotFoundErr
 
 
 class NoAllocatableSubscriptions(Exception):
-	def __init__(self, user_id, *args, **kwargs):
-		self.user_id = user_id
-		super(NoAllocatableSubscriptions, self).__init__(args, kwargs)
+	def __init__(self, user, *args, **kwargs):
+		self.user = user
+		super(NoAllocatableSubscriptions, self).__init__(*args, **kwargs)
 
 
 class Office365Listener(object):
@@ -58,7 +58,6 @@ class Office365Listener(object):
 		:param attrs: {"listener": [attributes, listener, listens, on], ... }
 		:param ldap_cred: {ldapserver: FQDN, binddn: cn=admin,$ldap_base, basedn: $ldap_base, bindpw: s3cr3t} or None
 		"""
-		self.ah = AzureHandler(listener, name)
 		self.listener = listener
 		self.attrs = attrs
 		self.ldap_cred = ldap_cred
@@ -73,6 +72,8 @@ class Office365Listener(object):
 			from univention.config_registry import ConfigRegistry
 			self.ucr = ConfigRegistry()
 		self.ucr.load()
+
+		self.ah = AzureHandler(self.ucr, name)
 
 	@property
 	def verified_domains(self):
@@ -119,19 +120,18 @@ class Office365Listener(object):
 			raise RuntimeError("Office365Listener.create_user() created user '{}' cannot be retrieved.".format(attributes["userPrincipalName"]))
 
 		subscriptions = self.ah.get_office_web_apps_subscriptions()
-		if len(subscriptions) > 1:
-			log_e("Office365Listener.create_user() more than one Office 365 subscription found. Currently not fully supported. Using first one found, that has an allocatable subscription.")
-		sku_id = None
-		for subscription in subscriptions:
-			if subscription["consumedUnits"] < subscription["prepaidUnits"]["enabled"]:
-				sku_id = subscription["skuId"]
-				break
-		log_p("Office365Listener.create_user() using subscription {} for user {}.".format(sku_id, new_user["objectId"]))
-		if sku_id:
-			self.ah.add_license(new_user["objectId"], sku_id)
-		else:
-			msg = "user {} created, but no allocatable subscriptions found. All known subscriptions: {}".format(new_user["objectId"], subscriptions)
-			raise NoAllocatableSubscriptions(new_user["objectId"], msg)
+		if len(subscriptions) < 1:
+			msg = "User '{}'/'{}' created in Azure AD, but no allocatable subscriptions found.".format(
+				new["uid"][0], new_user["objectId"])
+			raise NoAllocatableSubscriptions(new_user, msg)
+		elif len(subscriptions) > 1:
+			log_e("Office365Listener.create_user() more than one Office 365 subscription found. Currently not"
+				"fully supported. Using first one found.")
+		sku_id = subscriptions[0]["skuId"]
+
+		log_p("Office365Listener.create_user() using subscription {} for user {}.".format(
+			subscriptions[0]["skuId"], new_user["objectId"]))
+		self.ah.add_license(new_user["objectId"], subscriptions[0]["skuId"])
 
 		return new_user
 
@@ -164,8 +164,10 @@ class Office365Listener(object):
 	def find_udm_objects(module_s, filter_s, base, ldap_cred):
 		"""
 		search LDAP for UDM objects, static for listener.clean()
-		:param module_s: "users/user", "groups/group", etc
-		:param filter_s: LDAP filter string
+		:param module_s: str: "users/user", "groups/group", etc
+		:param filter_s: str: LDAP filter string
+		:param base: str: note to start search from
+		:param ldap_cred: dict: LDAP credentials collected in listeners set_data()
 		:return: list of (not yet opened) UDM objects
 		"""
 		lo = univention.admin.uldap.access(
@@ -185,6 +187,9 @@ class Office365Listener(object):
 		"""
 		Remove  univentionOffice365ObjectID and univentionOffice365Data from all
 		user/group objects, static for listener.clean().
+		:param module_s: str: "users/user", "groups/group", etc
+		:param base: str: note to start search from
+		:param ldap_cred: dict: LDAP credentials collected in listeners set_data()
 		"""
 		log_p("Office365Listener.clean_udm_objects() cleaning '{}' objects.".format(module_s))
 		filter_s = "(|(univentionOffice365ObjectID=*)(univentionOffice365Data=*))"

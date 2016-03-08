@@ -82,7 +82,7 @@ azure_attribute_types = dict(
 	userPrincipalName=unicode,
 	userType=unicode
 )
-servicePlanId_SHAREPOINTWAC = "e95bec33-7c88-4a70-8e19-b10bd9d0c014"  # Office Web Apps
+_default_azure_service_plan_names = "SHAREPOINTWAC, SHAREPOINTWAC_DEVELOPER"  # Office Web Apps
 
 
 def _get_azure_uris(tenant_id):
@@ -131,11 +131,15 @@ class UnkownTypeError(AzureError):
 
 
 class AzureHandler(object):
-	def __init__(self, listener, name):
-		self.listener = listener
+	def __init__(self, ucr, name):
+		self.ucr = ucr
 		self.name = name
-		self.auth = AzureAuth(listener, name)
+		self.auth = AzureAuth(name)
 		self.uris = _get_azure_uris(self.auth.tenant_id)
+
+		ucr_service_plan_names = self.ucr.get("office365/subscriptions/service_plan_names",
+			_default_azure_service_plan_names)
+		self.service_plan_names = [spn.strip() for spn in ucr_service_plan_names.split(",")]
 
 	def call_api(self, method, url, data=None, retry=0):
 		request_id = str(uuid.uuid4())
@@ -456,11 +460,14 @@ class AzureHandler(object):
 	def get_office_web_apps_subscriptions(self):
 		subscriptions = list()
 		for subscription in self.list_subscriptions()["value"]:
-			if subscription["appliesTo"] == "User" and subscription["capabilityStatus"] == "Enabled":
+			if (subscription["appliesTo"] == "User" and
+				subscription["capabilityStatus"] == "Enabled" and
+				subscription["prepaidUnits"]["enabled"] > subscription["consumedUnits"]):
 				for plan in subscription["servicePlans"]:
-					if plan["servicePlanId"] == servicePlanId_SHAREPOINTWAC:
+					if plan["servicePlanName"] in self.service_plan_names:
 						# found a office web apps plan
 						subscriptions.append(subscription)
+						break
 		return subscriptions
 
 	def list_domains(self, domain_name=None):

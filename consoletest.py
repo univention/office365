@@ -35,6 +35,7 @@ import sys
 import pprint
 import random
 
+from univention.config_registry import ConfigRegistry
 from univention.office365.azure_handler import AzureHandler
 
 
@@ -179,7 +180,9 @@ if __name__ == "__main__":
 	else:
 		parser.error(u"Unknown object '{0}'.".format(args.object))
 
-	ah = AzureHandler(None, "office365")
+	ucr = ConfigRegistry()
+	ucr.load()
+	ah = AzureHandler(ucr, "office365")
 
 	if args.action == "add":
 		if args.objectid:
