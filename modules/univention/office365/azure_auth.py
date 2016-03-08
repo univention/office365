@@ -196,6 +196,9 @@ class Manifest(object):
 				usage="verify",
 				value=key)
 
+			log_p("Manifest.transform() added key to manifest: fp={} id={}".format(cert_fp,
+				keyCredentials["keyId"]))
+
 			self.manifest["keyCredentials"].append(keyCredentials)
 		self.manifest["oauth2AllowImplicitFlow"] = True
 

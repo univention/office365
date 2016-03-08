@@ -1,3 +1,11 @@
+univention-office365 (0.1.8-2) unstable; urgency=low
+
+  * restart listener if wizard had success (Bug #40295)
+  * remove dangling '\n' from base64.encodestring()
+  * handle empty UCRV
+
+ -- Daniel Troeder <troeder@univention.de>  Tue, 08 Mar 2016 15:47:34 +0100
+
 univention-office365 (0.1.8-1) unstable; urgency=low
 
   * Bug #40295: make list of plan names used to detect office 365 subscription

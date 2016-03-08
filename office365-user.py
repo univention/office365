@@ -222,7 +222,7 @@ def handler(dn, new, old, command):
 		# save/update Azure objectId and object data in UDM object
 		udm_user = ol.get_udm_user(dn)
 		udm_user["UniventionOffice365ObjectID"] = new_user["objectId"]
-		udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(new_user)))
+		udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(new_user))).rstrip()
 		udm_user.modify()
 		log_p("User creation success. userPrincipalName: {} objectId: {} dn: {}".format(
 			new_user["userPrincipalName"], new_user["objectId"], dn))
@@ -248,7 +248,7 @@ def handler(dn, new, old, command):
 		# Cannot delete UniventionOffice365Data, because it would result in:
 		# ldapError: Inappropriate matching: modify/delete: univentionOffice365Data: no equality matching rule
 		# Explanation: http://gcolpart.evolix.net/blog21/delete-facsimiletelephonenumber-attribute/
-		udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(None)))
+		udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(None))).rstrip()
 		udm_user.modify()
 		log_p("Deactivated user '{}'.".format(old["uid"][0]))
 		return
@@ -262,7 +262,7 @@ def handler(dn, new, old, command):
 		# update Azure object data in UDM object
 		udm_user = ol.get_udm_user(dn)
 		azure_user = ol.get_user(old)
-		udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(azure_user)))
+		udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(azure_user))).rstrip()
 		udm_user.modify()
 		log_p("Modified user '{}'.".format(old["uid"][0]))
 		return

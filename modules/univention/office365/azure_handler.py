@@ -137,9 +137,9 @@ class AzureHandler(object):
 		self.auth = AzureAuth(name)
 		self.uris = _get_azure_uris(self.auth.tenant_id)
 
-		ucr_service_plan_names = self.ucr.get("office365/subscriptions/service_plan_names",
-			_default_azure_service_plan_names)
+		ucr_service_plan_names = self.ucr.get("office365/subscriptions/service_plan_names") or _default_azure_service_plan_names
 		self.service_plan_names = [spn.strip() for spn in ucr_service_plan_names.split(",")]
+		log_p("AzureHandler.__init__() service_plan_names={}".format(self.service_plan_names))
 
 	def call_api(self, method, url, data=None, retry=0):
 		request_id = str(uuid.uuid4())

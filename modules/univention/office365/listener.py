@@ -98,7 +98,7 @@ class Office365Listener(object):
 
 		# mandatory attributes, not to be overwritten by user
 		mandatory_attributes = dict(
-			immutableId=base64.encodestring(new["entryUUID"][0]),
+			immutableId=base64.encodestring(new["entryUUID"][0]).strip(),
 			accountEnabled=True,
 			passwordProfile=dict(
 				password=self._get_random_pw(),
@@ -200,7 +200,7 @@ class Office365Listener(object):
 					udm_obj["username"] if "username" in udm_obj else udm_obj["name"]))
 			udm_obj["UniventionOffice365ObjectID"] = None
 			if "UniventionOffice365Data" in udm_obj:
-				udm_obj["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(None)))
+				udm_obj["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(None))).rstrip()
 			udm_obj.modify()
 		log_p("Office365Listener.clean_udm_objects() done.")
 
@@ -434,7 +434,7 @@ class Office365Listener(object):
 		return group
 
 	def find_aad_user_by_entryUUID(self, entryUUID):
-		user = self.ah.list_users(ofilter="immutableId eq '{}'".format(base64.encodestring(entryUUID)))
+		user = self.ah.list_users(ofilter="immutableId eq '{}'".format(base64.encodestring(entryUUID).rstrip()))
 		if user["value"]:
 			return user["value"][0]["objectId"]
 		else:

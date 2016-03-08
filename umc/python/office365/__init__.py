@@ -32,6 +32,7 @@
 # <http://www.gnu.org/licenses/>.
 
 import json
+import subprocess
 
 from univention.lib.i18n import Translation
 from univention.management.console.base import Base, UMC_Error
@@ -97,7 +98,8 @@ class Instance(Base):
 			try:
 				ah = AzureHandler(ucr, "wizard")
 				ah.list_users()
-			except AzureError as exc:
+				subprocess.check_call(["invoke-rc.d", "univention-directory-listener", "crestart"])
+			except (AzureError, subprocess.CalledProcessError) as exc:
 				errors.append(str(exc))
 		return {
 			'errors': errors,

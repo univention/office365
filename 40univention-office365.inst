@@ -42,7 +42,7 @@ eval "$(ucr shell)"
 
 CONFDIR=/etc/univention-office365
 
-if ! joinscript_check_any_version_executed; then
+if ! joinscript_check_any_version_executed || [ -n "$FORCE_NEW_CERT" ]; then
     cd $CONFDIR
 
     # make backup
