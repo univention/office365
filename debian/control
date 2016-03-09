@@ -31,3 +31,14 @@ Package: univention-management-console-module-office365
 Architecture: all
 Depends: univention-office365
 Description: Office 365 setup wizard UMC module
+
+Package: ucs-test-office365
+Architecture: all
+Depends: ucs-test-libs,
+ ucs-test-framework,
+ ${misc:Depends},
+ univention-office365
+Provides: ucs-test-module
+Description: Additional Office 365 App tests for ucs-test
+ This package includes some Office 365 App related tests for
+ ucs-test.

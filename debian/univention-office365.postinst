@@ -37,52 +37,6 @@ if [ "$1" = "configure" ]; then
 	[ -e "$uinst" ] && rm "$uinst"
 fi
 
-# TODO: move UCR... to join script. During development it's more convenient here.
-# (don't have to force-run join script or raise VERSION every time a new UCR
-# is added/changed/removed)
-#
-# TODO: sync only minimal by default - this is the maximum for testing purposes
-univention-config-registry set \
-	office365/attributes/mapping/city?city \
-	office365/attributes/mapping/st?country \
-	office365/attributes/mapping/displayName?displayName \
-	office365/attributes/mapping/givenName?givenName \
-	office365/attributes/mapping/mailPrimaryAddress?otherMails \
-	office365/attributes/mapping/mobile?mobile \
-	office365/attributes/mapping/mailAlternativeAddress?otherMails \
-	office365/attributes/mapping/postalCode?postalCode \
-	office365/attributes/mapping/street?streetAddress \
-	office365/attributes/mapping/sn?surname \
-	office365/attributes/mapping/telephoneNumber?telephoneNumber \
-	office365/attributes/mapping/jpegPhoto?thumbnailPhoto \
-	office365/attributes/sync?city,st,displayName,givenName,mailPrimaryAddress,mobile,mailAlternativeAddress,postalCode,street,sn,telephoneNumber,jpegPhoto \
-	office365/groups/sync=no
-
-#
-# AAD::otherMails should contain email addresses of both mailPrimaryAddress and mailAlternativeAddress
-#
-
-#
-# TODO: test, remove me
-#
-# never > anonymize > static > sync
-# ---------------------------------
-# city        -> never
-# st          -> never
-# sn          -> never
-# givenName   -> anonymize
-# mobile      -> static (+49.30-123456)
-# nomapping   -> ignored (error msg when initializing listener)
-#
-univention-config-registry set \
-	office365/attributes/anonymize?city,givenName,sn \
-	office365/attributes/never?city,st,sn \
-	office365/attributes/static/mobile?+49.30-123456 \
-	office365/attributes/static/city?Berlin \
-	office365/attributes/static/givenName?Daniel \
-	office365/attributes/static/nomapping?NoMapping
-
-
 if [ -x /etc/init.d/univention-directory-listener ]; then
 	invoke-rc.d univention-directory-listener crestart
 fi

@@ -1,0 +1,56 @@
+#!/usr/share/ucs-test/runner python
+## -*- coding: utf-8 -*-
+## desc: test load and store
+## tags: [apptest]
+## exposure: dangerous
+## packages:
+##   - univention-office365
+
+import datetime
+import shutil
+import atexit
+
+import univention.testing.strings as uts
+import univention.testing.utils as utils
+
+from univention.office365.azure_auth import AzureAuth, IDS_FILE
+
+DATETIME_FORMAT = "%Y-%m-%d_%H:%M:%S"
+IDS_FILE_BAK = "{}.bak_{}".format(IDS_FILE, datetime.datetime.now().strftime(DATETIME_FORMAT.replace(" ", "_")))
+
+try:
+	shutil.copy2(IDS_FILE, IDS_FILE_BAK)
+	has_backup = True
+except IOError:
+	has_backup = False
+
+
+@atexit.register
+def move_ids_file_back():
+	if has_backup:
+		try:
+			shutil.move(IDS_FILE_BAK, IDS_FILE)
+		except IOError:
+			pass
+
+AzureAuth.uninitialize()
+
+if AzureAuth.is_initialized():
+	utils.fail("App should not be initialized.")
+
+test_ids = dict(
+	tenant_id=uts.random_string(),
+	client_id=uts.random_string(),
+	reply_url=uts.random_string()
+)
+
+AzureAuth.store_azure_ids(**test_ids)
+
+
+if not AzureAuth.is_initialized():
+	utils.fail("App should be initialized.")
+
+loaded_ids = AzureAuth.load_azure_ids()
+
+if not loaded_ids == test_ids:
+	utils.fail("Stored and loaded data differ.")

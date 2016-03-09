@@ -1,3 +1,9 @@
+univention-office365 (0.1.9-1) unstable; urgency=low
+
+  * move UCRVs to join script, add ucs-test package (Bug #40295)
+
+ -- Daniel Troeder <troeder@univention.de>  Wed, 09 Mar 2016 16:33:32 +0100
+
 univention-office365 (0.1.8-2) unstable; urgency=low
 
   * restart listener if wizard had success (Bug #40295)

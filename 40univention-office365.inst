@@ -171,6 +171,29 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set deleteObjectClass=0 \
 	--set disableUDMWeb=1 || die
 
+#
+# TODO: test AAD::otherMails should contain email addresses of both UDM::e-mail and UDM::mailAlternativeAddress
+#
+univention-config-registry set \
+	office365/attributes/mapping/city?city \
+	office365/attributes/mapping/st?country \
+	office365/attributes/mapping/displayName?displayName \
+	office365/attributes/mapping/employeeType?jobTitle \
+	office365/attributes/mapping/givenName?givenName \
+	office365/attributes/mapping/mailPrimaryAddress?mail \
+	office365/attributes/mapping/mobile?mobile \
+	office365/attributes/mapping/mailAlternativeAddress?otherMails \
+	office365/attributes/mapping/e-mail?otherMails \
+	office365/attributes/mapping/postalCode?postalCode \
+	office365/attributes/mapping/roomNumber?physicalDeliveryOfficeName \
+	office365/attributes/mapping/st?usageLocation \
+	office365/attributes/mapping/street?streetAddress \
+	office365/attributes/mapping/sn?surname \
+	office365/attributes/mapping/telephoneNumber?telephoneNumber \
+	office365/attributes/mapping/jpegPhoto?thumbnailPhoto \
+	office365/attributes/sync?city,st,displayName,employeeType,givenName,mailPrimaryAddress,mobile,mailAlternativeAddress,e-mail,postalCode,roomNumber,st,street,sn,telephoneNumber,jpegPhoto \
+	office365/groups/sync=no || die
+
 joinscript_save_current_version
 
 exit 0
