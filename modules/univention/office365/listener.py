@@ -31,8 +31,6 @@
 
 from operator import itemgetter
 import uuid
-import random
-import string
 import re
 import json
 import base64
@@ -98,16 +96,16 @@ class Office365Listener(object):
 
 		# mandatory attributes, not to be overwritten by user
 		mandatory_attributes = dict(
-			immutableId=base64.encodestring(new["entryUUID"][0]).strip(),
+			immutableId=base64.encodestring(new["entryUUID"][0]).rstrip(),
 			accountEnabled=True,
 			passwordProfile=dict(
-				password=self._get_random_pw(),
+				password=self.ah.create_random_pw(),
 				forceChangePasswordNextLogin=False
 			),
 			userPrincipalName="{0}@{1}".format(new["uid"][0], self.verified_domains[0]),
 			mailNickname=new["uid"][0],
 			displayName=attributes.get("displayName", "no name"),
-			usageLocation=new["st"][0] if new.get("st") else self.ucr["ssl/country"],
+			usageLocation=new["st"][0] if new.get("st") else self.ucr["ssl/country"],  # TODO: use UCRV
 		)
 		attributes.update(mandatory_attributes)
 
@@ -137,7 +135,14 @@ class Office365Listener(object):
 
 	def delete_user(self, old):
 		try:
-			return self.ah.delete_user(old["univentionOffice365ObjectID"][0])
+			object_id = old["univentionOffice365ObjectID"][0]
+		except KeyError:
+			object_id = self.find_aad_user_by_entryUUID(old["entryUUID"][0])
+		if not object_id:
+			log_e("Office365Listener.delete_user() couldn't find object_id for user '{}', cannot delete.".format(old["uid"][0]))
+			return
+		try:
+			return self.ah.delete_user(object_id)
 		except ResourceNotFoundError as exc:
 			log_e("Office365Listener.delete_user() user '{}' didn't exist in Azure: {}.".format(old["uid"][0], exc))
 			return
@@ -217,7 +222,7 @@ class Office365Listener(object):
 
 			if "st" in modifications:
 				udm_user = self.get_udm_user(new["entryDN"][0])
-				attributes["usageLocation"] = udm_user["country"]
+				attributes["usageLocation"] = udm_user["country"]  # TODO: use UCRV
 
 			object_id = new["univentionOffice365ObjectID"][0]
 			return self.ah.modify_user(object_id=object_id, modifications=attributes)
@@ -452,18 +457,6 @@ class Office365Listener(object):
 	@staticmethod
 	def _anonymize(txt):
 		return uuid.uuid4().get_hex()
-
-	@staticmethod
-	def _get_random_pw():
-		# have at least one char from each category in password
-		# https://msdn.microsoft.com/en-us/library/azure/jj943764.aspx
-		pw = list(random.choice(string.lowercase))
-		pw.append(random.choice(string.uppercase))
-		pw.append(random.choice(string.digits))
-		pw.append(random.choice(u"@#$%^&*-_+=[]{}|\:,.?/`~();"))
-		pw.extend(random.choice(string.ascii_letters + string.digits + u"@#$%^&*-_+=[]{}|\:,.?/`~();") for _ in range(12))
-		random.shuffle(pw)
-		return u"".join(pw)
 
 	def _get_sync_values(self, attrs, user):
 		# anonymize > static > sync

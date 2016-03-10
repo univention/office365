@@ -1,6 +1,6 @@
 #!/usr/share/ucs-test/runner python
 ## -*- coding: utf-8 -*-
-## desc: test load and store
+## desc: test uninitialize, initialize, load and store
 ## tags: [apptest]
 ## exposure: dangerous
 ## packages:
@@ -54,3 +54,5 @@ loaded_ids = AzureAuth.load_azure_ids()
 
 if not loaded_ids == test_ids:
 	utils.fail("Stored and loaded data differ.")
+
+print("*** All went well.")

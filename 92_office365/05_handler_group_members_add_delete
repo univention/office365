@@ -1,0 +1,95 @@
+#!/usr/share/ucs-test/runner python
+## -*- coding: utf-8 -*-
+## desc: add and delete group member in azure
+## tags: [apptest]
+## exposure: dangerous
+## packages:
+##   - univention-office365
+
+import time
+
+import univention.testing.ucr as ucr_test
+import univention.testing.utils as utils
+
+from helpers.office365_test_helpers import AzureDirectoryTestUsers, AzureDirectoryTestGroups, azure_user_args,\
+	azure_group_args
+from univention.office365.azure_handler import AzureHandler, ResourceNotFoundError
+
+
+with ucr_test.UCSTestConfigRegistry() as ucr:
+	ah = AzureHandler(ucr, "ucs-test")
+
+grp_args = azure_group_args()
+usr1_args = azure_user_args(ah, minimal=True)
+usr2_args = azure_user_args(ah, minimal=True)
+
+print("*** create_group({})".format(grp_args))
+_new_group1 = ah.create_group(name=grp_args["displayName"], description=grp_args["description"])
+time.sleep(2)
+new_group1 = ah.list_groups(objectid=_new_group1["objectId"])
+grp1_id = new_group1["objectId"]
+print("*** group -> {}".format(grp1_id))
+
+with AzureDirectoryTestGroups(ah, [grp1_id]):
+	print("*** create_user({})".format(usr1_args))
+	_new_user1 = ah.create_user(usr1_args)
+	time.sleep(2)
+	new_user1 = ah.list_users(objectid=_new_user1["objectId"])
+	usr1_id = new_user1["objectId"]
+	print("*** user1 -> {}".format(usr1_id))
+
+	with AzureDirectoryTestUsers(ah, [usr1_id]):
+		print("*** create_user({})".format(usr2_args))
+		_new_user2 = ah.create_user(usr2_args)
+		time.sleep(2)
+		new_user2 = ah.list_users(objectid=_new_user2["objectId"])
+		usr2_id = new_user2["objectId"]
+		print("*** user2 -> {}".format(usr2_id))
+
+		with AzureDirectoryTestUsers(ah, [usr2_id]):
+			grp1_members1 = ah.get_groups_direct_members(grp1_id)["value"]
+			if len(grp1_members1) > 0:
+				utils.fail("New group is not empty.")
+
+			print("*** adding user1 to group, ah.add_objects_to_group({}, {})".format(grp1_id, [usr1_id]))
+			ah.add_objects_to_group(grp1_id, [usr1_id])
+			time.sleep(3)
+			members1 = ah.get_groups_direct_members(grp1_id)["value"]
+			members1 = ah.directory_object_urls_to_object_ids(members1)
+			if len(members1) != 1 or members1[0] != usr1_id:
+				utils.fail("Failed to add user1 to group. members1={}".format(members1))
+
+			print("*** adding user2 to group, ah.add_objects_to_group({}, {})".format(grp1_id, [usr2_id]))
+			ah.add_objects_to_group(grp1_id, [usr2_id])
+			time.sleep(3)
+			members2 = ah.get_groups_direct_members(grp1_id)["value"]
+			members2 = ah.directory_object_urls_to_object_ids(members2)
+			if len(members2) != 2 or usr2_id not in members2:
+				utils.fail("Failed to add user2 to group. members2={}".format(members2))
+
+			grp1_members2 = ah.get_groups_direct_members(grp1_id)["value"]
+			grp1_members2 = ah.directory_object_urls_to_object_ids(grp1_members2)
+			member_ids1 = grp1_members2
+			member_ids2 = [usr1_id, usr2_id]
+			if len(grp1_members2) != 2 or sorted(member_ids1) != sorted(member_ids2):
+				utils.fail("Missing or unexpected group members: {}".format(grp1_members2))
+
+			print("*** deleting user1 from group, delete_member_from_group({}, {})".format(grp1_id, usr1_id))
+			ah.delete_group_member(grp1_id, usr1_id)
+			time.sleep(3)
+
+			grp1_members3 = ah.get_groups_direct_members(grp1_id)["value"]
+			grp1_members3 = ah.directory_object_urls_to_object_ids(grp1_members3)
+			if len(grp1_members3) != 1 or grp1_members3[0] != usr2_id:
+				utils.fail("Found unexpected member(s) in group grp1_members3: {}".format(grp1_members3))
+
+			print("*** deleting user2 from group, delete_member_from_group({}, {})".format(grp1_id, usr2_id))
+			ah.delete_group_member(grp1_id, usr2_id)
+			time.sleep(3)
+
+			grp1_members4 = ah.get_groups_direct_members(grp1_id)["value"]
+			grp1_members4 = ah.directory_object_urls_to_object_ids(grp1_members4)
+			if len(grp1_members4) != 0:
+				utils.fail("Found unexpected member(s) in group grp1_members4: {}".format(grp1_members4))
+
+			print("*** All went well.")

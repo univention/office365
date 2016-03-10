@@ -1,0 +1,74 @@
+#!/usr/share/ucs-test/runner python
+## -*- coding: utf-8 -*-
+## desc: list, create, retrieve, modify and delete group in azure
+## tags: [apptest]
+## exposure: dangerous
+## packages:
+##   - univention-office365
+
+import time
+
+import univention.testing.ucr as ucr_test
+import univention.testing.utils as utils
+
+from helpers.office365_test_helpers import AzureDirectoryTestGroups, azure_group_args
+from univention.office365.azure_handler import AzureHandler, ResourceNotFoundError
+
+
+def test_grp(grp, args):
+	for k, v in args.items():
+		if v != grp[k]:
+			utils.fail("Property '{}' is '{}', but should be '{}'.".format(k, grp[k], v))
+
+with ucr_test.UCSTestConfigRegistry() as ucr:
+	ah = AzureHandler(ucr, "ucs-test")
+
+groups1 = ah.list_groups()["value"]
+
+print("*** list_groups() returned:")
+for g in groups1:
+	print("id: '{objectId}' mailNickname: '{mailNickname}' mail: '{mail}' description: '{description}'".format(**g))
+
+args = azure_group_args()
+print("*** create_group(), args={}".format(args))
+new_group1 = ah.create_group(name=args["displayName"], description=args["description"])
+time.sleep(2)
+
+with AzureDirectoryTestGroups(ah, [new_group1["objectId"]]):
+	new_group2 = ah.list_groups(objectid=new_group1["objectId"])
+	test_grp(new_group2, args)
+
+	args = azure_group_args()
+	print("*** modify_group(), args={}".format(args))
+	ah.modify_group(new_group2["objectId"], args)
+	time.sleep(2)
+	new_group3 = ah.list_groups(objectid=new_group2["objectId"])
+	test_grp(new_group3, args)
+
+	groups2 = ah.list_groups()["value"]
+	old_ids = set([group["objectId"] for group in groups1])
+	new_ids = set([group["objectId"] for group in groups2])
+	diff = new_ids - old_ids
+	if len(diff) == 0:
+		utils.fail("Test group disappeared. groups1={}, groups2={}".format(groups1, groups2))
+	elif len(diff) > 1 or diff.pop() != new_group3["objectId"]:
+		utils.fail("Unexpected group(s) found. groups1={}, groups2={}".format(groups1, groups2))
+
+	print("*** delete_group({})".format(new_group3["objectId"]))
+	ah.delete_group(new_group3["objectId"])
+	time.sleep(2)
+
+	print("*** list_groups(objectid={})".format(new_group3["objectId"]))
+	try:
+		groups3 = ah.list_groups(objectid=new_group3["objectId"])
+		if (groups3["description"] == "deleted group" and
+			groups3["displayName"].startswith("ZZZ_deleted_") and
+			groups3["mailNickname"].startswith("ZZZ_deleted_")):
+			print("OK: group was deactivated.")
+		else:
+			utils.fail("Group was not deleted: id: '{objectId}' mailNickname: '{mailNickname}' mail: '{mail}'"
+				"description: '{description}'".format(**groups3))
+	except ResourceNotFoundError:
+		print("OK: group was deleted (404).")
+
+	print("*** All went well.")

@@ -1,3 +1,10 @@
+univention-office365 (0.1.9-2) unstable; urgency=low
+
+  * raise robustness (Bug #40295)
+  * add ucs-tests using handler directly
+
+ -- Daniel Troeder <troeder@univention.de>  Thu, 10 Mar 2016 20:14:10 +0100
+
 univention-office365 (0.1.9-1) unstable; urgency=low
 
   * move UCRVs to join script, add ucs-test package (Bug #40295)

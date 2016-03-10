@@ -34,6 +34,7 @@ import argparse
 import sys
 import pprint
 import random
+import base64
 
 from univention.config_registry import ConfigRegistry
 from univention.office365.azure_handler import AzureHandler
@@ -41,42 +42,45 @@ from univention.office365.azure_handler import AzureHandler
 
 def print_users(users, complete=False, short=False):
 	if not users:
-		print "None."
+		print("None.")
 		return
 	if users["odata.metadata"].endswith("@Element"):
 		users = [users]
 	else:
 		users = users["value"]
 	for user in users:
-		print u"objectType: {0} objectId: {1} accountEnabled: {2} displayName: '{3}'".format(user["objectType"],
-			user["objectId"], user["accountEnabled"], user["displayName"])
+		print(u"objectType: {0} objectId: {1} accountEnabled: {2} displayName: '{3}'".format(user["objectType"],
+																							 user["objectId"],
+																							 user["accountEnabled"],
+																							 user["displayName"]))
 		if short:
 			pass
 		elif complete:
 			pprint.pprint(user)
-			print ""
+			print("")
 		else:
 			for attr in ["accountEnabled", "displayName", "mail", "odata.type", "otherMails", "userPrincipalName"]:
 				if attr in user:
-					print u"      {0}: {1}".format(attr, user[attr])
+					print(u"      {0}: {1}".format(attr, user[attr]))
 				else:
-					print "      no attr {0}".format(attr)
-			print "      assignedPlans:"
+					print("      no attr {0}".format(attr))
+			print("      assignedPlans:")
 			for plan in user["assignedPlans"]:
-				print u"            service: {0} \t capabilityStatus: {1}".format(plan["service"], plan["capabilityStatus"])
+				print(u"            service: {0} \t capabilityStatus: {1}".format(plan["service"],
+																				  plan["capabilityStatus"]))
 			if not user["assignedPlans"]:
-				print "            None"
-			print "      provisionedPlans:"
+				print("            None")
+			print("      provisionedPlans:")
 			for plan in user["provisionedPlans"]:
-				print u"            service: {0} \t capabilityStatus: {0} \t provisioningStatus: {0}".format(
-					plan["service"], plan["capabilityStatus"], plan["provisioningStatus"])
+				print(u"            service: {0} \t capabilityStatus: {0} \t provisioningStatus: {0}".format(
+					plan["service"], plan["capabilityStatus"], plan["provisioningStatus"]))
 			if not user["provisionedPlans"]:
-				print "            None"
+				print("            None")
 
 
 def print_groups(groups, complete=False, short=False):
 	if not groups:
-		print "None."
+		print("None.")
 		return
 
 	if groups["odata.metadata"].endswith("@Element"):
@@ -85,17 +89,17 @@ def print_groups(groups, complete=False, short=False):
 		groups = groups["value"]
 	for group in groups:
 		try:
-			print u"objectType: {0} objectId: {1} displayName: '{2}'".format(group["objectType"], group["objectId"],
-				group["displayName"])
+			print(u"objectType: {0} objectId: {1} displayName: '{2}'".format(group["objectType"], group["objectId"],
+																			 group["displayName"]))
 			if short:
 				pass
 			else:
 				pprint.pprint(group)
-				print ""
+				print("")
 		except:
-			print "type(groups): {}".format(type(groups))
+			print("type(groups): {}".format(type(groups)))
 			pprint.pprint(group)
-			print ""
+			print("")
 
 
 def member_of(action, objectid):
@@ -198,6 +202,7 @@ if __name__ == "__main__":
 					"accountEnabled": True,
 					"displayName": name,
 					"mailNickname": name,
+					"immutableId": base64.encodestring(str(random.randint(100000000, 999999999))).rstrip(),
 					"passwordProfile": {
 						"password": "univention.99",
 						"forceChangePasswordNextLogin": False},

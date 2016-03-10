@@ -190,12 +190,10 @@ def clean():
 
 
 def handler(dn, new, old, command):
-	log_a("{}.handler() command: {}".format(name, command))  # DEBUG
+	log_a("{}.handler() command: {}".format(name, command))
 	if not AzureAuth.is_initialized():
-		# TODO: store [dn] = action
 		raise RuntimeError("{}.handler() Office 365 App not initialized yet, please run wizard.".format(name))
 	else:
-		# TODO: replay postponed actions
 		pass
 
 	if command == 'r':

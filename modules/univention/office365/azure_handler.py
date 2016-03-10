@@ -40,6 +40,8 @@ import collections
 import time
 import re
 from operator import itemgetter
+import random
+import string
 
 from univention.office365.azure_auth import AzureAuth, AzureError, log_a, log_e, log_ex, log_p, resource_url
 
@@ -218,7 +220,7 @@ class AzureHandler(object):
 			params["$filter"] = ofilter
 		params = urllib.urlencode(params)
 		if object_id:
-			assert type(object_id) == str, 'The ObjectId must be a string of form "893801ca-e843-49b7-9f64-7a4590b72769".'
+			assert type(object_id) in [str, unicode], 'The ObjectId must be a string.'
 			url = self.uris[object_type].format(
 				params=params,
 				object_id=object_id,
@@ -295,7 +297,7 @@ class AzureHandler(object):
 
 	def _modify_objects(self, object_type, object_id, modifications):
 		assert object_type in ["user", "group"], 'Currently only "user" and "group" supported.'
-		assert type(object_id) == str, "The ObjectId must be a string of form '893801ca-e843-49b7-9f64-7a4590b72769'."
+		assert type(object_id) in [str, unicode], 'The ObjectId must be a string.'
 		assert type(modifications) == dict, "Please supply a dict of attr->value to change."
 
 		can_only_be_created_not_modified = ["mobile", "passwordProfile"]
@@ -320,7 +322,7 @@ class AzureHandler(object):
 
 	def _delete_objects(self, object_type, object_id):
 		assert object_type in ["user", "group"], 'Currently only "user" and "group" supported.'
-		assert type(object_id) == str, "The ObjectId must be a string of form '893801ca-e843-49b7-9f64-7a4590b72769'."
+		assert type(object_id) in [str, unicode], "The ObjectId must be a string."
 		log_p("AzureHandler._delete_objects() Deleting {} with object_id {}...".format(object_type, object_id))
 
 		params = urllib.urlencode(azure_params)
@@ -358,7 +360,7 @@ class AzureHandler(object):
 		Transitive versions (incl nested groups)
 		"""
 		log_p("AzureHandler._member_of_() Querying memberOf {} for user with object_id {}...".format(obj, object_id))
-		assert type(object_id) == str, "The ObjectId must be a string of form '893801ca-e843-49b7-9f64-7a4590b72769'."
+		assert type(object_id) in [str, unicode], "The ObjectId must be a string."
 
 		data = {"securityEnabledOnly": True}
 		params = urllib.urlencode(azure_params)
@@ -383,14 +385,14 @@ class AzureHandler(object):
 		return self.call_api("POST", url, data)
 
 	def get_groups_direct_members(self, group_id):
-		assert type(group_id) in [str, unicode], "The ObjectId must be a string of form '893801ca-e843-49b7-9f64-7a4590b72769'."
+		assert type(group_id) in [str, unicode], "The ObjectId must be a string."
 
 		params = urllib.urlencode(azure_params)
 		url = self.uris["group_members"].format(group_id=group_id, params=params)
 		return self.call_api("GET", url)
 
 	def add_objects_to_group(self, group_id, object_ids):
-		assert type(group_id) == str, "The ObjectId must be a string of form '893801ca-e843-49b7-9f64-7a4590b72769'."
+		assert type(group_id) in [str, unicode], "The ObjectId must be a string."
 		assert type(object_ids) == list, "object_ids must be a non-empty list of objectID strings."
 		assert len(object_ids) > 0, "object_ids must be a non-empty list of objectID strings."
 		log_p("AzureHandler.add_objects_to_group() Adding objects {} to group {}...".format(object_ids, group_id))
@@ -406,15 +408,17 @@ class AzureHandler(object):
 			if not object_id:
 				log_e("AzureHandler.add_objects_to_group() empty object_id should be added to {}, ignoring.".format(group_id))
 				continue
+			if len(object_ids) > 1:
+				log_p("AzureHandler.add_objects_to_group() Adding {}...".format(object_id))
 			# Check if object is already there, because adding it again leads
 			# to an error: "One or more added object references already exist
 			# for the following modified properties: 'members'."
-			dir_obj_url = self.uris["directoryObjects"].format(object_id=object_ids[0])
+			dir_obj_url = self.uris["directoryObjects"].format(object_id=object_id)
 			objs = {"url": dir_obj_url}
 			members = self.get_groups_direct_members(group_id)
 			object_ids_already_in_azure = self.directory_object_urls_to_object_ids(members["value"])
 			if object_id in object_ids_already_in_azure:
-				log_a("AzureHandler.add_objects_to_group() object {} already in group.".format(object_ids[0]))
+				log_a("AzureHandler.add_objects_to_group() object {} already in group.".format(object_id))
 				continue
 			params = urllib.urlencode(azure_params)
 			url = self.uris["group_members"].format(group_id=group_id, params=params)
@@ -523,6 +527,14 @@ class AzureHandler(object):
 	def deactivate_group(self, object_id):
 		log_a("AzureHandler.deactivate_group() object_id={}".format(object_id))
 		group_obj = self.list_groups(objectid=object_id)
+
+		if (group_obj["description"] == "deleted group" and
+			group_obj["displayName"].startswith("ZZZ_deleted_") and
+			group_obj["mailNickname"].startswith("ZZZ_deleted_")):
+			# group was already deactivated
+			log_p("AzureHandler.deactivate_group() already deactivated: '{}'.".format(group_obj["displayName"]))
+			return
+
 		members = self.get_groups_direct_members(object_id)
 		member_ids = self.directory_object_urls_to_object_ids(members["value"])
 		for member_id in member_ids:
@@ -532,8 +544,9 @@ class AzureHandler(object):
 			description="deleted group",
 			displayName=name,
 			mailEnabled=False,
-			mailNickname=name,
+			mailNickname=name.replace(" ", "_-_"),
 		)
+		log_p("AzureHandler.deactivate_group() renamed {} to {}.".format(group_obj["displayName"], name))
 		return self.modify_group(object_id=object_id, modifications=modifications)
 
 	def directory_object_urls_to_object_ids(self, urls):
@@ -547,6 +560,18 @@ class AzureHandler(object):
 			if m:
 				object_ids.append(m.groups()[0])
 		return object_ids
+
+	@staticmethod
+	def create_random_pw():
+		# have at least one char from each category in password
+		# https://msdn.microsoft.com/en-us/library/azure/jj943764.aspx
+		pw = list(random.choice(string.lowercase))
+		pw.append(random.choice(string.uppercase))
+		pw.append(random.choice(string.digits))
+		pw.append(random.choice(u"@#$%^&*-_+=[]{}|\:,.?/`~();"))
+		pw.extend(random.choice(string.ascii_letters + string.digits + u"@#$%^&*-_+=[]{}|\:,.?/`~();") for _ in range(12))
+		random.shuffle(pw)
+		return u"".join(pw)
 
 	@staticmethod
 	def _fprints_hide_pw(data, msg):
