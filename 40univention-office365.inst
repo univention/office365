@@ -119,6 +119,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set tabName="Office 365" \
 	--set translationTabName='"de_DE" "Office 365"' \
 	--set module="users/user" \
+	--set module="settings/usertemplate" \
 	--set syntax=boolean \
 	--set default=0 \
 	--set multivalue=0 \
@@ -170,6 +171,46 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set ldapMapping=univentionOffice365ObjectID \
 	--set deleteObjectClass=0 \
 	--set disableUDMWeb=1 || die
+
+udm saml/serviceprovider create "$@" \
+	--ignore_exists \
+	--position "cn=saml-serviceprovider,cn=univention,$ldap_base" \
+	--set isActivated=TRUE \
+	--set Identifier=office365.com \
+	--set NameIDFormat="urn:oasis:names:tc:SAML:2.0:nameid-format:persistent" \
+	--set simplesamlAttributes="false" \
+	--set AssertionConsumerService="https://login.microsoftonline.com/login.srf" \
+	--set simplesamlNameIDAttribute="uid" \
+	--set serviceProviderOrganizationName="Microsoft Office 365" || die
+
+# user template
+univention-directory-manager settings/usertemplate create "$@" --ignore_exists \
+	--position "cn=templates,cn=univention,$ldap_base" \
+	--set name="Office 365 Account" \
+	--set mailPrimaryAddress="<username>@$domainname" \
+	--set UniventionOffice365Enabled="1" \
+	--set serviceprovider="SAMLServiceProviderIdentifier=office365.com,cn=saml-serviceprovider,cn=univention,$ldap_base" || die
+
+# create mail domain object(s) if missing
+if ! udm mail/domain list "$@" | grep -q "name: $domainname" ; then
+	# Default; create new object with $domainname as mail domain
+	# can be overridden by mail/default/domains
+	domain_list="$domainname"
+	if [ "$mail_default_domains" ] ; then
+		domain_list="$mail_default_domains"
+	fi
+
+	# create required containers
+	udm container/cn create "$@" --ignore_exists --position "$ldap_base" --set name="mail" || die
+	udm container/cn create "$@" --ignore_exists --position "cn=mail,$ldap_base" --set name="domain" || die
+
+	# create new object
+	for domain in $domain_list ; do
+		udm mail/domain create "$@" --ignore_exists \
+			--position "cn=domain,cn=mail,$ldap_base" \
+			--set name="$domain" || die
+	done
+fi
 
 #
 # TODO: test AAD::otherMails should contain email addresses of UDM::e-mail,

@@ -1,3 +1,11 @@
+univention-office365 (0.1.9-3) unstable; urgency=medium
+
+  * Bug #38950: Create SAML serviceprovider entry
+  * Create Office 365 user template
+  * Small adjustments for UMC wizard
+
+ -- Erik Damrose <damrose@univention.de>  Mon, 14 Mar 2016 14:58:19 +0100
+
 univention-office365 (0.1.9-2) unstable; urgency=low
 
   * raise robustness (Bug #40295)

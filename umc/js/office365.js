@@ -87,7 +87,8 @@ define([
 							'<li>' + _('SIGN-ON URL: {login-url}') + '</li>' +
 							'<li>' + _('APP ID URI: {appid-url}') + '</li></ul></li>' +
 //							'<li>' + _('Make sure that your browser can resolve {base-url}.') + '</li>' +
-							'<li>' + _('In Azure dashboard: Complete the <i>Add application</i> wizard.') + '</li></ol>'
+							'<li>' + _('In Azure dashboard: Complete the <i>Add application</i> wizard.') + '</li>' +
+							'<li>' + _('Go to the next page of this wizard by clicking on Next.') + '</li></ol>'
 					}]
 				}, {
 					name: 'ucs-integration',
