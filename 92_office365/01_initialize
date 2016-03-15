@@ -19,7 +19,8 @@ DATETIME_FORMAT = "%Y-%m-%d_%H:%M:%S"
 IDS_FILE_BAK = "{}.bak_{}".format(IDS_FILE, datetime.datetime.now().strftime(DATETIME_FORMAT.replace(" ", "_")))
 
 try:
-	shutil.copy2(IDS_FILE, IDS_FILE_BAK)
+	shutil.move(IDS_FILE, IDS_FILE_BAK)
+	shutil.copy2(IDS_FILE_BAK, IDS_FILE)
 	has_backup = True
 except IOError:
 	has_backup = False

@@ -42,7 +42,7 @@ import copy
 from stat import S_IRUSR, S_IWUSR
 
 import listener
-from univention.office365.azure_auth import log_a, log_e, log_ex, log_p, AzureAuth
+from univention.office365.azure_auth import log_a, log_p, AzureAuth
 from univention.office365.listener import Office365Listener
 
 
@@ -109,15 +109,11 @@ def clean():
 
 
 def handler(dn, new, old, command):
-	log_a("{}.handler() command: {}".format(name, command))  # DEBUG
+	log_a("{}.handler() command: {} dn: {}".format(name, command, dn))
 	if not listener.configRegistry.is_true("office365/groups/sync", False):
 		return
 	if not AzureAuth.is_initialized():
-		# TODO: store [dn] = action for replay later
 		raise RuntimeError("{}.handler() Office 365 App not initialized yet, please run wizard.".format(name))
-	else:
-		# TODO: replay postponed actions
-		pass
 
 	if command == 'r':
 		save_old(old)
@@ -125,7 +121,7 @@ def handler(dn, new, old, command):
 	elif command == 'a':
 		old = load_old(old)
 
-	ol = Office365Listener(listener, name, dict(listener=attributes_copy), ldap_cred)
+	ol = Office365Listener(listener, name, dict(listener=attributes_copy), ldap_cred, dn)
 
 	#
 	# NEW group
@@ -159,19 +155,16 @@ def handler(dn, new, old, command):
 	if old and new:
 		log_a("old and new -> MODIFY ({})".format(dn))  # DEBUG
 		if "univentionOffice365ObjectID" in old or ol.udm_groups_with_azure_users(dn):
-			ol.modify_group(old, new)
+			azure_group = ol.modify_group(old, new)
+
 			# save Azure objectId in UDM object
-			if "univentionOffice365ObjectID" in new:
-				object_id = new["univentionOffice365ObjectID"][0]
-			else:
-				azure_group = ol.find_aad_group_by_name(new["cn"][0])
-				if azure_group:
-					object_id = azure_group["objectId"]
-					udm_group = ol.get_udm_group(dn)
-					udm_group["UniventionOffice365ObjectID"] = object_id
-					udm_group.modify()
-				else:
-					# group was removed because no more Azure users were in it
-					object_id = "not in Azure"
+			try:
+				object_id = azure_group["objectId"]
+			except TypeError:
+				object_id = None
+			udm_group = ol.get_udm_group(dn)
+			udm_group["UniventionOffice365ObjectID"] = object_id
+			udm_group.modify()
+
 			log_p("Modified group '{}' ({}).".format(old["cn"][0], object_id))
 		return

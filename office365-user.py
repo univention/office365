@@ -190,7 +190,7 @@ def clean():
 
 
 def handler(dn, new, old, command):
-	log_a("{}.handler() command: {}".format(name, command))
+	log_a("{}.handler() command: {} dn: {}".format(name, command, dn))
 	if not AzureAuth.is_initialized():
 		raise RuntimeError("{}.handler() Office 365 App not initialized yet, please run wizard.".format(name))
 	else:
@@ -202,7 +202,7 @@ def handler(dn, new, old, command):
 	elif command == 'a':
 		old = load_old(old)
 
-	ol = Office365Listener(listener, name, _attrs, ldap_cred)
+	ol = Office365Listener(listener, name, _attrs, ldap_cred, dn)
 
 	old_enabled = bool(int(old.get("univentionOffice365Enabled", ["0"])[0]))  # "" when disabled, "1" when enabled
 	new_enabled = bool(int(new.get("univentionOffice365Enabled", ["0"])[0]))

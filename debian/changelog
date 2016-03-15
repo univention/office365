@@ -1,3 +1,15 @@
+univention-office365 (0.1.9-4) unstable; urgency=low
+
+  * add error handling to join script (Bug #40295)
+  * enhance ucs-tests, add tests
+  * add print_users_and_groups script
+  * don't sync user pictures (upload format undocumented)
+  * fix nested groups creation
+  * fix automatic empty [nested] groups removal
+  * handle desync (groups disappearing in Azure AD)
+
+ -- Daniel Troeder <troeder@univention.de>  Tue, 15 Mar 2016 09:55:25 +0100
+
 univention-office365 (0.1.9-3) unstable; urgency=medium
 
   * Bug #38950: Create SAML serviceprovider entry

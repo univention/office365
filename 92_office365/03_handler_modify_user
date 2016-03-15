@@ -63,4 +63,20 @@ with AzureDirectoryTestUsers(a_handler=ah, user_ids=[new_user1["objectId"]]):
 	if failed:
 		utils.fail("At least one modification failed.")
 
+	modifications2 = azure_user_args(ah, minimal=False)
+	for i in ["mobile", "passwordProfile", "usageLocation"]:
+		del modifications2[i]
+	print("*** Changing (almost) all properties at once: '{}'...".format(modifications2))
+	ah.modify_user(oid, modifications2)
+	time.sleep(5)
+	modified_user2 = ah.list_users(objectid=oid)
+	for k, v in modifications2.items():
+		if isinstance(modified_user2[k], list):
+			res = all([vv in modified_user2[k] for vv in v])
+		else:
+			res = modified_user2[k] == v
+		if not res:
+			print_users(modified_user2, short=False, complete=True)
+			utils.fail("At least one modification failed.")
+
 	print("*** All went well.")

@@ -49,12 +49,13 @@ class NoAllocatableSubscriptions(Exception):
 
 
 class Office365Listener(object):
-	def __init__(self, listener, name, attrs, ldap_cred):
+	def __init__(self, listener, name, attrs, ldap_cred, dn):
 		"""
 		:param listener: listener object or None
 		:param name: str, prepend to log messages
 		:param attrs: {"listener": [attributes, listener, listens, on], ... }
 		:param ldap_cred: {ldapserver: FQDN, binddn: cn=admin,$ldap_base, basedn: $ldap_base, bindpw: s3cr3t} or None
+		:param dn of LDAP object to work on
 		"""
 		self.listener = listener
 		self.attrs = attrs
@@ -62,6 +63,7 @@ class Office365Listener(object):
 		self.lo = None
 		self.po = None
 		self.groupmod = None
+		self.dn = dn
 
 		if self.listener:
 			self.ucr = self.listener.configRegistry
@@ -79,6 +81,7 @@ class Office365Listener(object):
 
 	def create_user(self, new):
 		udm_attrs = self._get_sync_values(self.attrs["listener"], new)
+		log_a("Office365Listener.create_user() udm_attrs={}".format(udm_attrs))
 
 		attributes = dict()
 		for k, v in udm_attrs.items():
@@ -221,7 +224,7 @@ class Office365Listener(object):
 				attributes[self.attrs["mapping"][k]] = v
 
 			if "st" in modifications:
-				udm_user = self.get_udm_user(new["entryDN"][0])
+				udm_user = self.get_udm_user(self.dn)
 				attributes["usageLocation"] = udm_user["country"]  # TODO: use UCRV
 
 			object_id = new["univentionOffice365ObjectID"][0]
@@ -257,7 +260,7 @@ class Office365Listener(object):
 	def create_group_from_new(self, new):
 		desc = new.get("description", [""])[0] or None
 		name = new["cn"][0]
-		return self.create_group(name, desc, new["entryDN"][0])
+		return self.create_group(name, desc, self.dn)
 
 	def create_group_from_ldap(self, groupdn, add_members=True):
 		udm_group = self.get_udm_group(groupdn)
@@ -272,18 +275,84 @@ class Office365Listener(object):
 			log_e("Group '{}' didn't exist in Azure: {}.".format(old["cn"][0], exc))
 			return
 
+	def delete_empty_group(self, group_id):
+		"""
+		Recursively look if a group or any of it parent groups is empty and remove it.
+		:param group_id: str: object id of group (and its parents) to check
+		:return: bool: if the group was deleted
+		"""
+		log_a("Office365Listener.delete_empty_group() group_id={}".format(group_id))
+
+		# get IDs of groups this group is a member of before deleting it
+		nested_parent_group_ids = self.ah.member_of_groups(group_id, "groups")["value"]
+
+		# check members
+		members = self.ah.get_groups_direct_members(group_id)["value"]
+		if members:
+			member_ids = self.ah.directory_object_urls_to_object_ids(members)
+			azure_objs = list()
+			for member_id in member_ids:
+				try:
+					azure_objs.append(self.ah.list_users(objectid=member_id))
+				except ResourceNotFoundError:
+					# that's OK - it is probably not a user but a group
+					try:
+						azure_objs.append(self.ah.list_groups(objectid=member_id))
+					except ResourceNotFoundError:
+						# ignore
+						log_e("Office365Listener.delete_empty_group() found unexpected object in group: {}".format(
+							member_id))
+			if all(azure_obj["mailNickname"].startswith("ZZZ_deleted_") for azure_obj in azure_objs):
+				log_p("Office365Listener.delete_empty_group() all members of group {} are deactivated, "
+					"deleting it.".format(group_id))
+				self.ah.delete_group(group_id)
+			else:
+				log_a("Office365Listener.delete_empty_group() group has active members, not deleting it.")
+				return False
+		else:
+			log_p("Office365Listener.delete_empty_group() removing empty group {}...".format(group_id))
+			self.ah.delete_group(group_id)
+
+		# check parent groups
+		for nested_parent_group_id in nested_parent_group_ids:
+			self.delete_empty_group(nested_parent_group_id)
+
+		return True
+
 	def modify_group(self, old, new):
 		modification_attributes = self._diff_old_new(self.attrs["listener"], old, new)
-		log_a("Office365Listener.modify_group() DN={} modification_attributes={}".format(
-			old["entryDN"], modification_attributes))
+		log_a("Office365Listener.modify_group() DN={} modification_attributes={}".format(self.dn, modification_attributes))
 
 		if not modification_attributes:
 			log_a("Office365Listener.modify_group() no modifications found, ignoring.")
-			return
+			return dict(objectId=old["univentionOffice365ObjectID"][0])
 
-		if "univentionOffice365ObjectID" not in old:
+		try:
+			group_id = old["univentionOffice365ObjectID"][0]
+		except KeyError:
 			# just create a new group
-			return self.create_group_from_new(new)
+			azure_group = self.create_group_from_new(new)
+			group_id = azure_group["objectId"]
+			modification_attributes = dict()
+
+		try:
+			azure_group = self.ah.list_groups(objectid=group_id)
+			if azure_group["mailNickname"].startswith("ZZZ_deleted_"):
+				log_p("Office365Listener.modify_group() reactivating azure group '{}'...".format(azure_group["displayName"]))
+				name = new["cn"][0]
+				attributes = dict(
+					description=new.get("description", [""])[0] or None,
+					displayName=name,
+					mailEnabled=False,
+					mailNickname=name.replace(" ", "_-_"),
+					securityEnabled=True
+				)
+				azure_group = self.ah.modify_group(group_id, attributes)
+		except ResourceNotFoundError:
+			log_e("Office365Listener.modify_group() azure group doesn't exist (anymore), creating it instead.")
+			azure_group = self.create_group_from_new(new)
+			modification_attributes = dict()
+		group_id = azure_group["objectId"]
 
 		if "uniqueMember" in modification_attributes:
 			# In uniqueMember users and groups are both listed. There is no
@@ -294,35 +363,35 @@ class Office365Listener(object):
 			set_new = set(new.get("uniqueMember", []))
 			removed_members = set_old - set_new
 			added_members = set_new - set_old
-			udm_group_old = self.get_udm_group(old["entryDN"][0])
+			log_a("Office365Listener.modify_group() DN={} added_members={} removed_members={}".format(self.dn,
+				added_members, removed_members))
+			udm_group_old = self.get_udm_group(self.dn)
 
 			# add new members to Azure
 			users_and_groups_to_add = list()
-			new_groups = list()
 			for added_member in added_members:
 				if added_member in udm_group_old["users"]:
 					udm_user = self.get_udm_user(added_member)
-					if bool(int(udm_user.get("UniventionOffice365Enabled", "0"))):
+					if (bool(int(udm_user.get("UniventionOffice365Enabled", "0"))) and
+						udm_user["UniventionOffice365ObjectID"]):
 						users_and_groups_to_add.append(udm_user["UniventionOffice365ObjectID"])
 				elif added_member in udm_group_old["nestedGroup"]:
 					# check if this group or any of its nested groups has azure_users
 					for group_with_azure_users in self.udm_groups_with_azure_users(added_member):
+						log_a("Found nested group {} wth azure users...".format(group_with_azure_users))
 						udm_group = self.get_udm_group(group_with_azure_users)
 						if not udm_group.get("UniventionOffice365ObjectID"):
-							new_group = self.create_group_from_ldap(group_with_azure_users, add_members=False)
-							new_groups.append((group_with_azure_users, new_group))
+							new_group = self.create_group_from_ldap(group_with_azure_users)
 							udm_group["UniventionOffice365ObjectID"] = new_group["objectId"]
 							udm_group.modify()
 						if group_with_azure_users in udm_group_old["nestedGroup"]:  # only add direct members to group
 							users_and_groups_to_add.append(udm_group["UniventionOffice365ObjectID"])
 				else:
-					raise RuntimeError("Office365Listener.modify_group() '{}' from new[uniqueMember] not in 'nestedGroup' or 'users'.".format(added_member))
-			if users_and_groups_to_add:
-				self.ah.add_objects_to_group(old["univentionOffice365ObjectID"][0], users_and_groups_to_add)
+					raise RuntimeError("Office365Listener.modify_group() '{}' from new[uniqueMember] not in "
+						"'nestedGroup' or 'users'.".format(added_member))
 
-			# add nested groups
-			for group_dn, object_id in new_groups:
-				self.add_ldap_members_to_azure_group(group_dn, object_id)
+			if users_and_groups_to_add:
+				self.ah.add_objects_to_azure_group(group_id, users_and_groups_to_add)
 
 			# remove members
 			for removed_member in removed_members:
@@ -357,12 +426,17 @@ class Office365Listener(object):
 						log_e("Office365Listener.modify_group() Couldn't figure out object name from DN '{}'.".format(removed_member))
 						continue
 
-				self.ah.delete_group_member(group_id=old["univentionOffice365ObjectID"][0], member_id=member_id)
+				self.ah.delete_group_member(group_id=group_id, member_id=member_id)
+
+		# remove group if it became empty
+		deleted = self.delete_empty_group(group_id)
+		if deleted:
+			return None
 
 		# modify other attributes
 		modifications = dict([(mod_attr, new[mod_attr]) for mod_attr in modification_attributes])
 		if modification_attributes:
-			return self.ah.modify_group(object_id=old["univentionOffice365ObjectID"][0], modifications=modifications)
+			return self.ah.modify_group(object_id=group_id, modifications=modifications)
 
 	def add_ldap_members_to_azure_group(self, group_dn, object_id):
 		"""
@@ -395,7 +469,7 @@ class Office365Listener(object):
 
 		# add users to groups
 		if users_and_groups_to_add:
-			self.ah.add_objects_to_group(object_id, users_and_groups_to_add)
+			self.ah.add_objects_to_azure_group(object_id, users_and_groups_to_add)
 
 		# search tree upwards, create groups as we go, don't add users
 		def _groups_up_the_tree(group):

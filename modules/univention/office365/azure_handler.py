@@ -74,6 +74,7 @@ azure_attribute_types = dict(
 	preferredLanguage=unicode,
 	removeLicenses=list,
 	securityEnabled=bool,
+	securityEnabledOnly=bool,
 	state=unicode,
 	streetAddress=unicode,
 	surname=unicode,
@@ -179,7 +180,7 @@ class AzureHandler(object):
 					# no response expected
 					pass
 				elif method.upper() == "POST" and "members" in url:
-					# no response expected (add_objects_to_group())
+					# no response expected (add_objects_to_azure_group())
 					pass
 				else:
 					log_ex("AzureHandler.call_api() response is not JSON. response.__dict__: {}".format(response.__dict__))
@@ -355,26 +356,31 @@ class AzureHandler(object):
 		# return self._delete_objects(object_type="group", object_id=object_id)
 		return self.deactivate_group(object_id)
 
-	def _member_of_(self, obj, object_id):
+	def _member_of_(self, obj, object_id, resource_collection):
 		"""
 		Transitive versions (incl nested groups)
 		"""
-		log_p("AzureHandler._member_of_() Querying memberOf {} for user with object_id {}...".format(obj, object_id))
+		log_p("AzureHandler._member_of_() Querying memberOf {} for {} with object_id {}...".format(obj,
+			resource_collection, object_id))
+		assert type(resource_collection) in [str, unicode], "resource_collection must be a string."
 		assert type(object_id) in [str, unicode], "The ObjectId must be a string."
 
-		data = {"securityEnabledOnly": True}
 		params = urllib.urlencode(azure_params)
 		if obj == "groups":
-			url = self.uris["getMemberGroups"].format(resource_collection="users", resource_id=object_id, params=params)
+			url = self.uris["getMemberGroups"].format(resource_collection=resource_collection, resource_id=object_id,
+				params=params)
+			data = {"securityEnabledOnly": False}
 		else:
-			url = self.uris["getMemberObjects"].format(resource_collection="users", resource_id=object_id, params=params)
+			url = self.uris["getMemberObjects"].format(resource_collection=resource_collection, resource_id=object_id,
+				params=params)
+			data = {"securityEnabledOnly": True}
 		return self.call_api("POST", url, data)
 
-	def member_of_groups(self, object_id):
-		return self._member_of_("groups", object_id)
+	def member_of_groups(self, object_id, resource_collection="users"):
+		return self._member_of_("groups", object_id, resource_collection)
 
-	def member_of_objects(self, object_id):
-		return self._member_of_("objects", object_id)
+	def member_of_objects(self, object_id, resource_collection="users"):
+		return self._member_of_("objects", object_id, resource_collection)
 
 	def resolve_object_ids(self, object_ids, object_types=None):
 		assert type(object_ids) == list, "Parameter object_ids must be a list of object IDs."
@@ -391,11 +397,16 @@ class AzureHandler(object):
 		url = self.uris["group_members"].format(group_id=group_id, params=params)
 		return self.call_api("GET", url)
 
-	def add_objects_to_group(self, group_id, object_ids):
+	def add_objects_to_azure_group(self, group_id, object_ids):
+		"""
+		Add users and groups to a group in Azure AD
+		:param group_id: object_id of azure group
+		:param object_ids: list: object_ids of groups
+		:return: None
+		"""
 		assert type(group_id) in [str, unicode], "The ObjectId must be a string."
-		assert type(object_ids) == list, "object_ids must be a non-empty list of objectID strings."
-		assert len(object_ids) > 0, "object_ids must be a non-empty list of objectID strings."
-		log_p("AzureHandler.add_objects_to_group() Adding objects {} to group {}...".format(object_ids, group_id))
+		assert type(object_ids) == list, "object_ids must be a list of objectID strings."
+		log_a("AzureHandler.add_objects_to_azure_group() Adding objects {} to group {}...".format(object_ids, group_id))
 
 		# While the Graph API clearly states that multiple objects can be added
 		# at once to a group that is no entirely true, as the usual API syntax
@@ -406,10 +417,10 @@ class AzureHandler(object):
 		# so here comes a loop instead.
 		for object_id in object_ids:
 			if not object_id:
-				log_e("AzureHandler.add_objects_to_group() empty object_id should be added to {}, ignoring.".format(group_id))
+				log_e("AzureHandler.add_objects_to_azure_group() empty object_id should be added to {}, ignoring.".format(group_id))
 				continue
 			if len(object_ids) > 1:
-				log_p("AzureHandler.add_objects_to_group() Adding {}...".format(object_id))
+				log_p("AzureHandler.add_objects_to_azure_group() Adding {}...".format(object_id))
 			# Check if object is already there, because adding it again leads
 			# to an error: "One or more added object references already exist
 			# for the following modified properties: 'members'."
@@ -418,7 +429,7 @@ class AzureHandler(object):
 			members = self.get_groups_direct_members(group_id)
 			object_ids_already_in_azure = self.directory_object_urls_to_object_ids(members["value"])
 			if object_id in object_ids_already_in_azure:
-				log_a("AzureHandler.add_objects_to_group() object {} already in group.".format(object_id))
+				log_a("AzureHandler.add_objects_to_azure_group() object {} already in group.".format(object_id))
 				continue
 			params = urllib.urlencode(azure_params)
 			url = self.uris["group_members"].format(group_id=group_id, params=params)
@@ -546,7 +557,7 @@ class AzureHandler(object):
 			mailEnabled=False,
 			mailNickname=name.replace(" ", "_-_"),
 		)
-		log_p("AzureHandler.deactivate_group() renamed {} to {}.".format(group_obj["displayName"], name))
+		log_p("AzureHandler.deactivate_group() renaming {} to {}.".format(group_obj["displayName"], name))
 		return self.modify_group(object_id=object_id, modifications=modifications)
 
 	def directory_object_urls_to_object_ids(self, urls):

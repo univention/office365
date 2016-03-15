@@ -191,7 +191,7 @@ if __name__ == "__main__":
 	if args.action == "add":
 		if args.objectid:
 			if args.set:
-				ah.add_objects_to_group(args.objectid, args.set)
+				ah.add_objects_to_azure_group(args.objectid, args.set)
 			else:
 				parser.error("Please supply the objectIDs of users or groups to add to the group.")
 		else:

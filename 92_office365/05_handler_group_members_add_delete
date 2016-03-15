@@ -13,7 +13,7 @@ import univention.testing.utils as utils
 
 from helpers.office365_test_helpers import AzureDirectoryTestUsers, AzureDirectoryTestGroups, azure_user_args,\
 	azure_group_args
-from univention.office365.azure_handler import AzureHandler, ResourceNotFoundError
+from univention.office365.azure_handler import AzureHandler
 
 
 with ucr_test.UCSTestConfigRegistry() as ucr:
@@ -51,16 +51,16 @@ with AzureDirectoryTestGroups(ah, [grp1_id]):
 			if len(grp1_members1) > 0:
 				utils.fail("New group is not empty.")
 
-			print("*** adding user1 to group, ah.add_objects_to_group({}, {})".format(grp1_id, [usr1_id]))
-			ah.add_objects_to_group(grp1_id, [usr1_id])
+			print("*** adding user1 to group, ah.add_objects_to_azure_group({}, {})".format(grp1_id, [usr1_id]))
+			ah.add_objects_to_azure_group(grp1_id, [usr1_id])
 			time.sleep(3)
 			members1 = ah.get_groups_direct_members(grp1_id)["value"]
 			members1 = ah.directory_object_urls_to_object_ids(members1)
 			if len(members1) != 1 or members1[0] != usr1_id:
 				utils.fail("Failed to add user1 to group. members1={}".format(members1))
 
-			print("*** adding user2 to group, ah.add_objects_to_group({}, {})".format(grp1_id, [usr2_id]))
-			ah.add_objects_to_group(grp1_id, [usr2_id])
+			print("*** adding user2 to group, ah.add_objects_to_azure_group({}, {})".format(grp1_id, [usr2_id]))
+			ah.add_objects_to_azure_group(grp1_id, [usr2_id])
 			time.sleep(3)
 			members2 = ah.get_groups_direct_members(grp1_id)["value"]
 			members2 = ah.directory_object_urls_to_object_ids(members2)
