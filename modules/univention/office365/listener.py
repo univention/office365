@@ -87,12 +87,20 @@ class Office365Listener(object):
 		for k, v in udm_attrs.items():
 			azure_ldap_attribute_name = self.attrs["mapping"][k]
 			if azure_ldap_attribute_name in attributes:
-				if isinstance(v, list):
-					list_method = list.extend
-				else:
-					list_method = list.append
+				# property exists already, value must be a list
 				if not isinstance(attributes[azure_ldap_attribute_name], list):
 					attributes[azure_ldap_attribute_name] = [attributes[azure_ldap_attribute_name]]
+				# if value is a list extend, else append
+				if isinstance(v, list):
+					if any([vv in attributes[azure_ldap_attribute_name] for vv in v]):
+						# avoid 400: "Request contains a property with duplicate values."
+						continue
+					list_method = list.extend
+				else:
+					if v in attributes[azure_ldap_attribute_name]:
+						# avoid 400: "Request contains a property with duplicate values."
+						continue
+					list_method = list.append
 				list_method(attributes[azure_ldap_attribute_name], v)
 			else:
 				attributes[azure_ldap_attribute_name] = v
@@ -437,6 +445,8 @@ class Office365Listener(object):
 		modifications = dict([(mod_attr, new[mod_attr]) for mod_attr in modification_attributes])
 		if modification_attributes:
 			return self.ah.modify_group(object_id=group_id, modifications=modifications)
+
+		return dict(objectId=group_id)  # for listener to store in UDM object
 
 	def add_ldap_members_to_azure_group(self, group_dn, object_id):
 		"""

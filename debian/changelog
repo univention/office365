@@ -1,3 +1,12 @@
+univention-office365 (0.1.9-5) unstable; urgency=low
+
+  * prevent properties with duplicate values (Bug #40295)
+  * add test to check user synchronization
+  * store object ID when modifiying groups
+  * fix UCRVs (LDAP attribute names)
+
+ -- Daniel Troeder <troeder@univention.de>  Wed, 16 Mar 2016 10:58:15 +0100
+
 univention-office365 (0.1.9-4) unstable; urgency=low
 
   * add error handling to join script (Bug #40295)

@@ -156,11 +156,11 @@ def handler(dn, new, old, command):
 		log_a("old and new -> MODIFY ({})".format(dn))  # DEBUG
 		if "univentionOffice365ObjectID" in old or ol.udm_groups_with_azure_users(dn):
 			azure_group = ol.modify_group(old, new)
-
 			# save Azure objectId in UDM object
 			try:
 				object_id = azure_group["objectId"]
 			except TypeError:
+				# None -> group was deleted
 				object_id = None
 			udm_group = ol.get_udm_group(dn)
 			udm_group["UniventionOffice365ObjectID"] = object_id
