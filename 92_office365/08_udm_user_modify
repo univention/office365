@@ -1,11 +1,12 @@
 #!/usr/share/ucs-test/runner python
 ## -*- coding: utf-8 -*-
-## desc: create user in azure, check property-sync
+## desc: create and modify user in azure, check property-sync
 ## tags: [apptest]
 ## exposure: dangerous
 ## packages:
 ##   - univention-office365
 
+import copy
 import time
 
 import univention.testing.ucr as ucr_test
@@ -51,21 +52,53 @@ with utils.AutomaticListenerRestart():
 
 			user_args = udm_user_args(ucr, minimal=False)
 			user_args["set"]["UniventionOffice365Enabled"] = 1
+			user_args1 = copy.deepcopy(user_args)
 
-			print("*** Creating user with all possible properties...")
-			user_dn, username = udm.create_user(check_for_drs_replication=True, **user_args)
+			user_args2 = dict(set=dict(), append=dict())
+			for key in ["city", "employeeType", "mailPrimaryAddress"]:
+				user_args2["set"][key] = user_args1["set"].pop(key)
+			user_args2["append"]["phone"] = user_args1["append"].pop("phone")
+
+			user_args3 = dict(set=dict(), append=dict())
+			for key in ["street", "country"]:
+				user_args3["set"][key] = user_args1["set"].pop(key)
+			for key in ["e-mail", "mailAlternativeAddress"]:
+				user_args3["append"][key] = user_args1["append"].pop(key)
+
+			print("*** Creating user with some properties...")
+			user_dn, username = udm.create_user(check_for_drs_replication=True, **user_args1)
 			time.sleep(5)
 
-			print("*** Checking that user was created (UniventionOffice365ObjectID in UDM object)...")
+			print("*** Checking that user was created (UniventionGoogleAppsObjectID in UDM object)...")
 			udm_user = ol.get_udm_user(user_dn)
 			user_id = udm_user.get("UniventionOffice365ObjectID")
 			if not user_id:
 				utils.fail("User was not created properly (no UniventionOffice365ObjectID).")
 
-			print("*** Checking sync of all properties...")
+			print("*** Checking sync of properties #0...")
 			fake_listener_new = dict(
 				entryUUID=[udm_user.dn],
 				univentionOffice365ObjectID=[user_id]
 			)
+			azure_user = ol.get_user(fake_listener_new)
+			check_udm2azure_user(user_args1, azure_user, complete=False)
+
+			print("*** Adding more properties to user #1...")
+			udm.modify_object(modulename="users/user", dn=user_dn, **user_args2)
+			time.sleep(5)
+
+			print("*** Checking sync of properties #1...")
+			azure_user = ol.get_user(fake_listener_new)
+			check_udm2azure_user(user_args2, azure_user, complete=False)
+
+			print("*** Adding more properties to user #2...")
+			udm.modify_object(modulename="users/user", dn=user_dn, **user_args3)
+			time.sleep(5)
+
+			print("*** Checking sync of properties #2...")
+			azure_user = ol.get_user(fake_listener_new)
+			check_udm2azure_user(user_args3, azure_user, complete=False)
+
+			print("*** Checking sync of all properties...")
 			azure_user = ol.get_user(fake_listener_new)
 			check_udm2azure_user(user_args, azure_user, complete=True)

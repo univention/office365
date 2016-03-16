@@ -227,7 +227,7 @@ univention-config-registry set \
 	office365/attributes/mapping/street?streetAddress \
 	office365/attributes/mapping/sn?surname \
 	office365/attributes/mapping/telephoneNumber?telephoneNumber \
-	office365/attributes/sync?l,st,displayName,employeeType,givenName,mailPrimaryAddress,mobile,mailAlternativeAddress,mail,postalCode,roomNumber,st,street,sn,telephoneNumber \
+	office365/attributes/sync?displayName,employeeType,givenName,l,mailPrimaryAddress,mobile,mailAlternativeAddress,mail,postalCode,roomNumber,st,street,sn,telephoneNumber \
 	office365/groups/sync=no || die
 
 joinscript_save_current_version

@@ -222,14 +222,29 @@ class Office365Listener(object):
 
 	def modify_user(self, old, new):
 		modifications = self._diff_old_new(self.attrs["listener"], old, new)
+		# If there are properties in azure that get their value from multiple
+		# attributes in LDAP, then add all those attributes to the modifications
+		# list, or their existing value will be lost, when overwriting them.
+		for k, v in self.attrs["multiple"].items():
+			if any([ldap_attr in modifications for ldap_attr in v]):
+				modifications.extend(v)
+		modifications = list(set(modifications))
 		if modifications:
 			log_a("Office365Listener.modify_user() modifications={}".format(modifications))
-
 			udm_attrs = self._get_sync_values(modifications, new)
-
 			attributes = dict()
 			for k, v in udm_attrs.items():
-				attributes[self.attrs["mapping"][k]] = v
+				azure_property_name = self.attrs["mapping"][k]
+				if azure_property_name in attributes:
+					# must be a list type property, append/extend
+					if isinstance(v, list):
+						attributes[azure_property_name].extend(v)
+					else:
+						attributes[azure_property_name].append(v)
+					# no duplicate values
+					attributes[azure_property_name] = list(set(attributes[azure_property_name]))
+				else:
+					attributes[azure_property_name] = v
 
 			if "st" in modifications:
 				udm_user = self.get_udm_user(self.dn)

@@ -1,3 +1,11 @@
+univention-office365 (0.1.9-6) unstable; urgency=low
+
+  * Bug #40295: handle properties whos value are fed from multiple LDAP
+    attributes
+  * add test for user modifications
+
+ -- Daniel Troeder <troeder@univention.de>  Wed, 16 Mar 2016 12:36:18 +0100
+
 univention-office365 (0.1.9-5) unstable; urgency=low
 
   * prevent properties with duplicate values (Bug #40295)

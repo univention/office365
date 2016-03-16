@@ -322,12 +322,11 @@ def check_udm2azure_user(udm_args, azure_user, complete=True):
 		for udm_value in udm_values:
 			if k == "homePostalAddress":
 				udm_value = udm_value.replace('"', '').replace(" ", "$")
-			if udm_value not in azure_values:
+			elif udm_value not in azure_values:
 				fail = True
 				res.append((k, "'{}' (from {})".format(udm_value, udm_values), azure_values))
 	if fail:
-		utils.fail("One or more properties were not synced correctly:\n{}\nAzure user:\n{}.".format(
-			"\n".join(map(str, res)), pprint.pformat(azure_user)))
+		utils.fail("One or more properties were not synced correctly:\n{}".format("\n".join(map(str, res))))
 	else:
 		print("*** all attributes were synced correctly")
 		return True

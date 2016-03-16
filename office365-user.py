@@ -55,6 +55,7 @@ attributes_mapping = dict()
 attributes_never = list()
 attributes_static = dict()
 attributes_sync = list()
+attributes_multiple_azure2ldap = dict()
 
 
 def get_listener_attributes():
@@ -103,6 +104,16 @@ def get_listener_attributes():
 	rm_objs_from_list_or_dict(attributes_anonymize, [attributes_static, attributes_sync])
 	rm_objs_from_list_or_dict(attributes_static, [attributes_sync])
 
+	# find attributes that map to the same azure properties
+	for k, v in attributes_mapping.items():
+		try:
+			attributes_multiple_azure2ldap[v].append(k)
+		except KeyError:
+			attributes_multiple_azure2ldap[v] = [k]
+	for k, v in attributes_multiple_azure2ldap.items():
+		if len(v) < 2:
+			del attributes_multiple_azure2ldap[k]
+
 	# sanity check
 	no_mapping = [a for a in attrs if a not in attributes_mapping.keys() and a != "univentionOffice365Enabled"]
 	if no_mapping:
@@ -136,7 +147,8 @@ _attrs = dict(
 	mapping=attributes_mapping,
 	never=attributes_never,
 	static=attributes_static,
-	sync=attributes_sync
+	sync=attributes_sync,
+	multiple=attributes_multiple_azure2ldap
 )
 
 ldap_cred = dict()
@@ -147,6 +159,7 @@ log_p("attributes to sync anonymized: {}".format(attributes_anonymize))
 log_p("attributes to never sync: {}".format(attributes_never))
 log_p("attributes to statically set in AAD: {}".format(attributes_static))
 log_p("attributes to sync: {}".format(attributes_sync))
+log_p("attributes to sync from multiple sources: {}".format(attributes_multiple_azure2ldap))
 
 
 def load_old(old):
