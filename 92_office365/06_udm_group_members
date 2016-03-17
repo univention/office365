@@ -60,7 +60,11 @@ with utils.AutomaticListenerRestart():
 				univentionOffice365ObjectID=[udm_user["UniventionOffice365ObjectID"]]
 			)
 			azure_user = ol.get_user(fake_listener_new)
-			check_udm2azure_user(user_args, azure_user, complete=False)
+			success, errors = check_udm2azure_user(user_args, azure_user, complete=False)
+			if success:
+				print("*** all attributes were synced correctly")
+			else:
+				utils.fail("One or more properties were not synced correctly:\n{}".format("\n".join(map(str, errors))))
 
 			print("*** Checking that group was created...")
 			udm_group = ol.get_udm_group(group_dn)

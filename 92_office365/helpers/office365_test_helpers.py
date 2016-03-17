@@ -326,7 +326,6 @@ def check_udm2azure_user(udm_args, azure_user, complete=True):
 				fail = True
 				res.append((k, "'{}' (from {})".format(udm_value, udm_values), azure_values))
 	if fail:
-		utils.fail("One or more properties were not synced correctly:\n{}".format("\n".join(map(str, res))))
+		return False, res
 	else:
-		print("*** all attributes were synced correctly")
-		return True
+		return True, res

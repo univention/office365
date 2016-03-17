@@ -18,6 +18,13 @@ from helpers.office365_test_helpers import listener_attributes_data, udm_user_ar
 from univention.office365.listener import Office365Listener
 
 
+def _test(udm_args, a_user, check_complete):
+	success, errors = check_udm2azure_user(udm_args, a_user, check_complete)
+	if success:
+		print("*** all attributes were synced correctly")
+	else:
+		utils.fail("One or more properties were not synced correctly:\n{}".format("\n".join(map(str, errors))))
+
 with utils.AutomaticListenerRestart():
 	with udm_test.UCSTestUDM() as udm:
 		with ucr_test.UCSTestConfigRegistry() as ucr:
@@ -81,7 +88,7 @@ with utils.AutomaticListenerRestart():
 				univentionOffice365ObjectID=[user_id]
 			)
 			azure_user = ol.get_user(fake_listener_new)
-			check_udm2azure_user(user_args1, azure_user, complete=False)
+			_test(user_args1, azure_user, check_complete=False)
 
 			print("*** Adding more properties to user #1...")
 			udm.modify_object(modulename="users/user", dn=user_dn, **user_args2)
@@ -89,7 +96,7 @@ with utils.AutomaticListenerRestart():
 
 			print("*** Checking sync of properties #1...")
 			azure_user = ol.get_user(fake_listener_new)
-			check_udm2azure_user(user_args2, azure_user, complete=False)
+			_test(user_args2, azure_user, check_complete=False)
 
 			print("*** Adding more properties to user #2...")
 			udm.modify_object(modulename="users/user", dn=user_dn, **user_args3)
@@ -97,8 +104,8 @@ with utils.AutomaticListenerRestart():
 
 			print("*** Checking sync of properties #2...")
 			azure_user = ol.get_user(fake_listener_new)
-			check_udm2azure_user(user_args3, azure_user, complete=False)
+			_test(user_args3, azure_user, check_complete=False)
 
 			print("*** Checking sync of all properties...")
 			azure_user = ol.get_user(fake_listener_new)
-			check_udm2azure_user(user_args, azure_user, complete=True)
+			_test(user_args, azure_user, check_complete=True)

@@ -33,11 +33,8 @@
 __package__ = ''  # workaround for PEP 366
 
 import os
-try:
-	import cPickle as pickle
-except ImportError:
-	# py3
-	import pickle
+import json
+import base64
 import copy
 from stat import S_IRUSR, S_IWUSR
 
@@ -60,30 +57,28 @@ else:
 attributes = ["cn", "description", "uniqueMember"]
 modrdn = "1"
 
-OFFICE365_OLD_PICKLE = os.path.join("/var/lib/univention-office365", "office365-group_old_dn")
+OFFICE365_OLD_JSON = os.path.join("/var/lib/univention-office365", "office365-group_old_dn")
 
 ldap_cred = dict()
 attributes_copy = copy.deepcopy(attributes)  # when handler() runs, all kinds of stuff is suddenly in attributes
 
+
 def load_old(old):
-	if os.path.exists(OFFICE365_OLD_PICKLE):
-		f = open(OFFICE365_OLD_PICKLE, "r")
-		p = pickle.Unpickler(f)
-		old = p.load()
-		f.close()
-		os.unlink(OFFICE365_OLD_PICKLE)
+	try:
+		with open(OFFICE365_OLD_JSON, "r") as fp:
+			old = json.load(fp)
+		old["krb5Key"] = [base64.b64decode(old["krb5Key"])]
+		os.unlink(OFFICE365_OLD_JSON)
 		return old
-	else:
+	except IOError:
 		return old
 
 
 def save_old(old):
-	f = open(OFFICE365_OLD_PICKLE, "w+")
-	os.chmod(OFFICE365_OLD_PICKLE, S_IRUSR | S_IWUSR)
-	p = pickle.Pickler(f)
-	p.dump(old)
-	p.clear_memo()
-	f.close()
+	old["krb5Key"] = base64.b64encode(old["krb5Key"][0])
+	with open(OFFICE365_OLD_JSON, "w+") as fp:
+		os.chmod(OFFICE365_OLD_JSON, S_IRUSR | S_IWUSR)
+		json.dump(old, fp)
 
 
 def setdata(key, value):

@@ -68,4 +68,8 @@ with utils.AutomaticListenerRestart():
 				univentionOffice365ObjectID=[user_id]
 			)
 			azure_user = ol.get_user(fake_listener_new)
-			check_udm2azure_user(user_args, azure_user, complete=True)
+			success, errors = check_udm2azure_user(user_args, azure_user, complete=True)
+			if success:
+				print("*** all attributes were synced correctly")
+			else:
+				utils.fail("One or more properties were not synced correctly:\n{}".format("\n".join(map(str, errors))))

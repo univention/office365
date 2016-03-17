@@ -1,3 +1,10 @@
+univention-office365 (0.1.9-7) unstable; urgency=low
+
+  * store "old" in JSON instead of pickle (Bug #40295)
+  * add test for anonymization, blocking and static sync settings
+
+ -- Daniel Troeder <troeder@univention.de>  Thu, 17 Mar 2016 15:19:29 +0100
+
 univention-office365 (0.1.9-6) unstable; urgency=low
 
   * Bug #40295: handle properties whos value are fed from multiple LDAP

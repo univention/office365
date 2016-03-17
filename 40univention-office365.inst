@@ -55,7 +55,7 @@ if ! joinscript_check_any_version_executed || [ -n "$FORCE_NEW_CERT" ]; then
 
     # set permissions
     touch key.pem cert.pem cert.fp ids.json token.json
-    chown -R listener:root $CONFDIR
+    chown -R listener:root $CONFDIR /var/lib/univention-office365
     chmod 0700 $CONFDIR
     chmod 0600 key.pem cert.pem cert.fp ids.json token.json
 
