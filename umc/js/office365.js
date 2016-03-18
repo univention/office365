@@ -69,10 +69,13 @@ define([
 					}, {
 						type: Text,
 						name: 'info',
-						content: '<p>' + _('Microsoft Azure is a cloud computing platform and infrastructure.') + '</p><p>' +
+						content: '<p>' + _('<b>Welcome to the Office 365 App configuration wizard.</b>') + '</p><p>' +
+							_('Office 365 uses a directory in Microsofts cloud platform "Azure" to authenticate users.') + '</p><p>' +
+							_('This app creates user accounts in the "Azure Active Directory" and connects them to UCS domain users. This allows them to use single sign-on to log into Office 365 Apps.') + '</p><p>' +
+							_('To manage user accounts in the Azure AD, permissions must be granted by a Azure AD administrator. This wizard will guide you through the configuration process.') + '</p><p>' +
 							_('To configure the connection to Azure, a working Microsoft Azure account is required.') + '</p><p>' +
-							_('An Azure Active Directory with an Office365 (test-)subscription has to be configured for your Azure account before continuing.') + '</p><p>' +
-							_('The Active Directory which is used to sync the users needs to have an active global administrator account which is used for login while configuring the Office365 App. The first created Active Directory in the account will be used to connect to by the office 365 app.') + '</p>'
+							_('An Azure Active Directory with an Office 365 (test-)subscription has to be configured for your Azure account <i>before</i> continuing.') + '</p><p>' +
+							_('The Azure Active Directory which is used to sync the users needs to have an active global administrator account which is used for login while configuring the Office365 App.') + '</p>'
 					}]
 				}, {
 					name: 'add-external-application',
@@ -82,15 +85,19 @@ define([
 						name: 'infos',
 						type: Text,
 						content: '<ol>' +
-							'<li>' + _('In your Azure account, select your Active Directory. On the "Application" tab, start the wizard to add a new application to your directory') + '</li>' +
-							'<li>' + _('Choose the option that you want to configure an application developed by your company') + '</li>' +
+							'<li>' + _('Log into the <a href="https://manage.windowsazure.com/">Azure portal</a> and select your Active Directory. On the "Applications" tab, start the wizard to add a new application to your directory.') + '</li>' +
+							'<li><img src="/univention-management-console/js/dijit/themes/umc/icons/screenshots/bottom_bar_add_app.png"></li>' +
+							'<li>' + _('Choose the option that you want to create "an application my orgnaization is developing".') + '</li>' +
+							'<li><img src="/univention-management-console/js/dijit/themes/umc/icons/screenshots/Azure_AD_App_wizard1.png"></li>' +
 							'<li>' + _('Enter a Name for your application, e.g. <i>UCS Office 365</i>') + '</li>' +
 							'<li>' + _('Select the <i>web-application and/or web-api</i> option and click Next') + '</li>' +
-							'<li>' + _('Paste the following values into the respective fields in the Azure wizard:') + '<ul>' +
+							'<li><img src="/univention-management-console/js/dijit/themes/umc/icons/screenshots/Azure_AD_App_wizard2.png"></li>' +
+							'<li>' + _('Copy the following values and paster them into the respective fields in the Azure wizard:') + '<ul>' +
 							'<li>' + _('SIGN-ON URL: {login-url}') + '</li>' +
 							'<li>' + _('APP ID URI: {appid-url}') + '</li></ul></li>' +
+							'<li><img src="/univention-management-console/js/dijit/themes/umc/icons/screenshots/Azure_AD_App_wizard3.png"></li>' +
 //							'<li>' + _('Make sure that your browser can resolve {base-url}.') + '</li>' +
-							'<li>' + _('In Azure dashboard: Complete the <i>Add application</i> wizard.') + '</li>' +
+							'<li>' + _('Complete the <i>Add application</i> wizard in the Azure portal.') + '</li>' +
 							'<li>' + _('Go to the next page of this wizard by clicking on Next.') + '</li></ol>'
 					}]
 				}, {
@@ -100,9 +107,13 @@ define([
 					widgets: [{
 						type: Text,
 						name: 'infos',
-						content: '<ol><li>' + _('In the Azure Dashboard, the new application should be selected after the wizard has completed. Click on configure') + '</li><li>' +
-							_('In the Azure dashboard, click <i>manage manifest</i> and then <i>download manifest</i>. Save the manifest file on your computer') + '</li><li>' +
+						content: '<ol><li>' + _('When Azures <i>Add application</i> wizard completes, the new application should be selected.') + '</li><li>' +
+							_('Click <i>Manage Manifest</i> and then <i>Download Manifest</i>. Save the manifest file on your computer.') + '</li><li>' +
+							'TODO: make the step about "than one Active Directory" a separate page/popup' + '</li><li>' +
 							_('Optionally paste the tenant ID if you have more than one Active Directory set up') + '</li><li>' +
+							'<img src="/univention-management-console/js/dijit/themes/umc/icons/screenshots/bottom_bar_view_endpoints.png">' + '</li><li>' +
+							'<img src="/univention-management-console/js/dijit/themes/umc/icons/screenshots/copy_tenant_id.png">' + '</li><li>' +
+							'TODO: extract tenant_id from c&p URL' + '</li><li>' +
 							_('UCS now has to modify the downloaded manifest file. Please upload the manifest by using the file upload option below') + '</li></ol>'
 					}, {
 						type: TextBox,
