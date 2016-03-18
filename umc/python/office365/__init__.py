@@ -98,8 +98,11 @@ class Instance(Base):
 			try:
 				ah = AzureHandler(ucr, "wizard")
 				ah.list_users()
-				subprocess.check_call(["invoke-rc.d", "univention-directory-listener", "crestart"])
-			except (AzureError, subprocess.CalledProcessError) as exc:
+				try:
+					subprocess.check_call(["invoke-rc.d", "univention-directory-listener", "crestart"])
+				except (EnvironmentError, subprocess.CalledProcessError):
+					pass
+			except AzureError as exc:
 				errors.append(str(exc))
 		return {
 			'errors': errors,

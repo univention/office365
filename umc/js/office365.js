@@ -33,6 +33,7 @@ define([
 	"dojo/_base/lang",
 	"dojo/_base/array",
 	"dojo/Deferred",
+	"umc/dialog",
 	"umc/widgets/Module",
 	"umc/widgets/Wizard",
 	"umc/widgets/Text",
@@ -40,16 +41,18 @@ define([
 	"umc/widgets/Uploader",
 	"umc/widgets/ProgressBar",
 	"umc/i18n!umc/modules/office365"
-], function(declare, lang, array, Deferred, Module, Wizard, Text, TextBox, Uploader, ProgressBar, _) {
+], function(declare, lang, array, Deferred, dialog, Module, Wizard, Text, TextBox, Uploader, ProgressBar, _) {
 	var OfficeWizard = declare('umc.modules.office365.OfficeWizard', [Wizard], {
 
 		_uploadDeferred: null,
 		autoValidate: true,
 		autoFocus: true,
+		authorizationurl: null,
 
 		constructor: function() {
 			this.inherited(arguments);
 			this.origin = window.location.protocol + '//' + window.location.host + (window.location.port ? ':' + window.location.port : '');
+			this._moduleExists = new Deferred();
 			this._progressBar = new ProgressBar();
 			this._progressDeferred = new Deferred();
 
@@ -134,17 +137,35 @@ define([
 					}]
 				}, {
 					name: 'azure-integration',
-					headerText: _('Make UCS office 365 app known to Azure AD'),
+					headerText: _('Make UCS office 365 app known to Azure AD - Upload manifest'),
 					helpText: '',
 					widgets: [{
 						type: Text,
 						name: 'infos',
-						content: '<ol><li>' + _('To connect this Office365 App to your Microsoft Azure account, download the updated <a download="manifest.json" href="data:application/octet-stream;charset=utf-8;base64,{manifest}">manifest.json</a>') + '</li><li>' +
-							_('Upload the manifest.json file via the Azure dashboard by selecting <i>manage manifest</i> and <i>upload manifest</i>') + '</li><li>' +
-							_('After the file was uploaded successfully, click <a href="{authorizationurl}" target="_blank">here</a> to authorize the connection between this App and Microsoft Azure.') + '</li><li>' +
+						content: '<p><a href=""><img src="js/umc/modules/download.svg" alt="Download manifest.json"></a></p>' +
+							'<ol><li>' + _('To connect this Office365 App to your Microsoft Azure account, download the updated <a download="manifest.json" href="data:application/octet-stream;charset=utf-8;base64,{manifest}">manifest.json</a>') + '</li><li>' +
+							_('Upload the manifest.json file via the Azure dashboard by selecting <i>manage manifest</i> and <i>upload manifest</i>') + //'</li><li>' +
+//							_('Clicking on <i>next</i> causes a new window to open. There the connection between this app and Microsoft Azure has to be authorized.') +
+							'</li></ol>'
+					}]
+				}, {
+					name: 'azure-integration-auth',
+					headerText: _('Make UCS office 365 app known to Azure AD - Authorize'),
+					helpText: '',
+					widgets: [{
+						type: Text,
+						name: 'infos',
+						content: _('To authorize the connection between this App and Microsoft Azure please follow these instructions:') +
+							'<ol><li>' + //_('After the file was uploaded successfully, click <a href="{authorizationurl}" target="_blank">here</a> to authorize the connection between this App and Microsoft Azure.') + '</li><li>' +
 							_('Authenticate on the Azure Webpage and complete the Authorization process by accepting the permission request.') + '</li><li>' +
-							_('After accepting the permission request, the browser window or tab will close itself.') + '</li><li>' +
-							_('Click on <i>finish</i> to test the configuration and end this wizard.') + '</li></ol>'
+							_('After accepting the permission request, the browser window or tab will close itself.') +// '</li><li>' +
+//							_('Click on <i>finish</i> to test the configuration and end this wizard.') +
+							'</li></ol>'
+					}]
+					buttons: [{
+						name: 'authorize',
+						label: _('Authorize app'),
+						callback: lang.hitch(this, 'openAuthorization')
 					}]
 				}, {
 					name: 'connectiontest',
@@ -168,20 +189,40 @@ define([
 		},
 
 		manifestUploaded: function(data) {
-			var infos = this.getWidget('azure-integration', 'infos');
-			infos.set('content', lang.replace(infos.get('content'), data.result));
+			array.forEach(['azure-integration', 'azure-integration-auth'], function(pageName) {
+				var infos = this.getWidget(pageName, 'infos');
+				infos.set('content', lang.replace(infos.get('content'), data.result));
+			}, this);
+			this.authorizationurl = data.result.authorizationurl;
 
 			// start polling for success in the background. This is important here to make sure no session timeout occurs.
 			this._progressBar.auto('office365/test_configuration', {}, lang.hitch(this, function() {
 				this._progressDeferred.resolve('connectiontest');  // switch to the last page
-			}));
+			}), undefined, undefined, undefined, this._moduleExists);
 
 			this._next('ucs-integration');
 		},
 
+		openAuthorization: function() {
+			this.authorizationWindow = window.open(this.authorizationurl);
+//			if (!this.authorizationWindow) {
+//				dialog.alert(this.authorizationurl);
+//				return;
+//			}
+			setTimeout(lang.hitch(this, function() {
+			
+			}), 1000);
+		},
+
 		next: function(pageName) {
 			var nextPage = this.inherited(arguments);
-			if (nextPage == 'connectiontest') {
+			if (nextPage == 'azure-integration-auth') {
+				//this.openAuthorization();
+			} else if (nextPage == 'connectiontest') {
+				if (!this.authorizationWindow.closed) {
+					dialog.alert('Please first make sure you authorized the application.');
+					return pageName;
+				} // TODO: test if the request was successful
 				return this._connectionTest();
 			}
 			return nextPage;
@@ -195,7 +236,7 @@ define([
 
 		getFooterButtons: function(pageName) {
 			var buttons = this.inherited(arguments);
-		//	if (pageName == 'azure-integration') {
+		//	if (pageName == 'azure-integration-auth') {
 		//		array.forEach(buttons, function(button) {
 		//			if (button.name == 'next') {
 		//				button.label = _('Finish');
@@ -216,7 +257,7 @@ define([
 		},
 
 		hasPrevious: function(pageName) {
-			if (~array.indexOf(["azure-integration", "connectiontest"], pageName)) {
+			if (~array.indexOf(["azure-integration", 'azure-integration-auth', "connectiontest"], pageName)) {
 				return false;
 			}
 			return this.inherited(arguments);
@@ -242,6 +283,10 @@ define([
 			this.standbyDuring(this.umcpCommand('office365/query').then(lang.hitch(this._wizard, 'initWizard')));
 			this._wizard.on('finished', lang.hitch(this, 'closeModule'));
 			this._wizard.on('cancel', lang.hitch(this, 'closeModule'));
+			this.on('close', lang.hitch(this, function() {
+				this._wizard._moduleExists.resolve();
+			}));
+
 		},
 
 		buildRendering: function() {
