@@ -77,46 +77,59 @@ with utils.AutomaticListenerRestart():
 			success, errors = check_udm2azure_user(user_args, azure_user, complete=True)
 			if success:
 				utils.fail("UCRVs office365/attributes/{anonymize, static, never} were ignored.")
-			else:
-				print("*** Properties that differ to LDAP:\n{}".format("\n".join(map(str, errors))))
 
-				errors = dict([(udm_attr, val) for udm_attr, _, val in errors])
-				for attrib in ["e-mail", "postcode"]:
-					try:
-						value = errors[attrib]
-					except KeyError:
-						utils.fail("Attribute '{}' is synced, but should not be.".format(attrib))
-					if value is None:
-						pass
-						print("### {} is None".format(attrib))
-					elif isinstance(value, list):
-						if value in user_args["append"][attrib]:
+			print("*** Properties that differ to LDAP:\n{}".format("\n".join(map(str, errors))))
+
+			# rewrite error dict and check that "sync errors" are as expected
+			errors = dict([(udm_attr, val) for udm_attr, _, val in errors])
+
+			#
+			# never
+			#
+			for attrib in ["e-mail", "postcode"]:
+				try:
+					value = errors[attrib]
+				except KeyError:
+					utils.fail("Attribute '{}' is synced, but should not be.".format(attrib))
+				if value is None:
+					# postcode should be None
+					pass
+				elif isinstance(value, list):
+					for val in value:
+						if val in user_args["append"][attrib]:
 							utils.fail("Attribute '{}' was synced, but should not be.".format(attrib))
 						else:
+							# e-mail will exist with entries from mailPrimaryAddress and mailAlternativeAddress,
+							# but must not contain addresses from "mail" attribute
 							pass
-							print("### {} is not in user_args[append][attrib]".format(attrib))
-					else:
-						utils.fail("Attribute '{}' was set, but should not be.".format(attrib))
+				else:
+					utils.fail("Attribute '{}' was set, but should not be.".format(attrib))
 
-				print("*** OK: office365/attributes/never")
+			print("*** OK: office365/attributes/never")
 
-				for attrib in ["firstname", "street"]:
-					try:
-						value = errors[attrib]
-					except KeyError:
-						utils.fail("Attribute '{}' was synced without anonymizing it.".format(attrib))
-					udm_val = user_args[attrib] if attrib in ["firstname", "lastname"] else user_args["set"][attrib]
-					if udm_val == value:
-						utils.fail("Attribute '{}' was synced without anonymizing it.".format(attrib))
+			#
+			# anonymize
+			#
+			for attrib in ["firstname", "street"]:
+				try:
+					value = errors[attrib]
+				except KeyError:
+					utils.fail("Attribute '{}' was synced without anonymizing it.".format(attrib))
+				udm_val = user_args[attrib] if attrib in ["firstname", "lastname"] else user_args["set"][attrib]
+				if udm_val == value:
+					utils.fail("Attribute '{}' was synced without anonymizing it.".format(attrib))
 
-				print("*** OK: office365/attributes/anonymize")
+			print("*** OK: office365/attributes/anonymize")
 
-				for attrib in ["roomNumber", "city"]:
-					try:
-						value = errors[attrib]
-					except KeyError:
-						utils.fail("Attribute '{}' was synced without anonymizing it.".format(attrib))
-					if user_args["set"][attrib] == value:
-						utils.fail("Attribute '{}' was synced without anonymizing it.".format(attrib))
+			#
+			# static
+			#
+			for attrib in ["roomNumber", "city"]:
+				try:
+					value = errors[attrib]
+				except KeyError:
+					utils.fail("Attribute '{}' was synced without anonymizing it.".format(attrib))
+				if user_args["set"][attrib] == value:
+					utils.fail("Attribute '{}' was synced without anonymizing it.".format(attrib))
 
-				print("*** OK: office365/attributes/static")
+			print("*** OK: office365/attributes/static")

@@ -322,10 +322,8 @@ def check_udm2azure_user(udm_args, azure_user, complete=True):
 		for udm_value in udm_values:
 			if k == "homePostalAddress":
 				udm_value = udm_value.replace('"', '').replace(" ", "$")
-			elif udm_value not in azure_values:
+			if udm_value not in azure_values:
 				fail = True
-				res.append((k, "'{}' (from {})".format(udm_value, udm_values), azure_values))
-	if fail:
-		return False, res
-	else:
-		return True, res
+				res.append((k, udm_value, azure_values))
+
+	return not fail, res
