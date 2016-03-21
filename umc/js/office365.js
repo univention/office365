@@ -33,6 +33,7 @@ define([
 	"dojo/_base/lang",
 	"dojo/_base/array",
 	"dojo/Deferred",
+	"umc/tools",
 	"umc/dialog",
 	"umc/widgets/Module",
 	"umc/widgets/Wizard",
@@ -41,7 +42,7 @@ define([
 	"umc/widgets/Uploader",
 	"umc/widgets/ProgressBar",
 	"umc/i18n!umc/modules/office365"
-], function(declare, lang, array, Deferred, dialog, Module, Wizard, Text, TextBox, Uploader, ProgressBar, _) {
+], function(declare, lang, array, Deferred, tools, dialog, Module, Wizard, Text, TextBox, Uploader, ProgressBar, _) {
 	var OfficeWizard = declare('umc.modules.office365.OfficeWizard', [Wizard], {
 
 		_uploadDeferred: null,
@@ -75,7 +76,7 @@ define([
 							_('To manage user accounts in the Azure AD, permissions must be granted by a Azure AD administrator. This wizard will guide you through the configuration process.') + '</p><p>' +
 							_('To configure the connection to Azure, a working Microsoft Azure account is required.') + '</p><p>' +
 							_('An Azure Active Directory with an Office 365 (test-)subscription has to be configured for your Azure account <i>before</i> continuing.') + '</p><p>' +
-							_('The Azure Active Directory which is used to sync the users needs to have an active global administrator account which is used for login while configuring the Office365 App.') + '</p>'
+							_('The Azure Active Directory which is used to sync the users needs to have an active global administrator account which is used for login while configuring the Office 365 app.') + '</p>'
 					}]
 				}, {
 					name: 'add-external-application',
@@ -85,20 +86,30 @@ define([
 						name: 'infos',
 						type: Text,
 						content: '<ol>' +
-							'<li>' + _('Log into the <a href="https://manage.windowsazure.com/">Azure portal</a> and select your Active Directory. On the "Applications" tab, start the wizard to add a new application to your directory.') + '</li>' +
-							'<li><img src="/univention-management-console/js/dijit/themes/umc/icons/screenshots/bottom_bar_add_app.png"></li>' +
-							'<li>' + _('Choose the option that you want to create "an application my orgnaization is developing".') + '</li>' +
-							'<li><img src="/univention-management-console/js/dijit/themes/umc/icons/screenshots/Azure_AD_App_wizard1.png"></li>' +
+							'<li>' + _('Log into the <a href="https://manage.windowsazure.com/" target="_blank">Azure portal</a> and select your Active Directory. On the <i>Applications</i> tab, start the wizard to add a new application to your directory.') + '</li>' +
+						//	'<li><img src="/univention-management-console/js/dijit/themes/umc/icons/screenshots/bottom_bar_add_app.png"></li>' +
+							'<li>' + _('Choose the option that you want to create <i>an application my orgnaization is developing</i>') + '</li>' +
+						//	'<li><img src="/univention-management-console/js/dijit/themes/umc/icons/screenshots/Azure_AD_App_wizard1.png"></li>' +
 							'<li>' + _('Enter a Name for your application, e.g. <i>UCS Office 365</i>') + '</li>' +
 							'<li>' + _('Select the <i>web-application and/or web-api</i> option and click Next') + '</li>' +
-							'<li><img src="/univention-management-console/js/dijit/themes/umc/icons/screenshots/Azure_AD_App_wizard2.png"></li>' +
-							'<li>' + _('Copy the following values and paster them into the respective fields in the Azure wizard:') + '<ul>' +
-							'<li>' + _('SIGN-ON URL: {login-url}') + '</li>' +
-							'<li>' + _('APP ID URI: {appid-url}') + '</li></ul></li>' +
-							'<li><img src="/univention-management-console/js/dijit/themes/umc/icons/screenshots/Azure_AD_App_wizard3.png"></li>' +
+						//	'<li><img src="/univention-management-console/js/dijit/themes/umc/icons/screenshots/Azure_AD_App_wizard2.png"></li>' +
+							'<li>' + _('Copy the values below and paste them into the respective fields in the Azure wizard') + '</li>' +
+							//'<ul>' +
+							//'<li>' + _('SIGN-ON URL: {login-url}') + '</li>' +
+							//'<li>' + _('APP ID URI: {appid-url}') + '</li></ul></li>' +
+						//	'<li><img src="/univention-management-console/js/dijit/themes/umc/icons/screenshots/Azure_AD_App_wizard3.png"></li>' +
 //							'<li>' + _('Make sure that your browser can resolve {base-url}.') + '</li>' +
 							'<li>' + _('Complete the <i>Add application</i> wizard in the Azure portal.') + '</li>' +
 							'<li>' + _('Go to the next page of this wizard by clicking on Next.') + '</li></ol>'
+
+					}, {
+						type: TextBox,
+						name: 'login-url',
+						label: _('SIGN-ON URL')
+					}, {
+						type: TextBox,
+						name: 'appid-url',
+						label: _('APP ID URI')
 					}]
 				}, {
 					name: 'ucs-integration',
@@ -109,11 +120,11 @@ define([
 						name: 'infos',
 						content: '<ol><li>' + _('When Azures <i>Add application</i> wizard completes, the new application should be selected.') + '</li><li>' +
 							_('Click <i>Manage Manifest</i> and then <i>Download Manifest</i>. Save the manifest file on your computer.') + '</li><li>' +
-							'TODO: make the step about "than one Active Directory" a separate page/popup' + '</li><li>' +
+	//						'TODO: make the step about "than one Active Directory" a separate page/popup' + '</li><li>' +
 							_('Optionally paste the tenant ID if you have more than one Active Directory set up') + '</li><li>' +
-							'<img src="/univention-management-console/js/dijit/themes/umc/icons/screenshots/bottom_bar_view_endpoints.png">' + '</li><li>' +
-							'<img src="/univention-management-console/js/dijit/themes/umc/icons/screenshots/copy_tenant_id.png">' + '</li><li>' +
-							'TODO: extract tenant_id from c&p URL' + '</li><li>' +
+	//						'<img src="/univention-management-console/js/dijit/themes/umc/icons/screenshots/bottom_bar_view_endpoints.png">' + '</li><li>' +
+	//						'<img src="/univention-management-console/js/dijit/themes/umc/icons/screenshots/copy_tenant_id.png">' + '</li><li>' +
+	//						'TODO: extract tenant_id from c&p URL' + '</li><li>' +
 							_('UCS now has to modify the downloaded manifest file. Please upload the manifest by using the file upload option below') + '</li></ol>'
 					}, {
 						type: TextBox,
@@ -154,7 +165,7 @@ define([
 						type: Text,
 						name: 'infos',
 						content: '<p><a href=""><img src="js/umc/modules/download.svg" alt="Download manifest.json"></a></p>' +
-							'<ol><li>' + _('To connect this Office365 App to your Microsoft Azure account, download the updated <a download="manifest.json" href="data:application/octet-stream;charset=utf-8;base64,{manifest}">manifest.json</a>') + '</li><li>' +
+							'<ol><li>' + _('To connect this Office 365 app to your Microsoft Azure account, download the updated <a download="manifest.json" href="data:application/octet-stream;charset=utf-8;base64,{manifest}">manifest.json</a>') + '</li><li>' +
 							_('Upload the manifest.json file via the Azure dashboard by selecting <i>manage manifest</i> and <i>upload manifest</i>') + //'</li><li>' +
 //							_('Clicking on <i>next</i> causes a new window to open. There the connection between this app and Microsoft Azure has to be authorized.') +
 							'</li></ol>'
@@ -172,7 +183,7 @@ define([
 							_('After accepting the permission request, the browser window or tab will close itself.') +// '</li><li>' +
 //							_('Click on <i>finish</i> to test the configuration and end this wizard.') +
 							'</li></ol>'
-					}]
+					}],
 					buttons: [{
 						name: 'authorize',
 						label: _('Authorize app'),
@@ -195,8 +206,12 @@ define([
 
 		initWizard: function(data) {
 			this.getWidget('start', 'already-initialized').set('visible', data.result.initialized);
-			var infos = this.getWidget('add-external-application', 'infos');
-			infos.set('content', lang.replace(lang.replace(infos.get('content'), data.result), {origin: this.origin}));
+			tools.forIn(data.result, lang.hitch(this, function(key, val) {
+				var widget = this.getWidget('add-external-application', key);
+				if (widget) {
+					widget.set('value', lang.replace(val, {origin: this.origin}));
+				}
+			}));
 		},
 
 		manifestUploaded: function(data) {
@@ -257,11 +272,14 @@ define([
 			if (pageName == "ucs-integration") {
 				buttons = array.filter(buttons, function(button) { return button.name != 'next'; });
 			}
+			if (pageName == 'azure-integration-auth') {
+				buttons = array.filter(buttons, function(button) { return button.name != 'finish'; });
+			}
 			return buttons;
 		},
 
 		hasNext: function(pageName) {
-			if (~array.indexOf(["connectiontest"], pageName)) {
+			if (~array.indexOf(['azure-integration-auth', "connectiontest"], pageName)) {
 				return false;
 			}
 			return this.inherited(arguments);
