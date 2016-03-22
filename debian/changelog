@@ -1,3 +1,9 @@
+univention-office365 (0.1.9-8) unstable; urgency=medium
+
+  * Bug #40294: Implement UMC Wizard
+
+ -- Florian Best <best@univention.de>  Tue, 22 Mar 2016 14:13:09 +0100
+
 univention-office365 (0.1.9-7) unstable; urgency=low
 
   * store "old" in JSON instead of pickle (Bug #40295)

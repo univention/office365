@@ -33,6 +33,7 @@
 
 import json
 import subprocess
+import urlparse
 
 from univention.lib.i18n import Translation
 from univention.management.console.base import Base, UMC_Error
@@ -74,7 +75,8 @@ class Instance(Base):
 			raise UMC_Error(str(exc))
 
 		try:
-			tenant_id = request.body.get('tenant_id')
+			tenant_id = request.body.get('tenant_id') or 'common'
+			tenant_id = urlparse.urlparse(tenant_id).path.strip('/').split('/')[0]
 			manifest.store(tenant_id)
 		except AzureError as exc:
 			raise UMC_Error(str(exc))
