@@ -39,10 +39,12 @@ import copy
 from stat import S_IRUSR, S_IWUSR
 
 import listener
-from univention.office365.azure_auth import log_a, log_p, AzureAuth
+from univention.office365.azure_auth import AzureAuth
 from univention.office365.listener import Office365Listener
+from univention.office365.logging2udebug import get_logger
 
 
+logger = get_logger("office365", "o365")
 listener.configRegistry.load()
 
 
@@ -50,10 +52,10 @@ name = 'office365-group'
 description = 'sync groups to office 365'
 if AzureAuth.is_initialized() and listener.configRegistry.is_true("office365/groups/sync", False):
 	filter = '(objectClass=posixGroup)'
-	log_p("office 365 group listener active")
+	logger.info("office 365 group listener active")
 else:
 	filter = '(foo=bar)'
-	log_p("office 365 group listener deactivated")
+	logger.info("office 365 group listener deactivated")
 attributes = ["cn", "description", "uniqueMember"]
 modrdn = "1"
 
@@ -99,12 +101,12 @@ def clean():
 	Remove  univentionOffice365ObjectID and univentionOffice365Data from all
 	user objects.
 	"""
-	log_p("clean() removing Office 365 ObjectID and Data from all groups.")
+	logger.info("Removing Office 365 ObjectID and Data from all groups.")
 	Office365Listener.clean_udm_objects("groups/group", listener.configRegistry["ldap/base"], ldap_cred)
 
 
 def handler(dn, new, old, command):
-	log_a("{}.handler() command: {} dn: {}".format(name, command, dn))
+	logger.debug("%s.handler() command: %r dn: %r", name, command, dn)
 	if not listener.configRegistry.is_true("office365/groups/sync", False):
 		return
 	if not AzureAuth.is_initialized():
@@ -122,33 +124,32 @@ def handler(dn, new, old, command):
 	# NEW group
 	#
 	if new and not old:
-		log_a("new and not old -> NEW ({})".format(dn))  # DEBUG
+		logger.debug("new and not old -> NEW (%s)", dn)
 		for groupdn in ol.udm_groups_with_azure_users(dn):
 			new_group = ol.create_group_from_ldap(groupdn)
 			# save Azure objectId in UDM object
 			udm_group = ol.get_udm_group(dn)
 			udm_group["UniventionOffice365ObjectID"] = new_group["objectId"]
 			udm_group.modify()
-			log_p("Created group with displayName: {}  ({})".format(
-					new_group["displayName"], new_group["objectId"]))
-		log_a("done ({})".format(dn))
+			logger.info("Created group with displayName: %r  (%r)", new_group["displayName"], new_group["objectId"])
+		logger.debug("done (%s)", dn)
 		return
 
 	#
 	# DELETE group
 	#
 	if old and not new:
-		log_a("old and not new -> DELETE ({})".format(dn))  # DEBUG
+		logger.debug("old and not new -> DELETE (%s)", dn)
 		if "univentionOffice365ObjectID" in old:
 			ol.delete_group(old)
-			log_p("Deleted group '{}' ({}).".format(old["cn"][0], old["univentionOffice365ObjectID"][0]))
+			logger.info("Deleted group %r (%r).", old["cn"][0], old["univentionOffice365ObjectID"][0])
 		return
 
 	#
 	# MODIFY group
 	#
 	if old and new:
-		log_a("old and new -> MODIFY ({})".format(dn))  # DEBUG
+		logger.debug("old and new -> MODIFY (%s)", dn)
 		if "univentionOffice365ObjectID" in old or ol.udm_groups_with_azure_users(dn):
 			azure_group = ol.modify_group(old, new)
 			# save Azure objectId in UDM object
@@ -161,5 +162,5 @@ def handler(dn, new, old, command):
 			udm_group["UniventionOffice365ObjectID"] = object_id
 			udm_group.modify()
 
-			log_p("Modified group '{}' ({}).".format(old["cn"][0], object_id))
+			logger.info("Modified group %r (%r).", old["cn"][0], object_id)
 		return

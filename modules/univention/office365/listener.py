@@ -38,8 +38,11 @@ import zlib
 
 import univention.admin.uldap
 import univention.admin.objects
-from univention.office365.azure_auth import log_a, log_e, log_ex, log_p
 from univention.office365.azure_handler import AzureHandler, ResourceNotFoundError
+from univention.office365.logging2udebug import get_logger
+
+
+logger = get_logger("office365", "o365")
 
 
 class NoAllocatableSubscriptions(Exception):
@@ -81,7 +84,7 @@ class Office365Listener(object):
 
 	def create_user(self, new):
 		udm_attrs = self._get_sync_values(self.attrs["listener"], new)
-		log_a("Office365Listener.create_user() udm_attrs={}".format(udm_attrs))
+		logger.debug("udm_attrs=%r", udm_attrs)
 
 		attributes = dict()
 		for k, v in udm_attrs.items():
@@ -134,12 +137,10 @@ class Office365Listener(object):
 				new["uid"][0], new_user["objectId"])
 			raise NoAllocatableSubscriptions(new_user, msg)
 		elif len(subscriptions) > 1:
-			log_e("Office365Listener.create_user() more than one Office 365 subscription found. Currently not"
-				"fully supported. Using first one found.")
+			logger.warn("More than one Office 365 subscription found. Currently not fully supported. Using first one.")
 		sku_id = subscriptions[0]["skuId"]
 
-		log_p("Office365Listener.create_user() using subscription {} for user {}.".format(
-			subscriptions[0]["skuId"], new_user["objectId"]))
+		logger.info("Using subscription %r for user %r.", subscriptions[0]["skuId"], new_user["objectId"])
 		self.ah.add_license(new_user["objectId"], subscriptions[0]["skuId"])
 
 		return new_user
@@ -150,12 +151,12 @@ class Office365Listener(object):
 		except KeyError:
 			object_id = self.find_aad_user_by_entryUUID(old["entryUUID"][0])
 		if not object_id:
-			log_e("Office365Listener.delete_user() couldn't find object_id for user '{}', cannot delete.".format(old["uid"][0]))
+			logger.error("Couldn't find object_id for user %r, cannot delete.", old["uid"][0])
 			return
 		try:
 			return self.ah.delete_user(object_id)
 		except ResourceNotFoundError as exc:
-			log_e("Office365Listener.delete_user() user '{}' didn't exist in Azure: {}.".format(old["uid"][0], exc))
+			logger.error("User %r didn't exist in Azure: %r.", old["uid"][0], exc)
 			return
 
 	def deactivate_user(self, old):
@@ -207,18 +208,17 @@ class Office365Listener(object):
 		:param base: str: note to start search from
 		:param ldap_cred: dict: LDAP credentials collected in listeners set_data()
 		"""
-		log_p("Office365Listener.clean_udm_objects() cleaning '{}' objects.".format(module_s))
+		logger.info("Cleaning %r objects....", module_s)
 		filter_s = "(|(univentionOffice365ObjectID=*)(univentionOffice365Data=*))"
 		udm_objs = cls.find_udm_objects(module_s, filter_s, base, ldap_cred)
 		for udm_obj in udm_objs:
 			udm_obj.open()
-			log_p("Office365Listener.clean_udm_objects() {}...".format(
-					udm_obj["username"] if "username" in udm_obj else udm_obj["name"]))
+			logger.info("%r...", udm_obj["username"] if "username" in udm_obj else udm_obj["name"])
 			udm_obj["UniventionOffice365ObjectID"] = None
 			if "UniventionOffice365Data" in udm_obj:
 				udm_obj["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(None))).rstrip()
 			udm_obj.modify()
-		log_p("Office365Listener.clean_udm_objects() done.")
+		logger.info("Cleaning done.")
 
 	def modify_user(self, old, new):
 		modifications = self._diff_old_new(self.attrs["listener"], old, new)
@@ -230,7 +230,7 @@ class Office365Listener(object):
 				modifications.extend(v)
 		modifications = list(set(modifications))
 		if modifications:
-			log_a("Office365Listener.modify_user() modifications={}".format(modifications))
+			logger.debug("modifications=%r", modifications)
 			udm_attrs = self._get_sync_values(modifications, new)
 			attributes = dict()
 			for k, v in udm_attrs.items():
@@ -253,7 +253,7 @@ class Office365Listener(object):
 			object_id = new["univentionOffice365ObjectID"][0]
 			return self.ah.modify_user(object_id=object_id, modifications=attributes)
 		else:
-			log_a("Office365Listener.modify_user() no modifications - nothing to do.")
+			logger.debug("No modifications - nothing to do.")
 			return
 
 	def get_user(self, user):
@@ -295,7 +295,7 @@ class Office365Listener(object):
 		try:
 			return self.ah.delete_group(old["univentionOffice365ObjectID"][0])
 		except ResourceNotFoundError as exc:
-			log_e("Group '{}' didn't exist in Azure: {}.".format(old["cn"][0], exc))
+			logger.error("Group %r didn't exist in Azure: %r.", old["cn"][0], exc)
 			return
 
 	def delete_empty_group(self, group_id):
@@ -304,7 +304,7 @@ class Office365Listener(object):
 		:param group_id: str: object id of group (and its parents) to check
 		:return: bool: if the group was deleted
 		"""
-		log_a("Office365Listener.delete_empty_group() group_id={}".format(group_id))
+		logger.debug("group_id=%r", group_id)
 
 		# get IDs of groups this group is a member of before deleting it
 		nested_parent_group_ids = self.ah.member_of_groups(group_id, "groups")["value"]
@@ -323,17 +323,16 @@ class Office365Listener(object):
 						azure_objs.append(self.ah.list_groups(objectid=member_id))
 					except ResourceNotFoundError:
 						# ignore
-						log_e("Office365Listener.delete_empty_group() found unexpected object in group: {}".format(
-							member_id))
+						logger.error("Office365Listener.delete_empty_group() found unexpected object in group: %r, "
+							"ignoring.", member_id)
 			if all(azure_obj["mailNickname"].startswith("ZZZ_deleted_") for azure_obj in azure_objs):
-				log_p("Office365Listener.delete_empty_group() all members of group {} are deactivated, "
-					"deleting it.".format(group_id))
+				logger.info("All members of group %r are deactivated, deleting it.", group_id)
 				self.ah.delete_group(group_id)
 			else:
-				log_a("Office365Listener.delete_empty_group() group has active members, not deleting it.")
+				logger.debug("Group has active members, not deleting it.")
 				return False
 		else:
-			log_p("Office365Listener.delete_empty_group() removing empty group {}...".format(group_id))
+			logger.info("Removing empty group %r...", group_id)
 			self.ah.delete_group(group_id)
 
 		# check parent groups
@@ -344,10 +343,10 @@ class Office365Listener(object):
 
 	def modify_group(self, old, new):
 		modification_attributes = self._diff_old_new(self.attrs["listener"], old, new)
-		log_a("Office365Listener.modify_group() DN={} modification_attributes={}".format(self.dn, modification_attributes))
+		logger.debug("dn=%r modification_attributes=%r", self.dn, modification_attributes)
 
 		if not modification_attributes:
-			log_a("Office365Listener.modify_group() no modifications found, ignoring.")
+			logger.debug("No modifications found, ignoring.")
 			return dict(objectId=old["univentionOffice365ObjectID"][0])
 
 		try:
@@ -361,7 +360,7 @@ class Office365Listener(object):
 		try:
 			azure_group = self.ah.list_groups(objectid=group_id)
 			if azure_group["mailNickname"].startswith("ZZZ_deleted_"):
-				log_p("Office365Listener.modify_group() reactivating azure group '{}'...".format(azure_group["displayName"]))
+				logger.info("Reactivating azure group %r...", azure_group["displayName"])
 				name = new["cn"][0]
 				attributes = dict(
 					description=new.get("description", [""])[0] or None,
@@ -372,7 +371,7 @@ class Office365Listener(object):
 				)
 				azure_group = self.ah.modify_group(group_id, attributes)
 		except ResourceNotFoundError:
-			log_e("Office365Listener.modify_group() azure group doesn't exist (anymore), creating it instead.")
+			logger.warn("Office365Listener.modify_group() azure group doesn't exist (anymore), creating it instead.")
 			azure_group = self.create_group_from_new(new)
 			modification_attributes = dict()
 		group_id = azure_group["objectId"]
@@ -386,8 +385,7 @@ class Office365Listener(object):
 			set_new = set(new.get("uniqueMember", []))
 			removed_members = set_old - set_new
 			added_members = set_new - set_old
-			log_a("Office365Listener.modify_group() DN={} added_members={} removed_members={}".format(self.dn,
-				added_members, removed_members))
+			logger.debug("dn=%r added_members=%r removed_members=%r", self.dn, added_members, removed_members)
 			udm_group_old = self.get_udm_group(self.dn)
 
 			# add new members to Azure
@@ -401,7 +399,7 @@ class Office365Listener(object):
 				elif added_member in udm_group_old["nestedGroup"]:
 					# check if this group or any of its nested groups has azure_users
 					for group_with_azure_users in self.udm_groups_with_azure_users(added_member):
-						log_a("Found nested group {} wth azure users...".format(group_with_azure_users))
+						logger.debug("Found nested group %r with azure users...", group_with_azure_users)
 						udm_group = self.get_udm_group(group_with_azure_users)
 						if not udm_group.get("UniventionOffice365ObjectID"):
 							new_group = self.create_group_from_ldap(group_with_azure_users)
@@ -446,7 +444,8 @@ class Office365Listener(object):
 							continue
 
 					else:
-						log_e("Office365Listener.modify_group() Couldn't figure out object name from DN '{}'.".format(removed_member))
+						logger.warn("Office365Listener.modify_group(), removing members: couldn't figure out object"
+							"name from dn %r", removed_member)
 						continue
 
 				self.ah.delete_group_member(group_id=group_id, member_id=member_id)
@@ -471,7 +470,7 @@ class Office365Listener(object):
 		:param object_id: Azure object ID of group to add users/groups to
 		:return: None
 		"""
-		log_a("Office365Listener.add_ldap_members_to_azure_group() group_dn={} object_id={}".format(group_dn, object_id))
+		logger.debug("group_dn=%r object_id=%r", group_dn, object_id)
 		udm_target_group = self.get_udm_group(group_dn)
 		users_and_groups_to_add = list()
 
@@ -542,7 +541,7 @@ class Office365Listener(object):
 		if user["value"]:
 			return user["value"][0]["objectId"]
 		else:
-			log_e("Office365Listener._find_aad_user_by_dn() could not find user with dn='{}'.".format(entryUUID))
+			logger.error("Could not find user with dn=%r.", entryUUID)
 			return None
 
 	def find_aad_group_by_name(self, name):
@@ -550,7 +549,7 @@ class Office365Listener(object):
 		if group["value"]:
 			return group["value"][0]
 		else:
-			log_e("Office365Listener.find_aad_group_by_name() could not find group with name='{}'.".format(name))
+			logger.warn("Could not find group with name=%r, ignore this if it is a user.", name)
 			return None
 
 	@staticmethod

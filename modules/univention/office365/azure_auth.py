@@ -35,7 +35,6 @@ from urllib import urlencode
 import requests
 import json
 import base64
-import logging
 import uuid
 import time
 import rsa
@@ -52,8 +51,9 @@ from cryptography.hazmat.backends import default_backend
 import OpenSSL.crypto
 import jwt
 
-import univention.debug as ud
 from univention.lib.i18n import Translation
+from univention.office365.logging2udebug import get_logger
+
 
 _ = Translation('univention-office365').translate
 
@@ -75,12 +75,7 @@ oauth2_token_issuer = "https://sts.windows.net/{tenant_id}/"
 federation_metadata_url = "https://login.microsoftonline.com/{tenant_id}/federationmetadata/2007-06/federationmetadata.xml"
 resource_url = "https://graph.windows.net"
 
-# python logging works better for development, we can remove it later
-logger = logging.getLogger("office365")
-logger.setLevel(logging.DEBUG)
-fh = logging.FileHandler("/var/log/univention/office365-py.log")
-fh.setFormatter(logging.Formatter(fmt=DEBUG_FORMAT, datefmt=LOG_DATETIME_FORMAT))
-logger.addHandler(fh)
+logger = get_logger("office365", "o365")
 
 
 class AzureError(Exception):
@@ -97,7 +92,7 @@ class TokenError(AzureError):
 		else:
 			msg = response.__dict__
 		self.response = response
-		log_e(msg)
+		logger.error(msg)
 		super(TokenError, self).__init__(msg)
 
 
@@ -115,32 +110,6 @@ class NoIDsStored(AzureError):
 
 class ManifestError(AzureError):
 	pass
-
-
-def _log(level, msg):
-	if isinstance(msg, unicode):
-		msg = msg.encode("utf-8")
-	ud.debug(ud.LISTENER, level, "{}: {}".format(NAME, msg))
-
-
-def log_a(msg):
-	_log(ud.ALL, msg)
-	logger.debug(msg)
-
-
-def log_e(msg):
-	_log(ud.ERROR, msg)
-	logger.error(msg)
-
-
-def log_ex(msg):
-	_log(ud.ERROR, "%s, Exception: %s" % (msg, traceback.format_exc()))
-	logger.exception(msg)
-
-
-def log_p(msg):
-	_log(ud.PROCESS, msg)
-	logger.info(msg)
 
 
 class Manifest(object):
@@ -196,8 +165,7 @@ class Manifest(object):
 				usage="verify",
 				value=key)
 
-			log_p("Manifest.transform() added key to manifest: fp={} id={}".format(cert_fp,
-				keyCredentials["keyId"]))
+			logger.info("Manifest.transform(): added key to manifest: fp=%r id=%r", cert_fp, keyCredentials["keyId"])
 
 			self.manifest["keyCredentials"].append(keyCredentials)
 		self.manifest["oauth2AllowImplicitFlow"] = True
@@ -222,7 +190,7 @@ class JsonStorage(object):
 		except (IOError, ValueError):
 			data = dict()
 		if not isinstance(data, dict):
-			log_e("AzureAuth._load_data() Expected dict in file '{}', got '{}'.".format(self.filename, data))
+			logger.error("AzureAuth._load_data(): Expected dict in file %r, got %r.", self.filename, data)
 			data = dict()
 		return data
 
@@ -265,7 +233,7 @@ class AzureAuth(object):
 			ids = cls.load_azure_ids()
 			return all([ids["client_id"], ids["tenant_id"], ids["reply_url"]])
 		except (NoIDsStored, KeyError) as exc:
-			log_e("AzureAuth.is_initialized() {}".format(exc))
+			logger.exception("AzureAuth.is_initialized(): %r", exc)
 			return False
 
 	@staticmethod
@@ -291,15 +259,14 @@ class AzureAuth(object):
 
 	def get_access_token(self):
 		if not self._access_token:
-			log_a("AzureAuth.get_access_token() loading token from disk...")
+			logger.debug("Loading token from disk...")
 			tokens = self.load_tokens()
 			self._access_token = tokens.get("access_token")
 			self._access_token_exp_at = datetime.datetime.fromtimestamp(int(tokens.get("access_token_exp_at") or 0))
 		if not self._access_token_exp_at or datetime.datetime.now() > self._access_token_exp_at:
-			log_a("AzureAuth.get_access_token() token expired, retrieving now one from azure...")
+			logger.debug("Token expired, retrieving now one from azure...")
 			self._access_token = self.retrieve_access_token()
-		log_a("AzureAuth.get_access_token() token valid until: {} : {}...{}".format(
-			self._access_token_exp_at.isoformat(), self._access_token[:10], self._access_token[-10:]))
+		logger.debug("Token valid until %s.", self._access_token_exp_at.isoformat())
 		return self._access_token
 
 	@classmethod
@@ -351,7 +318,7 @@ class AzureAuth(object):
 					et = unicode(encoded_token, 'utf8')
 				else:
 					et = encoded_token
-				log_ex(u"AzureAuth.parse_token(): Invalid token value: {0}".format(et))
+				logger.exception(u"Invalid token value: {0}".format(et))
 				raise IDTokenError("Error parsing token: {}".format(traceback.format_exc()))
 
 		def _get_azure_certs(tenant_id):
@@ -388,7 +355,7 @@ class AzureAuth(object):
 
 		def _new_cryptography_checks(client_id, tenant_id, id_token):
 			# check JWT validity, incl. signature
-			log_p("AzureAuth._new_cryptography_checks() Running new cryptography checks incl signature verification.")
+			logger.debug("Running new cryptography checks incl signature verification.")
 			azure_certs = list(_get_azure_certs(tenant_id))
 			verified = False
 			jwt_exceptions = list()
@@ -413,7 +380,7 @@ class AzureAuth(object):
 					jwt_exceptions.append(e)
 			if not verified:
 				raise TokenValidationError("JWT verification error(s): {}\nID token: {}".format(" ".join(map(str, jwt_exceptions)), id_token))
-			log_p("AzureAuth._new_cryptography_checks() Verified ID token.")
+			logger.debug("Verified ID token.")
 
 		# get the tenant ID from the id token
 		_, body, _ = _parse_token(id_token)
@@ -447,15 +414,15 @@ class AzureAuth(object):
 		}
 		url = oauth2_token_url.format(tenant_id=self.tenant_id)
 
-		log_a("AzureAuth.retrieve_access_token() POST to URL={} with data={}".format(url, post_form))
+		logger.debug("POST to URL=%r with data=%r", url, post_form)
 		response = requests.post(url, data=post_form, verify=True)
 		if response.status_code != 200:
-			log_e("AzureAuth.retrieve_access_token() Error retrieving token (status {}), response: {}".format(response.status_code, response.__dict__))
+			logger.error("Error retrieving token (status %r), response: %r", response.status_code, response.__dict__)
 			raise TokenError(response)
 		at = response.json
 		if callable(at):  # requests version compatibility
 			at = at()
-		log_a("AzureAuth.retrieve_access_token() response: {}".format(at))
+		logger.debug("response: %r", at)
 		if "access_token" in at and at["access_token"]:
 			self._access_token = at["access_token"]
 			self._access_token_exp_at = datetime.datetime.fromtimestamp(int(at["expires_on"]))

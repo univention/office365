@@ -213,6 +213,7 @@ if ! udm mail/domain list "$@" | grep -q "name: $domainname" ; then
 fi
 
 univention-config-registry set \
+	office365/debug/werror?no \
 	office365/attributes/mapping/l?city \
 	office365/attributes/mapping/displayName?displayName \
 	office365/attributes/mapping/employeeType?jobTitle \

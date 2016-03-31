@@ -1,3 +1,10 @@
+univention-office365 (0.2.1-1) unstable; urgency=low
+
+  * Bug #40295: use python logging (to univention debug)
+  * map logging.info to ud.PROCESS
+
+ -- Daniel Troeder <troeder@univention.de>  Thu, 31 Mar 2016 12:24:10 +0200
+
 univention-office365 (0.1.9-8) unstable; urgency=medium
 
   * Bug #40294: Implement UMC Wizard

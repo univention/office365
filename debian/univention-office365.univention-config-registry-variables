@@ -28,6 +28,12 @@ Description[en]=Comma separated list of LDAP attributes that should synchronized
 Type=str
 Categories=service-collaboration
 
+[office365/debug/werror]
+Description[de]=Wenn eingeschaltet, werden Meldungen aller LogLevel ins Logfile als Fehler (ERROR) und mit debug Informationen geschrieben. Dies dient ausschließlich der Fehlersuche. Standard ist 'no'.
+Description[en]=If enabled, log messages of all levels will be written as errors (ERROR) and with debug information to the logfile. This is used for debugging only. Defaults to 'no'.
+Type=bool
+Categories=service-collaboration
+
 [office365/groups/sync]
 Description[de]=Sollen Gruppen in denen sich Benutzer mit Office 365 Konto befinden, synchronisiert werden? Standard ist 'no'.
 Description[en]=Should groups that contain users with a Office 365 account be syncronized? Defaults to 'no'.
@@ -39,3 +45,4 @@ Description[de]=Kommaseparierte Liste an Lizenznamen, die zur Erkennung der zu w
 Description[en]=Comma separated list of service plans. Will be used to detect which subscriptions to use. Defaults, if not set, to 'SHAREPOINTWAC, SHAREPOINTWAC_DEVELOPER'.
 Type=str
 Categories=service-collaboration
+

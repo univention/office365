@@ -70,6 +70,7 @@ When modifying code, please keep the separation of where which objects are used.
 Installation
 ============
 * install ucs-4.1/component/univention-office365
+* to write debug messages at error level set office365/debug/werror=yes and restart listener
 * go to https://FQDN/univention-office365/wizard
 * register app in Azure
 * go to https://FQDN/univention-office365/wizard?client_id=<........-....-....-....-............>

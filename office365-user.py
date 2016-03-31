@@ -40,8 +40,9 @@ import copy
 from stat import S_IRUSR, S_IWUSR
 
 import listener
-from univention.office365.azure_auth import log_a, log_e, log_ex, log_p, AzureAuth
+from univention.office365.azure_auth import AzureAuth
 from univention.office365.listener import Office365Listener, NoAllocatableSubscriptions
+from univention.office365.logging2udebug import get_logger
 
 
 listener.configRegistry.load()
@@ -51,6 +52,8 @@ attributes_never = list()
 attributes_static = dict()
 attributes_sync = list()
 attributes_multiple_azure2ldap = dict()
+
+logger = get_logger("office365", "o365")
 
 
 def get_listener_attributes():
@@ -112,12 +115,13 @@ def get_listener_attributes():
 	# sanity check
 	no_mapping = [a for a in attrs if a not in attributes_mapping.keys() and a != "univentionOffice365Enabled"]
 	if no_mapping:
-		log_e("No mappings for attributes {} found - ignoring.".format(no_mapping))
+		logger.warn("No mappings for attributes %r found - ignoring.", no_mapping)
 		rm_objs_from_list_or_dict(no_mapping, [attrs, attributes_anonymize, attributes_static, attributes_sync])
 
 	if "univentionOffice365ObjectID" in attrs or "UniventionOffice365Data" in attrs:
-		log_e("Nice try.")
-		rm_objs_from_list_or_dict(["univentionOffice365ObjectID", "univentionOffice365Data"], [attrs, attributes_anonymize, attributes_static, attributes_sync])
+		logger.warn("Nice try.")
+		rm_objs_from_list_or_dict(["univentionOffice365ObjectID", "univentionOffice365Data"], [attrs,
+			attributes_anonymize, attributes_static, attributes_sync])
 
 	# just for log readability
 	attrs.sort()
@@ -148,13 +152,13 @@ _attrs = dict(
 
 ldap_cred = dict()
 
-log_p("listener observing attributes: {}".format(attributes))
-log_p("attributes mapping UCS->AAD: {}".format(attributes_mapping))
-log_p("attributes to sync anonymized: {}".format(attributes_anonymize))
-log_p("attributes to never sync: {}".format(attributes_never))
-log_p("attributes to statically set in AAD: {}".format(attributes_static))
-log_p("attributes to sync: {}".format(attributes_sync))
-log_p("attributes to sync from multiple sources: {}".format(attributes_multiple_azure2ldap))
+logger.info("listener observing attributes: %r", attributes)
+logger.info("attributes mapping UCS->AAD: %r", attributes_mapping)
+logger.info("attributes to sync anonymized: %r", attributes_anonymize)
+logger.info("attributes to never sync: %r", attributes_never)
+logger.info("attributes to statically set in AAD: %r", attributes_static)
+logger.info("attributes to sync: %r", attributes_sync)
+logger.info("attributes to sync from multiple sources: %r", attributes_multiple_azure2ldap)
 
 
 def load_old(old):
@@ -190,12 +194,12 @@ def clean():
 	Remove  univentionOffice365ObjectID and univentionOffice365Data from all
 	user objects.
 	"""
-	log_p("clean() removing Office 365 ObjectID and Data from all users.")
+	logger.info("Removing Office 365 ObjectID and Data from all users...")
 	Office365Listener.clean_udm_objects("users/user", listener.configRegistry["ldap/base"], ldap_cred)
 
 
 def handler(dn, new, old, command):
-	log_a("{}.handler() command: {} dn: {}".format(name, command, dn))
+	logger.debug("%s.handler() command: %r dn: %r", name, command, dn)
 	if not AzureAuth.is_initialized():
 		raise RuntimeError("{}.handler() Office 365 App not initialized yet, please run wizard.".format(name))
 	else:
@@ -216,35 +220,35 @@ def handler(dn, new, old, command):
 	# NEW or REACTIVATED account
 	#
 	if new_enabled and not old_enabled:
-		log_a("new_enabled and not old_enabled -> NEW or REACTIVATED ({})".format(dn))  # DEBUG
+		logger.debug("new_enabled and not old_enabled -> NEW or REACTIVATED (%s)", dn)
 		try:
 			new_user = ol.create_user(new)
 		except NoAllocatableSubscriptions as exc:
-			log_e(str(exc))
+			logger.error(str(exc))
 			new_user = exc.user
 		# save/update Azure objectId and object data in UDM object
 		udm_user = ol.get_udm_user(dn)
 		udm_user["UniventionOffice365ObjectID"] = new_user["objectId"]
 		udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(new_user))).rstrip()
 		udm_user.modify()
-		log_p("User creation success. userPrincipalName: {} objectId: {} dn: {}".format(
-			new_user["userPrincipalName"], new_user["objectId"], dn))
+		logger.info("User creation success. userPrincipalName: %r objectId: %r dn: %s", new_user["userPrincipalName"],
+			new_user["objectId"], dn)
 		return
 
 	#
 	# DELETE account
 	#
 	if old and not new:
-		log_a("old and not new -> DELETE ({})".format(dn))  # DEBUG
+		logger.debug("old and not new -> DELETE (%s)", dn)
 		ol.delete_user(old)
-		log_p("Deleted user '{}'.".format(old["uid"][0]))
+		logger.info("Deleted user %r.", old["uid"][0])
 		return
 
 	#
 	# DEACTIVATE account
 	#
 	if new and not new_enabled:
-		log_a("new and not new_enabled -> DEACTIVATE ({})".format(dn))  # DEBUG
+		logger.debug("new and not new_enabled -> DEACTIVATE (%s)", dn)
 		ol.deactivate_user(old)
 		# update Azure objectId and object data in UDM object
 		udm_user = ol.get_udm_user(dn)
@@ -253,19 +257,19 @@ def handler(dn, new, old, command):
 		# Explanation: http://gcolpart.evolix.net/blog21/delete-facsimiletelephonenumber-attribute/
 		udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(None))).rstrip()
 		udm_user.modify()
-		log_p("Deactivated user '{}'.".format(old["uid"][0]))
+		logger.info("Deactivated user %r.", old["uid"][0])
 		return
 
 	#
 	# MODIFY account
 	#
 	if old_enabled and new_enabled:
-		log_a("old_enabled and new_enabled -> MODIFY ({})".format(dn))  # DEBUG
+		logger.debug("old_enabled and new_enabled -> MODIFY (%s)", dn)
 		ol.modify_user(old, new)
 		# update Azure object data in UDM object
 		udm_user = ol.get_udm_user(dn)
 		azure_user = ol.get_user(old)
 		udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(azure_user))).rstrip()
 		udm_user.modify()
-		log_p("Modified user '{}'.".format(old["uid"][0]))
+		logger.info("Modified user %r.", old["uid"][0])
 		return
