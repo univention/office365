@@ -273,6 +273,9 @@ define([
 				this._progressDeferred.resolve(nextPage);  // switch to the last page
 				this._next(nextPage);
 			}), undefined, undefined, undefined, this._moduleExists);
+
+			this._progressBar.setInfo(_('Office 365 configuration'), _('Waiting for configuration to be completed.'), Infinity);
+			this.standbyDuring(this._progressDeferred, this._progressBar);
 		},
 
 		next: function(pageName) {
@@ -285,15 +288,8 @@ define([
 					dialog.alert('Please first make sure you authorized the application.');
 					return pageName;
 				} // TODO: test if the request was successful
-				return this._connectionTest();
 			}
 			return nextPage;
-		},
-
-		_connectionTest: function() {
-			this._progressBar.setInfo(_('Office 365 configuration'), _('Waiting for configuration to be completed.'), Infinity);
-			this.standbyDuring(this._progressDeferred, this._progressBar);
-			return this._progressDeferred;
 		},
 
 		getFooterButtons: function(pageName) {

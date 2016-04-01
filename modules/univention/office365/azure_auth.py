@@ -230,6 +230,11 @@ class AzureAuth(object):
 	@classmethod
 	def is_initialized(cls):
 		try:
+			tokens = cls.load_tokens()
+			# Check if wizard was completed
+			if not "consent_given" in tokens or not tokens["consent_given"]:
+				return False
+
 			ids = cls.load_azure_ids()
 			return all([ids["client_id"], ids["tenant_id"], ids["reply_url"]])
 		except (NoIDsStored, KeyError) as exc:

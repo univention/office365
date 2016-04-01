@@ -121,6 +121,7 @@ class Instance(Base):
 	def reply(self, request):
 		try:
 			AzureAuth.parse_id_token(request.options['id_token'])
+			AzureAuth.store_tokens(consent_given=True)
 			aa = AzureAuth("office365")
 			access_token = aa.retrieve_access_token()  # not really necessary, but it'll make sure everything worked
 		except AzureError as exc:
