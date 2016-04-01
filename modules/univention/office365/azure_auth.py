@@ -197,7 +197,7 @@ class JsonStorage(object):
 	def write(self, **kwargs):
 		data = self.read()
 		data.update(kwargs)
-		self._save(kwargs)
+		self._save(data)
 
 	def purge(self):
 		self._save({})
