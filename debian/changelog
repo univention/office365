@@ -1,3 +1,9 @@
+univention-office365 (0.2.1-2) unstable; urgency=medium
+
+  * Bug #40294: Adapt wizard connectiontest functionality
+
+ -- Erik Damrose <damrose@univention.de>  Fri, 01 Apr 2016 14:40:34 +0200
+
 univention-office365 (0.2.1-1) unstable; urgency=low
 
   * Bug #40295: use python logging (to univention debug)
