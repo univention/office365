@@ -46,6 +46,7 @@ test_ids = dict(
 )
 
 AzureAuth.store_azure_ids(**test_ids)
+AzureAuth.store_tokens(consent_given=True)
 
 
 if not AzureAuth.is_initialized():
