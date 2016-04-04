@@ -84,11 +84,17 @@ define([
 					}, {
 						type: TextBox,
 						name: 'login-url',
+						sizeClass: 'Two',
 						label: _('SIGN-ON URL')
 					}, {
 						type: TextBox,
 						name: 'appid-url',
+						sizeClass: 'Two',
 						label: _('APP ID URI')
+					}, {
+						name: 'complete',
+						type: Text,
+						content: this.formatOrderedList([_('Complete the <i>Add application</i> wizard in the Azure portal.')], {start: 6})
 					}]
 				}, {
 					name: 'ucs-integration',
@@ -102,6 +108,7 @@ define([
 						type: TextBox,
 						name: 'tenant_id',
 						label: _('Federation metadata document'),
+						sizeClass: 'Two',
 						value: '',
 						onChange: lang.hitch(this, function(value) {
 							this.getWidget('manifest-upload', 'upload').set('dynamicOptions', {
@@ -203,7 +210,6 @@ define([
 				_('Enter a name for your application, e.g. <i>UCS Office 365</i>'),
 				_('Select the <i>WEB APPLICATION AND/OR WEB-API</i> option and click <i>Next</i>'),
 				_('Copy the values below and paste them into the respective fields in the Azure wizard'), // + this.img('uri_input_fields.png'),
-				_('Complete the <i>Add application</i> wizard in the Azure portal.')
 			]);
 		},
 
@@ -234,8 +240,9 @@ define([
 			return '<p>' + data.join('</p><p>') + '</p>';
 		},
 
-		formatOrderedList: function(data) {
-			return '<ol style="padding: 0; list-style-position: inside;"><li>' + data.join('</li><li>')  + '</li></ol>';
+		formatOrderedList: function(data, props) {
+			var start = (props && props.start) ? 'start="' + props.start + '" ' : '';
+			return '<ol ' + start + 'style="padding: 0; list-style-position: inside;"><li>' + data.join('</li><li>')  + '</li></ol>';
 		},
 
 		img: function(image) {
