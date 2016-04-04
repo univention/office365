@@ -1,0 +1,68 @@
+# univention-office365 translations.
+# Copyright (C) 2016 Univention GmbH
+# This file is distributed under the same license as the univention-office365 package.
+# Daniel Troeder <troeder@univention.de>, 2016.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: univention-office365\n"
+"Report-Msgid-Bugs-To: packages@univention.de\n"
+"POT-Creation-Date: 2016-04-04 14:19+0200\n"
+"PO-Revision-Date: 2016-04-04 13:57+0200\n"
+"Last-Translator: Univention GmbH <packages@univention.de>\n"
+"Language-Team: Univention GmbH <packages@univention.de>\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: modules/univention/office365/azure_auth.py:145
+msgid ""
+"Could not read certificate. Please make sure the joinscript 40univention-"
+"office365.inst is executed successfully or execute it again."
+msgstr ""
+"Konnte Zertifikat nicht lesen. Bitte stellen Sie sicher, dass das joinscript "
+"40univention-office365.inst erfolgreich ausgeführt wurde oder führen Sie es "
+"erneut aus."
+
+#: modules/univention/office365/azure_auth.py:341
+msgid ""
+"Error downloading certificates from Azure, please run the wizard again at "
+"some other time."
+msgstr ""
+"Fehler beim herunterladen der Zertifikate nicht von Azure. Bitte führen Sie "
+"den Wizard später noch einmal aus."
+
+#: modules/univention/office365/azure_auth.py:360
+msgid "Error reading certificates from Azure, please run the wizard again."
+msgstr ""
+"Fehler beim lesen von Azures Zertifikaten. Bitte führen Sie den Wizard noch "
+"einmal aus."
+
+#: modules/univention/office365/azure_auth.py:327
+msgid "Error reading token received from Azure, please run the wizard again."
+msgstr ""
+"Fehler beim lesen von Azures Token. Bitte führen Sie den Wizard noch einmal "
+"aus."
+
+#: modules/univention/office365/azure_auth.py:433
+#: modules/univention/office365/azure_auth.py:445
+msgid "Error retrieving authentication token from Azure."
+msgstr "Fehler beim Abrufen eines Authentifizierungs-Tokens von Azure."
+
+#: modules/univention/office365/azure_auth.py:226
+#: modules/univention/office365/azure_auth.py:286
+#: modules/univention/office365/azure_auth.py:402
+msgid "Incomplete configuration, please run wizard (again)."
+msgstr ""
+"Unvollständige Konfiguration. Bitte führen Sie den Wizard (erneut) aus."
+
+#: modules/univention/office365/azure_auth.py:133
+msgid "The manifest is invalid: Invalid JSON document."
+msgstr "Das Manifest ist ungültig: ungültiges JSON Dokument."
+
+#: modules/univention/office365/azure_auth.py:391
+#: modules/univention/office365/azure_auth.py:408
+msgid "The received token is not valid, please run the wizard again."
+msgstr ""
+"Der erhaltene Token ist ungültig, bitte führen Sie den Wizard erneut aus."

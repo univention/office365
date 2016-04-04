@@ -1,6 +1,7 @@
 40univention-office365.inst usr/lib/univention-install/
 60univention-office365.uinst usr/lib/univention-uninstall/
 modules/univention/office365/*.py usr/share/pyshared/univention/office365/
+modules/univention/office365/*.mo usr/share/locale/de/LC_MESSAGES/
 office365-user.py usr/lib/univention-directory-listener/system/
 office365-group.py usr/lib/univention-directory-listener/system/
 office365.schema usr/share/univention-office365/

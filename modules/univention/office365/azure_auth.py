@@ -39,7 +39,6 @@ import uuid
 import time
 import rsa
 import os
-import traceback
 import datetime
 import sys
 from xml.dom.minidom import parseString
@@ -55,7 +54,7 @@ from univention.lib.i18n import Translation
 from univention.office365.logging2udebug import get_logger
 
 
-_ = Translation('univention-office365').translate
+_t = Translation('univention-office365').translate
 
 NAME = "office365"
 CONFDIR = "/etc/univention-office365"
@@ -79,21 +78,21 @@ logger = get_logger("office365", "o365")
 
 
 class AzureError(Exception):
-	pass
+	def __init__(self, msg, chained_exc=None, *args, **kwargs):
+		self.chained_exc = chained_exc
+		super(AzureError, self).__init__(msg, *args, **kwargs)
 
 
 class TokenError(AzureError):
-	def __init__(self, response):
-		if hasattr(response, "json"):
+	def __init__(self, msg, response=None, *args, **kwargs):
+		self.response = response
+		if response and hasattr(response, "json"):
 			j = response.json
 			if callable(response.json):  # requests version compatibility
 				j = j()
-			msg = j["error_description"]
-		else:
-			msg = response.__dict__
-		self.response = response
-		logger.error(msg)
-		super(TokenError, self).__init__(msg)
+			self.error_description = j["error_description"]
+		super(TokenError, self).__init__(msg, *args, **kwargs)
+	pass
 
 
 class IDTokenError(AzureError):
@@ -143,7 +142,8 @@ class Manifest(object):
 			with open("/etc/univention-office365/cert.fp", "rb") as fd:
 				cert_fp = fd.read().strip()
 		except (OSError, IOError):
-			raise ManifestError(_('Could not read certificates. Please make sure the joinscript 40univention-office365.inst is executed successfully or execute it again!'))
+			raise ManifestError(_('Could not read certificate. Please make sure the joinscript'
+				' 40univention-office365.inst is executed successfully or execute it again.'))
 
 		if cert_fp not in map(operator.itemgetter("customKeyIdentifier"), self.manifest["keyCredentials"]):
 			in_key = False
@@ -222,8 +222,8 @@ class AzureAuth(object):
 			self.reply_url = ids["reply_url"]
 			if not all([self.client_id, self.tenant_id, self.reply_url]):
 				raise NoIDsStored()
-		except (KeyError, NoIDsStored):
-			raise NoIDsStored("AzureAuth() Unset or empty client_id, tenant_id or reply_url in {}.".format(IDS_FILE))
+		except (KeyError, NoIDsStored) as exc:
+			raise NoIDsStored, NoIDsStored(_t("Incomplete configuration, please run wizard (again)."), chained_exc=exc), sys.exc_info()[2]
 		self._access_token = None
 		self._access_token_exp_at = None
 
@@ -238,7 +238,7 @@ class AzureAuth(object):
 			ids = cls.load_azure_ids()
 			return all([ids["client_id"], ids["tenant_id"], ids["reply_url"]])
 		except (NoIDsStored, KeyError) as exc:
-			logger.exception("AzureAuth.is_initialized(): %r", exc)
+			logger.info("AzureAuth.is_initialized(): %r", exc)
 			return False
 
 	@staticmethod
@@ -282,8 +282,8 @@ class AzureAuth(object):
 		try:
 			client_id = ids["client_id"]
 			reply_url = ids["reply_url"]
-		except KeyError:
-			raise NoIDsStored("Could not find client_id or reply_url in {}.".format(IDS_FILE))
+		except KeyError as exc:
+			raise NoIDsStored, NoIDsStored(_t("Incomplete configuration, please run wizard (again)."), chained_exc=exc), sys.exc_info()[2]
 		tenant = ids.get("tenant_id") or "common"
 		params = {
 			'client_id': client_id,
@@ -318,13 +318,13 @@ class AzureAuth(object):
 				decoded_header = _decode_b64(_header)
 				decoded_body = _decode_b64(_body)
 				return json.loads(decoded_header), json.loads(decoded_body), _signature
-			except:
+			except Exception as exc:  # TODO: list specific exceptions
 				if sys.version_info < (3,):
 					et = unicode(encoded_token, 'utf8')
 				else:
 					et = encoded_token
-				logger.exception(u"Invalid token value: {0}".format(et))
-				raise IDTokenError("Error parsing token: {}".format(traceback.format_exc()))
+				logger.exception(u"Invalid token value: %r", et)
+				raise IDTokenError, IDTokenError(_t("Error reading token received from Azure, please run the wizard again."), chained_exc=exc), sys.exc_info()[2]
 
 		def _get_azure_certs(tenant_id):
 			# there's a strange non-ascii char at the beginning of the xml doc...
@@ -336,8 +336,9 @@ class AzureAuth(object):
 			# https://msdn.microsoft.com/en-us/library/azure/dn195592.aspx
 			try:
 				fed = requests.get(federation_metadata_url.format(tenant_id=tenant_id))
-			except:
-				raise TokenValidationError("Could not download federation metadata: {}".format(traceback.format_exc()))
+			except Exception as exc:  # TODO: list specific exceptions
+				logger.exception("Error downloading federation metadata.")
+				raise TokenValidationError, TokenValidationError(_t("Error downloading certificates from Azure, please run the wizard again at some other time."), chained_exc=exc), sys.exc_info()[2]
 			# the federation metadata document is a XML file
 			dom_tree = parseString(_discard_garbage(fed.text))
 			# the certificates we want are inside:
@@ -355,7 +356,8 @@ class AzureAuth(object):
 							for cert_elem in kd_elem.getElementsByTagName("X509Certificate"):
 								certs.add(cert_elem.firstChild.data)
 			if not certs:
-				raise TokenValidationError("Could not find certificate in federation metadata:\n{}".format(_discard_garbage(fed.text)))
+				logger.exception("Could not find certificate in federation metadata: %r", _discard_garbage(fed.text))
+				raise TokenValidationError(_t("Error reading certificates from Azure, please run the wizard again."))
 			return certs
 
 		def _new_cryptography_checks(client_id, tenant_id, id_token):
@@ -384,7 +386,9 @@ class AzureAuth(object):
 				except jwt.InvalidTokenError as e:  # all jwt exceptions inherit from jwt.InvalidTokenError
 					jwt_exceptions.append(e)
 			if not verified:
-				raise TokenValidationError("JWT verification error(s): {}\nID token: {}".format(" ".join(map(str, jwt_exceptions)), id_token))
+				logger.error("JWT verification error(s): %s\nID token: %r",
+					" ".join(map(str, jwt_exceptions)), id_token)
+				raise TokenValidationError(_t("The received token is not valid, please run the wizard again."))
 			logger.debug("Verified ID token.")
 
 		# get the tenant ID from the id token
@@ -394,12 +398,14 @@ class AzureAuth(object):
 		try:
 			client_id = ids["client_id"]
 			reply_url = ids["reply_url"]
-		except KeyError:
-			raise NoIDsStored("Could not find client_id or reply_url in {}.".format(IDS_FILE))
+		except KeyError as exc:
+			raise NoIDsStored, NoIDsStored(_t("Incomplete configuration, please run wizard (again)."), chained_exc=exc), sys.exc_info()[2]
 
 		nonce_old = cls.load_tokens()["nonce"]
 		if not body["nonce"] == nonce_old:
-			raise TokenValidationError("Stored ({}) and received ({}) nonce of token do not match. ID token: '{}'.".format(nonce_old, body["nonce"], id_token))
+			logger.error("Stored (%r) and received (%r) nonce of token do not match. ID token: %r.",
+				nonce_old, body["nonce"], id_token)
+			raise TokenValidationError(_t("The received token is not valid, please run the wizard again."))
 		# check validity of token
 		_new_cryptography_checks(client_id, tenant_id, id_token)
 		cls.store_azure_ids(client_id=client_id, tenant_id=tenant_id, reply_url=reply_url)
@@ -422,8 +428,9 @@ class AzureAuth(object):
 		logger.debug("POST to URL=%r with data=%r", url, post_form)
 		response = requests.post(url, data=post_form, verify=True)
 		if response.status_code != 200:
-			logger.error("Error retrieving token (status %r), response: %r", response.status_code, response.__dict__)
-			raise TokenError(response)
+			logger.exception("Error retrieving token (status %r), response: %r", response.status_code,
+				response.__dict__)
+			raise TokenError(_t("Error retrieving authentication token from Azure."), response=response)
 		at = response.json
 		if callable(at):  # requests version compatibility
 			at = at()
@@ -434,7 +441,8 @@ class AzureAuth(object):
 			self.store_tokens(access_token=at["access_token"], access_token_exp_at=at["expires_on"])
 			return at["access_token"]
 		else:
-			raise TokenError(response.json())
+			logger.exception("Response didn't contain an access_token. response: %r", response)
+			raise TokenError(_t("Error retrieving authentication token from Azure."), response=response)
 
 	def _get_client_assertion(self):
 		def _load_certificate_fingerprint():

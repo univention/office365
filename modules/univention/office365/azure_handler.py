@@ -42,6 +42,7 @@ import re
 from operator import itemgetter
 import random
 import string
+import sys
 
 from univention.office365.azure_auth import AzureAuth, AzureError, resource_url
 from univention.office365.logging2udebug import get_logger
@@ -115,7 +116,7 @@ def _get_azure_uris(tenant_id):
 
 
 class ApiError(AzureError):
-	def __init__(self, response):
+	def __init__(self, response, *args, **kwargs):
 		msg = "Communication error."
 		if hasattr(response, "json"):
 			j = response.json
@@ -125,7 +126,7 @@ class ApiError(AzureError):
 			self.json = j
 		self.response = response
 		logger.error(msg)
-		super(ApiError, self).__init__(msg)
+		super(ApiError, self).__init__(msg, *args, **kwargs)
 
 
 class ResourceNotFoundError(ApiError):
@@ -178,7 +179,7 @@ class AzureHandler(object):
 				response_json = response.json
 				if callable(response_json):  # requests version compatibility
 					response_json = response_json()
-			except (TypeError, ValueError):
+			except (TypeError, ValueError) as exc:
 				if method.upper() in ["DELETE", "PATCH", "PUT"]:
 					# no response expected
 					pass
@@ -187,7 +188,7 @@ class AzureHandler(object):
 					pass
 				else:
 					logger.exception("response is not JSON. response.__dict__: %r", response.__dict__)
-					raise ApiError(response)
+					raise ApiError, ApiError(response, chained_exc=exc), sys.exc_info()[2]
 
 			logger.debug("status: %r (%s)%s",
 				response.status_code,
@@ -626,6 +627,7 @@ class AzureHandler(object):
 						res[k].append(val)
 					else:
 						res[k] = val
-			except KeyError:
-				raise UnkownTypeError("Attribute '{}' not in azure_attribute_types mapping.".format(k))
+			except KeyError as exc:
+				raise UnkownTypeError, UnkownTypeError("Attribute '{}' not in azure_attribute_types mapping.".format(k),
+					chained_exc=exc), sys.exc_info()[2]
 		return res

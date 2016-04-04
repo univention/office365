@@ -1,3 +1,10 @@
+univention-office365 (0.2.1-4) unstable; urgency=low
+
+  * Bug #40295: consistent exception handling
+  * i18n of error messages
+
+ -- Daniel Troeder <troeder@univention.de>  Mon, 04 Apr 2016 15:33:47 +0200
+
 univention-office365 (0.2.1-3) unstable; urgency=medium
 
   * Bug #40294: Show progressbar when opening consent-tab

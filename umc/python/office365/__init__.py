@@ -42,6 +42,7 @@ from univention.management.console.config import ucr
 from univention.management.console.modules.decorators import sanitize, simple_response, file_upload
 from univention.management.console.modules.sanitizers import StringSanitizer, DictSanitizer, BooleanSanitizer
 
+
 from univention.office365.azure_auth import AzureAuth, AzureError, Manifest, ManifestError, TokenError
 from univention.office365.azure_handler import AzureHandler
 
