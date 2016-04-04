@@ -42,7 +42,7 @@ from univention.management.console.config import ucr
 from univention.management.console.modules.decorators import sanitize, simple_response, file_upload
 from univention.management.console.modules.sanitizers import StringSanitizer, DictSanitizer, BooleanSanitizer
 
-from univention.office365.azure_auth import AzureAuth, AzureError, Manifest, ManifestError
+from univention.office365.azure_auth import AzureAuth, AzureError, Manifest, ManifestError, TokenError
 from univention.office365.azure_handler import AzureHandler
 
 _ = Translation('univention-management-console-module-office365').translate
@@ -100,12 +100,16 @@ class Instance(Base):
 			try:
 				ah = AzureHandler(ucr, "wizard")
 				ah.list_users()
-				try:
-					subprocess.check_call(["invoke-rc.d", "univention-directory-listener", "crestart"])
-				except (EnvironmentError, subprocess.CalledProcessError):
-					pass
+			except TokenError as exc:
+				finished = False
+				errors.append(str(exc))
 			except AzureError as exc:
 				errors.append(str(exc))
+		if finished:
+			try:
+				subprocess.check_call(["invoke-rc.d", "univention-directory-listener", "crestart"])
+			except (EnvironmentError, subprocess.CalledProcessError):
+				pass
 		return {
 			'errors': errors,
 			'critical': bool(errors),

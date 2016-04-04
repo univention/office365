@@ -266,11 +266,6 @@ define([
 			var widget = this.getWidget('upload-manifest', 'azure-integration');
 			widget.set('content', lang.replace(widget.get('content'), data.result));
 
-			this._next('manifest-upload');
-		},
-
-		openAuthorization: function() {
-			this.authorizationWindow = window.open(this.authorizationurl);
 			// start polling for success in the background. This is important here to make sure no session timeout occurs.
 			this._progressBar.auto('office365/test_configuration', {}, lang.hitch(this, function() {
 				var nextPage = 'connectiontest';
@@ -281,8 +276,17 @@ define([
 				this._next(nextPage);
 			}), undefined, undefined, undefined, this._moduleExists);
 
+			this._next('manifest-upload');
+		},
+
+		openAuthorization: function() {
+			this.authorizationWindow = window.open(this.authorizationurl);
+		},
+
+		_connectionTest: function() {
 			this._progressBar.setInfo(_('Office 365 configuration'), _('Waiting for configuration to be completed.'), Infinity);
 			this.standbyDuring(this._progressDeferred, this._progressBar);
+			return this._progressDeferred;
 		},
 
 		next: function(pageName) {
@@ -294,7 +298,8 @@ define([
 				if (!this.authorizationWindow.closed) {
 					dialog.alert('Please first make sure you authorized the application.');
 					return pageName;
-				} // TODO: test if the request was successful
+				}
+				return this._connectionTest();
 			}
 			return nextPage;
 		},
