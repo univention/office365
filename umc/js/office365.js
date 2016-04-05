@@ -292,7 +292,7 @@ define([
 			// start polling the state of the initialization. This is also important here to make sure no session timeout occurs.
 			return this.umcpCommand('office365/state').then(lang.hitch(this, function(data) {
 				var result = data.result || {};
-				result.precentage = result.percentage || Infinity;
+				result.percentage = result.percentage || Infinity;
 				this._progressDeferred.progress(result);
 				if (result.finished) {
 					this._progressDeferred.resolve(result);
