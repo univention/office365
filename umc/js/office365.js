@@ -26,7 +26,7 @@
  * /usr/share/common-licenses/AGPL-3; if not, see
  * <http://www.gnu.org/licenses/>.
  */
-/*global define,window*/
+/*global require,define,window,setTimeout*/
 
 define([
 	"dojo/_base/declare",
@@ -55,8 +55,6 @@ define([
 			this.inherited(arguments);
 			this.origin = window.location.protocol + '//' + window.location.host + (window.location.port ? ':' + window.location.port : '');
 			this._moduleExists = new Deferred();
-			this._progressBar = new ProgressBar();
-			this._progressDeferred = new Deferred();
 
 			lang.mixin(this, {
 				pages: [{
@@ -143,7 +141,6 @@ define([
 						onError: lang.hitch(this, function(error) {
 							this._uploadDeferred.reject(error);
 						})
-//					}, {
 					}]
 				}, {
 					name: 'upload-manifest',
@@ -169,7 +166,7 @@ define([
 						callback: lang.hitch(this, 'openAuthorization')
 					}]
 				}, {
-					name: 'connectiontest',
+					name: 'success',
 					headerText: _('Connectiontest'),
 					helpText: '',
 					widgets: [{
@@ -209,7 +206,7 @@ define([
 				_('Choose the option that you want to <i>add an application my organization is developing</i>') + this.img('add_application.png'),
 				_('Enter a name for your application, e.g. <i>UCS Office 365</i>'),
 				_('Select the <i>WEB APPLICATION AND/OR WEB-API</i> option and click <i>Next</i>'),
-				_('Copy the values below and paste them into the respective fields in the Azure wizard'), // + this.img('uri_input_fields.png'),
+				_('Copy the values below and paste them into the respective fields in the Azure wizard') // + this.img('uri_input_fields.png')
 			]);
 		},
 
@@ -246,7 +243,7 @@ define([
 		},
 
 		img: function(image) {
-			return '<br/><img style="min-width: 250px; max-width: 100%; padding-left: 1em; /*border: thin solid red;*/" src="' + require.toUrl('umc/modules/office365/' + image) + '">';
+			return '<br/><img style="min-width: 250px; max-width: 100%; padding-left: 1em;" src="' + require.toUrl('umc/modules/office365/' + image) + '">';
 		},
 
 		initWizard: function(data) {
@@ -262,57 +259,73 @@ define([
 		manifestUploaded: function(data) {
 			this.authorizationurl = data.result.authorizationurl;
 //			iframe("data:application/octet-stream;headers=Content-Disposition%3A%20attachment%3B%20filename%3Dmanifest.json;charset=utf-8;base64," + data.result.manifest);
-			domConstruct.create('a', {href: 'data:application/octet-stream;charset=utf-8;base64,'+ data.result.manifest, 'download': 'manifest.json'}).click();
+			domConstruct.create('a', {href: 'data:application/octet-stream;charset=utf-8;base64,' + data.result.manifest, 'download': 'manifest.json'}).click();
 			var widget = this.getWidget('upload-manifest', 'azure-integration');
 			widget.set('content', lang.replace(widget.get('content'), data.result));
-
-			// start polling for success in the background. This is important here to make sure no session timeout occurs.
-			this._progressBar.auto('office365/test_configuration', {}, lang.hitch(this, function() {
-				var nextPage = 'connectiontest';
-				if (this._progressBar.getErrors().critical) {
-					nextPage = 'error';
-				}
-				this._progressDeferred.resolve(nextPage);  // switch to the last page
-				this._next(nextPage);
-			}), undefined, undefined, undefined, this._moduleExists);
-
 			this._next('manifest-upload');
 		},
 
 		openAuthorization: function() {
 			this.authorizationWindow = window.open(this.authorizationurl);
+			if (!this.authorizationWindow) {  // pop up blocker
+				dialog.alert(_('Could not open a new browser window. Please deactivate all pop up blocker for this site.'));
+				return;
+			}
+			if (this._progressDeferred.isFulfilled()) {
+				this.resetProgress();
+				this.startPolling();
+			}
+			this.standbyDuring(this._progressDeferred, this._progressBar);
 		},
 
-		_connectionTest: function() {
-			this._progressBar.setInfo(_('Office 365 configuration'), _('Waiting for configuration to be completed.'), Infinity);
-			this.standbyDuring(this._progressDeferred, this._progressBar);
-			return this._progressDeferred;
+		resetProgress: function() {
+			if (this._progressDeferred && !this._progressDeferred.isFulfilled()) {
+				this._progressDeferred.cancel();
+			}
+			this._progressBar = new ProgressBar();
+			this._progressDeferred = new Deferred();
+			this._progressBar.setInfo(null, null, Infinity);
+			this._progressBar.feedFromDeferred(this._progressDeferred, _('Office 365 configuration'));
+		},
+
+		startPolling: function() {
+			// start polling the state of the initialization. This is also important here to make sure no session timeout occurs.
+			return this.umcpCommand('office365/state').then(lang.hitch(this, function(data) {
+				var result = data.result || {};
+				result.precentage = result.percentage || Infinity;
+				this._progressDeferred.progress(result);
+				if (result.finished) {
+					this._progressDeferred.resolve(result);
+					this._next('azure-integration-auth');
+					return;
+				}
+				if (result.waiting && this.authorizationWindow && this.authorizationWindow.closed) {
+					this._progressDeferred.resolve(result);
+					return;
+				}
+				setTimeout(lang.hitch(this, 'startPolling'), 500);
+			}), lang.hitch(this, function(error) {
+				this._progressDeferred.reject();
+				this._next('success');
+			}));
 		},
 
 		next: function(pageName) {
-			if (this._progressDeferred.isFulfilled()) {
-				return this._progressDeferred;
-			}
 			var nextPage = this.inherited(arguments);
-			if (nextPage == 'connectiontest') {
-				if (!this.authorizationWindow.closed) {
-					dialog.alert('Please first make sure you authorized the application.');
+			if (nextPage == 'azure-integration-auth') {
+				// when switching to the authorization page we need to make sure that the session is still active and keeps active until the authorization was done
+				this.resetProgress();
+				this.startPolling().then(function() {
+					return nextPage;
+				}, function() {
 					return pageName;
-				}
-				return this._connectionTest();
+				});
 			}
 			return nextPage;
 		},
 
 		getFooterButtons: function(pageName) {
 			var buttons = this.inherited(arguments);
-		//	if (pageName == 'azure-integration-auth') {
-		//		array.forEach(buttons, function(button) {
-		//			if (button.name == 'next') {
-		//				button.label = _('Finish');
-		//			}
-		//		});
-		//	} else
 			if (pageName == "manifest-upload") {
 				buttons = array.filter(buttons, function(button) { return button.name != 'next'; });
 			}
@@ -323,26 +336,27 @@ define([
 		},
 
 		hasNext: function(pageName) {
-			if (~array.indexOf(['azure-integration-auth', "connectiontest", 'error'], pageName)) {
+			if (~array.indexOf(['azure-integration-auth', "success", 'error'], pageName)) {
 				return false;
 			}
 			return this.inherited(arguments);
 		},
 
 		hasPrevious: function(pageName) {
-			if (~array.indexOf(["azure-integration", 'azure-integration-auth', "connectiontest", 'error'], pageName)) {
+			if (~array.indexOf(["azure-integration", 'azure-integration-auth', "success", 'error'], pageName)) {
 				return false;
 			}
 			return this.inherited(arguments);
 		},
 
 		canCancel: function(pageName) {
-			if (~array.indexOf(["start", 'add-external-application', "ucs-integration", "manifest-upload", "connectiontest", 'error'], pageName)) {
+			if (~array.indexOf(["start", 'add-external-application', "ucs-integration", "manifest-upload", "success", 'error'], pageName)) {
 				return false;
 			}
 			return this.inherited(arguments);
 		}
 	});
+
 	return declare("umc.modules.office365", [ Module ], {
 		_wizard: null,
 
@@ -358,6 +372,9 @@ define([
 			this._wizard.on('cancel', lang.hitch(this, 'closeModule'));
 			this.on('close', lang.hitch(this, function() {
 				this._wizard._moduleExists.resolve();
+				if (this._wizard.authorizationWindow) {
+					this._wizard.authorizationWindow.close();
+				}
 			}));
 
 		},

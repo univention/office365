@@ -49,14 +49,29 @@ from univention.office365.azure_handler import AzureHandler
 _ = Translation('univention-management-console-module-office365').translate
 
 
+def progress(component=None, message=None, percentage=None, errors=None, critical=None, finished=False, **kwargs):
+	return dict(
+		component=component,
+		message=message,
+		percentage=percentage,
+		errors=errors or [],
+		critical=critical,
+		finished=finished,
+		**kwargs
+	)
+
+
 class Instance(Base):
+
+	def init(self):
+		self.azure_response = None
 
 	@simple_response
 	def query(self):
 		fqdn = '%s.%s' % (ucr.get('hostname'), ucr.get('domainname'))
 		return {
 			'initialized': AzureAuth.is_initialized(),
-			'login-url': '{origin}/univention-management-console/command/office365/reply',
+			'login-url': '{origin}/univention-management-console/command/office365/authorize',
 			'appid-url': 'https://%s/office365' % (fqdn,),
 			'base-url': 'https://%s/' % (fqdn,),
 		}
@@ -93,44 +108,18 @@ class Instance(Base):
 			'authorizationurl': authorizationurl,
 		})
 
-	@simple_response
-	def test_configuration(self):
-		finished = AzureAuth.is_initialized()
-		errors = []
-		if finished:
-			try:
-				ah = AzureHandler(ucr, "wizard")
-				ah.list_users()
-			except TokenError as exc:
-				finished = False
-				errors.append(str(exc))
-			except AzureError as exc:
-				errors.append(str(exc))
-		if finished:
-			try:
-				subprocess.check_call(["invoke-rc.d", "univention-directory-listener", "crestart"])
-			except (EnvironmentError, subprocess.CalledProcessError):
-				pass
-		return {
-			'errors': errors,
-			'critical': bool(errors),
-			'finished': finished,
-		}
-
 	@sanitize(
-		id_token=StringSanitizer(required=True),
+		id_token=StringSanitizer(),
 		code=StringSanitizer(),
 		session_state=StringSanitizer(),
-		admin_consent=BooleanSanitizer()
+		admin_consent=BooleanSanitizer(),
+		error=StringSanitizer(),
+		error_description=StringSanitizer()
 	)
-	def reply(self, request):
-		try:
-			AzureAuth.parse_id_token(request.options['id_token'])
-			AzureAuth.store_tokens(consent_given=True)
-			aa = AzureAuth("office365")
-			access_token = aa.retrieve_access_token()  # not really necessary, but it'll make sure everything worked
-		except AzureError as exc:
-			raise UMC_Error(str(exc))
+	def authorize(self, request):
+		self.init()  # reset state in case the first attempt failed
+		self.azure_response = {}
+		self.azure_response.update(request.options)
 		content = """<!DOCTYPE html>
 <html>
 <head>
@@ -146,6 +135,43 @@ window.top.close();
 </html>
 		""" % {
 			'title': _('Office 365 Configuration finished'),
-			'content': _('The configuration was successful! You can now close this page and continue the configuration wizard.'),
+			'content': _('The configuration has finished! You can now close this page and continue the configuration wizard.'),
 		}
 		self.finished(request.id, content, mimetype='text/html')
+
+	@simple_response
+	def state(self):
+		options = self.azure_response
+		if not options:
+			return progress(message=_('Waiting for authorization to be completed.'), waiting=True)
+
+		if options['id_token']:
+			try:
+				AzureAuth.parse_id_token(options['id_token'])
+				AzureAuth.store_tokens(consent_given=True)
+				aa = AzureAuth("office365")
+				access_token = aa.retrieve_access_token()  # not really necessary, but it'll make sure everything worked
+			except AzureError as exc:
+				self.init()
+				raise UMC_Error(str(exc))
+			options['id_token'] = None
+			return progress(message=_('Successfully authorized. Starting synchronization.'))
+		elif options['error']:
+			self.init()
+			raise UMC_Error(_('Microsoft reported an error condition during authorization. It might help to reauthorize. Error message: %s: %s') % (options['error'], options['error_description']))
+		elif AzureAuth.is_initialized():
+			self.init()
+			try:
+				ah = AzureHandler(ucr, "wizard")
+				ah.list_users()
+			#except TokenError as exc:
+			#	return
+			except AzureError as exc:
+				raise UMC_Error(str(exc))
+
+			try:
+				subprocess.check_call(["invoke-rc.d", "univention-directory-listener", "crestart"])
+			except (EnvironmentError, subprocess.CalledProcessError):
+				pass
+			return progress(message=_('Successfully initialized'), finished=True)
+		return progress(message=_('Not yet initialized.'))
