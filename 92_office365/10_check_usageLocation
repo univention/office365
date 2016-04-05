@@ -1,18 +1,21 @@
 #!/usr/share/ucs-test/runner python
 ## -*- coding: utf-8 -*-
-## desc: create and modify user in azure, check property-sync
+## desc: create and modify user in azure, check values usageLocation takes
 ## tags: [apptest]
 ## exposure: dangerous
 ## packages:
 ##   - univention-office365
 
-import copy
 import time
+import random
+from operator import itemgetter
 
 import univention.testing.ucr as ucr_test
 import univention.testing.udm as udm_test
 import univention.testing.utils as utils
 from univention.config_registry import handler_set, handler_unset
+import univention.admin.objects  # Bug #33359
+import univention.admin.syntax as udm_syntax
 
 from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user
 from univention.office365.listener import Office365Listener
@@ -32,6 +35,12 @@ with utils.AutomaticListenerRestart():
 			class _listener(object):
 				configRegistry = ucr
 			ol = Office365Listener(_listener(), "ucs-test", listener_attributes_data, {}, "dn")
+
+			ucr_usageLocation = random.choice(map(itemgetter(0), udm_syntax.Country.choices))
+			ucr_ssl_country = ucr["ssl/country"]
+			user_args = udm_user_args(ucr, minimal=False)
+			udm_country = user_args["set"]["country"]
+			user_args["set"]["UniventionOffice365Enabled"] = 1
 
 			print("*** Setting UCRs for maximum property sync...")
 			to_unset = ["office365/attributes/anonymize", "office365/attributes/never",
@@ -53,27 +62,17 @@ with utils.AutomaticListenerRestart():
 				"office365/attributes/mapping/street=streetAddress",
 				"office365/attributes/mapping/sn=surname",
 				"office365/attributes/mapping/telephoneNumber=telephoneNumber",
-				"office365/attributes/sync=l,st,displayName,employeeType,givenName,mailPrimaryAddress,mobile,mailAlternativeAddress,mail,postalCode,roomNumber,st,street,sn,telephoneNumber"
+				"office365/attributes/sync=l,st,displayName,employeeType,givenName,mailPrimaryAddress,mobile,mailAlternativeAddress,mail,postalCode,roomNumber,st,street,sn,telephoneNumber",
+				"office365/attributes/usageLocation={}".format(ucr_usageLocation),
 			])
 			utils.restart_listener()
 
-			user_args = udm_user_args(ucr, minimal=False)
-			user_args["set"]["UniventionOffice365Enabled"] = 1
-			user_args1 = copy.deepcopy(user_args)
-
-			user_args2 = dict(set=dict(), append=dict())
-			for key in ["city", "employeeType", "mailPrimaryAddress"]:
-				user_args2["set"][key] = user_args1["set"].pop(key)
-			user_args2["append"]["phone"] = user_args1["append"].pop("phone")
-
-			user_args3 = dict(set=dict(), append=dict())
-			for key in ["street", "country"]:
-				user_args3["set"][key] = user_args1["set"].pop(key)
-			for key in ["e-mail", "mailAlternativeAddress"]:
-				user_args3["append"][key] = user_args1["append"].pop(key)
+			print("*** Set office365/attributes/mapping/st=usageLocation")
+			print("*** Set office365/attributes/usageLocation={}".format(ucr_usageLocation))
+			print("*** Set user[set][country]={}".format(udm_country))
 
 			print("*** Creating user with some properties...")
-			user_dn, username = udm.create_user(check_for_drs_replication=True, **user_args1)
+			user_dn, username = udm.create_user(check_for_drs_replication=True, **user_args)
 			time.sleep(5)
 
 			print("*** Checking that user was created (UniventionOffice365ObjectID in UDM object)...")
@@ -82,30 +81,61 @@ with utils.AutomaticListenerRestart():
 			if not user_id:
 				utils.fail("User was not created properly (no UniventionOffice365ObjectID).")
 
-			print("*** Checking sync of properties #0...")
 			fake_listener_new = dict(
 				entryUUID=[udm_user.dn],
 				univentionOffice365ObjectID=[user_id]
 			)
-			azure_user = ol.get_user(fake_listener_new)
-			_test(user_args1, azure_user, check_complete=False)
-
-			print("*** Adding more properties to user #1...")
-			udm.modify_object(modulename="users/user", dn=user_dn, **user_args2)
-			time.sleep(5)
-
-			print("*** Checking sync of properties #1...")
-			azure_user = ol.get_user(fake_listener_new)
-			_test(user_args2, azure_user, check_complete=False)
-
-			print("*** Adding more properties to user #2...")
-			udm.modify_object(modulename="users/user", dn=user_dn, **user_args3)
-			time.sleep(5)
-
-			print("*** Checking sync of properties #2...")
-			azure_user = ol.get_user(fake_listener_new)
-			_test(user_args3, azure_user, check_complete=False)
 
 			print("*** Checking sync of all properties...")
 			azure_user = ol.get_user(fake_listener_new)
 			_test(user_args, azure_user, check_complete=True)
+
+			print("*** Checking value of usageLocation (should be user[set][country] now)...")
+			if not azure_user["usageLocation"] == udm_country:
+				utils.fail("'usageLocation' was not set to LDAP property 'st' (is: {}, should be: {}).".format(
+					azure_user["usageLocation"], udm_country))
+
+			print("*** Unsetting UDM property 'country'...")
+			udm.modify_object(
+				modulename="users/user",
+				dn=user_dn,
+				set=dict(country=''),
+			)
+			time.sleep(5)
+
+			print("*** Checking value of usageLocation (should be UCR[office365/attributes/usageLocation] now)...")
+			azure_user = ol.get_user(fake_listener_new)
+			if not azure_user["usageLocation"] == ucr_usageLocation:
+				utils.fail("'usageLocation' was not set to UCRV (is: {}, should be: {}).".format(
+					azure_user["usageLocation"], ucr_usageLocation))
+
+			print("*** Unsetting UCRV office365/attributes/usageLocation...")
+			handler_unset(["office365/attributes/usageLocation"])
+
+			print("*** Setting property 'country' back to '{}'...".format(udm_country))
+			udm.modify_object(
+				modulename="users/user",
+				dn=user_dn,
+				set=dict(country=udm_country),
+			)
+			time.sleep(5)
+
+			print("*** Checking value of usageLocation (should be user[set][country] now)...")
+			azure_user = ol.get_user(fake_listener_new)
+			if not azure_user["usageLocation"] == udm_country:
+				utils.fail("'usageLocation' was not set as instructed (is: {}, should be: {}).".format(
+					azure_user["usageLocation"], udm_country))
+
+			print("*** Unsetting property 'country'...")
+			udm.modify_object(
+				modulename="users/user",
+				dn=user_dn,
+				set=dict(country=''),
+			)
+			time.sleep(5)
+
+			print("*** Checking value of usageLocation (should be UCR[ssl/country] now)...")
+			azure_user = ol.get_user(fake_listener_new)
+			if not azure_user["usageLocation"] == ucr_ssl_country:
+				utils.fail("'usageLocation' was not set to UCRV of 'ssl/country' (is: {}, should be: {}).".format(
+					azure_user["usageLocation"], ucr_ssl_country))

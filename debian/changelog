@@ -1,3 +1,12 @@
+univention-office365 (0.2.1-5) unstable; urgency=low
+
+  * fix syncing of removed attributes (Bug #40295)
+  * replace unspecific Exceptions
+  * create UCRV to handle usageLocation
+  * add test for usageLocation handling
+
+ -- Daniel Troeder <troeder@univention.de>  Tue, 05 Apr 2016 13:54:57 +0200
+
 univention-office365 (0.2.1-4) unstable; urgency=low
 
   * Bug #40295: consistent exception handling

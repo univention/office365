@@ -119,7 +119,7 @@ class Office365Listener(object):
 			userPrincipalName="{0}@{1}".format(new["uid"][0], self.verified_domains[0]),
 			mailNickname=new["uid"][0],
 			displayName=attributes.get("displayName", "no name"),
-			usageLocation=new["st"][0] if new.get("st") else self.ucr["ssl/country"],  # TODO: use UCRV
+			usageLocation=self._get_usage_location(new),
 		)
 		attributes.update(mandatory_attributes)
 
@@ -225,15 +225,20 @@ class Office365Listener(object):
 		# If there are properties in azure that get their value from multiple
 		# attributes in LDAP, then add all those attributes to the modifications
 		# list, or their existing value will be lost, when overwriting them.
+		multiples_may_be_none = list()
 		for k, v in self.attrs["multiple"].items():
 			if any([ldap_attr in modifications for ldap_attr in v]):
 				modifications.extend(v)
+				multiples_may_be_none.extend(v)
 		modifications = list(set(modifications))
 		if modifications:
 			logger.debug("modifications=%r", modifications)
-			udm_attrs = self._get_sync_values(modifications, new)
+			udm_attrs = self._get_sync_values(modifications, new, modify=True)
 			attributes = dict()
 			for k, v in udm_attrs.items():
+				if v is None and k in multiples_may_be_none:
+					# property was never set, don't add unnecessary None
+					continue
 				azure_property_name = self.attrs["mapping"][k]
 				if azure_property_name in attributes:
 					# must be a list type property, append/extend
@@ -246,9 +251,8 @@ class Office365Listener(object):
 				else:
 					attributes[azure_property_name] = v
 
-			if "st" in modifications:
-				udm_user = self.get_udm_user(self.dn)
-				attributes["usageLocation"] = udm_user["country"]  # TODO: use UCRV
+			if "usageLocation" in attributes:
+				attributes["usageLocation"] = self._get_usage_location(new)
 
 			object_id = new["univentionOffice365ObjectID"][0]
 			return self.ah.modify_user(object_id=object_id, modifications=attributes)
@@ -556,20 +560,22 @@ class Office365Listener(object):
 	def _anonymize(txt):
 		return uuid.uuid4().get_hex()
 
-	def _get_sync_values(self, attrs, user):
+	def _get_sync_values(self, attrs, user, modify=False):
 		# anonymize > static > sync
 		res = dict()
 		for attr in attrs:
-			if attr not in user or attr == "univentionOffice365Enabled":
-				# user has attribute not set | ignore univentionOffice365Enabled
+			if attr == "univentionOffice365Enabled":
+				# filter out univentionOffice365Enabled
 				continue
-
-			if attr in self.attrs["anonymize"]:
+			elif attr not in user and not modify:
+				# only set empty values to unset properties when modifying
+				continue
+			elif attr in self.attrs["anonymize"]:
 				tmp = map(self._anonymize, user[attr])
 			elif attr in self.attrs["static"]:
 				tmp = [self.attrs["static"][attr]]
 			elif attr in self.attrs["sync"]:
-				tmp = user[attr]
+				tmp = user.get(attr)  # Azure does not like empty strings - it wants None!
 			else:
 				raise RuntimeError("Attribute to sync '{}' is not configured through UCR.".format(attr))
 
@@ -583,7 +589,7 @@ class Office365Listener(object):
 							type(res[attr]),
 							res[attr]))
 			else:
-				if len(tmp) == 1:
+				if tmp and len(tmp) == 1:
 					res[attr] = tmp[0]
 				else:
 					res[attr] = tmp
@@ -616,3 +622,14 @@ class Office365Listener(object):
 			else:
 				self.lo, self.po = univention.admin.uldap.getAdminConnection()
 		return self.lo, self.po
+
+	def _get_usage_location(self, user):
+		if user.get("st"):
+			res = user["st"][0]
+		elif self.ucr.get("office365/attributes/usageLocation"):
+			res = self.ucr["office365/attributes/usageLocation"]
+		else:
+			res = self.ucr["ssl/country"]
+		if not res or len(res) != 2:
+			raise RuntimeError("Invalid usageLocation '{}' - user cannot be created.".format(res))
+		return res

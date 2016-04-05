@@ -36,7 +36,6 @@ import base64
 import univention.admin.objects  # Bug #33359
 import univention.admin.syntax as udm_syntax
 import univention.testing.strings as uts
-import univention.testing.utils as utils
 
 from univention.office365.azure_handler import ResourceNotFoundError
 
@@ -318,11 +317,11 @@ def check_udm2azure_user(udm_args, azure_user, complete=True):
 				fail = True
 				res.append((k, "value was not set", "cannot compare"))
 			continue
-		azure_values = udm2azure["append"][k](azure_user)
+		azure_values = v(azure_user)
 		for udm_value in udm_values:
 			if k == "homePostalAddress":
 				udm_value = udm_value.replace('"', '').replace(" ", "$")
-			if udm_value not in azure_values:
+			if azure_values and udm_value not in azure_values:
 				fail = True
 				res.append((k, udm_value, azure_values))
 

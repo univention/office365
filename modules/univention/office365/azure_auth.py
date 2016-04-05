@@ -49,6 +49,7 @@ from cryptography.x509 import load_pem_x509_certificate
 from cryptography.hazmat.backends import default_backend
 import OpenSSL.crypto
 import jwt
+from requests.exceptions import RequestException
 
 from univention.lib.i18n import Translation
 from univention.office365.logging2udebug import get_logger
@@ -92,7 +93,6 @@ class TokenError(AzureError):
 				j = j()
 			self.error_description = j["error_description"]
 		super(TokenError, self).__init__(msg, *args, **kwargs)
-	pass
 
 
 class IDTokenError(AzureError):
@@ -127,10 +127,10 @@ class Manifest(object):
 	def __init__(self, fd):
 		try:
 			self.manifest = json.load(fd)
-			if not isinstance(self.manifest, dict) or not self.app_id or not self.reply_url:  # TODO: do schema validation
+			if not all([isinstance(self.manifest, dict), self.app_id, self.reply_url]):  # TODO: do schema validation
 				raise ValueError()
 		except ValueError:
-			raise ManifestError(_('The manifest is invalid: Invalid JSON document.'))
+			raise ManifestError(_t('The manifest is invalid: Invalid JSON document.'))
 
 	def as_dict(self):
 		return self.manifest.copy()
@@ -142,7 +142,7 @@ class Manifest(object):
 			with open("/etc/univention-office365/cert.fp", "rb") as fd:
 				cert_fp = fd.read().strip()
 		except (OSError, IOError):
-			raise ManifestError(_('Could not read certificate. Please make sure the joinscript'
+			raise ManifestError(_t('Could not read certificate. Please make sure the joinscript'
 				' 40univention-office365.inst is executed successfully or execute it again.'))
 
 		if cert_fp not in map(operator.itemgetter("customKeyIdentifier"), self.manifest["keyCredentials"]):
@@ -221,7 +221,7 @@ class AzureAuth(object):
 			self.tenant_id = ids["tenant_id"]
 			self.reply_url = ids["reply_url"]
 			if not all([self.client_id, self.tenant_id, self.reply_url]):
-				raise NoIDsStored()
+				raise NoIDsStored("")
 		except (KeyError, NoIDsStored) as exc:
 			raise NoIDsStored, NoIDsStored(_t("Incomplete configuration, please run wizard (again)."), chained_exc=exc), sys.exc_info()[2]
 		self._access_token = None
@@ -318,7 +318,7 @@ class AzureAuth(object):
 				decoded_header = _decode_b64(_header)
 				decoded_body = _decode_b64(_body)
 				return json.loads(decoded_header), json.loads(decoded_body), _signature
-			except Exception as exc:  # TODO: list specific exceptions
+			except (AttributeError, TypeError, ValueError) as exc:
 				if sys.version_info < (3,):
 					et = unicode(encoded_token, 'utf8')
 				else:
@@ -336,7 +336,7 @@ class AzureAuth(object):
 			# https://msdn.microsoft.com/en-us/library/azure/dn195592.aspx
 			try:
 				fed = requests.get(federation_metadata_url.format(tenant_id=tenant_id))
-			except Exception as exc:  # TODO: list specific exceptions
+			except RequestException as exc:
 				logger.exception("Error downloading federation metadata.")
 				raise TokenValidationError, TokenValidationError(_t("Error downloading certificates from Azure, please run the wizard again at some other time."), chained_exc=exc), sys.exc_info()[2]
 			# the federation metadata document is a XML file

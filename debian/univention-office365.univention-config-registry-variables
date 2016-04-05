@@ -28,6 +28,12 @@ Description[en]=Comma separated list of LDAP attributes that should synchronized
 Type=str
 Categories=service-collaboration
 
+[office365/attributes/usageLocation]
+Description[de]=Zwei-Buchstaben Ländercode (ISO Standard 3166). Wird für Azure Benutzer benötigt denen Lizenzen zugeteilt werden, um gesetzliche Bestimmungen zu erfüllen die die Verfügbarkeit von Diensten in Staaten prüft. Das 'country' Attribut eines Benutzers wird dieser Variablen gegenüber vorrangig ausgewertet. Wenn keine von beiden Variablen gesetzt ist, wird der Wert der UCR Variablen 'ssl/country' verwendet. Aus rechtlichen Gründen wird empfohlen diese Variable zu setzen.
+Description[en]=A two letter country code (ISO standard 3166). Required for Azure users that will be assigned licenses due to legal requirement to check for availability of services in countries. The 'country' attributes of a user is given precedence over this setting. If neither is set, the value of the UCR variable 'ssl/country' is used. For legal reasons it is recommended to set this variable.
+Type=str
+Categories=service-collaboration
+
 [office365/debug/werror]
 Description[de]=Wenn eingeschaltet, werden Meldungen aller LogLevel ins Logfile als Fehler (ERROR) und mit debug Informationen geschrieben. Dies dient ausschließlich der Fehlersuche. Standard ist 'no'.
 Description[en]=If enabled, log messages of all levels will be written as errors (ERROR) and with debug information to the logfile. This is used for debugging only. Defaults to 'no'.

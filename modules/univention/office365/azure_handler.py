@@ -442,7 +442,7 @@ class AzureHandler(object):
 		logger.info("Removing member %r from group %r...", member_id, group_id)
 		params = urllib.urlencode(azure_params)
 		url = self.uris["group_member"].format(group_id=group_id, member_id=member_id, params=params)
-		# TODO: delete group if empty... but not from here...
+
 		try:
 			return self.call_api("DELETE", url)
 		except ApiError as exc:
