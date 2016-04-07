@@ -100,12 +100,12 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set multivalue=0 \
 	--set valueRequired=0 \
 	--set mayChange=1 \
-	--set doNotSearch=0 \
+	--set doNotSearch=1 \
 	--set objectClass=univentionOffice365 \
 	--set ldapMapping=univentionOffice365ObjectID \
 	--set deleteObjectClass=0 \
 	--set overwriteTab=0 \
-	--set fullWidth=1 || die
+	--set disableUDMWeb=1 || die
 
 udm settings/extended_attribute create "$@" --ignore_exists \
 	--position "cn=custom attributes,cn=univention,$ldap_base" \
@@ -155,7 +155,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 udm settings/extended_attribute create "$@" --ignore_exists \
 	--position "cn=custom attributes,cn=univention,$ldap_base" \
 	--set name="UniventionOffice365GroupObjectID" \
-	--set CLIName="UniventionOffice365ObjectID" \
+	--set CLIName="UniventionOffice365GroupObjectID" \
 	--set shortDescription="Object ID of group in Azure AD" \
 	--set translationShortDescription='"de_DE" "Objekt ID der Gruppe im Azure AD"' \
 	--set longDescription="Object ID of user in Azure AD" \
