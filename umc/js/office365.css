@@ -1,0 +1,23 @@
+.umc-office365-page .umcPageIcon {
+    background-repeat: no-repeat;
+    height: 120px;
+    background-size: contain;
+    background-position: center bottom;
+    background-image: url(office365/office365.png);
+}
+.umc .umc-office365-page .umcPageHelpText {
+    min-height: 50px;
+}
+
+@media (max-width: 767px) {
+    .umc .umc-office365-page .umcPageIcon {
+        height: 100px;
+    }
+    .umc .umc-office365-page .umcPageHelpText {
+        min-height: 1px
+    }
+    .umc .umc-office365-page .umcPageMain {
+        /* overwrite autoHeight property for small devices */
+        min-height: 0px !important;
+    }
+}

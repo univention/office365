@@ -42,7 +42,8 @@ define([
 	"umc/widgets/TextBox",
 	"umc/widgets/Uploader",
 	"umc/widgets/ProgressBar",
-	"umc/i18n!umc/modules/office365"
+	"umc/i18n!umc/modules/office365",
+	"xstyle/css!./office365.css"
 ], function(declare, lang, array, domConstruct, Deferred, tools, dialog, Module, Wizard, Text, TextBox, Uploader, ProgressBar, _) {
 	var OfficeWizard = declare('umc.modules.office365.OfficeWizard', [Wizard], {
 
@@ -64,7 +65,7 @@ define([
 					widgets: [{
 						type: Text,
 						name: 'already-initialized',
-						content: _('<b>Warning!</b> The current connection information will be replaced if the user continues.'),
+						content: _('<b>Warning!</b> The configuration has already been done. If you continue, the current connection information will be replaced.'),
 						visible: false
 					}, {
 						type: Text,
@@ -167,7 +168,7 @@ define([
 					}]
 				}, {
 					name: 'success',
-					headerText: _('Connectiontest'),
+					headerText: _('Setup successful'),
 					helpText: '',
 					widgets: [{
 						type: Text,
@@ -185,6 +186,20 @@ define([
 						content: _('An error occurred. It might help to restart the wizard.')
 					}]
 				}]
+			});
+			array.forEach(this.pages, function(page) {
+				page['class'] = 'umc-office365-page umc-office365-page-' + page.name;
+			});
+		},
+
+		postCreate: function() {
+			this.inherited(arguments);
+
+			tools.forIn(this._pages, function(name, page) {
+				page.addChild(new Text({
+					'class': 'umcPageIcon',
+					region: 'nav'
+				}));
 			});
 		},
 

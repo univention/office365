@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <umc version="2.0">
-	<module id="office365" priority="50" version="1.0">
+	<module id="office365" priority="50" version="1.0" icon="office365">
 		<name>Office 365 setup wizard</name>
-		<description></description>
+		<description>Configuration of the "Office 365" connection</description>
 		<keywords>microsoft,azure,office,sync</keywords>
 		<categories>
-			<category name="system"/>
+			<category name="domain"/>
 		</categories>
 		<command name="office365/query" function="query"/>
 		<command name="office365/upload" function="upload"/>

@@ -1,3 +1,9 @@
+univention-office365 (0.2.2-1) unstable; urgency=medium
+
+  * Bug #40294: Implement UMC Wizard
+
+ -- Florian Best <best@univention.de>  Thu, 07 Apr 2016 13:39:33 +0200
+
 univention-office365 (0.2.1-5) unstable; urgency=low
 
   * fix syncing of removed attributes (Bug #40295)
