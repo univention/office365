@@ -74,7 +74,7 @@ define([
 					}]
 				}, {
 					name: 'add-external-application',
-					headerText: _('Add external Application to Azure AD'),
+					headerText: _('Add an Application to Azure AD'),
 					helpText: '',
 					widgets: [{
 						name: 'infos',
@@ -174,7 +174,7 @@ define([
 						type: Text,
 						name: 'infos',
 						content: _('Congratulations, the connection between UCS and Microsoft Azure has been established.') + ' ' +
-							_('Users can now be synced to Microsoft Azure by activating the sync on the users <i>Office 365</i> tab.')
+							_('Users can now be synced to Microsoft Azure by activating the sync on the users <i>Office 365</i> tab.') + this.img(_('umc_office365_EN.png'))
 					}]
 				}, {
 					name: 'error',
@@ -206,12 +206,8 @@ define([
 		getTextWelcome: function() {
 			return this.formatParagraphs([
 				_('<b>Welcome to the Office 365 App configuration wizard.</b>'),
-				_('Office 365 uses a directory in Microsofts cloud platform "Azure" to authenticate users.'),
-				_('This app creates user accounts in the "Azure Active Directory" and connects them to UCS domain users. This allows them to use single sign-on to log into Office 365 Apps.'),
-				_('To manage user accounts in the Azure AD, permissions must be granted by a Azure AD administrator. This wizard will guide you through the configuration process.'),
-				_('To configure the connection to Azure, a working Microsoft Azure account is required.'),
-				_('An Azure Active Directory with an Office 365 (test-)subscription has to be configured for your Azure account <i>before</i> continuing.'),
-				_('The Azure Active Directory which is used to sync the users needs to have an active global administrator account which is used for login while configuring the Office 365 app.')
+				_('Welcome to the <a href="https://products.office.com/" target="_blank">Microsoft Office 365</a> configuration wizard. It will guide you through the process of setting up automatic provisioning of Microsoft Office 365 accounts for your user accounts.'),
+				_('To use this app you need a active Microsoft Office 365 admin account, a global administrator account in the corresponding Azure AD and a <a href="https://azure.microsoft.com/en-us/documentation/articles/active-directory-add-domain/" target="_blank">verified domain</a>.')
 			]);
 		},
 
@@ -220,7 +216,7 @@ define([
 				_('On the <i>Applications</i> tab, start the wizard to add a new application to your directory.') + this.img('bottom_bar_add_app.png'),
 				_('Choose the option that you want to <i>add an application my organization is developing</i>') + this.img('add_application.png'),
 				_('Enter a name for your application, e.g. <i>UCS Office 365</i>'),
-				_('Select the <i>WEB APPLICATION AND/OR WEB-API</i> option and click <i>Next</i>'),
+				_('Select the <i>WEB APPLICATION AND/OR WEB-API</i> option and click on the <i>Next</i> button in the Azures Add-Application wizard.'),
 				_('Copy the values below and paste them into the respective fields in the Azure wizard') // + this.img('uri_input_fields.png')
 			]);
 		},
@@ -234,11 +230,15 @@ define([
 		},
 
 		getTextManifestUpload: function() {
-			return _('Please upload the manifest file using the upload button below. After uploading the manifest you will be offered to download a file <i>manifest.json</i>. Store this file on your computer.');
+			return _('Please upload the JSON file that was just downloaded (with a name similar to <i>7e428ea7-e7d8-4f0c-93ed-c8e74c4050c9.json</i>), using the button below. The wizard will then take you to the next page.');
 		},
 
 		getTextAzureIntegration: function() {
-			return _('Now upload the <a download="manifest.json" href="data:application/octet-stream;charset=utf-8;base64,{manifest}">manifest.json</a> file via the Azure dashboard by selecting <i>manage manifest</i> and <i>upload manifest</i>');
+			return this.formatOrderedList([
+				_('Please <a download="manifest.json" href="data:application/octet-stream;charset=utf-8;base64,{manifest}">click here</a> to download the manifest.json file. Store it on your computer, then upload it to Azure via the Azure dashboard by selecting <i>manage manifest</i> and <i>upload manifest</i>') + this.img('manage_manifest.png'),
+				_('When presented with the <i>Upload Manifest</i> window click on <i>BROWSE FOR FILE...</i> and select the previously downloaded <i>manifest.json</i>.') + this.img('azure_upload_manifest_window.png'),
+				_('Click here on <i>Next</i> when the upload has succeeded.')
+			]);
 		},
 
 		getTextAzureAuthorization: function() {
