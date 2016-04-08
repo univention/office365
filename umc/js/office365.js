@@ -387,7 +387,7 @@ define([
 			this._wizard.on('finished', lang.hitch(this, 'closeModule'));
 			this._wizard.on('cancel', lang.hitch(this, 'closeModule'));
 			this.on('close', lang.hitch(this, function() {
-				if (this._wizard._progressDeferred( {
+				if (this._wizard._progressDeferred) {
 					this._wizard._progressDeferred.reject();
 				}
 				if (this._wizard.authorizationWindow) {
