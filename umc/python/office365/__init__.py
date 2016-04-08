@@ -158,7 +158,7 @@ window.top.close();
 			return progress(message=_('Successfully authorized. Starting synchronization.'))
 		elif options['error']:
 			self.init()
-			raise UMC_Error(_('Microsoft reported an error condition during authorization. It might help to reauthorize. Error message: {error}: {error_description}'.format(**options)))
+			raise UMC_Error(_('Microsoft reported an error condition during authorization. It might help to reauthorize. Error message: {error}: {error_description}').format(**options))
 		elif AzureAuth.is_initialized():
 			self.init()
 			try:
