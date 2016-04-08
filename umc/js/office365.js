@@ -55,7 +55,6 @@ define([
 		constructor: function() {
 			this.inherited(arguments);
 			this.origin = window.location.protocol + '//' + window.location.host + (window.location.port ? ':' + window.location.port : '');
-			this._moduleExists = new Deferred();
 
 			lang.mixin(this, {
 				pages: [{
@@ -318,7 +317,9 @@ define([
 					this._progressDeferred.resolve(result);
 					return;
 				}
-				setTimeout(lang.hitch(this, 'startPolling'), 500);
+				if (!this._progressDeferred.isFulfilled()) {
+					setTimeout(lang.hitch(this, 'startPolling'), 500);
+				}
 			}), lang.hitch(this, function(error) {
 				this._progressDeferred.reject();
 				this._next('success');
@@ -386,7 +387,7 @@ define([
 			this._wizard.on('finished', lang.hitch(this, 'closeModule'));
 			this._wizard.on('cancel', lang.hitch(this, 'closeModule'));
 			this.on('close', lang.hitch(this, function() {
-				this._wizard._moduleExists.resolve();
+				this._wizard._progressDeferred.reject();
 				if (this._wizard.authorizationWindow) {
 					this._wizard.authorizationWindow.close();
 				}
