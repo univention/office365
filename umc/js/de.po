@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: univention-management-console-module-office365\n"
 "Report-Msgid-Bugs-To: packages@univention.de\n"
-"POT-Creation-Date: 2016-04-08 12:23+0200\n"
+"POT-Creation-Date: 2016-04-08 13:22+0200\n"
 "PO-Revision-Date: 2016-01-14 11:26+0100\n"
 "Last-Translator: Univention GmbH <packages@univention.de>\n"
 "Language-Team: Univention GmbH <packages@univention.de>\n"
@@ -21,8 +21,12 @@ msgstr ""
 "fortfahren wird die aktuelle Konfiguration ersetzt."
 
 #: umc/js/office365.js:207
-msgid "<b>Welcome to the Office 365 App configuration wizard.</b>"
-msgstr "<b>Willkommen beim Office 365 App Konfigurationswizard."
+msgid ""
+"<b>Welcome to the <a href=\"https://products.office.com/\" target=\"_blank"
+"\">Microsoft Office 365</a> configuration wizard.</b>"
+msgstr ""
+"<b>Willkommen beim <a href=\"https://products.office.com/\" target=\"_blank"
+"\">Microsoft Office 365</a> Konfigurationswizard.</b>"
 
 #: umc/js/office365.js:91
 msgid "APP ID URI"
@@ -85,7 +89,7 @@ msgstr "Klicken Sie, nach dem erfolgreichen Upload, hier auf <i>Weiter</i>."
 #: umc/js/office365.js:95
 msgid "Complete the <i>Add application</i> wizard in the Azure portal."
 msgstr ""
-"Schließen Sie den <i>Anwendung hinzufügen</i> Wizard im Azure portal ab."
+"Schließen Sie den <i>Anwendung hinzufügen</i> Wizard im Azure Portal ab."
 
 #: umc/js/office365.js:175
 msgid ""
@@ -132,6 +136,14 @@ msgstr ""
 #: umc/js/office365.js:99
 msgid "Integrate Azure connection into UCS"
 msgstr "Azure-Verbindung mit UCS integrieren"
+
+#: umc/js/office365.js:208
+msgid ""
+"It will guide you through the process of setting up automatic provisioning "
+"of Microsoft Office 365 accounts for your user accounts."
+msgstr ""
+"Er wird sie dabei begleiten das automatische Erstellen von Microsoft Office "
+"365 Konten durch UCS, zu konfigurieren."
 
 #: umc/js/office365.js:156
 msgid "Make UCS Office 365 app known to Azure AD - Authorize"
@@ -242,25 +254,13 @@ msgstr "Manifest zu Azure hochladen"
 msgid "Upload manifest to UCS"
 msgstr "Manifest zu UCS hochladen"
 
-#: umc/js/office365.js:208
-msgid ""
-"Welcome to the <a href=\"https://products.office.com/\" target=\"_blank"
-"\">Microsoft Office 365</a> configuration wizard. It will guide you through "
-"the process of setting up automatic provisioning of Microsoft Office 365 "
-"accounts for your user accounts."
-msgstr ""
-"Willkommen beim <a href=\"https://products.office.com/\" target=\"_blank"
-"\">Microsoft Office 365</a> Konfigurationswizard. Er wird sie dabei "
-"begleiten das automatische Erstellen von Microsoft Office 365 Konten durch "
-"UCS, zu konfigurieren"
-
 #: umc/js/office365.js:225
 msgid ""
 "When Azures <i>Add application</i> wizard completes, open the new "
 "application by clicking on it."
 msgstr ""
 "Öffnen Sie die neue Applikation indem Sie auf sie klicken, wenn Azures "
-"<i>ANWENDUNG HINZUFÜGEN</i> Wizard ferig ist."
+"<i>Anwendung hinzufügen</i> Wizard ferig ist."
 
 #: umc/js/office365.js:238
 msgid ""
@@ -273,3 +273,23 @@ msgstr ""
 #: umc/js/office365.js:176
 msgid "umc_office365_EN.png"
 msgstr "umc_office365_DE.png"
+
+#: umc/js/office365.js:215
+msgid "bottom_bar_add_app_EN.png"
+msgstr "bottom_bar_add_app_DE.png"
+
+#: umc/js/office365.js:216
+msgid "add_application_EN.png"
+msgstr "add_application_DE.png"
+
+#: umc/js/office365.js:226
+msgid "manage_manifest_EN.png"
+msgstr "manage_manifest_DE.png"
+
+#: umc/js/office365.js:227
+msgid "copy_tenant_id_EN.png"
+msgstr "copy_tenant_id_DE.png"
+
+#: umc/js/office365.js:238
+msgid "azure_upload_manifest_window_EN.png"
+msgstr "azure_upload_manifest_window_DE.png"

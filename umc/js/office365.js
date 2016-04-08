@@ -204,16 +204,16 @@ define([
 
 		getTextWelcome: function() {
 			return this.formatParagraphs([
-				_('<b>Welcome to the Office 365 App configuration wizard.</b>'),
-				_('Welcome to the <a href="https://products.office.com/" target="_blank">Microsoft Office 365</a> configuration wizard. It will guide you through the process of setting up automatic provisioning of Microsoft Office 365 accounts for your user accounts.'),
+				_('<b>Welcome to the <a href="https://products.office.com/" target="_blank">Microsoft Office 365</a> configuration wizard.</b>'),
+				_('It will guide you through the process of setting up automatic provisioning of Microsoft Office 365 accounts for your user accounts.'),
 				_('To use this app you need a Microsoft Office 365 admin account, a global administrator account in the corresponding Azure AD and a <a href="https://azure.microsoft.com/en-us/documentation/articles/active-directory-add-domain/" target="_blank">verified domain</a>.')
 			]);
 		},
 
 		getTextConfiguration: function() {
 			return _('Please login to the <a href="https://manage.windowsazure.com/" target="_blank">Azure portal</a>, select your Active Directory and follow these steps:') + this.formatOrderedList([
-				_('On the <i>APPLICATIONS</i> tab, start the wizard to add a new application to your directory.') + this.img('bottom_bar_add_app.png'),
-				_('Choose the option that you want to <i>add an application my organization is developing</i>') + this.img('add_application.png'),
+				_('On the <i>APPLICATIONS</i> tab, start the wizard to add a new application to your directory.') + this.img(_('bottom_bar_add_app_EN.png')),
+				_('Choose the option that you want to <i>add an application my organization is developing</i>') + this.img(_('add_application_EN.png')),
 				_('Enter a name for your application, e.g. <i>UCS Office 365</i>.'),
 				_('Select the <i>WEB APPLICATION AND/OR WEB-API</i> option and click on the <i>Next</i> button in Azures Add-Application wizard.'),
 				_('Copy the values below and paste them into the respective fields in the Azure wizard') // + this.img('uri_input_fields.png')
@@ -223,8 +223,8 @@ define([
 		getTextUCSIntegration: function() {
 			return this.formatOrderedList([
 				_('When Azures <i>Add application</i> wizard completes, open the new application by clicking on it.'),
-				_('In the bottom bar, click <i>MANAGE MANIFEST</i> and then <i>Download Manifest</i>. Save the manifest file on your computer.') + this.img('manage_manifest.png'),
-				_('Click <i>VIEW ENDPOINTS</i>, copy the value for <i>FEDERATION METADATA DOCUMENT</i> and insert it into the text box below.') + this.img('copy_tenant_id.png')
+				_('In the bottom bar, click <i>MANAGE MANIFEST</i> and then <i>Download Manifest</i>. Save the manifest file on your computer.') + this.img(_('manage_manifest_EN.png')),
+				_('Click <i>VIEW ENDPOINTS</i>, copy the value for <i>FEDERATION METADATA DOCUMENT</i> and insert it into the text box below.') + this.img(_('copy_tenant_id_EN.png'))
 			]);
 		},
 
@@ -234,8 +234,8 @@ define([
 
 		getTextAzureIntegration: function() {
 			return this.formatOrderedList([
-				_('Please <a download="manifest.json" href="data:application/octet-stream;charset=utf-8;base64,{manifest}">click here</a> to download the manifest.json file. Store it on your computer, then upload it to Azure via the Azure dashboard by selecting <i>manage manifest</i> and <i>upload manifest</i>') + this.img('manage_manifest.png'),
-				_('When presented with the <i>Upload Manifest</i> window, click on <i>BROWSE FOR FILE...</i> and select the previously downloaded <i>manifest.json</i>.') + this.img('azure_upload_manifest_window.png'),
+				_('Please <a download="manifest.json" href="data:application/octet-stream;charset=utf-8;base64,{manifest}">click here</a> to download the manifest.json file. Store it on your computer, then upload it to Azure via the Azure dashboard by selecting <i>manage manifest</i> and <i>upload manifest</i>') + this.img(_('manage_manifest_EN.png')),
+				_('When presented with the <i>Upload Manifest</i> window, click on <i>BROWSE FOR FILE...</i> and select the previously downloaded <i>manifest.json</i>.') + this.img(_('azure_upload_manifest_window_EN.png')),
 				_('Click here on <i>Next</i> when the upload has succeeded.')
 			]);
 		},
