@@ -55,7 +55,7 @@ if AzureAuth.is_initialized() and listener.configRegistry.is_true("office365/gro
 	logger.info("office 365 group listener active")
 else:
 	filter = '(foo=bar)'
-	logger.info("office 365 group listener deactivated")
+	logger.warn("office 365 group listener deactivated")
 attributes = ["cn", "description", "uniqueMember"]
 modrdn = "1"
 
