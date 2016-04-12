@@ -27,7 +27,7 @@ with utils.AutomaticListenerRestart():
 				configRegistry = ucr
 			ol = Office365Listener(_listener(), "ucs-test", listener_attributes_data, {}, "dn")
 
-			handler_set(["office365/groups/sync=yes"])
+			handler_set(["office365/groups/sync=yes", "office365/debug/werror=yes"])
 			utils.restart_listener()
 
 			print("*** Creating group (not synced to Azure AD yet)...")

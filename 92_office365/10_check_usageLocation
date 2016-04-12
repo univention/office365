@@ -64,6 +64,7 @@ with utils.AutomaticListenerRestart():
 				"office365/attributes/mapping/telephoneNumber=telephoneNumber",
 				"office365/attributes/sync=l,st,displayName,employeeType,givenName,mailPrimaryAddress,mobile,mailAlternativeAddress,mail,postalCode,roomNumber,st,street,sn,telephoneNumber",
 				"office365/attributes/usageLocation={}".format(ucr_usageLocation),
+				"office365/debug/werror=yes",
 			])
 			utils.restart_listener()
 

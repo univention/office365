@@ -134,7 +134,12 @@ def get_listener_attributes():
 
 name = 'office365-user'
 description = 'sync users to office 365'
-filter = '(&(objectClass=univentionOffice365)(uid=*))' if AzureAuth.is_initialized() else '(foo=bar)'
+if AzureAuth.is_initialized():
+	filter = '(&(objectClass=univentionOffice365)(uid=*))'
+	logger.info("office 365 user listener active")
+else:
+	filter = '(foo=bar)'
+	logger.warn("office 365 user listener deactivated")
 attributes = get_listener_attributes()
 modrdn = "1"
 

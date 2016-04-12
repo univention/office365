@@ -52,7 +52,8 @@ with utils.AutomaticListenerRestart():
 				"office365/attributes/never=mail,postalCode",
 				"office365/attributes/static/roomNumber={}".format(roomNumber),
 				"office365/attributes/static/postalCode=12345",
-				"office365/attributes/static/l={}".format(city)
+				"office365/attributes/static/l={}".format(city),
+				"office365/debug/werror=yes",
 			])
 			utils.restart_listener()
 
