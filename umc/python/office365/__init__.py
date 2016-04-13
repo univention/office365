@@ -170,8 +170,8 @@ window.top.close();
 				raise UMC_Error(str(exc))
 
 			try:
-				subprocess.check_call(["invoke-rc.d", "univention-directory-listener", "crestart"])
-			except (EnvironmentError, subprocess.CalledProcessError):
+				subprocess.call(["invoke-rc.d", "univention-directory-listener", "restart"])
+			except (EnvironmentError,):
 				pass
 			return progress(message=_('Successfully initialized'), finished=True)
 		return progress(message=_('Not yet initialized.'))
