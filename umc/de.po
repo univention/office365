@@ -16,4 +16,4 @@ msgid "Configuration of the Office 365 connector"
 msgstr "Konfiguration des Office 365 Konnektors"
 
 msgid "Office 365 setup wizard"
-msgstr "Office 365 Setup Wizard"
+msgstr "Office 365 Einrichtungsassistent"
