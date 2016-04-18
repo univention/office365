@@ -173,13 +173,28 @@ define([
 					}]
 				}, {
 					name: 'success',
-					headerText: _('Setup successful'),
+					headerText: _('Office 365 setup complete'),
 					helpText: _('Congratulations, the connection between UCS and Microsoft Azure has been established.'),
 					widgets: [{
 						type: Text,
 						name: 'infos',
 						content: _('Congratulations, the connection between UCS and Microsoft Azure has been established.') + ' ' +
 							_('You can now enable the Microsoft Azure synchronization for users on the <i>Office 365</i> tab in the %s.', [tools.linkToModule({module: 'udm', flavor: 'users/user'})]) + '<br>' + this.img(_('umc_office365_EN.png'))
+					}]
+				}, {
+					name: 'success2',
+					headerText: _('Office 365 setup complete'),
+					helpText: _('The configuration of synchronized attributes can be done via Univention Config Registry.'),
+					widgets: [{
+						type: Text,
+						name: 'infos',
+						content: this.formatParagraphs([
+							_('For the UCS user account for which Office 365 is enabled, an account in the Microsoft directory is created and selected account attributes get synchronized from UCS to the Microsoft directory.'),
+							_('Via the Univention Config Registry variable <i>office365/attributes/sync</i> can be configured which LDAP attributes (e.g. given name, surname, etc.) of a user account are sychronized.') + ' ' +
+							_('You may add or remove attributes from the list by using the %s.', [tools.linkToModule({module: 'ucr'})]),
+							_('Additional configuration settings can be viewed in the help of the UCR variables <i>office365/attributes/anonymize</i> and <i>office365/attributes/static/.*</i>.') + ' ' +
+							_('You can enable the UCR variable <i>office365/groups/sync</i> to synchronize the groups of the enabled Office 365 users.')
+						])
 					}]
 				}, {
 					name: 'error',
@@ -333,7 +348,7 @@ define([
 				}
 			}), lang.hitch(this, function(error) {
 				this._progressDeferred.reject();
-				this._next('success');
+				this._next('success2');
 			}));
 		},
 
@@ -363,7 +378,7 @@ define([
 		},
 
 		hasNext: function(pageName) {
-			if (~array.indexOf(['azure-integration-auth', "success", 'error'], pageName)) {
+			if (~array.indexOf(['azure-integration-auth', "success2", 'error'], pageName)) {
 				return false;
 			}
 			return this.inherited(arguments);
@@ -377,7 +392,7 @@ define([
 		},
 
 		canCancel: function(pageName) {
-			if (~array.indexOf(["start", 'add-external-application', "ucs-integration", "manifest-upload", "success", 'error'], pageName)) {
+			if (~array.indexOf(["start", 'add-external-application', "ucs-integration", "manifest-upload", "success", "success2", 'error'], pageName)) {
 				return false;
 			}
 			return this.inherited(arguments);
