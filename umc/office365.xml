@@ -2,7 +2,7 @@
 <umc version="2.0">
 	<module id="office365" priority="50" version="1.0" icon="office365">
 		<name>Office 365 setup wizard</name>
-		<description>Configuration of the "Office 365" connection</description>
+		<description>Configuration of the Office 365 connector</description>
 		<keywords>microsoft,azure,office,sync</keywords>
 		<categories>
 			<category name="domain"/>

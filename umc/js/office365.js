@@ -59,12 +59,12 @@ define([
 			lang.mixin(this, {
 				pages: [{
 					name: 'start',
-					headerText: _('Microsoft Azure information'),
-					helpText: '',
+					headerText: _('Welcome to the Office 365 configuration'),
+					helpText: _('Welcome to the Microsoft Office 365 setup wizard. A few steps are needed to complete the configuration process.'),
 					widgets: [{
 						type: Text,
 						name: 'already-initialized',
-						content: _('<b>Warning!</b> The configuration has already been done. If you continue, the current connection information will be replaced.'),
+						content: _('<b>Warning!</b> The configuration has already been done. If you continue, the current connection settings will be replaced.'),
 						visible: false
 					}, {
 						type: Text,
@@ -73,8 +73,8 @@ define([
 					}]
 				}, {
 					name: 'add-external-application',
-					headerText: _('Add an Application to Azure AD'),
-					helpText: '',
+					headerText: _('Create an application for Office 365'),
+					helpText: _('To allow UCS to synchronize selected user accounts a new application have to be added in the active directory.'),
 					widgets: [{
 						name: 'infos',
 						type: Text,
@@ -83,21 +83,23 @@ define([
 						type: TextBox,
 						name: 'login-url',
 						sizeClass: 'Two',
+						readOnly: true,
 						label: _('SIGN-ON URL')
 					}, {
 						type: TextBox,
 						name: 'appid-url',
 						sizeClass: 'Two',
+						readOnly: true,
 						label: _('APP ID URI')
 					}, {
 						name: 'complete',
 						type: Text,
-						content: this.formatOrderedList([_('Complete the <i>Add application</i> wizard in the Azure portal.')], {start: 6})
+						content: this.formatOrderedList([_('Complete the <i>Add application</i> wizard in the Azure portal.')], {start: 8})
 					}]
 				}, {
 					name: 'ucs-integration',
-					headerText: _('Integrate Azure connection into UCS'),
-					helpText: '',
+					headerText: _('Integrate Azure connection into UCS'),  // TODO: enhance this title
+					helpText: _('To integrate Office 365 into UCS the manifest of the new application have to be downloaded.'),
 					widgets: [{
 						type: Text,
 						name: 'infos',
@@ -113,11 +115,15 @@ define([
 								tenant_id: value
 							});
 						})
+					}, {
+						type: Text,
+						name: 'continue',
+						content: this.formatOrderedList([_('Continue by clicking on <i>Next</i>.')], {start: 4})
 					}]
 				}, {
 					name: 'manifest-upload',
 					headerText: _('Upload manifest to UCS'),
-					helpText: '',
+					helpText: _('The manifest contains all necessary information required to connect UCS with your active directory.'),
 					widgets: [{
 						type: Text,
 						name: 'infos',
@@ -144,17 +150,17 @@ define([
 					}]
 				}, {
 					name: 'upload-manifest',
-					headerText: _('Upload manifest to Azure'),
-					helpText: '',
+					headerText: _('Upload updated manifest'),
+					helpText: _('UCS modified the manifest to include all information which Azure needs to accept UCS. The modified manifest now has to be uploaded to Azure.'),
 					widgets: [{
 						type: Text,
 						name: 'azure-integration',
-						content: this.getTextAzureIntegration()
+						content: this.getTextUpdateManifest()
 					}]
 				}, {
 					name: 'azure-integration-auth',
-					headerText: _('Make UCS Office 365 app known to Azure AD - Authorize'),
-					helpText: '',
+					headerText: _('Authorize UCS Office 365 application'),
+					helpText: _('In the following step some permissions have to be granted to UCS.'),
 					widgets: [{
 						type: Text,
 						name: 'infos',
@@ -168,12 +174,12 @@ define([
 				}, {
 					name: 'success',
 					headerText: _('Setup successful'),
-					helpText: '',
+					helpText: _('Congratulations, the connection between UCS and Microsoft Azure has been established.'),
 					widgets: [{
 						type: Text,
 						name: 'infos',
 						content: _('Congratulations, the connection between UCS and Microsoft Azure has been established.') + ' ' +
-							_('By enabling the corresponding option in the <i>Office 365</i> tab in the UMC users module, user accounts can now be synchronized to Microsoft Azure.') + this.img(_('umc_office365_EN.png'))
+							_('You can now enable the Microsoft Azure synchronization for users on the <i>Office 365</i> tab in the %s.', [tools.linkToModule({module: 'udm', flavor: 'users/user'})]) + '<br>' + this.img(_('umc_office365_EN.png'))
 					}]
 				}, {
 					name: 'error',
@@ -204,47 +210,52 @@ define([
 
 		getTextWelcome: function() {
 			return this.formatParagraphs([
-				_('<b>Welcome to the <a href="https://products.office.com/" target="_blank">Microsoft Office 365</a> configuration wizard.</b>'),
+				_('Welcome to the <a href="https://products.office.com/" target="_blank">Microsoft Office 365</a> setup wizard.'),
 				_('It will guide you through the process of setting up automatic provisioning of Microsoft Office 365 accounts for your user accounts.'),
 				_('To use this app you need a Microsoft Office 365 admin account, a global administrator account in the corresponding Azure AD and a <a href="https://azure.microsoft.com/en-us/documentation/articles/active-directory-add-domain/" target="_blank">verified domain</a>.')
 			]);
 		},
 
 		getTextConfiguration: function() {
-			return _('Please login to the <a href="https://manage.windowsazure.com/" target="_blank">Azure portal</a>, select your Active Directory and follow these steps:') + this.formatOrderedList([
+			return _('Please follow the next steps to create a new application in the Azure active directory:') + this.formatOrderedList([
+				_('Login to the <a href="https://manage.windowsazure.com/" target="_blank">Microsoft Azure portal</a>.'),
+				_('Select your Active Directory.'),
 				_('On the <i>APPLICATIONS</i> tab, start the wizard to add a new application to your directory.') + this.img(_('bottom_bar_add_app_EN.png')),
-				_('Choose the option that you want to <i>add an application my organization is developing</i>') + this.img(_('add_application_EN.png')),
+				_('Choose the option that you want to <i>add an application my organization is developing</i>.') + this.img(_('add_application_EN.png')),
 				_('Enter a name for your application, e.g. <i>UCS Office 365</i>.'),
 				_('Select the <i>WEB APPLICATION AND/OR WEB-API</i> option and click on the <i>Next</i> button in Azures Add-Application wizard.'),
-				_('Copy the values below and paste them into the respective fields in the Azure wizard') // + this.img('uri_input_fields.png')
+				_('Copy the values below and paste them into the respective fields in the Azure wizard.') // + this.img('uri_input_fields.png')
 			]);
 		},
 
 		getTextUCSIntegration: function() {
 			return this.formatOrderedList([
-				_('When Azures <i>Add application</i> wizard completes, open the new application by clicking on it.'),
+				_('Make sure the newly created application is selected or open it by clicking on it.'),
 				_('In the bottom bar, click <i>MANAGE MANIFEST</i> and then <i>Download Manifest</i>. Save the manifest file on your computer.') + this.img(_('manage_manifest_EN.png')),
 				_('Click <i>VIEW ENDPOINTS</i>, copy the value for <i>FEDERATION METADATA DOCUMENT</i> and insert it into the text box below.') + this.img(_('copy_tenant_id_EN.png'))
 			]);
 		},
 
 		getTextManifestUpload: function() {
-			return _('Please upload the JSON file that was just downloaded (with a name similar to <i>7e428ea7-e7d8-4f0c-93ed-c8e74c4050c9.json</i>), using the button below. The wizard will then take you to the next page.');
+			return _('Please upload the manifest (which has a similar name as <i>7e428ea7-e7d8-4f0c-93ed-c8e74c4050c9.json</i>) that you just downloaded from the Azure Portal by using the upload button below.') + ' '
+				+ _('After uploading the manifest you will be offered to download a file <i>manifest.json</i>. Store this file on your computer.');
 		},
 
-		getTextAzureIntegration: function() {
+		getTextUpdateManifest: function() {
 			return this.formatOrderedList([
-				_('Please <a download="manifest.json" href="data:application/octet-stream;charset=utf-8;base64,{manifest}">click here</a> to download the manifest.json file. Store it on your computer, then upload it to Azure via the Azure dashboard by selecting <i>manage manifest</i> and <i>upload manifest</i>') + this.img(_('manage_manifest_EN.png')),
-				_('When presented with the <i>Upload Manifest</i> window, click on <i>BROWSE FOR FILE...</i> and select the previously downloaded <i>manifest.json</i>.') + this.img(_('azure_upload_manifest_window_EN.png')),
-				_('Click here on <i>Next</i> when the upload has succeeded.')
+				_('If the download of the <i>manifest.json</i> file didn\'t start automatically <a download="manifest.json" href="data:application/octet-stream;charset=utf-8;base64,{manifest}">click here</a>.'),
+				_('Select <i>MANAGE MANIFEST</i> and <i>upload manifest</i> in the Azure dashboard.') + this.img(_('manage_manifest_EN.png')),
+				_('To upload the manifest in the new pop up click on <i>BROWSE FOR FILE...</i> and select the previously downloaded <i>manifest.json</i>.') + this.img(_('azure_upload_manifest_window_EN.png')),
+				_('After the upload has succeeded continue this wizard by clicking on <i>Next</i>.')
 			]);
 		},
 
 		getTextAzureAuthorization: function() {
 			return [_('To authorize the connection between UCS and Microsoft Azure please click the button below.'),
-				_('This will open a new browser window where you can complete the Authorization process by accepting the permission request.'),
-				_('After accepting the permission request, the browser window or tab will close itself and the connection will be tested.')
-			].join(' ');
+				_('This will open a new browser window where you can complete the authorization process by accepting the permission request.'),
+				_('Select your account and log in and click on <i>Accept</i>.'),
+				_('After accepting the permission request, the browser window will close itself and the connection between UCS and Office 365 will be established.')
+			].join(' ') + this.img(_('ms_authorize_screen_text_and_image.png'));
 		},
 
 		formatParagraphs: function(data) {
@@ -359,7 +370,7 @@ define([
 		},
 
 		hasPrevious: function(pageName) {
-			if (~array.indexOf(["azure-integration", 'azure-integration-auth', "success", 'error'], pageName)) {
+			if (~array.indexOf(["azure-integration", "success", 'error'], pageName)) {
 				return false;
 			}
 			return this.inherited(arguments);

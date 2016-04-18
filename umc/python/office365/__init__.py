@@ -106,7 +106,7 @@ class Instance(Base):
 		self.finished(request.id, {
 			'manifest': data.encode('base64'),
 			'authorizationurl': authorizationurl,
-		})
+		}, message=_('The manifest has been successfully uploaded.'))
 
 	@sanitize(
 		id_token=StringSanitizer(),
