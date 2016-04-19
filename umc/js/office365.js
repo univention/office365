@@ -270,7 +270,7 @@ define([
 				_('This will open a new browser window where you can complete the authorization process by accepting the permission request.'),
 				_('Select your account and log in and click on <i>Accept</i>.'),
 				_('After accepting the permission request, the browser window will close itself and the connection between UCS and Office 365 will be established.')
-			].join(' ') + this.img(_('ms_authorize_screen_text_and_image.png'));
+			].join(' ') + this.img('ms_authorize_screen_text_and_image.png');
 		},
 
 		formatParagraphs: function(data) {

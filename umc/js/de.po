@@ -427,10 +427,6 @@ msgstr "copy_tenant_id_DE.png"
 msgid "manage_manifest_EN.png"
 msgstr "manage_manifest_DE.png"
 
-#: umc/js/office365.js:273
-msgid "ms_authorize_screen_text_and_image.png"
-msgstr "ms_authorize_screen_text_and_image_de.png"
-
 #: umc/js/office365.js:182
 msgid "umc_office365_EN.png"
 msgstr "umc_office365_DE.png"
