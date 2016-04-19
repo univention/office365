@@ -155,7 +155,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 udm settings/extended_attribute create "$@" --ignore_exists \
 	--position "cn=custom attributes,cn=univention,$ldap_base" \
 	--set name="UniventionOffice365GroupObjectID" \
-	--set CLIName="UniventionOffice365GroupObjectID" \
+	--set CLIName="UniventionOffice365ObjectID" \
 	--set shortDescription="Object ID of group in Azure AD" \
 	--set translationShortDescription='"de_DE" "Objekt ID der Gruppe im Azure AD"' \
 	--set longDescription="Object ID of user in Azure AD" \
