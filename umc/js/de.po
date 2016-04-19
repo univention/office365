@@ -330,7 +330,7 @@ msgid ""
 msgstr ""
 "Um diese App zu verwenden wird ein Microsoft Office 365 Administrator Konto, "
 "ein globales Administrator Konto im entsprechenden Azure AD und eine <a href="
-"\"https://azure.microsoft.com/en-us/documentation/articles/active-directory-"
+"\"https://azure.microsoft.com/de-de/documentation/articles/active-directory-"
 "add-domain/\" target=\"_blank\">verifizierte Domäne</a> benötigt."
 
 #: umc/js/office365.js:154
@@ -426,6 +426,10 @@ msgstr "copy_tenant_id_DE.png"
 #: umc/js/office365.js:249 umc/js/office365.js:262
 msgid "manage_manifest_EN.png"
 msgstr "manage_manifest_DE.png"
+
+#: umc/js/office365.js:273
+msgid "ms_authorize_screen_text_and_image_EN.png"
+msgstr "ms_authorize_screen_text_and_image_DE.png"
 
 #: umc/js/office365.js:182
 msgid "umc_office365_EN.png"
