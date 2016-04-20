@@ -26,7 +26,7 @@
  * /usr/share/common-licenses/AGPL-3; if not, see
  * <http://www.gnu.org/licenses/>.
  */
-/*global require,define,window,setTimeout*/
+/*global require,define,window,setTimeout,dojo*/
 
 define([
 	"dojo/_base/declare",
@@ -72,7 +72,7 @@ define([
 						content: this.getTextWelcome()
 					}]
 				}, {
-					name: 'add-external-application',
+					name: 'add-application',
 					headerText: _('Create an application for Office 365'),
 					helpText: _('To allow UCS to synchronize selected user accounts a new application have to be added in the active directory.'),
 					widgets: [{
@@ -98,8 +98,8 @@ define([
 					}]
 				}, {
 					name: 'ucs-integration',
-					headerText: _('Integrate Azure connection into UCS'),  // TODO: enhance this title
-					helpText: _('To integrate Office 365 into UCS the manifest of the new application have to be downloaded.'),
+					headerText: _('Connect Azure with UCS'),
+					helpText: _('To integrate Office 365 into UCS the manifest of the new application have to be downloaded.') + ' ' + _('The manifest is a JSON file which contains all necessary information required to connect UCS with your active directory.'),
 					widgets: [{
 						type: Text,
 						name: 'infos',
@@ -108,7 +108,9 @@ define([
 						type: TextBox,
 						name: 'tenant_id',
 						label: _('Federation metadata document'),
+						placeHolder: _('Please insert the federation metadata document URL here...'),
 						sizeClass: 'Two',
+						required: true,
 						value: '',
 						onChange: lang.hitch(this, function(value) {
 							this.getWidget('manifest-upload', 'upload').set('dynamicOptions', {
@@ -123,7 +125,7 @@ define([
 				}, {
 					name: 'manifest-upload',
 					headerText: _('Upload manifest to UCS'),
-					helpText: _('The manifest contains all necessary information required to connect UCS with your active directory.'),
+					helpText: _('The manifest is a JSON file which contains all necessary information required to connect UCS with your active directory.'),
 					widgets: [{
 						type: Text,
 						name: 'infos',
@@ -158,19 +160,24 @@ define([
 						content: this.getTextUpdateManifest()
 					}]
 				}, {
-					name: 'azure-integration-auth',
+					name: 'authorize',
 					headerText: _('Authorize UCS Office 365 application'),
 					helpText: _('In the following step some permissions have to be granted to UCS.'),
 					widgets: [{
 						type: Text,
 						name: 'infos',
 						content: this.getTextAzureAuthorization()
+					}, {
+						type: Text,
+						name: 'image',
+						content: this.getTextAzureAuthorizationImage()
 					}],
 					buttons: [{
 						name: 'authorize',
-						label: _('Authorize app'),
+						label: _('Authorize UCS to access application'),
 						callback: lang.hitch(this, 'openAuthorization')
-					}]
+					}],
+					layout: ['infos', 'authorize', 'image']
 				}, {
 					name: 'success',
 					headerText: _('Office 365 setup complete'),
@@ -247,7 +254,8 @@ define([
 			return this.formatOrderedList([
 				_('Make sure the newly created application is selected or open it by clicking on it.'),
 				_('In the bottom bar, click <i>MANAGE MANIFEST</i> and then <i>Download Manifest</i>. Save the manifest file on your computer.') + this.img(_('manage_manifest_EN.png')),
-				_('Click <i>VIEW ENDPOINTS</i>, copy the value for <i>FEDERATION METADATA DOCUMENT</i> and insert it into the text box below.') + this.img(_('copy_tenant_id_EN.png'))
+				_('Click on <i>VIEW ENDPOINTS</i> and copy the value for <i>FEDERATION METADATA DOCUMENT</i>.') + this.img(_('copy_tenant_id_EN.png')),
+				_('Insert the copied value into the text box below.')
 			]);
 		},
 
@@ -266,11 +274,14 @@ define([
 		},
 
 		getTextAzureAuthorization: function() {
-			return [_('To authorize the connection between UCS and Microsoft Azure please click the button below.'),
-				_('This will open a new browser window where you can complete the authorization process by accepting the permission request.'),
-				_('Select your account and log in and click on <i>Accept</i>.'),
-				_('After accepting the permission request, the browser window will close itself and the connection between UCS and Office 365 will be established.')
-			].join(' ') + this.img(_('ms_authorize_screen_text_and_image_EN.png'));
+			return [_('The connection between UCS and the Microsoft Azure application has to be authorized now.'),
+				_('When you click on the button below a a new browser window will be opened. Please select your account and log in if necessary and click on <i>Accept</i> to permit the permission request.'),
+				_('After this the browser window will close itself and the connection between UCS and the Office 365 application will be established.')
+			].join(' ');
+		},
+
+		getTextAzureAuthorizationImage: function() {
+			return this.img(_('ms_authorize_screen_text_and_image_EN.png'));
 		},
 
 		formatParagraphs: function(data) {
@@ -289,7 +300,7 @@ define([
 		initWizard: function(data) {
 			this.getWidget('start', 'already-initialized').set('visible', data.result.initialized);
 			tools.forIn(data.result, lang.hitch(this, function(key, val) {
-				var widget = this.getWidget('add-external-application', key);
+				var widget = this.getWidget('add-application', key);
 				if (widget) {
 					widget.set('value', lang.replace(val, {origin: this.origin}));
 				}
@@ -299,7 +310,7 @@ define([
 		manifestUploaded: function(data) {
 			this.authorizationurl = data.result.authorizationurl;
 //			iframe("data:application/octet-stream;headers=Content-Disposition%3A%20attachment%3B%20filename%3Dmanifest.json;charset=utf-8;base64," + data.result.manifest);
-			domConstruct.create('a', {href: 'data:application/octet-stream;charset=utf-8;base64,' + data.result.manifest, 'download': 'manifest.json'}).click();
+			domConstruct.create('a', {href: 'data:application/octet-stream;charset=utf-8;base64,' + data.result.manifest, 'download': 'manifest.json', style: 'display: none;', 'innerHTML': 'manifest.json'}, dojo.body()).click();
 			var widget = this.getWidget('upload-manifest', 'azure-integration');
 			widget.set('content', lang.replace(widget.get('content'), data.result));
 			this._next('manifest-upload');
@@ -336,7 +347,7 @@ define([
 				this._progressDeferred.progress(result);
 				if (result.finished) {
 					this._progressDeferred.resolve(result);
-					this._next('azure-integration-auth');
+					this._next('authorize');
 					return;
 				}
 				if (result.waiting && this.authorizationWindow && this.authorizationWindow.closed) {
@@ -354,7 +365,7 @@ define([
 
 		next: function(pageName) {
 			var nextPage = this.inherited(arguments);
-			if (nextPage == 'azure-integration-auth') {
+			if (nextPage == 'authorize') {
 				// when switching to the authorization page we need to make sure that the session is still active and keeps active until the authorization was done
 				this.resetProgress();
 				this.startPolling().then(function() {
@@ -371,14 +382,14 @@ define([
 			if (pageName == "manifest-upload") {
 				buttons = array.filter(buttons, function(button) { return button.name != 'next'; });
 			}
-			if (pageName == 'azure-integration-auth') {
+			if (pageName == 'authorize') {
 				buttons = array.filter(buttons, function(button) { return button.name != 'finish'; });
 			}
 			return buttons;
 		},
 
 		hasNext: function(pageName) {
-			if (~array.indexOf(['azure-integration-auth', "success2", 'error'], pageName)) {
+			if (~array.indexOf(['authorize', "success2", 'error'], pageName)) {
 				return false;
 			}
 			return this.inherited(arguments);
@@ -392,7 +403,7 @@ define([
 		},
 
 		canCancel: function(pageName) {
-			if (~array.indexOf(["start", 'add-external-application', "ucs-integration", "manifest-upload", "success", "success2", 'error'], pageName)) {
+			if (~array.indexOf(["start", 'add-application', "ucs-integration", "manifest-upload", "success", "success2", 'error'], pageName)) {
 				return false;
 			}
 			return this.inherited(arguments);
@@ -420,7 +431,20 @@ define([
 					this._wizard.authorizationWindow.close();
 				}
 			}));
-
+			this._wizard.set('headerButtons', [{
+				name: 'help',
+				iconClass: 'umcHelpIconWhite',
+				label: _('Help'),
+				callback: lang.hitch(this, function() {
+					dialog.alert([
+						_('This wizard helps you to configure the connection between UCS and Microsoft Office 365.'), '<br>',
+						_('You need a <a href="%(domain)s" target="_blank">verified domain</a> and access to the <a href="%(dev)s" target="_blank">Microsoft Azure Portal</a> with a Microsoft Office 365 administrator account.', {
+							domain: _('https://azure.microsoft.com/en-us/documentation/articles/active-directory-add-domain/'),
+							dev: _('https://manage.windowsazure.com/')
+						})
+					].join(' '), _('Microsoft Office 365 setup wizard'));
+				})
+			}]);
 		},
 
 		buildRendering: function() {
