@@ -18,7 +18,7 @@ msgid ""
 "Microsoft reported an error condition during authorization. It might help to "
 "reauthorize. Error message: {error}: {error_description}"
 msgstr ""
-"Microsoft hat beim Authorisieren einen Fehler gemeldet. Es könnte helfen "
+"Microsoft hat beim Autorisieren einen Fehler gemeldet. Es könnte helfen "
 "noch einmal zu autorisieren. Fehlermeldung: {error}: {error_description}"
 
 #: umc/python/office365/__init__.py:177
@@ -31,7 +31,7 @@ msgstr "Office 365 Konfiguration beendet"
 
 #: umc/python/office365/__init__.py:158
 msgid "Successfully authorized. Starting synchronization."
-msgstr "Erfolgreich authorisiert. Synchronisation startet."
+msgstr "Erfolgreich autorisiert. Synchronisation startet."
 
 #: umc/python/office365/__init__.py:176
 msgid "Successfully initialized"
@@ -43,7 +43,7 @@ msgid ""
 "configuration wizard."
 msgstr ""
 "Die Konfiguration wurde beendet! Sie können die Seite schließen und mit dem "
-"Konfiguratioswizard fortfahren."
+"Konfigurationswizard fortfahren."
 
 #: umc/python/office365/__init__.py:109
 msgid "The manifest has been successfully uploaded."
@@ -51,4 +51,4 @@ msgstr "Das Manifest wurde erfolgreich hochgeladen."
 
 #: umc/python/office365/__init__.py:146
 msgid "Waiting for authorization to be completed."
-msgstr "Warten auf das Beenden der Authorisation."
+msgstr "Warten auf das Beenden der Autorisierung."

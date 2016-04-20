@@ -137,7 +137,7 @@ window.top.close();
 			'title': _('Office 365 Configuration finished'),
 			'content': _('The configuration has finished! You can now close this page and continue the configuration wizard.'),
 		}
-		self.finished(request.id, content, mimetype='text/html')
+		self.finished(request.id, bytes(content), mimetype='text/html')
 
 	@simple_response
 	def state(self):
