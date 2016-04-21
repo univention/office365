@@ -55,7 +55,7 @@ msgid ""
 "After uploading the manifest you will be offered to download a file "
 "<i>manifest.json</i>. Store this file on your computer."
 msgstr ""
-"Nachdem das Manifest hochgeladen wurde wird Ihnen eine Datei <i>manifest."
+"Nachdem das Manifest hochgeladen wurde, wird Ihnen eine Datei <i>manifest."
 "json</i> zum Download angeboten. Speichern Sie diese Datei auf Ihrer "
 "Festplatte."
 
@@ -189,8 +189,8 @@ msgid ""
 "It will guide you through the process of setting up automatic provisioning "
 "of Microsoft Office 365 accounts for your user accounts."
 msgstr ""
-"Er wird sie dabei begleiten das automatische Erstellen von Microsoft Office "
-"365 Konten durch UCS, zu konfigurieren."
+"Er wird Sie dabei begleiten, das automatische Erstellen von Microsoft Office "
+"365 Konten durch UCS zu konfigurieren."
 
 #: umc/js/office365.js:243
 msgid ""
@@ -206,7 +206,7 @@ msgid ""
 "on it."
 msgstr ""
 "Stellen Sie sicher, dass die neu erstellte Anwendung ausgewählt ist oder "
-"öffnen Sie sie durch einen klick."
+"öffnen Sie sie durch einen Klick."
 
 #: umc/js/office365.js:445
 msgid "Microsoft Office 365 setup wizard"
@@ -248,7 +248,7 @@ msgid ""
 msgstr ""
 "Bitte laden Sie das Manifest (welches einen ähnlichen Namen wie <i>7e428ea7-"
 "e7d8-4f0c-93ed-c8e74c4050c9.json</i> hat), das Sie gerade im Azure Portal "
-"heruntergeladen haben mit dem unten stehenden Upload-Button hoch."
+"heruntergeladen haben, mit dem unten stehenden Upload-Button hoch."
 
 #: umc/js/office365.js:87
 msgid "SIGN-ON URL"
@@ -260,7 +260,7 @@ msgid ""
 "dashboard."
 msgstr ""
 "Wählen Sie <i>MANIFEST VERWALTEN</i> und <i>Manifest hochladen</i> im Azure "
-"dashboard."
+"Dashboard."
 
 #: umc/js/office365.js:248
 msgid ""
@@ -295,7 +295,7 @@ msgid ""
 "The manifest is a JSON file which contains all necessary information "
 "required to connect UCS with your active directory."
 msgstr ""
-"Das Manifest ist eine JSON-Datei, die alle nötigen Informationen beinhaltet "
+"Das Manifest ist eine JSON-Datei, die alle nötigen Informationen beinhaltet, "
 "um UCS mit dem Active Directory zu verbinden."
 
 #: umc/js/office365.js:440
@@ -311,7 +311,7 @@ msgid ""
 "To allow UCS to synchronize selected user accounts a new application have to "
 "be added in the active directory."
 msgstr ""
-"Um UCS zu erlauben, ausgewählte Benutzerkonten zu synchronisieren muss eine "
+"Um UCS zu erlauben, ausgewählte Benutzerkonten zu synchronisieren, muss eine "
 "neue Anwendung im Active Directory hinzugefügt werden."
 
 #: umc/js/office365.js:102
@@ -319,7 +319,7 @@ msgid ""
 "To integrate Office 365 into UCS the manifest of the new application have to "
 "be downloaded."
 msgstr ""
-"Um Office 365 in UCS zu integrieren ist es notwendig, das Manifest der neuen "
+"Um Office 365 in UCS zu integrieren, ist es notwendig, das Manifest der neuen "
 "Anwendung herunterzuladen."
 
 #: umc/js/office365.js:271
@@ -388,7 +388,7 @@ msgid ""
 "complete the configuration process."
 msgstr ""
 "Willkommen zum Microsoft Office 365 Einrichtungsassistent. Es sind einige "
-"Schritte sind notwendig, um den Konfigurationsprozess fertigzustellen."
+"Schritte notwendig, um den Konfigurationsprozess fertigzustellen."
 
 #: umc/js/office365.js:62
 msgid "Welcome to the Office 365 configuration"
@@ -400,7 +400,7 @@ msgid ""
 "Please select your account and log in if necessary and click on <i>Accept</"
 "i> to permit the permission request."
 msgstr ""
-"Wenn Sie auf den untenstehenden Button klicken wird ein neues Browserfenster "
+"Wenn Sie auf den untenstehenden Button klicken, wird ein neues Browserfenster "
 "geöffnet. Melden Sie sich ggf. mit Ihrem Konto an und klicken auf "
 "<i>Akzeptieren</i> um die Berechtigungsanfrage zu bestätigen."
 

@@ -185,8 +185,7 @@ define([
 					widgets: [{
 						type: Text,
 						name: 'infos',
-						content: _('Congratulations, the connection between UCS and Microsoft Azure has been established.') + ' ' +
-							_('You can now enable the Microsoft Azure synchronization for users on the <i>Office 365</i> tab in the %s.', [tools.linkToModule({module: 'udm', flavor: 'users/user'})]) + '<br>' + this.img(_('umc_office365_EN.png'))
+						content: _('You can now enable the Microsoft Azure synchronization for users on the <i>Office 365</i> tab in the %s.', [tools.linkToModule({module: 'udm', flavor: 'users/user'})]) + '<br>' + this.img(_('umc_office365_EN.png'))
 					}]
 				}, {
 					name: 'success2',
