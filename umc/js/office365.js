@@ -265,7 +265,7 @@ define([
 
 		getTextUpdateManifest: function() {
 			return this.formatOrderedList([
-				_('If the download of the <i>manifest.json</i> file didn\'t start automatically <a download="manifest.json" href="data:application/octet-stream;charset=utf-8;base64,{manifest}">click here</a>.'),
+				_('If the download of the <i>manifest.json</i> file didn\'t start automatically <a download="manifest.json" href="/univention-management-console/command/office365/manifest.json" target="_blank">click here</a>.'),
 				_('Select <i>MANAGE MANIFEST</i> and <i>upload manifest</i> in the Azure dashboard.') + this.img(_('manage_manifest_EN.png')),
 				_('To upload the manifest in the new pop up click on <i>BROWSE FOR FILE...</i> and select the previously downloaded <i>manifest.json</i>.') + this.img(_('azure_upload_manifest_window_EN.png')),
 				_('After the upload has succeeded continue this wizard by clicking on <i>Next</i>.')
@@ -308,10 +308,9 @@ define([
 
 		manifestUploaded: function(data) {
 			this.authorizationurl = data.result.authorizationurl;
-//			iframe("data:application/octet-stream;headers=Content-Disposition%3A%20attachment%3B%20filename%3Dmanifest.json;charset=utf-8;base64," + data.result.manifest);
-			domConstruct.create('a', {href: 'data:application/octet-stream;charset=utf-8;base64,' + data.result.manifest, 'download': 'manifest.json', style: 'display: none;', 'innerHTML': 'manifest.json'}, dojo.body()).click();
-			var widget = this.getWidget('upload-manifest', 'azure-integration');
-			widget.set('content', lang.replace(widget.get('content'), data.result));
+//			iframe("data:application/octet-stream;headers=Content-Disposition%3A%20attachment%3B%20filename%3Dmanifest.json;charset=utf-8;base64," + data.result.manifest);  // sucks...
+//			domConstruct.create('a', {href: 'data:application/octet-stream;charset=utf-8;base64,' + data.result.manifest, 'download': 'manifest.json', style: 'display: none;', 'innerHTML': 'manifest.json'}, dojo.body()).click();  // IE11 sucks
+			domConstruct.create('a', {target: '_blank', href: '/univention-management-console/command/office365/manifest.json', 'download': 'manifest.json', style: 'display: none;', 'innerHTML': 'manifest.json'}, dojo.body()).click();
 			this._next('manifest-upload');
 		},
 

@@ -44,7 +44,6 @@ import sys
 from xml.dom.minidom import parseString
 from stat import S_IRUSR, S_IWUSR
 import operator
-
 from cryptography.x509 import load_pem_x509_certificate
 from cryptography.hazmat.backends import default_backend
 import OpenSSL.crypto
@@ -64,6 +63,7 @@ SSL_CERT = CONFDIR + "/cert.pem"
 SSL_CERT_FP = CONFDIR + "/cert.fp"
 IDS_FILE = CONFDIR + "/ids.json"
 TOKEN_FILE = CONFDIR + "/token.json"
+MANIFEST_FILE = os.path.join(CONFDIR, 'manifest.json')
 SCOPE = ["Directory.ReadWrite.All"]  # https://msdn.microsoft.com/Library/Azure/Ad/Graph/howto/azure-ad-graph-api-permission-scopes#DirectoryRWDetail
 DEBUG_FORMAT = '%(asctime)s %(levelname)-8s %(module)s.%(funcName)s:%(lineno)d  %(message)s'
 LOG_DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
@@ -175,6 +175,9 @@ class Manifest(object):
 			self.manifest["requiredResourceAccess"][0]["resourceAccess"].append(permission)
 
 	def store(self, tenant_id=None):
+		with open(MANIFEST_FILE, 'wb') as fd:
+			json.dump(self.as_dict(), fd, indent=2, separators=(',', ': '), sort_keys=True)
+		os.chmod(MANIFEST_FILE, S_IRUSR | S_IWUSR)
 		AzureAuth.store_azure_ids(client_id=self.app_id, tenant_id=tenant_id, reply_url=self.reply_url)
 
 

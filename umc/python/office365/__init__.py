@@ -43,7 +43,7 @@ from univention.management.console.modules.decorators import sanitize, simple_re
 from univention.management.console.modules.sanitizers import StringSanitizer, DictSanitizer, BooleanSanitizer
 
 
-from univention.office365.azure_auth import AzureAuth, AzureError, Manifest, ManifestError, TokenError
+from univention.office365.azure_auth import AzureAuth, AzureError, Manifest, ManifestError, TokenError, MANIFEST_FILE
 from univention.office365.azure_handler import AzureHandler
 
 _ = Translation('univention-management-console-module-office365').translate
@@ -102,11 +102,14 @@ class Instance(Base):
 		except AzureError as exc:
 			raise UMC_Error(str(exc))
 
-		data = json.dumps(manifest.as_dict(), indent=2, separators=(',', ': '), sort_keys=True)
 		self.finished(request.id, {
-			'manifest': data.encode('base64'),
 			'authorizationurl': authorizationurl,
 		}, message=_('The manifest has been successfully uploaded.'))
+
+	@sanitize(manifest=DictSanitizer(dict()))
+	def manifest_json(self, request):
+		with open(MANIFEST_FILE, 'rb') as fd:
+			self.finished(request.id, fd.read(), mimetype='application/octet-stream')
 
 	@sanitize(
 		id_token=StringSanitizer(),

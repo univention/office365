@@ -11,5 +11,6 @@
 		<command name="office365/upload" function="upload"/>
 		<command name="office365/authorize" function="authorize"/>
 		<command name="office365/state" function="state"/>
+		<command name="office365/manifest.json" function="manifest_json"/>
 	</module>
 </umc>
