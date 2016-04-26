@@ -67,6 +67,8 @@ MANIFEST_FILE = os.path.join(CONFDIR, 'manifest.json')
 SCOPE = ["Directory.ReadWrite.All"]  # https://msdn.microsoft.com/Library/Azure/Ad/Graph/howto/azure-ad-graph-api-permission-scopes#DirectoryRWDetail
 DEBUG_FORMAT = '%(asctime)s %(levelname)-8s %(module)s.%(funcName)s:%(lineno)d  %(message)s'
 LOG_DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
+SAML_SETUP_SCRIPT_CERT_PATH = "/etc/simplesamlphp/ucs-sso.ucs.local-idp-certificate.crt"
+SAML_SETUP_SCRIPT_PATH = "/var/lib/univention-office365/saml_setup.ps1"
 
 
 oauth2_auth_url = "https://login.microsoftonline.com/{tenant}/oauth2/authorize?{params}"
@@ -108,6 +110,10 @@ class NoIDsStored(AzureError):
 
 
 class ManifestError(AzureError):
+	pass
+
+
+class WriteScriptError(AzureError):
 	pass
 
 
@@ -499,3 +505,59 @@ class AzureAuth(object):
 		client_assertion = '{0}.{1}'.format(assertion_blob, signature)
 
 		return client_assertion
+
+	def write_saml_setup_script(self):
+		from univention.config_registry import ConfigRegistry
+		ucr = ConfigRegistry()
+		ucr.load()
+
+		domain = ucr.get('office365/azure/domainname', ucr.get('domainname', ''))
+		issuer = ucr.get('umc/saml/idp-server', 'https://ucs-sso.ucs.local/simplesamlphp/saml2/idp/metadata.php')
+		ucs_sso_fqdn = ucr.get('ucs/server/sso/fqdn', "%s.%s" % (ucr.get('hostname', 'undefined'), ucr.get('domainname', 'undefined')))
+		cert = ""
+		try:
+			with open(ucr.get('saml/idp/certificate/certificate', SAML_SETUP_SCRIPT_CERT_PATH), 'r') as f:
+				raw_cert = f.read()
+		except IOError as e:
+			logger.exception("while reading certificate: %s", e)
+			raise WriteScriptError(_t("Error reading identity provider certificate"), chained_exc=e), sys.exc_info()[2]
+
+		try:
+			cert = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, raw_cert))
+		except OpenSSL.crypto.Error as e:
+			logger.exception("while converting certificate: %s", e)
+			raise WriteScriptError(_t("Error converting identity provider certificate"), chained_exc=e), sys.exc_info()[2]
+
+		# The raw base64 encoded certificate is required
+		cert = cert.replace('-----BEGIN CERTIFICATE-----', '').replace('-----END CERTIFICATE-----', '').replace('\n', '')
+
+		powershell_template = '''
+# Requires the Azure AD Module to be installed from
+# https://technet.microsoft.com/library/jj151815.aspx#bkmk_installmodule
+# At least .NET 4.5.1 is required to execute the Azure AD Module PowerShell cmdlet
+
+# If there is an error while executing this script, allow unsigned scripts to be executed temporarily by setting
+# Set-ExecutionPolicy Unrestricted -Scope CurrentUser
+# Reset the value to its default afterwards
+# Set-ExecutionPolicy Default -Scope CurrentUser
+
+# Get User Credentials and authenticate against Azure before executing the following statements
+Connect-MsolService
+
+$dom = "{domain}"
+$BrandName = "Univention Corporate Server SAML Integration"
+$LogOnUrl = "https://{ucs_sso_fqdn}/simplesamlphp/saml2/idp/SSOService.php"
+$LogOffUrl = "https://{ucs_sso_fqdn}/simplesamlphp/saml2/idp/initSLO.php?RelayState=/simplesamlphp/logout.php"
+$SigningCert = "{cert}"
+$IssuerUri = "{issuer}"
+$Protocol = "SAMLP"
+Set-MsolDomainAuthentication -DomainName $dom -FederationBrandName $BrandName -Authentication Federated -ActiveLogOnUri $LogOnUrl -PassiveLogOnUri $LogOnUrl -SigningCertificate $SigningCert -IssuerUri $IssuerUri -LogOffUri $LogOffUrl -PreferredAuthenticationProtocol $Protocol
+'''.format(domain=domain, ucs_sso_fqdn=ucs_sso_fqdn, cert=cert, issuer=issuer)
+
+		try:
+			print powershell_template
+			with open(SAML_SETUP_SCRIPT_PATH, 'w') as f:
+				f.write(powershell_template)
+		except IOError as e:
+			logger.exception("while writing powershell script: %s", e)
+			raise WriteScriptError(_t("Error writing saml setup script"), chained_exc=e), sys.exc_info()[2]

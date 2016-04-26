@@ -172,16 +172,13 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set deleteObjectClass=0 \
 	--set disableUDMWeb=1 || die
 
-udm saml/serviceprovider create "$@" \
-	--ignore_exists \
-	--position "cn=saml-serviceprovider,cn=univention,$ldap_base" \
-	--set isActivated=TRUE \
-	--set Identifier=office365.com \
-	--set NameIDFormat="urn:oasis:names:tc:SAML:2.0:nameid-format:persistent" \
-	--set simplesamlAttributes="false" \
-	--set AssertionConsumerService="https://login.microsoftonline.com/login.srf" \
-	--set simplesamlNameIDAttribute="uid" \
-	--set serviceProviderOrganizationName="Microsoft Office 365" || die
+# Add required attributes to saml/idp/ldap/get_attributes
+O_ATTRS="univentionOffice365Enabled entryUUID"
+for attr in ${O_ATTRS}; do
+	if ! echo "${saml_idp_ldap_get_attributes}" | grep -q "${attr}"; then
+		ucr set saml/idp/ldap/get_attributes="${saml_idp_ldap_get_attributes}, '${attr}'"
+	fi
+done
 
 # user template
 univention-directory-manager settings/usertemplate create "$@" --ignore_exists \
@@ -189,7 +186,6 @@ univention-directory-manager settings/usertemplate create "$@" --ignore_exists \
 	--set name="Office 365 Account" \
 	--set mailPrimaryAddress="<username>@$domainname" \
 	--set UniventionOffice365Enabled="1" \
-	--set serviceprovider="SAMLServiceProviderIdentifier=office365.com,cn=saml-serviceprovider,cn=univention,$ldap_base" || die
 
 # create mail domain object(s) if missing
 if ! udm mail/domain list "$@" | grep -q "name: $domainname" ; then
