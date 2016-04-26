@@ -1,0 +1,7 @@
+<p>Der Microsoft Office 365 Connector ermöglicht es, mit einem Klick einen Office 365 Zugang mit Single-Sign-on für Benutzer zu provisionieren.</p>
+<ul>
+    <li>Um diese zu verwenden wird ein Azure Active Directory Administratorzugang benötigt. Zusätzlich benötigt der Account Office 365 Lizenzen.</li>
+    <li>Um Office 365 kostenlos zu testen, kann hier ein Testzugang erzeugt werden: <a href="https://products.office.com/business/">products.office.com</a>.</li>
+    <li>Diese App benötigt, um Benutzer anzulegen, modifizieren und löschen zu können, administrative Berechtigungen für das Azure Active Directory Konto. Ein <a href="javascript:void(0)" onclick="require('umc/app').openModule('office365')">Einrichtungsassistent</a> wird Sie durch den Konfigurationsprozess begleiten.</li>
+</ul>
+<p>Benutzer müssen in der <a href="javascript:void(0)" onclick="require('umc/app').openModule('udm', 'users/user')">Domänenadministration</a> für diesen Dienst freigeschaltet werden.</p>
