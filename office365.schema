@@ -20,8 +20,17 @@ attributetype ( 1.3.6.1.4.1.10176.4000.103
 	SINGLE-VALUE
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.5 )
 
+attributetype ( 1.3.6.1.4.1.10176.4000.104
+	NAME 'univentionOffice365userPrincipalName'
+	DESC 'univentionOffice365userPrincipalName in Azure AD'
+	SINGLE-VALUE
+	EQUALITY caseIgnoreIA5Match
+	SUBSTR caseIgnoreIA5SubstringsMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{256} )
+
 objectclass ( 1.3.6.1.4.1.10176.4000.100
 	NAME 'univentionOffice365'
 	DESC 'Data for the Office 365 provisioning service'
 	SUP top AUXILIARY
-	MAY ( univentionOffice365Enabled $ univentionOffice365ObjectID $ univentionOffice365Data ) )
+	MAY ( univentionOffice365Enabled $ univentionOffice365ObjectID $
+	    univentionOffice365Data $ univentionOffice365userPrincipalName ) )

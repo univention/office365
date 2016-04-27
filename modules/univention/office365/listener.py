@@ -80,6 +80,7 @@ class Office365Listener(object):
 
 	@property
 	def verified_domains(self):
+		# Use handler.get_verified_domain_from_disk() for user creation.
 		return map(itemgetter("name"), self.ah.list_verified_domains())
 
 	def create_user(self, new):
@@ -116,7 +117,7 @@ class Office365Listener(object):
 				password=self.ah.create_random_pw(),
 				forceChangePasswordNextLogin=False
 			),
-			userPrincipalName="{0}@{1}".format(new["uid"][0], self.verified_domains[0]),
+			userPrincipalName="{0}@{1}".format(new["uid"][0], self.ah.get_verified_domain_from_disk()),
 			mailNickname=new["uid"][0],
 			displayName=attributes.get("displayName", "no name"),
 			usageLocation=self._get_usage_location(new),

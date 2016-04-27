@@ -506,8 +506,16 @@ class AzureHandler(object):
 	def list_verified_domains(self):
 		"""
 		Verified domains - only those can be used for userPrincipalName!
+		Use get_verified_domain_from_disk() for user creation.
 		"""
 		return self.list_tenant_details()["value"][0]["verifiedDomains"]
+
+	def get_verified_domain_from_disk(self):
+		"""
+		Get domain name that was configured in wizard.
+		:return: str: domain name
+		"""
+		return self.auth.domain
 
 	def deactivate_user(self, object_id, rename=False):
 		user_obj = self.list_users(objectid=object_id)

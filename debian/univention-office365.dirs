@@ -1,2 +1,3 @@
 etc/univention-office365
 var/lib/univention-office365
+usr/share/pyshared/univention/admin/hooks.d

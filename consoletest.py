@@ -206,7 +206,7 @@ if __name__ == "__main__":
 					"passwordProfile": {
 						"password": "univention.99",
 						"forceChangePasswordNextLogin": False},
-					"userPrincipalName": "{0}@{1}".format(name, ah.list_verified_domains()[0]["name"])}
+					"userPrincipalName": "{0}@{1}".format(name, ah.get_verified_domain_from_disk())}
 				ah.create_user(attributes)
 				new_user = ah.list_users(ofilter="userPrincipalName eq '{}'".format(attributes["userPrincipalName"]))
 				print_users(new_user, args.complete, args.short)

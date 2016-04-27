@@ -32,5 +32,4 @@
 
 from univention.office365.azure_auth import AzureAuth
 
-a = AzureAuth('generator')
-a.write_saml_setup_script()
+AzureAuth.write_saml_setup_script()

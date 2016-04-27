@@ -195,7 +195,7 @@ def azure_group_args():
 
 
 def azure_user_args(azure_handler, minimal=True):
-	domain = azure_handler.list_verified_domains()[0]["name"]
+	domain = azure_handler.get_verified_domain_from_disk()
 	res = dict(
 		accountEnabled=True,
 		displayName=uts.random_string(),

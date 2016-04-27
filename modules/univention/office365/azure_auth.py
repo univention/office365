@@ -58,12 +58,12 @@ _ = Translation('univention-office365').translate
 
 NAME = "office365"
 CONFDIR = "/etc/univention-office365"
-SSL_KEY = CONFDIR + "/key.pem"
-SSL_CERT = CONFDIR + "/cert.pem"
-SSL_CERT_FP = CONFDIR + "/cert.fp"
-IDS_FILE = CONFDIR + "/ids.json"
-TOKEN_FILE = CONFDIR + "/token.json"
-MANIFEST_FILE = os.path.join(CONFDIR, 'manifest.json')
+SSL_KEY = os.path.join(CONFDIR, "key.pem")
+SSL_CERT = os.path.join(CONFDIR, "cert.pem")
+SSL_CERT_FP = os.path.join(CONFDIR, "cert.fp")
+IDS_FILE = os.path.join(CONFDIR, "ids.json")
+TOKEN_FILE = os.path.join(CONFDIR, "token.json")
+MANIFEST_FILE = os.path.join(CONFDIR, "manifest.json")
 SCOPE = ["Directory.ReadWrite.All"]  # https://msdn.microsoft.com/Library/Azure/Ad/Graph/howto/azure-ad-graph-api-permission-scopes#DirectoryRWDetail
 DEBUG_FORMAT = '%(asctime)s %(levelname)-8s %(module)s.%(funcName)s:%(lineno)d  %(message)s'
 LOG_DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
@@ -229,7 +229,8 @@ class AzureAuth(object):
 			self.client_id = ids["client_id"]
 			self.tenant_id = ids["tenant_id"]
 			self.reply_url = ids["reply_url"]
-			if not all([self.client_id, self.tenant_id, self.reply_url]):
+			self.domain = ids["domain"]
+			if not all([self.client_id, self.tenant_id, self.reply_url, self.domain]):
 				raise NoIDsStored("")
 		except (KeyError, NoIDsStored) as exc:
 			raise NoIDsStored, NoIDsStored(_("The configuration is incomplete and misses some data. Please run the wizard again."), chained_exc=exc), sys.exc_info()[2]
@@ -245,7 +246,7 @@ class AzureAuth(object):
 				return False
 
 			ids = cls.load_azure_ids()
-			return all([ids["client_id"], ids["tenant_id"], ids["reply_url"]])
+			return all([ids["client_id"], ids["tenant_id"], ids["reply_url"], ids["domain"]])
 		except (NoIDsStored, KeyError) as exc:
 			logger.info("AzureAuth.is_initialized(): %r", exc)
 			return False
@@ -270,6 +271,15 @@ class AzureAuth(object):
 	@staticmethod
 	def store_tokens(**kwargs):
 		JsonStorage(TOKEN_FILE).write(**kwargs)
+
+	@classmethod
+	def get_domain(cls):
+		"""
+		static method to access wizard supplied domain
+		:return: str: domain name verified by MS
+		"""
+		ids = cls.load_azure_ids()
+		return ids["domain"]
 
 	def get_access_token(self):
 		if not self._access_token:
@@ -504,12 +514,12 @@ class AzureAuth(object):
 
 		return client_assertion
 
-	def write_saml_setup_script(self):
+	@classmethod
+	def write_saml_setup_script(cls):
 		from univention.config_registry import ConfigRegistry
 		ucr = ConfigRegistry()
 		ucr.load()
 
-		domain = ucr.get('office365/azure/domainname', ucr.get('domainname', ''))
 		issuer = ucr.get('umc/saml/idp-server', 'https://ucs-sso.ucs.local/simplesamlphp/saml2/idp/metadata.php')
 		ucs_sso_fqdn = ucr.get('ucs/server/sso/fqdn', "%s.%s" % (ucr.get('hostname', 'undefined'), ucr.get('domainname', 'undefined')))
 		cert = ""
@@ -550,7 +560,7 @@ $SigningCert = "{cert}"
 $IssuerUri = "{issuer}"
 $Protocol = "SAMLP"
 Set-MsolDomainAuthentication -DomainName $dom -FederationBrandName $BrandName -Authentication Federated -ActiveLogOnUri $LogOnUrl -PassiveLogOnUri $LogOnUrl -SigningCertificate $SigningCert -IssuerUri $IssuerUri -LogOffUri $LogOffUrl -PreferredAuthenticationProtocol $Protocol
-'''.format(domain=domain, ucs_sso_fqdn=ucs_sso_fqdn, cert=cert, issuer=issuer)
+'''.format(domain=cls.get_domain(), ucs_sso_fqdn=ucs_sso_fqdn, cert=cert, issuer=issuer)
 
 		try:
 			with open(SAML_SETUP_SCRIPT_PATH, 'wb') as fd:

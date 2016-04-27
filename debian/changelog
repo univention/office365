@@ -1,3 +1,13 @@
+univention-office365 (0.2.8-2) unstable; urgency=low
+
+  * Bug #38950: use MS verified domain from wizard
+  * add UDM hook to set UniventionOffice365userPrincipalName from
+    UniventionOffice365Data
+  * refactor translation method name to default
+  * add translations
+
+ -- Daniel Troeder <troeder@univention.de>  Wed, 27 Apr 2016 10:45:11 +0200
+
 univention-office365 (0.2.8-1) unstable; urgency=medium
 
   * Bug #40294: ask for domain name, add single sign on setup page
@@ -19,7 +29,7 @@ univention-office365 (0.2.7-1) unstable; urgency=medium
 univention-office365 (0.2.6-1) unstable; urgency=medium
 
   * Bug #40294: fix hanging process due to german umlauts in the authorize
-  	response
+    response
 
  -- Florian Best <best@univention.de>  Wed, 20 Apr 2016 13:36:27 +0200
 
