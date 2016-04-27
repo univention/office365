@@ -1,3 +1,9 @@
+univention-office365 (0.2.9-1) unstable; urgency=medium
+
+  * Bug #40294: Add SAML configuration page
+
+ -- Florian Best <best@univention.de>  Wed, 27 Apr 2016 21:10:49 +0200
+
 univention-office365 (0.2.8-2) unstable; urgency=low
 
   * Bug #38950: use MS verified domain from wizard

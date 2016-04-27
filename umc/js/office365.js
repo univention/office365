@@ -40,11 +40,12 @@ define([
 	"umc/widgets/Wizard",
 	"umc/widgets/Text",
 	"umc/widgets/TextBox",
+	"umc/widgets/Button",
 	"umc/widgets/Uploader",
 	"umc/widgets/ProgressBar",
 	"umc/i18n!umc/modules/office365",
 	"xstyle/css!./office365.css"
-], function(declare, lang, array, domConstruct, Deferred, tools, dialog, Module, Wizard, Text, TextBox, Uploader, ProgressBar, _) {
+], function(declare, lang, array, domConstruct, Deferred, tools, dialog, Module, Wizard, Text, TextBox, Button, Uploader, ProgressBar, _) {
 	var OfficeWizard = declare('umc.modules.office365.OfficeWizard', [Wizard], {
 
 		_uploadDeferred: null,
@@ -66,6 +67,14 @@ define([
 						name: 'already-initialized',
 						content: _('<b>Warning!</b> The configuration has already been done. If you continue, the current connection settings will be replaced.'),
 						visible: false
+					}, {
+						type: Button,
+						name: 'single-sign-on',
+						visible: false,
+						label: _('Open single sign-on configuration instructions'),
+						callback: lang.hitch(this, function() {
+							this.switchPage('single-sign-on-setup');
+						})
 					}, {
 						type: Text,
 						name: 'info',
@@ -199,7 +208,7 @@ define([
 				}, {
 					name: 'single-sign-on-setup',
 					headerText: _('Single Sign-On setup'),
-					helpText: _('The UCS SAML Identity Provider needs to be configured ... TODO ...'),
+					helpText: _('The UCS SAML identity provider has to be connected to Azure by running a Windows Powershell script.'),
 					widgets: [{
 						type: Text,
 						name: 'infos',
@@ -315,8 +324,13 @@ define([
 		},
 
 		getTextSingleSignOnSetup: function() {
-			return '<p>' + _('To finalize the setup, single sign-on has to be configured for the Office 365 domain.') + '</p>' + this.formatOrderedList([
-				lang.replace(_('Download the {link}.'), {link: '<a href="/univention-management-console/command/office365/saml_setup.ps1" target="_blank">' + _('SAML configuration powershell script') + '</a>'}),
+			return '<p>' + _('To finish configuration, single sign-on has to be configured for the Office 365 domain. Microsoft only supports to configure single sign-on by running a Microsoft Powershell script on a Windows PC.') + '</p>' + this.formatOrderedList([
+				lang.replace(_('Download the {link}.'), {link: '<a href="/univention-management-console/command/office365/saml_setup.ps1" target="_blank">' + _('SAML configuration script for Microsoft Powershell') + '</a>'}) + ' ' +
+				_('If you open this setup wizard again at a later time, the download link will be available on the first page of the wizard.'),
+				_('On your Windows PC, follow the <a href="%s" target="_blank">instructions on Microsoft TechNet</a> to install the <i>Microsoft Online Services Sign-In Assistant for IT Professionals RTW</i> and <i>Azure Active Directory Module for Windows PowerShell</i> on your PC.', _('https://technet.microsoft.com/library/jj151815.aspx#bkmk_installmodule')),
+				_('To use these Powershell modules, your Windows PC must have installed the <a href="%s" target="_blank">.NET runtime environment version 4.5.1.</a>, at least.', _('https://www.microsoft.com/download/details.aspx?id=40779')),
+				_('Execute the downloaded SAML configuration script, and authenticate with the Azure Active Directory domain administrator account.') + this.img(_('saml_setup_script_windows_EN.png')),
+				_('If the script has been executed successfully, single sign-on configuration is completed. Continue by clicking on <i>Next</i>.')
 			]);
 		},
 
@@ -334,7 +348,9 @@ define([
 		},
 
 		initWizard: function(data) {
-			this.getWidget('start', 'already-initialized').set('visible', data.result.initialized);
+			array.forEach(['already-initialized', 'single-sign-on'], function(name) {
+				this.getWidget('start', name).set('visible', data.result.initialized);
+			}, this);
 			tools.forIn(data.result, lang.hitch(this, function(key, val) {
 				var widget = this.getWidget('add-application', key);
 				if (widget) {
@@ -431,7 +447,7 @@ define([
 		},
 
 		hasPrevious: function(pageName) {
-			if (~array.indexOf(["azure-integration", "success", 'error'], pageName)) {
+			if (~array.indexOf(["azure-integration", 'single-sign-on-setup', "success", 'error'], pageName)) {
 				return false;
 			}
 			return this.inherited(arguments);
@@ -455,7 +471,7 @@ define([
 			this._wizard = new OfficeWizard({
 				umcpCommand: lang.hitch(this, 'umcpCommand')
 			});
-			this.standbyDuring(this.umcpCommand('office365/query').then(lang.hitch(this._wizard, 'initWizard')));
+			this.standbyDuring(this.umcpCommand('office365/query').then(lang.hitch(this._wizard, 'initWizard'), lang.hitch(this, 'closeModule')));
 			this._wizard.on('finished', lang.hitch(this, 'closeModule'));
 			this._wizard.on('cancel', lang.hitch(this, 'closeModule'));
 			this.on('close', lang.hitch(this, function() {
