@@ -180,11 +180,11 @@ class Manifest(object):
 		if not self.manifest["requiredResourceAccess"][0]["resourceAccess"].count(permission):
 			self.manifest["requiredResourceAccess"][0]["resourceAccess"].append(permission)
 
-	def store(self, tenant_id=None):
+	def store(self, tenant_id, domain):
 		with open(MANIFEST_FILE, 'wb') as fd:
 			json.dump(self.as_dict(), fd, indent=2, separators=(',', ': '), sort_keys=True)
 		os.chmod(MANIFEST_FILE, S_IRUSR | S_IWUSR)
-		AzureAuth.store_azure_ids(client_id=self.app_id, tenant_id=tenant_id, reply_url=self.reply_url)
+		AzureAuth.store_azure_ids(client_id=self.app_id, tenant_id=tenant_id, reply_url=self.reply_url, domain=domain)
 
 
 class JsonStorage(object):
@@ -232,7 +232,7 @@ class AzureAuth(object):
 			if not all([self.client_id, self.tenant_id, self.reply_url]):
 				raise NoIDsStored("")
 		except (KeyError, NoIDsStored) as exc:
-			raise NoIDsStored, NoIDsStored(_("Incomplete configuration, please run wizard (again)."), chained_exc=exc), sys.exc_info()[2]
+			raise NoIDsStored, NoIDsStored(_("The configuration is incomplete and misses some data. Please run the wizard again."), chained_exc=exc), sys.exc_info()[2]
 		self._access_token = None
 		self._access_token_exp_at = None
 
@@ -292,7 +292,7 @@ class AzureAuth(object):
 			client_id = ids["client_id"]
 			reply_url = ids["reply_url"]
 		except KeyError as exc:
-			raise NoIDsStored, NoIDsStored(_("Incomplete configuration, please run wizard (again)."), chained_exc=exc), sys.exc_info()[2]
+			raise NoIDsStored, NoIDsStored(_("The configuration is incomplete and misses some data. Please run the wizard again."), chained_exc=exc), sys.exc_info()[2]
 		tenant = ids.get("tenant_id") or "common"
 		params = {
 			'client_id': client_id,
@@ -333,21 +333,19 @@ class AzureAuth(object):
 				else:
 					et = encoded_token
 				logger.exception(u"Invalid token value: %r", et)
-				raise IDTokenError, IDTokenError(_("Error reading token received from Azure, please run the wizard again."), chained_exc=exc), sys.exc_info()[2]
+				raise IDTokenError, IDTokenError(_("Error reading token received from Azure. Please run the wizard again."), chained_exc=exc), sys.exc_info()[2]
 
 		def _get_azure_certs(tenant_id):
 			# there's a strange non-ascii char at the beginning of the xml doc...
 			def _discard_garbage(text):
-				for pos, char in enumerate(text):
-					if char == "<":
-						return text[pos:]
+				return ''.join(text.partition('<')[1:])
 			# the certificates with which the tokens were signed can be downloaded from the federation metadata document
 			# https://msdn.microsoft.com/en-us/library/azure/dn195592.aspx
 			try:
 				fed = requests.get(federation_metadata_url.format(tenant_id=tenant_id))
 			except RequestException as exc:
 				logger.exception("Error downloading federation metadata.")
-				raise TokenValidationError, TokenValidationError(_("Error downloading certificates from Azure, please run the wizard again at some other time."), chained_exc=exc), sys.exc_info()[2]
+				raise TokenValidationError, TokenValidationError(_("Error downloading certificates from Azure. Please run the wizard again."), chained_exc=exc), sys.exc_info()[2]
 			# the federation metadata document is a XML file
 			dom_tree = parseString(_discard_garbage(fed.text))
 			# the certificates we want are inside:
@@ -366,7 +364,7 @@ class AzureAuth(object):
 								certs.add(cert_elem.firstChild.data)
 			if not certs:
 				logger.exception("Could not find certificate in federation metadata: %r", _discard_garbage(fed.text))
-				raise TokenValidationError(_("Error reading certificates from Azure, please run the wizard again."))
+				raise TokenValidationError(_("Error reading certificates from Azure. Please run the wizard again."))
 			return certs
 
 		def _new_cryptography_checks(client_id, tenant_id, id_token):
@@ -392,12 +390,12 @@ class AzureAuth(object):
 						leeway=120)
 					verified = True
 					break
-				except jwt.InvalidTokenError as e:  # all jwt exceptions inherit from jwt.InvalidTokenError
-					jwt_exceptions.append(e)
+				except jwt.InvalidTokenError as exc:  # all jwt exceptions inherit from jwt.InvalidTokenError
+					jwt_exceptions.append(exc)
 			if not verified:
 				logger.error("JWT verification error(s): %s\nID token: %r",
 					" ".join(map(str, jwt_exceptions)), id_token)
-				raise TokenValidationError(_("The received token is not valid, please run the wizard again."))
+				raise TokenValidationError(_("The received token is not valid. Please run the wizard again."))
 			logger.debug("Verified ID token.")
 
 		# get the tenant ID from the id token
@@ -408,13 +406,13 @@ class AzureAuth(object):
 			client_id = ids["client_id"]
 			reply_url = ids["reply_url"]
 		except KeyError as exc:
-			raise NoIDsStored, NoIDsStored(_("Incomplete configuration, please run wizard (again)."), chained_exc=exc), sys.exc_info()[2]
+			raise NoIDsStored, NoIDsStored(_("The configuration is incomplete and misses some data. Please run the wizard again."), chained_exc=exc), sys.exc_info()[2]
 
 		nonce_old = cls.load_tokens()["nonce"]
 		if not body["nonce"] == nonce_old:
 			logger.error("Stored (%r) and received (%r) nonce of token do not match. ID token: %r.",
 				nonce_old, body["nonce"], id_token)
-			raise TokenValidationError(_("The received token is not valid, please run the wizard again."))
+			raise TokenValidationError(_("The received token is not valid. Please run the wizard again."))
 		# check validity of token
 		_new_cryptography_checks(client_id, tenant_id, id_token)
 		cls.store_azure_ids(client_id=client_id, tenant_id=tenant_id, reply_url=reply_url)
@@ -516,17 +514,17 @@ class AzureAuth(object):
 		ucs_sso_fqdn = ucr.get('ucs/server/sso/fqdn', "%s.%s" % (ucr.get('hostname', 'undefined'), ucr.get('domainname', 'undefined')))
 		cert = ""
 		try:
-			with open(ucr.get('saml/idp/certificate/certificate', SAML_SETUP_SCRIPT_CERT_PATH), 'r') as f:
-				raw_cert = f.read()
-		except IOError as e:
-			logger.exception("while reading certificate: %s", e)
-			raise WriteScriptError(_("Error reading identity provider certificate."), chained_exc=e), sys.exc_info()[2]
+			with open(ucr.get('saml/idp/certificate/certificate', SAML_SETUP_SCRIPT_CERT_PATH), 'rb') as fd:
+				raw_cert = fd.read()
+		except IOError as exc:
+			logger.exception("while reading certificate: %s", exc)
+			raise WriteScriptError(_("Error reading identity provider certificate."))
 
 		try:
 			cert = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, raw_cert))
-		except OpenSSL.crypto.Error as e:
-			logger.exception("while converting certificate: %s", e)
-			raise WriteScriptError(_("Error converting identity provider certificate."), chained_exc=e), sys.exc_info()[2]
+		except OpenSSL.crypto.Error as exc:
+			logger.exception("while converting certificate: %s", exc)
+			raise WriteScriptError(_("Error converting identity provider certificate."))
 
 		# The raw base64 encoded certificate is required
 		cert = cert.replace('-----BEGIN CERTIFICATE-----', '').replace('-----END CERTIFICATE-----', '').replace('\n', '')
@@ -555,9 +553,8 @@ Set-MsolDomainAuthentication -DomainName $dom -FederationBrandName $BrandName -A
 '''.format(domain=domain, ucs_sso_fqdn=ucs_sso_fqdn, cert=cert, issuer=issuer)
 
 		try:
-			print powershell_template
-			with open(SAML_SETUP_SCRIPT_PATH, 'w') as f:
-				f.write(powershell_template)
-		except IOError as e:
-			logger.exception("while writing powershell script: %s", e)
-			raise WriteScriptError(_("Error writing SAML setup script."), chained_exc=e), sys.exc_info()[2]
+			with open(SAML_SETUP_SCRIPT_PATH, 'wb') as fd:
+				fd.write(powershell_template)
+		except IOError as exc:
+			logger.exception("while writing powershell script: %s", exc)
+			raise WriteScriptError(_("Error writing SAML setup script."))

@@ -21,7 +21,7 @@ msgid ""
 "Could not read certificate. Please make sure the joinscript 40univention-"
 "office365.inst is executed successfully or execute it again."
 msgstr ""
-"Konnte Zertifikat nicht lesen. Bitte stellen Sie sicher, dass das joinscript "
+"Konnte Zertifikat nicht lesen. Bitte stellen Sie sicher, dass das Joinskript "
 "40univention-office365.inst erfolgreich ausgeführt wurde oder führen Sie es "
 "erneut aus."
 
@@ -31,27 +31,25 @@ msgstr "Fehler beim Umwandeln des Identity Provider Zertifikates."
 
 #: modules/univention/office365/azure_auth.py:350
 msgid ""
-"Error downloading certificates from Azure, please run the wizard again at "
-"some other time."
+"Error downloading certificates from Azure. Please run the wizard again."
 msgstr ""
 "Fehler beim herunterladen der Zertifikate nicht von Azure. Bitte führen Sie "
-"den Wizard später noch einmal aus."
+"den Einrichtungsassistent erneut aus."
 
 #: modules/univention/office365/azure_auth.py:369
-msgid "Error reading certificates from Azure, please run the wizard again."
+msgid "Error reading certificates from Azure. Please run the wizard again."
 msgstr ""
-"Fehler beim lesen von Azures Zertifikaten. Bitte führen Sie den Wizard noch "
-"einmal aus."
+"Fehler beim lesen von Azures Zertifikaten. Bitte führen Sie den Einrichtungsassistent "
+"erneut aus."
 
 #: modules/univention/office365/azure_auth.py:523
 msgid "Error reading identity provider certificate."
 msgstr "Fehler beim Lesen des Identity Provider Zertifikates"
 
 #: modules/univention/office365/azure_auth.py:336
-msgid "Error reading token received from Azure, please run the wizard again."
+msgid "Error reading token received from Azure. Please run the wizard again."
 msgstr ""
-"Fehler beim lesen von Azures Token. Bitte führen Sie den Wizard noch einmal "
-"aus."
+"Fehler beim lesen von Azures Token. Bitte führen Sie den Einrichtungsassistent erneut aus."
 
 #: modules/univention/office365/azure_auth.py:442
 #: modules/univention/office365/azure_auth.py:454
@@ -65,9 +63,9 @@ msgstr "Fehler beim Schreiben des SAML Installations-Skriptes."
 #: modules/univention/office365/azure_auth.py:235
 #: modules/univention/office365/azure_auth.py:295
 #: modules/univention/office365/azure_auth.py:411
-msgid "Incomplete configuration, please run wizard (again)."
+msgid "The configuration is incomplete and misses some data. Please run the wizard again."
 msgstr ""
-"Unvollständige Konfiguration. Bitte führen Sie den Wizard (erneut) aus."
+"Die Konfiguration ist unvollständig, da einige Daten fehlen. Bitte führen Sie den Einrichtungsassistent erneut aus."
 
 #: modules/univention/office365/azure_auth.py:139
 msgid "The manifest is invalid: Invalid JSON document."
@@ -75,6 +73,6 @@ msgstr "Das Manifest ist ungültig: ungültiges JSON Dokument."
 
 #: modules/univention/office365/azure_auth.py:400
 #: modules/univention/office365/azure_auth.py:417
-msgid "The received token is not valid, please run the wizard again."
+msgid "The received token is not valid. Please run the wizard again."
 msgstr ""
-"Der erhaltene Token ist ungültig, bitte führen Sie den Wizard erneut aus."
+"Der erhaltene Token ist ungültig. Bitte führen Sie den Einrichtungsassistent erneut aus."

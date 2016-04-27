@@ -114,7 +114,8 @@ define([
 						value: '',
 						onChange: lang.hitch(this, function(value) {
 							this.getWidget('manifest-upload', 'upload').set('dynamicOptions', {
-								tenant_id: value
+								tenant_id: value,
+								domain: this.getWidget('manifest-upload', 'domain').get('value')
 							});
 						})
 					}, {
@@ -128,6 +129,22 @@ define([
 					helpText: _('The manifest is a JSON file which contains all necessary information required to connect UCS with your active directory.'),
 					widgets: [{
 						type: Text,
+						name: 'domaininfo',
+						content: this.getTextManifestUploadDomain()
+					}, {
+						type: TextBox,
+						name: 'domain',
+						label: _('Verified domain name'),
+						required: true,
+						placeHolder: _('domain name (e.g. univention.de)'),
+						onChange: function(value) {
+							this.getWidget('manifest-upload', 'upload').set('dynamicOptions', {
+								tenant_id: this.getWidget('ucs-integration', 'tenant_id').get('value'),
+								domain: value
+							});
+						}
+					}, {
+						type: Text,
 						name: 'infos',
 						content: this.getTextManifestUpload()
 					}, {
@@ -136,7 +153,8 @@ define([
 						buttonLabel: _('Upload manifest'),
 						command: 'office365/upload',
 						dynamicOptions: {
-							tenant_id: 'common'
+							tenant_id: 'common',
+							domain: ''
 						},
 						onUploadStarted: lang.hitch(this, function() {
 							this._uploadDeferred = new Deferred();
@@ -178,6 +196,15 @@ define([
 						callback: lang.hitch(this, 'openAuthorization')
 					}],
 					layout: ['infos', 'authorize', 'image']
+				}, {
+					name: 'single-sign-on-setup',
+					headerText: _('Single Sign-On setup'),
+					helpText: _('The UCS SAML Identity Provider needs to be configured ... TODO ...'),
+					widgets: [{
+						type: Text,
+						name: 'infos',
+						content: this.getTextSingleSignOnSetup()
+					}]
 				}, {
 					name: 'success',
 					headerText: _('Office 365 setup complete'),
@@ -258,6 +285,10 @@ define([
 			]);
 		},
 
+		getTextManifestUploadDomain: function() {
+			return _('The setup wizard now needs the domain that was verified during the configuration of the Office 365 account. Insert it into the text box below.');
+		},
+
 		getTextManifestUpload: function() {
 			return _('Please upload the manifest (which has a similar name as <i>7e428ea7-e7d8-4f0c-93ed-c8e74c4050c9.json</i>) that you just downloaded from the Azure Portal by using the upload button below.') + ' '
 				+ _('After uploading the manifest you will be offered to download a file <i>manifest.json</i>. Store this file on your computer.');
@@ -281,6 +312,12 @@ define([
 
 		getTextAzureAuthorizationImage: function() {
 			return this.img(_('ms_authorize_screen_text_and_image_EN.png'));
+		},
+
+		getTextSingleSignOnSetup: function() {
+			return '<p>' + _('To finalize the setup, single sign-on has to be configured for the Office 365 domain.') + '</p>' + this.formatOrderedList([
+				lang.replace(_('Download the {link}.'), {link: '<a href="/univention-management-console/command/office365/saml_setup.ps1" target="_blank">' + _('SAML configuration powershell script') + '</a>'}),
+			]);
 		},
 
 		formatParagraphs: function(data) {

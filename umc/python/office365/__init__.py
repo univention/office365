@@ -31,22 +31,35 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-import json
-import subprocess
 import urlparse
+import functools
+import subprocess
 
 from univention.lib.i18n import Translation
-from univention.management.console.base import Base, UMC_Error
 from univention.management.console.config import ucr
-
+from univention.management.console.base import Base, UMC_Error, UMC_OptionSanitizeError
 from univention.management.console.modules.decorators import sanitize, simple_response, file_upload
-from univention.management.console.modules.sanitizers import StringSanitizer, DictSanitizer, BooleanSanitizer
+from univention.management.console.modules.sanitizers import StringSanitizer, DictSanitizer, BooleanSanitizer, ValidationError, MultiValidationError
 
-
-from univention.office365.azure_auth import AzureAuth, AzureError, Manifest, ManifestError, TokenError, MANIFEST_FILE
+from univention.office365.azure_auth import AzureAuth, AzureError, Manifest, ManifestError, MANIFEST_FILE, SAML_SETUP_SCRIPT_PATH
 from univention.office365.azure_handler import AzureHandler
 
 _ = Translation('univention-management-console-module-office365').translate
+
+
+def sanitize_body(sanizer):  # TODO: move into UMC core
+	def _decorator(function):
+		@functools.wraps(function)
+		def _decorated(self, request, *args, **kwargs):
+			try:
+				sanizer.sanitize('request.body', {'request.body': request.body})
+			except MultiValidationError as exc:
+				raise UMC_OptionSanitizeError(str(exc), exc.result())
+			except ValidationError as exc:
+				raise UMC_OptionSanitizeError(str(exc), {exc.name: str(exc)})
+			return function(self, request, *args, **kwargs)
+		return _decorated
+	return _decorator
 
 
 def progress(component=None, message=None, percentage=None, errors=None, critical=None, finished=False, **kwargs):
@@ -80,6 +93,10 @@ class Instance(Base):
 	@sanitize(DictSanitizer(dict(
 		tmpfile=StringSanitizer(required=True)
 	), required=True))
+	@sanitize_body(DictSanitizer(dict(
+		domain=StringSanitizer(required=True),
+		tenant_id=StringSanitizer(default='common'),
+	), required=True))
 	def upload(self, request):
 		AzureAuth.uninitialize()
 
@@ -93,7 +110,7 @@ class Instance(Base):
 		try:
 			tenant_id = request.body.get('tenant_id') or 'common'
 			tenant_id = urlparse.urlparse(tenant_id).path.strip('/').split('/')[0]
-			manifest.store(tenant_id)
+			manifest.store(tenant_id, request.body['domain'])
 		except AzureError as exc:
 			raise UMC_Error(str(exc))
 
@@ -106,9 +123,12 @@ class Instance(Base):
 			'authorizationurl': authorizationurl,
 		}, message=_('The manifest has been successfully uploaded.'))
 
-	@sanitize(manifest=DictSanitizer(dict()))
 	def manifest_json(self, request):
 		with open(MANIFEST_FILE, 'rb') as fd:
+			self.finished(request.id, fd.read(), mimetype='application/octet-stream')
+
+	def saml_setup_script(self, request):
+		with open(SAML_SETUP_SCRIPT_PATH, 'rb') as fd:
 			self.finished(request.id, fd.read(), mimetype='application/octet-stream')
 
 	@sanitize(
@@ -153,8 +173,8 @@ window.top.close();
 				AzureAuth.parse_id_token(options['id_token'])
 				AzureAuth.store_tokens(consent_given=True)
 				aa = AzureAuth("office365")
-				access_token = aa.retrieve_access_token()  # not really necessary, but it'll make sure everything worked
 				aa.write_saml_setup_script()
+				aa.retrieve_access_token()  # not really necessary, but it'll make sure everything worked
 			except AzureError as exc:
 				self.init()
 				raise UMC_Error(str(exc))

@@ -1,3 +1,9 @@
+univention-office365 (0.2.8-1) unstable; urgency=medium
+
+  * Bug #40294: ask for domain name, add single sign on setup page
+
+ -- Florian Best <best@univention.de>  Wed, 27 Apr 2016 13:05:57 +0200
+
 univention-office365 (0.2.7-2) unstable; urgency=medium
 
   * Bug #38950: Add single sign-on
