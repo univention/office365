@@ -69,7 +69,7 @@ SCOPE = ["Directory.ReadWrite.All"]  # https://msdn.microsoft.com/Library/Azure/
 DEBUG_FORMAT = '%(asctime)s %(levelname)-8s %(module)s.%(funcName)s:%(lineno)d  %(message)s'
 LOG_DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 SAML_SETUP_SCRIPT_CERT_PATH = "/etc/simplesamlphp/ucs-sso.{domainname}-idp-certificate.crt"
-SAML_SETUP_SCRIPT_PATH = "/var/lib/univention-office365/saml_setup.ps1"
+SAML_SETUP_SCRIPT_PATH = "/var/lib/univention-office365/saml_setup.bat"
 
 
 oauth2_auth_url = "https://login.microsoftonline.com/{tenant}/oauth2/authorize?{params}"
@@ -539,38 +539,17 @@ class AzureAuth(object):
 
 		# The raw base64 encoded certificate is required
 		cert = cert.replace('-----BEGIN CERTIFICATE-----', '').replace('-----END CERTIFICATE-----', '').replace('\n', '')
-
-		powershell_template = '''
-# Requires the Azure AD Module to be installed from
-# https://technet.microsoft.com/library/jj151815.aspx#bkmk_installmodule
-# At least .NET 4.5.1 is required to execute the Azure AD Module PowerShell cmdlet
-
-# If there is an error while executing this script, allow unsigned scripts to be executed temporarily by setting
-# Set-ExecutionPolicy Unrestricted -Scope CurrentUser
-# Reset the value to its default afterwards
-# Set-ExecutionPolicy Default -Scope CurrentUser
-
-# Get User Credentials and authenticate against Azure before executing the following statements
-Connect-MsolService
-
-$dom = "{domain}"
-$BrandName = "Univention Corporate Server SAML Integration"
-$LogOnUrl = "https://{ucs_sso_fqdn}/simplesamlphp/saml2/idp/SSOService.php"
-$LogOffUrl = "https://{ucs_sso_fqdn}/simplesamlphp/saml2/idp/initSLO.php?RelayState=/simplesamlphp/logout.php"
-$SigningCert = "{cert}"
-$IssuerUri = "{issuer}"
-$Protocol = "SAMLP"
-
-# Reset domain to managed before trying to change settings
-Set-MsolDomainAuthentication -DomainName $dom -Authentication Managed
-
-# Configure federation settings for $dom
-Set-MsolDomainAuthentication -DomainName $dom -FederationBrandName $BrandName -Authentication Federated -ActiveLogOnUri $LogOnUrl -PassiveLogOnUri $LogOnUrl -SigningCertificate $SigningCert -IssuerUri $IssuerUri -LogOffUri $LogOffUrl -PreferredAuthenticationProtocol $Protocol
+		template = '''
+@ECHO OFF
+ECHO Asking for Azure Administator credentials
+powershell Connect-MsolService; Set-MsolDomainAuthentication -DomainName "{domain}" -Authentication Managed; Set-MsolDomainAuthentication -DomainName "{domain}" -FederationBrandName "UCS" -Authentication Federated -ActiveLogOnUri "https://{ucs_sso_fqdn}/simplesamlphp/saml2/idp/SSOService.php" -PassiveLogOnUri "https://{ucs_sso_fqdn}/simplesamlphp/saml2/idp/SSOService.php" -SigningCertificate "{cert}" -IssuerUri "{issuer}" -LogOffUri "https://{ucs_sso_fqdn}/simplesamlphp/saml2/idp/initSLO.php?RelayState=/simplesamlphp/logout.php" -PreferredAuthenticationProtocol SAMLP;  Get-MsolDomain
+ECHO Finished single sign-on configuration change
+pause
 '''.format(domain=cls.get_domain(), ucs_sso_fqdn=ucs_sso_fqdn, cert=cert, issuer=issuer)
 
 		try:
 			with open(SAML_SETUP_SCRIPT_PATH, 'wb') as fd:
-				fd.write(powershell_template)
+				fd.write(template)
 			os.chmod(SAML_SETUP_SCRIPT_PATH, 0644)
 		except IOError as exc:
 			logger.exception("while writing powershell script: %s", exc)
