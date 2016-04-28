@@ -46,6 +46,7 @@ define([
 	"umc/i18n!umc/modules/office365",
 	"xstyle/css!./office365.css"
 ], function(declare, lang, array, domConstruct, Deferred, tools, dialog, Module, Wizard, Text, TextBox, Button, Uploader, ProgressBar, _) {
+
 	var OfficeWizard = declare('umc.modules.office365.OfficeWizard', [Wizard], {
 
 		_uploadDeferred: null,
@@ -56,6 +57,13 @@ define([
 		constructor: function() {
 			this.inherited(arguments);
 			this.origin = window.location.protocol + '//' + window.location.host + (window.location.port ? ':' + window.location.port : '');
+			if (!this.switchPage) { // function added by Bug #41081. Can be removed in UCS 4.2
+				this.switchPage = lang.hitch(this, function(pageName) {
+					this._updateButtons(pageName);
+					this.selectChild(this._pages[pageName]);
+					window.scrollTo(0, 0);
+				});
+			}
 
 			lang.mixin(this, {
 				pages: [{
@@ -299,8 +307,7 @@ define([
 		},
 
 		getTextManifestUpload: function() {
-			return _('Please upload the manifest (which has a similar name as <i>7e428ea7-e7d8-4f0c-93ed-c8e74c4050c9.json</i>) that you just downloaded from the Azure Portal by using the upload button below.') + ' '
-				+ _('After uploading the manifest you will be offered to download a file <i>manifest.json</i>. Store this file on your computer.');
+			return _('Please upload the manifest (which has a similar name as <i>7e428ea7-e7d8-4f0c-93ed-c8e74c4050c9.json</i>) that you just downloaded from the Azure Portal by using the upload button below.') + ' ' + _('After uploading the manifest you will be offered to download a file <i>manifest.json</i>. Store this file on your computer.');
 		},
 
 		getTextUpdateManifest: function() {
