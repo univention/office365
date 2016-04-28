@@ -70,11 +70,11 @@ msgstr ""
 
 #: umc/js/office365.js:191
 msgid "Authorize UCS Office 365 application"
-msgstr "UCS Office 365 Anwendung authorisieren"
+msgstr "UCS Office 365 Anwendung autorisieren"
 
 #: umc/js/office365.js:204
 msgid "Authorize UCS to access application"
-msgstr "Zugang zur Anwendung für UCS authorisieren"
+msgstr "Zugang zur Anwendung für UCS autorisieren"
 
 #: umc/js/office365.js:281
 msgid ""
@@ -351,7 +351,7 @@ msgid ""
 "authorized now."
 msgstr ""
 "Die Verbindung zwischen UCS und der Microsoft Azure Anwendung muss nun "
-"authorisiert werden."
+"autorisiert werden."
 
 #: umc/js/office365.js:111 umc/js/office365.js:138
 msgid ""
