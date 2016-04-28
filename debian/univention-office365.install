@@ -8,3 +8,4 @@ office365.schema usr/share/univention-office365/
 generate_office365_saml_powershell_script usr/sbin
 etc
 office365_userPrincipalName_hook.py usr/share/pyshared/univention/admin/hooks.d/
+umc/icons/50x50/office365.png var/www

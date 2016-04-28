@@ -174,6 +174,7 @@ window.top.close();
 				AzureAuth.store_tokens(consent_given=True)
 				aa = AzureAuth("office365")
 				aa.write_saml_setup_script()
+				aa.set_ucs_overview_link()
 				aa.retrieve_access_token()  # not really necessary, but it'll make sure everything worked
 			except AzureError as exc:
 				self.init()

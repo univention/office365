@@ -4,7 +4,7 @@ $metadata['urn:federation:MicrosoftOnline'] = array(
 	'NameIDFormat'	=> 'urn:oasis:names:tc:SAML:2.0:nameid-format:persistent',
 	'simplesaml.nameidattribute'	=> 'entryUUID',
 	'simplesaml.attributes'	=> true,
-	'attributes'	=> array('entryUUID', 'mailPrimaryAddress'),
+	'attributes'	=> array('entryUUID', 'univentionOffice365userPrincipalName', 'univentionOffice365Enabled'),
 	'OrganizationName'	=> 'Microsoft Office 365',
 	'signature.algorithm' => 'http://www.w3.org/2000/09/xmldsig#rsa-sha1',
 	'authproc' => array(
@@ -15,7 +15,7 @@ $metadata['urn:federation:MicrosoftOnline'] = array(
 		),
 		50 => array(
 			'class' => 'core:AttributeMap',
-			'mailPrimaryAddress' => 'IDPEmail',
+			'univentionOffice365userPrincipalName' => 'IDPEmail',
 		),
 		60 => array(
 			'class' => 'core:PHP',

@@ -52,6 +52,7 @@ from requests.exceptions import RequestException
 
 from univention.lib.i18n import Translation
 from univention.office365.logging2udebug import get_logger
+from univention.config_registry.frontend import ucr_update
 
 
 _ = Translation('univention-office365').translate
@@ -67,7 +68,7 @@ MANIFEST_FILE = os.path.join(CONFDIR, "manifest.json")
 SCOPE = ["Directory.ReadWrite.All"]  # https://msdn.microsoft.com/Library/Azure/Ad/Graph/howto/azure-ad-graph-api-permission-scopes#DirectoryRWDetail
 DEBUG_FORMAT = '%(asctime)s %(levelname)-8s %(module)s.%(funcName)s:%(lineno)d  %(message)s'
 LOG_DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
-SAML_SETUP_SCRIPT_CERT_PATH = "/etc/simplesamlphp/ucs-sso.ucs.local-idp-certificate.crt"
+SAML_SETUP_SCRIPT_CERT_PATH = "/etc/simplesamlphp/ucs-sso.{domainname}-idp-certificate.crt"
 SAML_SETUP_SCRIPT_PATH = "/var/lib/univention-office365/saml_setup.ps1"
 
 
@@ -524,7 +525,7 @@ class AzureAuth(object):
 		ucs_sso_fqdn = ucr.get('ucs/server/sso/fqdn', "%s.%s" % (ucr.get('hostname', 'undefined'), ucr.get('domainname', 'undefined')))
 		cert = ""
 		try:
-			with open(ucr.get('saml/idp/certificate/certificate', SAML_SETUP_SCRIPT_CERT_PATH), 'rb') as fd:
+			with open(ucr.get('saml/idp/certificate/certificate', SAML_SETUP_SCRIPT_CERT_PATH.format(domainname=ucr.get('domainname', 'undefined'))), 'rb') as fd:
 				raw_cert = fd.read()
 		except IOError as exc:
 			logger.exception("while reading certificate: %s", exc)
@@ -559,12 +560,37 @@ $LogOffUrl = "https://{ucs_sso_fqdn}/simplesamlphp/saml2/idp/initSLO.php?RelaySt
 $SigningCert = "{cert}"
 $IssuerUri = "{issuer}"
 $Protocol = "SAMLP"
+
+# Reset domain to managed before trying to change settings
+Set-MsolDomainAuthentication -DomainName $dom -Authentication Managed
+
+# Configure federation settings for $dom
 Set-MsolDomainAuthentication -DomainName $dom -FederationBrandName $BrandName -Authentication Federated -ActiveLogOnUri $LogOnUrl -PassiveLogOnUri $LogOnUrl -SigningCertificate $SigningCert -IssuerUri $IssuerUri -LogOffUri $LogOffUrl -PreferredAuthenticationProtocol $Protocol
 '''.format(domain=cls.get_domain(), ucs_sso_fqdn=ucs_sso_fqdn, cert=cert, issuer=issuer)
 
 		try:
 			with open(SAML_SETUP_SCRIPT_PATH, 'wb') as fd:
 				fd.write(powershell_template)
+			os.chmod(SAML_SETUP_SCRIPT_PATH, 0644)
 		except IOError as exc:
 			logger.exception("while writing powershell script: %s", exc)
 			raise WriteScriptError(_("Error writing SAML setup script."))
+
+	@classmethod
+	def set_ucs_overview_link(cls):
+		from univention.config_registry import ConfigRegistry
+		ucr = ConfigRegistry()
+		ucr.load()
+
+		sp_query_string = "?spentityid=urn:federation:MicrosoftOnline"
+		sp_link = "https://{}/simplesamlphp/saml2/idp/SSOService.php{}".format(
+		ucr["ucs/server/sso/fqdn"], sp_query_string)
+		ucr_update(ucr, {
+		"ucs/web/overview/entries/service/office365/description": "Single Sign-On login for Microsoft Office 365",
+		"ucs/web/overview/entries/service/office365/label": "Office 365 Login",
+		"ucs/web/overview/entries/service/office365/link": sp_link,
+		"ucs/web/overview/entries/service/office365/description/de": "Single-Sign-On Link für Microsoft Office 365",
+		"ucs/web/overview/entries/service/office365/label/de": "Office 365 Login",
+		"ucs/web/overview/entries/service/office365/priority": "50",
+		"ucs/web/overview/entries/service/office365/icon": "/office365.png"
+		})

@@ -1,3 +1,6 @@
+Type: multifile
+Multifile: etc/simplesamlphp/metadata/saml20-sp-remote.php
+
 Type: subfile
 Multifile: etc/simplesamlphp/metadata/saml20-sp-remote.php
 Subfile: etc/simplesamlphp/metadata/50univention-office365.php
