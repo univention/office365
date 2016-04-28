@@ -146,12 +146,12 @@ define([
 						label: _('Verified domain name'),
 						required: true,
 						placeHolder: _('domain name (e.g. univention.de)'),
-						onChange: function(value) {
+						onChange: lang.hitch(this, function(value) {
 							this.getWidget('manifest-upload', 'upload').set('dynamicOptions', {
 								tenant_id: this.getWidget('ucs-integration', 'tenant_id').get('value'),
 								domain: value
 							});
-						}
+						})
 					}, {
 						type: Text,
 						name: 'infos',
