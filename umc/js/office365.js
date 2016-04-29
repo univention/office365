@@ -238,13 +238,16 @@ define([
 					widgets: [{
 						type: Text,
 						name: 'infos',
-						content: this.formatParagraphs([
-							_('For the UCS user account for which Office 365 is enabled, an account in the Microsoft directory is created and selected account attributes get synchronized from UCS to the Microsoft directory.'),
-							_('Via the Univention Config Registry variable <i>office365/attributes/sync</i> can be configured which LDAP attributes (e.g. given name, surname, etc.) of a user account are sychronized.') + ' ' +
-							_('You may add or remove attributes from the list by using the %s.', [tools.linkToModule({module: 'ucr'})]),
-							_('Additional configuration settings can be viewed in the help of the UCR variables <i>office365/attributes/anonymize</i> and <i>office365/attributes/static/.*</i>.') + ' ' +
-							_('You can enable the UCR variable <i>office365/groups/sync</i> to synchronize the groups of the enabled Office 365 users.')
-						])
+						content: this.getTextUniventionConfigRegistry()
+					}]
+				}, {
+					name: 'success3',
+					headerText: _('Office 365 setup complete'),
+					helpText: _('Users can now single sign on into the Office 365 account.'),
+					widgets: [{
+						type: Text,
+						name: 'infos',
+						content: _('Synchronized users can log into Office 365 by using the link on the <a href="/ucs-overview#services" target="_blank">UCS overview page</a>.') + '<br>' + this.img(_('sso-login_EN.png'))
 					}]
 				}, {
 					name: 'error',
@@ -277,7 +280,8 @@ define([
 			return this.formatParagraphs([
 				_('Welcome to the <a href="https://products.office.com/" target="_blank">Microsoft Office 365</a> setup wizard.'),
 				_('It will guide you through the process of setting up automatic provisioning of Microsoft Office 365 accounts for your user accounts.'),
-				_('To use this app you need a Microsoft Office 365 admin account, a global administrator account in the corresponding Azure AD and a <a href="https://azure.microsoft.com/en-us/documentation/articles/active-directory-add-domain/" target="_blank">verified domain</a>.')
+				_('To use this app you need a Microsoft Office 365 admin account, a global administrator account in the corresponding Azure AD and a <a href="https://azure.microsoft.com/en-us/documentation/articles/active-directory-add-domain/" target="_blank">verified domain</a>.'),
+				_('In addition, a Windows PC with at least Windows 7 is required to configure single sign-on for this domain.')
 			]);
 		},
 
@@ -332,12 +336,23 @@ define([
 
 		getTextSingleSignOnSetup: function() {
 			return '<p>' + _('To finish configuration, single sign-on has to be configured for the Office 365 domain. Microsoft only supports to configure single sign-on by running a Microsoft Powershell script on a Windows PC.') + '</p>' + this.formatOrderedList([
-				lang.replace(_('Download the {link}.'), {link: '<a href="/univention-management-console/command/office365/saml_setup.ps1" target="_blank">' + _('SAML configuration script for Microsoft Powershell') + '</a>'}) + ' ' +
-				_('If you open this setup wizard again at a later time, the download link will be available on the first page of the wizard.'),
+				_('If you open this setup wizard again at a later time, a link on the first page will take you back to this instructions.'),
+				_('To use the single sign-on script, your Windows PC must have at least installed the <a href="%s" target="_blank">.NET runtime environment version 4.5.1.</a>.', _('https://www.microsoft.com/download/details.aspx?id=40779')),
+				_('Install the latest version of Microsoft Powershell by installing <a href="%s" target="_blank">Windows Management Framework 5.0</a>', _('https://www.microsoft.com/en-us/download/details.aspx?id=50395')),
 				_('On your Windows PC, follow the <a href="%s" target="_blank">instructions on Microsoft TechNet</a> to install the <i>Microsoft Online Services Sign-In Assistant for IT Professionals RTW</i> and <i>Azure Active Directory Module for Windows PowerShell</i> on your PC.', _('https://technet.microsoft.com/library/jj151815.aspx#bkmk_installmodule')),
-				_('To use these Powershell modules, your Windows PC must have installed the <a href="%s" target="_blank">.NET runtime environment version 4.5.1.</a>, at least.', _('https://www.microsoft.com/download/details.aspx?id=40779')),
+				lang.replace(_('Download the {link} for Microsoft Powershell.'), {link: '<a href="/univention-management-console/command/office365/saml_setup.bat" target="_blank">' + _('SAML configuration script') + '</a>'}) + ' ' +
 				_('Execute the downloaded SAML configuration script, and authenticate with the Azure Active Directory domain administrator account.') + this.img(_('saml_setup_script_windows_EN.png')),
 				_('If the script has been executed successfully, single sign-on configuration is completed. Continue by clicking on <i>Next</i>.')
+			]);
+		},
+
+		getTextUniventionConfigRegistry: function() {
+			return this.formatParagraphs([
+				_('For the UCS user account for which Office 365 is enabled, an account in the Microsoft directory is created and selected account attributes get synchronized from UCS to the Microsoft directory.'),
+				_('Via the Univention Config Registry variable <i>office365/attributes/sync</i> can be configured which LDAP attributes (e.g. given name, surname, etc.) of a user account are sychronized.') + ' ' +
+				_('You may add or remove attributes from the list by using the %s.', [tools.linkToModule({module: 'ucr'})]),
+				_('Additional configuration settings can be viewed in the help of the UCR variables <i>office365/attributes/anonymize</i> and <i>office365/attributes/static/.*</i>.') + ' ' +
+				_('You can enable the UCR variable <i>office365/groups/sync</i> to synchronize the groups of the enabled Office 365 users.')
 			]);
 		},
 
@@ -417,7 +432,7 @@ define([
 				}
 			}), lang.hitch(this, function(error) {
 				this._progressDeferred.reject();
-				this._next('success2');
+				this.switchPage('error');
 			}));
 		},
 
@@ -447,7 +462,7 @@ define([
 		},
 
 		hasNext: function(pageName) {
-			if (~array.indexOf(['authorize', "success2", 'error'], pageName)) {
+			if (~array.indexOf(['authorize', "success3", 'error'], pageName)) {
 				return false;
 			}
 			return this.inherited(arguments);
@@ -461,7 +476,7 @@ define([
 		},
 
 		canCancel: function(pageName) {
-			if (~array.indexOf(["start", 'add-application', "ucs-integration", "manifest-upload", "success", "success2", 'error'], pageName)) {
+			if (~array.indexOf(["start", 'add-application', "ucs-integration", "manifest-upload", "success", "success2", 'success3', 'error'], pageName)) {
 				return false;
 			}
 			return this.inherited(arguments);

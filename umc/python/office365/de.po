@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: univention-management-console-module-office365\n"
 "Report-Msgid-Bugs-To: packages@univention.de\n"
-"POT-Creation-Date: 2016-04-27 13:00+0200\n"
+"POT-Creation-Date: 2016-04-29 10:03+0200\n"
 "PO-Revision-Date: 2016-01-14 11:26+0100\n"
 "Last-Translator: Univention GmbH <packages@univention.de>\n"
 "Language-Team: Univention GmbH <packages@univention.de>\n"
@@ -12,7 +12,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: umc/python/office365/__init__.py:185
+#: umc/python/office365/__init__.py:186
 #, python-brace-format
 msgid ""
 "Microsoft reported an error condition during authorization. It might help to "
@@ -21,7 +21,7 @@ msgstr ""
 "Microsoft hat beim Autorisieren einen Fehler gemeldet. Es könnte helfen noch "
 "einmal zu autorisieren. Fehlermeldung: {error}: {error_description}"
 
-#: umc/python/office365/__init__.py:201
+#: umc/python/office365/__init__.py:202
 msgid "Not yet initialized."
 msgstr "Noch nicht initialisiert."
 
@@ -29,11 +29,11 @@ msgstr "Noch nicht initialisiert."
 msgid "Office 365 Configuration finished"
 msgstr "Office 365 Konfiguration beendet"
 
-#: umc/python/office365/__init__.py:182
+#: umc/python/office365/__init__.py:183
 msgid "Successfully authorized. Starting synchronization."
 msgstr "Erfolgreich autorisiert. Synchronisation startet."
 
-#: umc/python/office365/__init__.py:200
+#: umc/python/office365/__init__.py:201
 msgid "Successfully initialized"
 msgstr "Erfolgreich initialisiert"
 
