@@ -542,7 +542,7 @@ class AzureAuth(object):
 		template = '''
 @ECHO OFF
 ECHO Asking for Azure Administator credentials
-powershell Connect-MsolService; Set-MsolDomainAuthentication -DomainName "{domain}" -Authentication Managed; Set-MsolDomainAuthentication -DomainName "{domain}" -FederationBrandName "UCS" -Authentication Federated -ActiveLogOnUri "https://{ucs_sso_fqdn}/simplesamlphp/saml2/idp/SSOService.php" -PassiveLogOnUri "https://{ucs_sso_fqdn}/simplesamlphp/saml2/idp/SSOService.php" -SigningCertificate "{cert}" -IssuerUri "{issuer}" -LogOffUri "https://{ucs_sso_fqdn}/simplesamlphp/saml2/idp/initSLO.php?RelayState=/simplesamlphp/logout.php" -PreferredAuthenticationProtocol SAMLP;  Get-MsolDomain
+powershell Connect-MsolService; Set-MsolDomainAuthentication -DomainName "{domain}" -Authentication Managed; Set-MsolDomainAuthentication -DomainName "{domain}" -FederationBrandName "UCS" -Authentication Federated -ActiveLogOnUri "https://{ucs_sso_fqdn}/simplesamlphp/saml2/idp/SSOService.php" -PassiveLogOnUri "https://{ucs_sso_fqdn}/simplesamlphp/saml2/idp/SSOService.php" -SigningCertificate "{cert}" -IssuerUri "{issuer}" -LogOffUri "https://{ucs_sso_fqdn}/simplesamlphp/saml2/idp/SingleLogoutService.php?ReturnTo=/ucs-overview" -PreferredAuthenticationProtocol SAMLP;  Get-MsolDomain
 ECHO Finished single sign-on configuration change
 pause
 '''.format(domain=cls.get_domain(), ucs_sso_fqdn=ucs_sso_fqdn, cert=cert, issuer=issuer)
