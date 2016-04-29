@@ -268,6 +268,9 @@ define([
 		postCreate: function() {
 			this.inherited(arguments);
 
+			// prevent that one doesn't upload the file by just pressing enter
+			this._pages['manifest-upload']._form.onSubmit = function(e) { if (e) { e.preventDefault(); }; return false; };
+
 			tools.forIn(this._pages, function(name, page) {
 				page.addChild(new Text({
 					'class': 'umcPageIcon',

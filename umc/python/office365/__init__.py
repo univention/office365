@@ -94,7 +94,7 @@ class Instance(Base):
 		tmpfile=StringSanitizer(required=True)
 	), required=True))
 	@sanitize_body(DictSanitizer(dict(
-		domain=StringSanitizer(required=True),
+		domain=StringSanitizer(required=True, minimum=1),
 		tenant_id=StringSanitizer(default='common'),
 	), required=True))
 	def upload(self, request):

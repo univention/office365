@@ -1,3 +1,9 @@
+univention-office365 (0.2.11-1) unstable; urgency=medium
+
+  * Bug #40294: prevent form submit via return
+
+ -- Florian Best <best@univention.de>  Fri, 29 Apr 2016 16:19:38 +0200
+
 univention-office365 (0.2.10-3) unstable; urgency=medium
 
   * Bug #38950: Use correct logout url
