@@ -1,3 +1,9 @@
+univention-office365 (0.2.11-4) unstable; urgency=low
+
+  * Bug #40294: update UMC users module screenshot
+
+ -- Daniel Troeder <troeder@univention.de>  Mon, 02 May 2016 10:48:15 +0200
+
 univention-office365 (0.2.11-3) unstable; urgency=medium
 
   * Bug #38950: Remove overview links in unjoin script
