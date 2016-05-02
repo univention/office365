@@ -269,7 +269,10 @@ define([
 			this.inherited(arguments);
 
 			// prevent that one doesn't upload the file by just pressing enter
-			this._pages['manifest-upload']._form.onSubmit = function(e) { if (e) { e.preventDefault(); }; return false; };
+			this._pages['manifest-upload']._form.onSubmit = function(e) {
+				if (e) { e.preventDefault(); }
+				return false;
+			};
 
 			tools.forIn(this._pages, function(name, page) {
 				page.addChild(new Text({
@@ -343,7 +346,7 @@ define([
 				_('To use the single sign-on script, your Windows PC must have at least installed the <a href="%s" target="_blank">.NET runtime environment version 4.5.1.</a>.', _('https://www.microsoft.com/download/details.aspx?id=40779')),
 				_('Install the latest version of Microsoft Powershell by installing <a href="%s" target="_blank">Windows Management Framework 5.0</a>', _('https://www.microsoft.com/en-us/download/details.aspx?id=50395')),
 				_('On your Windows PC, follow the <a href="%s" target="_blank">instructions on Microsoft TechNet</a> to install the <i>Microsoft Online Services Sign-In Assistant for IT Professionals RTW</i> and <i>Azure Active Directory Module for Windows PowerShell</i> on your PC.', _('https://technet.microsoft.com/library/jj151815.aspx#bkmk_installmodule')),
-				_('Make sure that the verified domain which is set up in Azure Active Directory is <b>not</b> configured as the primary domain. Otherwise, the next step will fail.')),
+				_('Make sure that the verified domain which is set up in Azure Active Directory is <b>not</b> configured as the primary domain. Otherwise, the next step will fail.'),
 				lang.replace(_('Download the {link} for Microsoft Powershell.'), {link: '<a href="/univention-management-console/command/office365/saml_setup.bat" target="_blank">' + _('SAML configuration script') + '</a>'}) + ' ' +
 				_('Execute the downloaded SAML configuration script, and authenticate with the Azure Active Directory domain administrator account.') + this.img(_('saml_setup_script_windows_EN.png')),
 				_('If the script has been executed successfully, single sign-on configuration is completed. Continue by clicking on <i>Next</i>.')
