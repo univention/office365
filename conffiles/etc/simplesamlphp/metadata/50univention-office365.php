@@ -1,2 +1,2 @@
 
-require_once("/etc/simplesamlphp/metadata.d/univention-office365.php");
+require_once("/etc/simplesamlphp/metadata.include/univention-office365.php");

@@ -1,3 +1,9 @@
+univention-office365 (0.2.12-3) unstable; urgency=medium
+
+  * Bug #38950: do not use default simplesamlphp include directory
+
+ -- Erik Damrose <damrose@univention.de>  Mon, 02 May 2016 16:22:28 +0200
+
 univention-office365 (0.2.12-2) unstable; urgency=low
 
   * Bug #40294: check format of metadata document address
