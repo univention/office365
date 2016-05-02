@@ -59,6 +59,14 @@ then
 		--dn "cn=Office 365 Account,cn=templates,cn=univention,$ldap_base"
 fi
 
+ucr unset ucs/web/overview/entries/service/office365/description \
+	ucs/web/overview/entries/service/office365/label \
+	ucs/web/overview/entries/service/office365/link \
+	ucs/web/overview/entries/service/office365/description/de \
+	ucs/web/overview/entries/service/office365/label/de \
+	ucs/web/overview/entries/service/office365/priority \
+	ucs/web/overview/entries/service/office365/icon
+
 joinscript_remove_script_from_status_file univention-office365
 
 exit 0

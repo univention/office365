@@ -1,3 +1,9 @@
+univention-office365 (0.2.11-3) unstable; urgency=medium
+
+  * Bug #38950: Remove overview links in unjoin script
+
+ -- Erik Damrose <damrose@univention.de>  Mon, 02 May 2016 10:19:30 +0200
+
 univention-office365 (0.2.11-2) unstable; urgency=medium
 
   * Bug #40294: Add informative sentence to wizard
