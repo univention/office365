@@ -1,3 +1,9 @@
+univention-office365 (0.2.12-2) unstable; urgency=low
+
+  * Bug #40294: check format of metadata document address
+
+ -- Daniel Troeder <troeder@univention.de>  Mon, 02 May 2016 14:32:42 +0200
+
 univention-office365 (0.2.12-1) unstable; urgency=medium
 
   * Bug #40294: fix typos

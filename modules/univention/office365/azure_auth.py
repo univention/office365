@@ -44,6 +44,7 @@ import sys
 from xml.dom.minidom import parseString
 from stat import S_IRUSR, S_IWUSR
 import operator
+import uuid
 from cryptography.x509 import load_pem_x509_certificate
 from cryptography.hazmat.backends import default_backend
 import OpenSSL.crypto
@@ -118,6 +119,10 @@ class WriteScriptError(AzureError):
 	pass
 
 
+class TenantIDError(AzureError):
+	pass
+
+
 class Manifest(object):
 
 	@property
@@ -131,7 +136,9 @@ class Manifest(object):
 		except (IndexError, KeyError):
 			pass
 
-	def __init__(self, fd):
+	def __init__(self, fd, tenant_id, domain):
+		self.tenant_id = tenant_id
+		self.domain = domain
 		try:
 			self.manifest = json.load(fd)
 			if not all([isinstance(self.manifest, dict), self.app_id, self.reply_url]):  # TODO: do schema validation
@@ -180,12 +187,6 @@ class Manifest(object):
 		permission = {"id": "78c8a3c8-a07e-4b9e-af1b-b5ccab50a175", "type": "Role"}
 		if not self.manifest["requiredResourceAccess"][0]["resourceAccess"].count(permission):
 			self.manifest["requiredResourceAccess"][0]["resourceAccess"].append(permission)
-
-	def store(self, tenant_id, domain):
-		with open(MANIFEST_FILE, 'wb') as fd:
-			json.dump(self.as_dict(), fd, indent=2, separators=(',', ': '), sort_keys=True)
-		os.chmod(MANIFEST_FILE, S_IRUSR | S_IWUSR)
-		AzureAuth.store_azure_ids(client_id=self.app_id, tenant_id=tenant_id, reply_url=self.reply_url, domain=domain)
 
 
 class JsonStorage(object):
@@ -261,8 +262,23 @@ class AzureAuth(object):
 	def load_azure_ids():
 		return JsonStorage(IDS_FILE).read()
 
+	@classmethod
+	def store_manifest(cls, manifest):
+		with open(MANIFEST_FILE, 'wb') as fd:
+			json.dump(manifest.as_dict(), fd, indent=2, separators=(',', ': '), sort_keys=True)
+		os.chmod(MANIFEST_FILE, S_IRUSR | S_IWUSR)
+		cls.store_azure_ids(client_id=manifest.app_id, tenant_id=manifest.tenant_id, reply_url=manifest.reply_url, domain=manifest.domain)
+
 	@staticmethod
 	def store_azure_ids(**kwargs):
+		if "tenant_id" in kwargs:
+			tid = kwargs["tenant_id"]
+			try:
+				if not (tid == "common" or uuid.UUID(tid)):
+					raise ValueError()
+			except ValueError:
+				raise TenantIDError(_("Tenant-ID '{}' has wrong format.".format(tid)))
+
 		JsonStorage(IDS_FILE).write(**kwargs)
 
 	@staticmethod

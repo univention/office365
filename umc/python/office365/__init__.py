@@ -34,6 +34,7 @@
 import urlparse
 import functools
 import subprocess
+import re
 
 from univention.lib.i18n import Translation
 from univention.management.console.config import ucr
@@ -41,7 +42,7 @@ from univention.management.console.base import Base, UMC_Error, UMC_OptionSaniti
 from univention.management.console.modules.decorators import sanitize, simple_response, file_upload
 from univention.management.console.modules.sanitizers import StringSanitizer, DictSanitizer, BooleanSanitizer, ValidationError, MultiValidationError
 
-from univention.office365.azure_auth import AzureAuth, AzureError, Manifest, ManifestError, MANIFEST_FILE, SAML_SETUP_SCRIPT_PATH
+from univention.office365.azure_auth import AzureAuth, AzureError, Manifest, ManifestError, MANIFEST_FILE, SAML_SETUP_SCRIPT_PATH, TenantIDError
 from univention.office365.azure_handler import AzureHandler
 
 _ = Translation('univention-management-console-module-office365').translate
@@ -101,16 +102,18 @@ class Instance(Base):
 		AzureAuth.uninitialize()
 
 		try:
+			tenant_id = request.body.get('tenant_id') or 'common'
+			tenant_id = urlparse.urlparse(tenant_id).path.strip('/').split('/')[0]
 			with open(request.options[0]['tmpfile']) as fd:
-				manifest = Manifest(fd)
+				manifest = Manifest(fd, tenant_id, request.body['domain'])
 			manifest.transform()
 		except ManifestError as exc:
 			raise UMC_Error(str(exc))
 
 		try:
-			tenant_id = request.body.get('tenant_id') or 'common'
-			tenant_id = urlparse.urlparse(tenant_id).path.strip('/').split('/')[0]
-			manifest.store(tenant_id, request.body['domain'])
+			AzureAuth.store_manifest(manifest)
+		except TenantIDError:
+			raise UMC_Error(_("Invalid federation metadata document address (e.g. https://login.microsoftonline.com/3e7d9eb4-c4a1-4cfd-893e-a8ec29e46b77/federationmetadata/2007-06/federationmetadata.xml)."))
 		except AzureError as exc:
 			raise UMC_Error(str(exc))
 
