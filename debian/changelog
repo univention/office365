@@ -1,3 +1,9 @@
+univention-office365 (0.2.12-4) unstable; urgency=medium
+
+  * Bug #41259: Update logos
+
+ -- Erik Damrose <damrose@univention.de>  Wed, 25 May 2016 14:08:22 +0200
+
 univention-office365 (0.2.12-3) unstable; urgency=medium
 
   * Bug #38950: do not use default simplesamlphp include directory

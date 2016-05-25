@@ -1,9 +1,9 @@
 .umc-office365-page .umcPageIcon {
     background-repeat: no-repeat;
-    height: 120px;
+    height: 150px;
     background-size: contain;
     background-position: center bottom;
-    background-image: url(office365/office365.png);
+    background-image: url(office365/office365.svg);
 }
 .umc .umc-office365-page .umcPageHelpText {
     min-height: 50px;
