@@ -5,3 +5,4 @@
     <li>Diese App benötigt, um Benutzer anzulegen, modifizieren und löschen zu können, administrative Berechtigungen für das Azure Active Directory Konto. Ein <a href="javascript:void(0)" onclick="require('umc/app').openModule('office365')">Einrichtungsassistent</a> wird Sie durch den Konfigurationsprozess begleiten.</li>
 </ul>
 <p>Benutzer müssen in der <a href="javascript:void(0)" onclick="require('umc/app').openModule('udm', 'users/user')">Domänenadministration</a> für diesen Dienst freigeschaltet werden.</p>
+<p>Nicht getestet wurde von Univention die <a href="https://support.office.com/en-us/article/Using-Office-365-modern-authentication-with-Office-clients-776c0036-66fd-41cb-8928-5495c0f9168a" target='_blank'>Office Clientintegration, bitte sehen Sie dazu die Microsoft Dokumentation an</a></p>

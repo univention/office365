@@ -5,3 +5,4 @@
     <li>To create, modify and delete accounts, this app needs administrative access to the Azure Active Directory account. A <a href="javascript:void(0)" onclick="require('umc/app').openModule('office365')">setup wizard</a> will guide you through the configuration process.</li>
 </ul>
 <p>Users need to be modified in the <a href="javascript:void(0)" onclick="require('umc/app').openModule('udm', 'users/user')">Domain administration</a> in order to use this service.</p>
+<p>Univention did not test <a href="https://support.office.com/en-us/article/Using-Office-365-modern-authentication-with-Office-clients-776c0036-66fd-41cb-8928-5495c0f9168a" target='_blank'>Office client integration, please refer to the Microsoft documentation</a></p>
