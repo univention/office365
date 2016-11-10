@@ -33,7 +33,6 @@ import pprint
 from operator import itemgetter
 import base64
 
-import univention.admin.objects  # Bug #33359
 import univention.admin.syntax as udm_syntax
 import univention.testing.strings as uts
 
@@ -62,9 +61,11 @@ udm2azure["append"]["e-mail"] = lambda x: itemgetter("otherMails")(x)
 
 listener_attributes_data = dict(
 	anonymize=[],
-	listener=["city", "displayName", "e-mail", "employeeType", "givenName", "jpegPhoto", "mailAlternativeAddress",
+	listener=[
+		"city", "displayName", "e-mail", "employeeType", "givenName", "jpegPhoto", "mailAlternativeAddress",
 		"mailPrimaryAddress", "mobile", "postalCode", "roomNumber", "sn", "st", "street", "telephoneNumber",
-		"univentionOffice365Enabled"],
+		"univentionOffice365Enabled"
+	],
 	mapping=dict(
 		city="city",
 		displayName="displayName",
@@ -83,8 +84,10 @@ listener_attributes_data = dict(
 	),
 	never=[],
 	static=[],
-	sync=["city", "displayName", "e-mail", "employeeType", "givenName", "jpegPhoto", "mailAlternativeAddress",
-		"mailPrimaryAddress", "mobile", "postalCode", "roomNumber", "sn", "st", "st", "street", "telephoneNumber"]
+	sync=[
+		"city", "displayName", "e-mail", "employeeType", "givenName", "jpegPhoto", "mailAlternativeAddress",
+		"mailPrimaryAddress", "mobile", "postalCode", "roomNumber", "sn", "st", "st", "street", "telephoneNumber"
+	]
 )
 
 
@@ -156,8 +159,12 @@ def print_users(users, complete=False, short=False):
 	else:
 		users = users["value"]
 	for user in users:
-		print(u"objectType: {0} objectId: {1} accountEnabled: {2} displayName: '{3}'".format(user["objectType"],
-			user["objectId"], user["accountEnabled"], user["displayName"]))
+		print(u"objectType: {0} objectId: {1} accountEnabled: {2} displayName: '{3}'".format(
+			user["objectType"],
+			user["objectId"],
+			user["accountEnabled"],
+			user["displayName"])
+		)
 		if short:
 			pass
 		elif complete:
@@ -172,13 +179,18 @@ def print_users(users, complete=False, short=False):
 			print("      assignedPlans:")
 			for plan in user["assignedPlans"]:
 				print(u"            service: {0} \t capabilityStatus: {1}".format(
-					plan["service"], plan["capabilityStatus"]))
+					plan["service"],
+					plan["capabilityStatus"]
+				))
 			if not user["assignedPlans"]:
 				print("            None")
 			print("      provisionedPlans:")
 			for plan in user["provisionedPlans"]:
 				print(u"            service: {0} \t capabilityStatus: {0} \t provisioningStatus: {0}".format(
-					plan["service"], plan["capabilityStatus"], plan["provisioningStatus"]))
+					plan["service"],
+					plan["capabilityStatus"],
+					plan["provisioningStatus"]
+				))
 			if not user["provisionedPlans"]:
 				print("            None")
 
@@ -213,8 +225,10 @@ def azure_user_args(azure_handler, minimal=True):
 			country=random.choice(map(itemgetter(0), udm_syntax.Country.choices)),
 			givenName=uts.random_string(),
 			jobTitle=uts.random_string(),
-			otherMails=["{}@{}".format(uts.random_string(), uts.random_string()),
-				"{}@{}".format(uts.random_string(), uts.random_string())],
+			otherMails=[
+				"{}@{}".format(uts.random_string(), uts.random_string()),
+				"{}@{}".format(uts.random_string(), uts.random_string())
+			],
 			mobile=uts.random_string(),
 			postalCode=uts.random_string(),
 			physicalDeliveryOfficeName=uts.random_string(),
@@ -240,7 +254,11 @@ def udm_user_args(ucr, minimal=True):
 	if not minimal:
 		res["set"].update(dict(
 			birthday="19{}-0{}-{}{}".format(
-				2 * uts.random_int(), uts.random_int(1, 9), uts.random_int(0, 2), uts.random_int(1)),
+				2 * uts.random_int(),
+				uts.random_int(1, 9),
+				uts.random_int(0, 2),
+				uts.random_int(1)
+			),
 			city=uts.random_string(),
 			country=random.choice(map(itemgetter(0), udm_syntax.Country.choices)),
 			departmentNumber=uts.random_string(),
@@ -254,20 +272,28 @@ def udm_user_args(ucr, minimal=True):
 			title=uts.random_string()
 		))
 		res["append"] = dict(
-			homePostalAddress=['"{}" "{}" "{}"'.format(uts.random_string(), uts.random_string(), uts.random_string()),
-				'"{}" "{}" "{}"'.format(uts.random_string(), uts.random_string(), uts.random_string())],
+			homePostalAddress=[
+				'"{}" "{}" "{}"'.format(uts.random_string(), uts.random_string(), uts.random_string()),
+				'"{}" "{}" "{}"'.format(uts.random_string(), uts.random_string(), uts.random_string())
+			],
 			homeTelephoneNumber=[uts.random_string(), uts.random_string()],
-			mailAlternativeAddress=["{}@{}".format(uts.random_username(), ucr["domainname"]),
-				"{}@{}".format(uts.random_username(), ucr["domainname"])],
+			mailAlternativeAddress=[
+				"{}@{}".format(uts.random_username(), ucr["domainname"]),
+				"{}@{}".format(uts.random_username(), ucr["domainname"])
+			],
 			mobileTelephoneNumber=[uts.random_string(), uts.random_string()],
 			pagerTelephoneNumber=[uts.random_string(), uts.random_string()],
 			phone=[12 * uts.random_int(), 12 * uts.random_int()],
-			secretary=["uid=Administrator,cn=users,{}".format(ucr["ldap/base"]),
-				"uid=Guest,cn=users,{}".format(ucr["ldap/base"])]
+			secretary=[
+				"uid=Administrator,cn=users,{}".format(ucr["ldap/base"]),
+				"uid=Guest,cn=users,{}".format(ucr["ldap/base"])
+			]
 		)
 		# func arg name with '-' not allowed
-		res["append"]["e-mail"] = ["{}@{}".format(uts.random_username(), uts.random_username()),
-			"{}@{}".format(uts.random_username(), uts.random_username())]
+		res["append"]["e-mail"] = [
+			"{}@{}".format(uts.random_username(), uts.random_username()),
+			"{}@{}".format(uts.random_username(), uts.random_username())
+		]
 	return res
 
 
