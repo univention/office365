@@ -63,7 +63,7 @@ with utils.AutomaticListenerRestart():
 			user_args1 = copy.deepcopy(user_args)
 
 			user_args2 = dict(set=dict(), append=dict())
-			for key in ["city", "employeeType", "mailPrimaryAddress"]:
+			for key in ["city", "employeeType"]:
 				user_args2["set"][key] = user_args1["set"].pop(key)
 			user_args2["append"]["phone"] = user_args1["append"].pop("phone")
 

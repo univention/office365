@@ -6,6 +6,7 @@
 ## packages:
 ##   - univention-office365
 
+import uuid
 import datetime
 import shutil
 import atexit
@@ -40,9 +41,10 @@ if AzureAuth.is_initialized():
 	utils.fail("App should not be initialized.")
 
 test_ids = dict(
-	tenant_id=uts.random_string(),
+	tenant_id=str(uuid.uuid1()),
 	client_id=uts.random_string(),
-	reply_url=uts.random_string()
+	reply_url=uts.random_string(),
+	domain="{}.{}".format(uts.random_string(), uts.random_string())
 )
 
 AzureAuth.store_azure_ids(**test_ids)
