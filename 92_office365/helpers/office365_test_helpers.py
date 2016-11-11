@@ -207,17 +207,18 @@ def azure_group_args():
 
 
 def azure_user_args(azure_handler, minimal=True):
+	local_part_email = uts.random_username()
 	domain = azure_handler.get_verified_domain_from_disk()
 	res = dict(
 		accountEnabled=True,
 		displayName=uts.random_string(),
 		immutableId=base64.encodestring(uts.random_string()).rstrip(),
-		mailNickname=uts.random_username(),
+		mailNickname=local_part_email,
 		passwordProfile=dict(
 			password=azure_handler.create_random_pw(),
 			forceChangePasswordNextLogin=False
 		),
-		userPrincipalName="{0}@{1}".format(uts.random_username(), domain)
+		userPrincipalName="{0}@{1}".format(local_part_email, domain)
 	)
 	if not minimal:
 		res.update(dict(

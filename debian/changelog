@@ -1,3 +1,12 @@
+univention-office365 (0.2.12-5) unstable; urgency=low
+
+  * Bug #40924: honor account deactivation
+  * Bug #41256: create userPrincipalName from mailPrimaryAddress, makes
+    mailPrimaryAddress mandatory, checked by UDM hook
+  * wording and indentation fixes
+
+ -- Daniel Troeder <troeder@univention.de>  Thu, 10 Nov 2016 09:13:02 +0100
+
 univention-office365 (0.2.12-4) unstable; urgency=medium
 
   * Bug #41259: Update logos

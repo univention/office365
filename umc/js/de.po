@@ -436,7 +436,7 @@ msgstr ""
 
 #: umc/js/office365.js:119
 msgid ""
-"To integrate Office 365 into UCS the manifest of the new application have to "
+"To integrate Office 365 into UCS the manifest of the new application has to "
 "be downloaded."
 msgstr ""
 "Um Office 365 in UCS zu integrieren, ist es notwendig, das Manifest der "
@@ -477,10 +477,10 @@ msgstr ""
 #: umc/js/office365.js:191
 msgid ""
 "UCS modified the manifest to include all information which Azure needs to "
-"accept UCS. The modified manifest now has to be uploaded to Azure."
+"accept connections from UCS. The modified manifest now has to be uploaded to Azure."
 msgstr ""
 "UCS hat das Manifest modifiziert, damit es alle Informationen beinhaltet, "
-"die Azure benötigt, um UCS zu akzeptieren. Das modifizierte Manifest muss "
+"die Azure benötigt, um Verbindungen von UCS zu akzeptieren. Das modifizierte Manifest muss "
 "nun in Azure hochgeladen werden."
 
 #: umc/js/office365.js:170

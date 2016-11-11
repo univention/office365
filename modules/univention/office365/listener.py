@@ -41,6 +41,19 @@ import univention.admin.objects
 from univention.office365.azure_handler import AzureHandler, ResourceNotFoundError
 from univention.office365.logging2udebug import get_logger
 
+attributes_system = set((
+	"krb5KDCFlags",
+	"krb5PasswordEnd",
+	"krb5ValidEnd",
+	"passwordexpiry",
+	"sambaAcctFlags",
+	"sambaKickoffTime",
+	"shadowExpire",
+	"shadowLastChange",
+	"shadowMax",
+	"univentionOffice365Enabled",
+	"userexpiry",
+))  # set literals unknown in python 2.6
 
 logger = get_logger("office365", "o365")
 
@@ -110,6 +123,7 @@ class Office365Listener(object):
 				attributes[azure_ldap_attribute_name] = v
 
 		# mandatory attributes, not to be overwritten by user
+		local_part_of_email_address = new["mailPrimaryAddress"][0].rpartition("@")[0]
 		mandatory_attributes = dict(
 			immutableId=base64.encodestring(new["entryUUID"][0]).rstrip(),
 			accountEnabled=True,
@@ -117,8 +131,8 @@ class Office365Listener(object):
 				password=self.ah.create_random_pw(),
 				forceChangePasswordNextLogin=False
 			),
-			userPrincipalName="{0}@{1}".format(new["uid"][0], self.ah.get_verified_domain_from_disk()),
-			mailNickname=new["uid"][0],
+			userPrincipalName="{0}@{1}".format(local_part_of_email_address, self.ah.get_verified_domain_from_disk()),
+			mailNickname=local_part_of_email_address,
 			displayName=attributes.get("displayName", "no name"),
 			usageLocation=self._get_usage_location(new),
 		)
@@ -169,12 +183,12 @@ class Office365Listener(object):
 				return
 		return self.ah.deactivate_user(object_id)
 
-	def get_udm_user(self, userdn):
+	def get_udm_user(self, userdn, attributes=None):
 		lo, po = self._get_ldap_connection()
 		univention.admin.modules.update()
 		usersmod = univention.admin.modules.get("users/user")
 		univention.admin.modules.init(lo, po, usersmod)
-		user = usersmod.object(None, lo, po, userdn)
+		user = usersmod.object(None, lo, po, userdn, attributes=attributes)
 		user.open()
 		return user
 
@@ -232,9 +246,10 @@ class Office365Listener(object):
 				modifications.extend(v)
 				multiples_may_be_none.extend(v)
 		modifications = list(set(modifications))
-		if modifications:
-			logger.debug("modifications=%r", modifications)
-			udm_attrs = self._get_sync_values(modifications, new, modify=True)
+		logger.debug("modifications=%r", modifications)
+		udm_attrs = self._get_sync_values(modifications, new, modify=True)
+		logger.debug("udm_attrs=%r", udm_attrs)
+		if udm_attrs:
 			attributes = dict()
 			for k, v in udm_attrs.items():
 				if v is None and k in multiples_may_be_none:
@@ -432,25 +447,31 @@ class Office365Listener(object):
 					# group may have been deleted or group may not be an Azure group
 					# let's try to remove it from Azure anyway
 					# get group using name and search
-					m = re.match(r"^(?:cn|uid)=(.*?),.*", removed_member)
+					m = re.match(r"^cn=(.*?),.*", removed_member)
 					if m:
 						object_name = m.groups()[0]
-						# try with a user
-						azure_user = self.ah.list_users(ofilter="userPrincipalName eq '{}'".format(object_name))
-						if azure_user["value"]:
-							member_id = azure_user["value"][0]["objectId"]
-						else:
-							# try with a group
-							azure_group = self.find_aad_group_by_name(object_name)
-							if azure_group:
-								member_id = azure_group["objectId"]
-						if not member_id:
-							# not an Azure user or group or already deleted in Azure
-							continue
+						# do not try with a user account: it will either have
+						# been deleted, in which case it will be removed from
+						# all groups by AzureHandler.deactivate_user() or if it
+						# existed, we'd have found it already at the top of the
+						# for loop with self.get_udm_user(removed_member).
 
+						# try with a group
+						azure_group = self.find_aad_group_by_name(object_name)
+						if azure_group:
+							member_id = azure_group["objectId"]
+						else:
+							# not an Azure user or group or already deleted in Azure
+							logger.warn(
+								"Office365Listener.modify_group(), removing members: couldn't figure out object name from dn %r",
+								removed_member
+							)
+							continue
 					else:
-						logger.warn("Office365Listener.modify_group(), removing members: couldn't figure out object"
-							"name from dn %r", removed_member)
+						logger.warn(
+							"Office365Listener.modify_group(), removing members: couldn't figure out object name from dn %r",
+							removed_member
+						)
 						continue
 
 				self.ah.delete_group_member(group_id=group_id, member_id=member_id)
@@ -565,8 +586,8 @@ class Office365Listener(object):
 		# anonymize > static > sync
 		res = dict()
 		for attr in attrs:
-			if attr == "univentionOffice365Enabled":
-				# filter out univentionOffice365Enabled
+			if attr in attributes_system:
+				# filter out univentionOffice365Enabled and account deactivation/locking attributes
 				continue
 			elif attr not in user and not modify:
 				# only set empty values to unset properties when modifying

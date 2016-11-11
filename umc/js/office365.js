@@ -116,7 +116,7 @@ define([
 				}, {
 					name: 'ucs-integration',
 					headerText: _('Connect Azure with UCS'),
-					helpText: _('To integrate Office 365 into UCS the manifest of the new application have to be downloaded.') + ' ' + _('The manifest is a JSON file which contains all necessary information required to connect UCS with your active directory.'),
+					helpText: _('To integrate Office 365 into UCS the manifest of the new application has to be downloaded.') + ' ' + _('The manifest is a JSON file which contains all necessary information required to connect UCS with your active directory.'),
 					widgets: [{
 						type: Text,
 						name: 'infos',
@@ -188,7 +188,7 @@ define([
 				}, {
 					name: 'upload-manifest',
 					headerText: _('Upload updated manifest'),
-					helpText: _('UCS modified the manifest to include all information which Azure needs to accept UCS. The modified manifest now has to be uploaded to Azure.'),
+					helpText: _('UCS modified the manifest to include all information which Azure needs to accept connections from UCS. The modified manifest now has to be uploaded to Azure.'),
 					widgets: [{
 						type: Text,
 						name: 'azure-integration',

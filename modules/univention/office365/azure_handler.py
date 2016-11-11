@@ -528,10 +528,14 @@ class AzureHandler(object):
 			otherMails=list()
 		)
 		if rename:
-			name_pattern = "ZZZ_deleted_{time}_{orig}"
-			modifications["displayName"] = name_pattern.format(time=time.time(), orig=user_obj["displayName"])
-			modifications["mailNickname"] = name_pattern.format(time=time.time(), orig=user_obj["mailNickname"])
-			modifications["userPrincipalName"] = name_pattern.format(time=time.time(), orig=user_obj["userPrincipalName"])
+			if re.match(r'^ZZZ_deleted_.+_.+', user_obj["userPrincipalName"]):
+				# this shouldn't happen
+				logger.warn("User %r already deactivated, ignoring.", user_obj["userPrincipalName"])
+			else:
+				name_pattern = "ZZZ_deleted_{time}_{orig}"
+				modifications["displayName"] = name_pattern.format(time=time.time(), orig=user_obj["displayName"])
+				modifications["mailNickname"] = name_pattern.format(time=time.time(), orig=user_obj["mailNickname"])
+				modifications["userPrincipalName"] = name_pattern.format(time=time.time(), orig=user_obj["userPrincipalName"])
 		self.modify_user(object_id=object_id, modifications=modifications)
 
 		# remove user from all groups

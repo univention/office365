@@ -37,11 +37,12 @@ import json
 import base64
 import zlib
 import copy
+import datetime
 from stat import S_IRUSR, S_IWUSR
 
 import listener
 from univention.office365.azure_auth import AzureAuth
-from univention.office365.listener import Office365Listener, NoAllocatableSubscriptions
+from univention.office365.listener import Office365Listener, NoAllocatableSubscriptions, attributes_system
 from univention.office365.logging2udebug import get_logger
 
 
@@ -76,7 +77,7 @@ def get_listener_attributes():
 					raise ValueError("Can only deal with dicts and lists: rm_objs_from_list_or_dict({}, {})".format(
 						rm_objs_list, list_of_listsdicts))
 
-	attrs = {"univentionOffice365Enabled"}
+	attrs = set(attributes_system)
 	for k, v in listener.configRegistry.items():
 		if k == "office365/attributes/anonymize":
 			attributes_anonymize = [x.strip() for x in v.split(",") if x.strip()]
@@ -113,15 +114,17 @@ def get_listener_attributes():
 			del attributes_multiple_azure2ldap[k]
 
 	# sanity check
-	no_mapping = [a for a in attrs if a not in attributes_mapping.keys() and a != "univentionOffice365Enabled"]
+	no_mapping = [a for a in attrs if a not in attributes_mapping.keys() and a not in attributes_system]
 	if no_mapping:
 		logger.warn("No mappings for attributes %r found - ignoring.", no_mapping)
 		rm_objs_from_list_or_dict(no_mapping, [attrs, attributes_anonymize, attributes_static, attributes_sync])
 
 	if "univentionOffice365ObjectID" in attrs or "UniventionOffice365Data" in attrs:
 		logger.warn("Nice try.")
-		rm_objs_from_list_or_dict(["univentionOffice365ObjectID", "univentionOffice365Data"], [attrs,
-			attributes_anonymize, attributes_static, attributes_sync])
+		rm_objs_from_list_or_dict(
+			["univentionOffice365ObjectID", "univentionOffice365Data"],
+			[attrs, attributes_anonymize, attributes_static, attributes_sync]
+		)
 
 	# just for log readability
 	attrs.sort()
@@ -157,7 +160,8 @@ _attrs = dict(
 
 ldap_cred = dict()
 
-logger.info("listener observing attributes: %r", attributes)
+logger.info("listener observing attributes: %r", [a for a in attributes if a not in attributes_system])
+logger.info("listener is also observing: %r", sorted(list(attributes_system)))
 logger.info("attributes mapping UCS->AAD: %r", attributes_mapping)
 logger.info("attributes to sync anonymized: %r", attributes_anonymize)
 logger.info("attributes to never sync: %r", attributes_never)
@@ -182,6 +186,36 @@ def save_old(old):
 	with open(OFFICE365_OLD_JSON, "w+") as fp:
 		os.chmod(OFFICE365_OLD_JSON, S_IRUSR | S_IWUSR)
 		json.dump(old, fp)
+
+
+def is_deactived_locked_or_expired(dn, user, ol):
+	"""
+	Check if a LDAP-user is deactivated or locked (by any method: Windows/Kerberos/POSIX).
+
+	:param dn: str: DN of user
+	:param user: dict: listener LDAP object (now or old)
+	:param ol: Office365Listener instance
+	:return: bool: whether the user is deactivated or locked
+	"""
+	def boolify(value):
+		if value is None or value.lower() == "none":
+			return False
+		return True
+
+	udm_user = ol.get_udm_user(dn, user)
+
+	if boolify(udm_user.info.get('disabled')) or boolify(udm_user.info.get('locked')):
+		return True
+
+	if udm_user.info.get('userexpiry'):
+		try:
+			if datetime.datetime.strptime(udm_user.info.get('userexpiry'), "%Y-%m-%d") <= datetime.datetime.now():
+				return True
+		except ValueError:
+			logger.exception("Bad data in userexpiry: %r", udm_user.info.get('userexpiry'))
+			return True
+
+	return False
 
 
 def setdata(key, value):
@@ -219,7 +253,15 @@ def handler(dn, new, old, command):
 	ol = Office365Listener(listener, name, _attrs, ldap_cred, dn)
 
 	old_enabled = bool(int(old.get("univentionOffice365Enabled", ["0"])[0]))  # "" when disabled, "1" when enabled
+	if old_enabled:
+		enabled = not is_deactived_locked_or_expired(dn, old, ol)
+		logger.debug("old was %s.", "enabled" if enabled else "deactivated, locked or expired")
+		old_enabled &= enabled
 	new_enabled = bool(int(new.get("univentionOffice365Enabled", ["0"])[0]))
+	if new_enabled:
+		enabled = not is_deactived_locked_or_expired(dn, new, ol)
+		logger.debug("new is %s.", "enabled" if enabled else "deactivated, locked or expired")
+		new_enabled &= enabled
 
 	#
 	# NEW or REACTIVATED account
@@ -236,8 +278,11 @@ def handler(dn, new, old, command):
 		udm_user["UniventionOffice365ObjectID"] = new_user["objectId"]
 		udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(new_user))).rstrip()
 		udm_user.modify()
-		logger.info("User creation success. userPrincipalName: %r objectId: %r dn: %s", new_user["userPrincipalName"],
-			new_user["objectId"], dn)
+		logger.info(
+			"User creation success. userPrincipalName: %r objectId: %r dn: %s",
+			new_user["userPrincipalName"],
+			new_user["objectId"], dn
+		)
 		return
 
 	#

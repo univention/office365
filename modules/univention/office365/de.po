@@ -84,3 +84,6 @@ msgid "The received token is not valid. Please run the wizard again."
 msgstr ""
 "Der erhaltene Token ist ungültig. Bitte führen Sie den Einrichtungsassistent "
 "erneut aus."
+
+msgid "Office 365 users must have a primary e-mail address specified."
+msgstr "Office 365 Benutzer müssen eine primäre E-Mail-Adresse besitzen."

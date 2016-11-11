@@ -41,6 +41,7 @@ joinscript_init
 eval "$(ucr shell)"
 
 CONFDIR=/etc/univention-office365
+VARDIR=/var/lib/univention-office365
 
 if ! joinscript_check_any_version_executed || [ -n "$FORCE_NEW_CERT" ]; then
     cd $CONFDIR
@@ -55,8 +56,8 @@ if ! joinscript_check_any_version_executed || [ -n "$FORCE_NEW_CERT" ]; then
 
     # set permissions
     touch key.pem cert.pem cert.fp ids.json token.json
-    chown -R listener:root $CONFDIR /var/lib/univention-office365
-    chmod 0700 $CONFDIR
+    chown -R listener:root "$CONFDIR" "$VARDIR"
+    chmod 0700 "$CONFDIR" "$VARDIR"
     chmod 0600 key.pem cert.pem cert.fp ids.json token.json
 
     # create SSL key, cert and fp

@@ -36,6 +36,11 @@ import zlib
 
 import univention.debug as ud
 from univention.admin.hook import simpleHook
+import univention.admin.uexceptions
+from univention.lib.i18n import Translation
+
+_ = Translation('univention-office365').translate
+msg_require_mail = _("Office 365 users must have a primary e-mail address specified.")
 
 
 class OfficeUserPrincipalNameHook(simpleHook):
@@ -44,6 +49,14 @@ class OfficeUserPrincipalNameHook(simpleHook):
 	@staticmethod
 	def log(msg):
 		ud.debug(ud.LISTENER, ud.ERROR, msg)
+
+	@staticmethod
+	def str2bool(val):
+		try:
+			return bool(int(val))
+		except TypeError:
+			# None
+			return False
 
 	@staticmethod
 	def get_user_principal_name(azure_data_encoded):
@@ -65,3 +78,11 @@ class OfficeUserPrincipalNameHook(simpleHook):
 			if old != new:
 				ml.append(("UniventionOffice365userPrincipalName", old, new))
 		return ml
+
+	def hook_ldap_pre_create(self, module):
+		if self.str2bool(module.get("UniventionOffice365Enabled")) and not module.get("mailPrimaryAddress"):
+			raise univention.admin.uexceptions.valueError(msg_require_mail)
+
+	def hook_ldap_pre_modify(self, module):
+		if self.str2bool(module.get("UniventionOffice365Enabled")) and not module.get("mailPrimaryAddress"):
+			raise univention.admin.uexceptions.valueError(msg_require_mail)
