@@ -53,6 +53,7 @@ attributes_system = set((
 	"shadowMax",
 	"univentionOffice365Enabled",
 	"userexpiry",
+	"userPassword",
 ))  # set literals unknown in python 2.6
 
 logger = get_logger("office365", "o365")

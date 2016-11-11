@@ -1,3 +1,9 @@
+univention-office365 (0.2.12-6) unstable; urgency=low
+
+  * Bug #40924: listen for 'userPassword' to detect locked=posix
+
+ -- Daniel Troeder <troeder@univention.de>  Fri, 11 Nov 2016 10:59:55 +0100
+
 univention-office365 (0.2.12-5) unstable; urgency=low
 
   * Bug #40924: honor account deactivation

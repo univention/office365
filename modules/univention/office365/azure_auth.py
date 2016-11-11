@@ -44,7 +44,6 @@ import sys
 from xml.dom.minidom import parseString
 from stat import S_IRUSR, S_IWUSR
 import operator
-import uuid
 from cryptography.x509 import load_pem_x509_certificate
 from cryptography.hazmat.backends import default_backend
 import OpenSSL.crypto
@@ -244,7 +243,7 @@ class AzureAuth(object):
 		try:
 			tokens = cls.load_tokens()
 			# Check if wizard was completed
-			if not "consent_given" in tokens or not tokens["consent_given"]:
+			if "consent_given" not in tokens or not tokens["consent_given"]:
 				return False
 
 			ids = cls.load_azure_ids()
