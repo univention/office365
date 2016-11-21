@@ -1,3 +1,10 @@
+univention-office365 (0.2.12-7) unstable; urgency=low
+
+  * Bug #43025: wizard logs successful retrieval of user accounts to simplify
+    user support
+
+ -- Daniel Troeder <troeder@univention.de>  Mon, 21 Nov 2016 17:02:34 +0100
+
 univention-office365 (0.2.12-6) unstable; urgency=low
 
   * Bug #40924: listen for 'userPassword' to detect locked=posix

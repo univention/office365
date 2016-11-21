@@ -34,13 +34,13 @@
 import urlparse
 import functools
 import subprocess
-import re
 
 from univention.lib.i18n import Translation
 from univention.management.console.config import ucr
 from univention.management.console.base import Base, UMC_Error, UMC_OptionSanitizeError
 from univention.management.console.modules.decorators import sanitize, simple_response, file_upload
 from univention.management.console.modules.sanitizers import StringSanitizer, DictSanitizer, BooleanSanitizer, ValidationError, MultiValidationError
+from univention.management.console.log import MODULE
 
 from univention.office365.azure_auth import AzureAuth, AzureError, Manifest, ManifestError, MANIFEST_FILE, SAML_SETUP_SCRIPT_PATH, TenantIDError
 from univention.office365.azure_handler import AzureHandler
@@ -191,7 +191,9 @@ window.top.close();
 			self.init()
 			try:
 				ah = AzureHandler(ucr, "wizard")
-				ah.list_users()
+				users = ah.list_users()
+				MODULE.process('Retrieved list of users: %r' % users)
+
 			#except TokenError as exc:
 			#	return
 			except AzureError as exc:
