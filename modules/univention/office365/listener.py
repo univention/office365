@@ -568,7 +568,7 @@ class Office365Listener(object):
 		if user["value"]:
 			return user["value"][0]["objectId"]
 		else:
-			logger.error("Could not find user with dn=%r.", entryUUID)
+			logger.error("Could not find user with entryUUID=%r.", entryUUID)
 			return None
 
 	def find_aad_group_by_name(self, name):

@@ -1,3 +1,9 @@
+univention-office365 (0.2.12-8) unstable; urgency=low
+
+  * Bug #43025: fix log output
+
+ -- Daniel Troeder <troeder@univention.de>  Wed, 23 Nov 2016 11:30:48 +0100
+
 univention-office365 (0.2.12-7) unstable; urgency=low
 
   * Bug #43025: wizard logs successful retrieval of user accounts to simplify

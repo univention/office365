@@ -190,10 +190,13 @@ class AzureHandler(object):
 					logger.exception("response is not JSON. response.__dict__: %r", response.__dict__)
 					raise ApiError, ApiError(response, chained_exc=exc), sys.exc_info()[2]
 
-			logger.debug("status: %r (%s)%s",
+			logger.info(
+				"status: %r (%s)%s (%s %s)",
 				response.status_code,
 				"OK" if 200 <= response.status_code <= 299 else "FAIL",
-				" Code: {}".format(response_json["odata.error"]["code"]) if response_json and "odata.error" in response_json else "")
+				" Code: {}".format(response_json["odata.error"]["code"]) if response_json and "odata.error" in response_json else "",
+				method.upper(),
+				url)
 
 			if not (200 <= response.status_code <= 299):
 				if response.status_code == 404 and response_json["odata.error"]["code"] == "Request_ResourceNotFound":
