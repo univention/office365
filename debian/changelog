@@ -1,3 +1,14 @@
+univention-office365 (0.2.12-9) unstable; urgency=low
+
+  * Bug #43064: add OFFICESUBSCRIPTION to list of plans used to identify
+    office subscritions
+  * Bug #43064: add cmdline script to help users identify their
+    subscription names and associated plans
+  * Bug #43064: modify user/group printing script to display plans in use
+    by each user
+
+ -- Daniel Troeder <troeder@univention.de>  Mon, 05 Dec 2016 16:16:29 +0100
+
 univention-office365 (0.2.12-8) unstable; urgency=low
 
   * Bug #43025: fix log output

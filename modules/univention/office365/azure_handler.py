@@ -87,7 +87,17 @@ azure_attribute_types = dict(
 	userPrincipalName=unicode,
 	userType=unicode
 )
-_default_azure_service_plan_names = "SHAREPOINTWAC, SHAREPOINTWAC_DEVELOPER"  # Office Web Apps
+# service plan names
+# SWAY                   Sway
+# INTUNE_O365            Mobile Device Management for Office 365
+# YAMMER_ENTERPRISE      Yammer
+# RMS_S_ENTERPRISE       Azure Rights Management (RMS)
+# OFFICESUBSCRIPTION     Office Professional Plus
+# MCOSTANDARD            Skype for Business Online
+# SHAREPOINTWAC          Office Online
+# SHAREPOINTENTERPRISE   SharePoint Online
+# EXCHANGE_S_ENTERPRISE  Exchange Online Plan 2
+_default_azure_service_plan_names = "SHAREPOINTWAC, SHAREPOINTWAC_DEVELOPER, OFFICESUBSCRIPTION"
 
 logger = get_logger("office365", "o365")
 
@@ -486,7 +496,7 @@ class AzureHandler(object):
 				subscription["prepaidUnits"]["enabled"] > subscription["consumedUnits"]):
 				for plan in subscription["servicePlans"]:
 					if plan["servicePlanName"] in self.service_plan_names:
-						# found a office web apps plan
+						# found an office plan
 						subscriptions.append(subscription)
 						break
 		return subscriptions
