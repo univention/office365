@@ -9,3 +9,5 @@ generate_office365_saml_powershell_script usr/sbin
 etc
 office365_userPrincipalName_hook.py usr/share/pyshared/univention/admin/hooks.d/
 umc/icons/office365.png var/www
+print_subscriptions usr/share/univention-office365/scripts/
+print_users_and_groups usr/share/univention-office365/scripts/

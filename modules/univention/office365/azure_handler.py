@@ -125,6 +125,11 @@ def _get_azure_uris(tenant_id):
 	)
 
 
+def get_service_plan_names(ucr):
+	ucr_service_plan_names = ucr.get("office365/subscriptions/service_plan_names") or _default_azure_service_plan_names
+	return [spn.strip() for spn in ucr_service_plan_names.split(",")]
+
+
 class ApiError(AzureError):
 	def __init__(self, response, *args, **kwargs):
 		msg = "Communication error."
@@ -153,9 +158,7 @@ class AzureHandler(object):
 		self.name = name
 		self.auth = AzureAuth(name)
 		self.uris = _get_azure_uris(self.auth.tenant_id)
-
-		ucr_service_plan_names = self.ucr.get("office365/subscriptions/service_plan_names") or _default_azure_service_plan_names
-		self.service_plan_names = [spn.strip() for spn in ucr_service_plan_names.split(",")]
+		self.service_plan_names = get_service_plan_names(self.ucr)
 		logger.info("service_plan_names=%r", self.service_plan_names)
 
 	def call_api(self, method, url, data=None, retry=0):
@@ -219,7 +222,7 @@ class AzureHandler(object):
 						logger.error("AzureHandler.call_api() Server error. Azure said: %r. Will sleep 10s and then"
 							"retry one time.", response_json["odata.error"]["message"]["value"])
 						time.sleep(10)
-						self.call_api(method, url, data=data, retry=retry+1)
+						self.call_api(method, url, data=data, retry=retry + 1)
 				else:
 					raise ApiError(response)
 		else:
@@ -468,19 +471,24 @@ class AzureHandler(object):
 			# group didn't exist in Azure
 			pass
 
-	def _change_license(self, operation, user_id, sku_id):
-		logger.debug("operation: %r user_id: %r sku_id: %r", operation, user_id, sku_id)
+	def _change_license(self, operation, user_id, sku_id, deactivate_plans):
+		logger.debug(
+			"operation: %r user_id: %r sku_id: %r deactivate_plans=%r",
+			operation,
+			user_id,
+			sku_id,
+			deactivate_plans)
 		data = dict(addLicenses=list(), removeLicenses=list())
 		if operation == "add":
-			data["addLicenses"].append(dict(disabledPlans=[], skuId=sku_id))
+			data["addLicenses"].append(dict(disabledPlans=deactivate_plans if deactivate_plans else [], skuId=sku_id))
 		elif operation == "remove":
 			data["removeLicenses"].append(sku_id)
 		params = urllib.urlencode(azure_params)
 		url = self.uris["user_assign_license"].format(user_id=user_id, params=params)
 		return self.call_api("POST", url, data)
 
-	def add_license(self, user_id, sku_id):
-		self._change_license("add", user_id, sku_id)
+	def add_license(self, user_id, sku_id, deactivate_plans=None):
+		self._change_license("add", user_id, sku_id, deactivate_plans)
 
 	def remove_license(self, user_id, sku_id):
 		self._change_license("remove", user_id, sku_id)
@@ -488,12 +496,10 @@ class AzureHandler(object):
 	def list_subscriptions(self, object_id=None, ofilter=None):
 		return self._list_objects(object_type="subscription", object_id=object_id, ofilter=ofilter)
 
-	def get_office_web_apps_subscriptions(self):
+	def get_enabled_subscriptions(self):
 		subscriptions = list()
 		for subscription in self.list_subscriptions()["value"]:
-			if (subscription["appliesTo"] == "User" and
-				subscription["capabilityStatus"] == "Enabled" and
-				subscription["prepaidUnits"]["enabled"] > subscription["consumedUnits"]):
+			if subscription["appliesTo"] == "User" and subscription["capabilityStatus"] == "Enabled":
 				for plan in subscription["servicePlans"]:
 					if plan["servicePlanName"] in self.service_plan_names:
 						# found an office plan

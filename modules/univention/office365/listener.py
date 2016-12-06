@@ -32,14 +32,12 @@
 from operator import itemgetter
 import uuid
 import re
-import json
 import base64
-import zlib
 
-import univention.admin.uldap
-import univention.admin.objects
 from univention.office365.azure_handler import AzureHandler, ResourceNotFoundError
 from univention.office365.logging2udebug import get_logger
+from univention.office365.udm_helper import UDMHelper
+from univention.office365.subscriptions import SubscriptionProfile
 
 attributes_system = set((
 	"krb5KDCFlags",
@@ -76,10 +74,8 @@ class Office365Listener(object):
 		"""
 		self.listener = listener
 		self.attrs = attrs
-		self.ldap_cred = ldap_cred
-		self.lo = None
-		self.po = None
-		self.groupmod = None
+		self.udm = UDMHelper(ldap_cred)
+		# self.ldap_cred = ldap_cred
 		self.dn = dn
 
 		if self.listener:
@@ -145,20 +141,12 @@ class Office365Listener(object):
 		if user["value"]:
 			new_user = user["value"][0]
 		else:
-			raise RuntimeError("Office365Listener.create_user() created user '{}' cannot be retrieved.".format(attributes["userPrincipalName"]))
+			raise RuntimeError(
+				"Office365Listener.create_user() created user '{}' cannot be retrieved.".format(
+					attributes["userPrincipalName"])
+			)
 
-		subscriptions = self.ah.get_office_web_apps_subscriptions()
-		if len(subscriptions) < 1:
-			msg = "User '{}'/'{}' created in Azure AD, but no allocatable subscriptions found.".format(
-				new["uid"][0], new_user["objectId"])
-			raise NoAllocatableSubscriptions(new_user, msg)
-		elif len(subscriptions) > 1:
-			logger.warn("More than one Office 365 subscription found. Currently not fully supported. Using first one.")
-		sku_id = subscriptions[0]["skuId"]
-
-		logger.info("Using subscription %r for user %r.", subscriptions[0]["skuId"], new_user["objectId"])
-		self.ah.add_license(new_user["objectId"], subscriptions[0]["skuId"])
-
+		self.assign_subscription(new, new_user)
 		return new_user
 
 	def delete_user(self, old):
@@ -183,58 +171,6 @@ class Office365Listener(object):
 			if not object_id:
 				return
 		return self.ah.deactivate_user(object_id)
-
-	def get_udm_user(self, userdn, attributes=None):
-		lo, po = self._get_ldap_connection()
-		univention.admin.modules.update()
-		usersmod = univention.admin.modules.get("users/user")
-		univention.admin.modules.init(lo, po, usersmod)
-		user = usersmod.object(None, lo, po, userdn, attributes=attributes)
-		user.open()
-		return user
-
-	@staticmethod
-	def find_udm_objects(module_s, filter_s, base, ldap_cred):
-		"""
-		search LDAP for UDM objects, static for listener.clean()
-		:param module_s: str: "users/user", "groups/group", etc
-		:param filter_s: str: LDAP filter string
-		:param base: str: note to start search from
-		:param ldap_cred: dict: LDAP credentials collected in listeners set_data()
-		:return: list of (not yet opened) UDM objects
-		"""
-		lo = univention.admin.uldap.access(
-					host=ldap_cred["ldapserver"],
-					base=ldap_cred["basedn"],
-					binddn=ldap_cred["binddn"],
-					bindpw=ldap_cred["bindpw"])
-		po = univention.admin.uldap.position(base)
-		univention.admin.modules.update()
-		module = univention.admin.modules.get(module_s)
-		univention.admin.modules.init(lo, po, module)
-		config = univention.admin.config.config()
-		return module.lookup(config, lo, filter_s=filter_s, base=base)
-
-	@classmethod
-	def clean_udm_objects(cls, module_s, base, ldap_cred):
-		"""
-		Remove  univentionOffice365ObjectID and univentionOffice365Data from all
-		user/group objects, static for listener.clean().
-		:param module_s: str: "users/user", "groups/group", etc
-		:param base: str: note to start search from
-		:param ldap_cred: dict: LDAP credentials collected in listeners set_data()
-		"""
-		logger.info("Cleaning %r objects....", module_s)
-		filter_s = "(|(univentionOffice365ObjectID=*)(univentionOffice365Data=*))"
-		udm_objs = cls.find_udm_objects(module_s, filter_s, base, ldap_cred)
-		for udm_obj in udm_objs:
-			udm_obj.open()
-			logger.info("%r...", udm_obj["username"] if "username" in udm_obj else udm_obj["name"])
-			udm_obj["UniventionOffice365ObjectID"] = None
-			if "UniventionOffice365Data" in udm_obj:
-				udm_obj["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(None))).rstrip()
-			udm_obj.modify()
-		logger.info("Cleaning done.")
 
 	def modify_user(self, old, new):
 		modifications = self._diff_old_new(self.attrs["listener"], old, new)
@@ -307,7 +243,7 @@ class Office365Listener(object):
 		return self.create_group(name, desc, self.dn)
 
 	def create_group_from_ldap(self, groupdn, add_members=True):
-		udm_group = self.get_udm_group(groupdn)
+		udm_group = self.udm.get_udm_group(groupdn)
 		desc = udm_group.get("description", None)
 		name = udm_group["name"]
 		return self.create_group(name, desc, groupdn, add_members)
@@ -407,21 +343,21 @@ class Office365Listener(object):
 			removed_members = set_old - set_new
 			added_members = set_new - set_old
 			logger.debug("dn=%r added_members=%r removed_members=%r", self.dn, added_members, removed_members)
-			udm_group_old = self.get_udm_group(self.dn)
+			udm_group_old = self.udm.get_udm_group(self.dn)
 
 			# add new members to Azure
 			users_and_groups_to_add = list()
 			for added_member in added_members:
 				if added_member in udm_group_old["users"]:
-					udm_user = self.get_udm_user(added_member)
+					udm_user = self.udm.get_udm_user(added_member)
 					if (bool(int(udm_user.get("UniventionOffice365Enabled", "0"))) and
 						udm_user["UniventionOffice365ObjectID"]):
 						users_and_groups_to_add.append(udm_user["UniventionOffice365ObjectID"])
 				elif added_member in udm_group_old["nestedGroup"]:
 					# check if this group or any of its nested groups has azure_users
-					for group_with_azure_users in self.udm_groups_with_azure_users(added_member):
+					for group_with_azure_users in self.udm.udm_groups_with_azure_users(added_member):
 						logger.debug("Found nested group %r with azure users...", group_with_azure_users)
-						udm_group = self.get_udm_group(group_with_azure_users)
+						udm_group = self.udm.get_udm_group(group_with_azure_users)
 						if not udm_group.get("UniventionOffice365ObjectID"):
 							new_group = self.create_group_from_ldap(group_with_azure_users)
 							udm_group["UniventionOffice365ObjectID"] = new_group["objectId"]
@@ -438,11 +374,11 @@ class Office365Listener(object):
 			# remove members
 			for removed_member in removed_members:
 				# try with UDM user
-				udm_obj = self.get_udm_user(removed_member)
+				udm_obj = self.udm.get_udm_user(removed_member)
 				member_id = udm_obj.get("UniventionOffice365ObjectID")
 				if not member_id:
 					# try with UDM group
-					udm_obj = self.get_udm_group(removed_member)
+					udm_obj = self.udm.get_udm_group(removed_member)
 					member_id = udm_obj.get("UniventionOffice365ObjectID")
 				if not member_id:
 					# group may have been deleted or group may not be an Azure group
@@ -498,19 +434,19 @@ class Office365Listener(object):
 		:return: None
 		"""
 		logger.debug("group_dn=%r object_id=%r", group_dn, object_id)
-		udm_target_group = self.get_udm_group(group_dn)
+		udm_target_group = self.udm.get_udm_group(group_dn)
 		users_and_groups_to_add = list()
 
 		for userdn in udm_target_group["users"]:
-			udm_user = self.get_udm_user(userdn)
+			udm_user = self.udm.get_udm_user(userdn)
 			if bool(int(udm_user.get("UniventionOffice365Enabled", "0"))):
 				users_and_groups_to_add.append(udm_user["UniventionOffice365ObjectID"])
 
 		# search tree downwards, create groups as we go, add users to them later
 		for groupdn in udm_target_group["nestedGroup"]:
 			# check if this group or any of its nested groups has azure_users
-			for group_with_azure_users_dn in self.udm_groups_with_azure_users(groupdn):
-				udm_group = self.get_udm_group(group_with_azure_users_dn)
+			for group_with_azure_users_dn in self.udm.udm_groups_with_azure_users(groupdn):
+				udm_group = self.udm.get_udm_group(group_with_azure_users_dn)
 				if not udm_group.get("UniventionOffice365ObjectID"):
 					new_group = self.create_group_from_ldap(group_with_azure_users_dn, add_members=False)
 					udm_group["UniventionOffice365ObjectID"] = new_group["objectId"]
@@ -525,7 +461,7 @@ class Office365Listener(object):
 		# search tree upwards, create groups as we go, don't add users
 		def _groups_up_the_tree(group):
 			for member_dn in group["memberOf"]:
-				udm_member = self.get_udm_group(member_dn)
+				udm_member = self.udm.get_udm_group(member_dn)
 				if not udm_member.get("UniventionOffice365ObjectID"):
 					new_group = self.create_group_from_ldap(member_dn, add_members=False)
 					udm_member["UniventionOffice365ObjectID"] = new_group["objectId"]
@@ -534,34 +470,66 @@ class Office365Listener(object):
 
 		_groups_up_the_tree(udm_target_group)
 
-	def udm_groups_with_azure_users(self, groupdn):
-		"""
-		Recursively search for groups with azure users.
+	def assign_subscription(self, new, azure_user):
+		msg_no_allocatable_subscriptions = 'User {}/{} created in Azure AD, but no allocatable subscriptions' \
+			' found.'.format(new['uid'][0], azure_user['objectId'])
+		msg_multiple_subscriptions = 'More than one usable Office 365 subscription found.'
 
-		:param groupdn: group to start with
-		:return: list of DNs of groups that have at least one user with UniventionOffice365Enabled=1
-		"""
-		udm_group = self.get_udm_group(groupdn)
+		# check subscription availability in azure
+		subscriptions_online = self.ah.get_enabled_subscriptions()
+		logger.debug('subscriptions_online=%r', subscriptions_online)
+		if len(subscriptions_online) < 1:
+			raise NoAllocatableSubscriptions(azure_user, msg_no_allocatable_subscriptions)
 
-		groups = list()
-		for nested_groupdn in udm_group.get("nestedGroup", []):
-			groups.extend(self.udm_groups_with_azure_users(nested_groupdn))
-		for userdn in udm_group.get("users", []):
-			udm_user = self.get_udm_user(userdn)
-			if bool(int(udm_user.get("UniventionOffice365Enabled", "0"))):
-				groups.append(groupdn)
-				break
-		return groups
+		# get SubscriptionProfiles for users groups
+		users_group_dns = self.udm.get_udm_user(new['entryDN'][0])['groups']
+		users_subscription_profiles = SubscriptionProfile.get_profiles_for_groups(users_group_dns, self.udm)
+		logger.info('SubscriptionProfiles found for %r: %r', new['uid'][0], users_subscription_profiles)
+		if not users_subscription_profiles:
+			logger.warn('No SubscriptionProfiles: using all available subscriptions.')
+			if len(subscriptions_online) > 1:
+				logger.warn(msg_multiple_subscriptions)
+			self.ah.add_license(azure_user['objectId'], subscriptions_online[0]['skuId'])
+			return
 
-	def get_udm_group(self, groupdn):
-		lo, po = self._get_ldap_connection()
-		if not self.groupmod:
-			univention.admin.modules.update()
-			self.groupmod = univention.admin.modules.get("groups/group")
-			univention.admin.modules.init(lo, po, self.groupmod)
-		group = self.groupmod.object(None, lo, po, groupdn)
-		group.open()
-		return group
+		# find subscription with free seats
+		seats = dict((s["skuPartNumber"], (s["prepaidUnits"]["enabled"], s["consumedUnits"], s['skuId']))
+			for s in subscriptions_online)
+		logger.debug('seats=%r', seats)
+		subscription_profile_to_use = None
+		for subscription_profile in users_subscription_profiles:
+			if not any(skuPartNumber in seats for skuPartNumber in subscription_profile.subscriptions):
+				continue
+
+			for skuPartNumber in subscription_profile.subscriptions:
+				if seats[skuPartNumber][0] > seats[skuPartNumber][1]:
+					subscription_profile.skuPartNumber = skuPartNumber
+					subscription_profile.skuId = seats[skuPartNumber][2]
+					subscription_profile_to_use = subscription_profile
+					break
+
+		if not subscription_profile_to_use:
+			raise NoAllocatableSubscriptions(azure_user, msg_no_allocatable_subscriptions)
+
+		logger.info(
+			'Using subscription %r (%r) from profile %r.',
+			subscription_profile_to_use.skuPartNumber,
+			subscription_profile_to_use.skuId,
+			subscription_profile_to_use.name)
+
+		# calculate plan restrictions
+		# get all plans of this subscription
+		plan_names_to_ids = dict()
+		for subscription in subscriptions_online:
+			if subscription['skuPartNumber'] == subscription_profile_to_use.skuPartNumber:
+				for plan in subscription['servicePlans']:
+					plan_names_to_ids[plan['servicePlanName']] = plan['servicePlanId']
+
+		deactivate_plans = set(plan_names_to_ids.keys()) - set(subscription_profile_to_use.whitelisted_plans)
+		deactivate_plans.update(subscription_profile_to_use.blacklisted_plans)
+		logger.info('Deactivating plans %r.', deactivate_plans)
+		deactivate_plan_ids = [plan_names_to_ids[plan] for plan in deactivate_plans]
+		self.ah.add_license(azure_user['objectId'], subscription_profile_to_use.skuId, deactivate_plan_ids)
 
 	def find_aad_user_by_entryUUID(self, entryUUID):
 		user = self.ah.list_users(ofilter="immutableId eq '{}'".format(base64.encodestring(entryUUID).rstrip()))
@@ -631,20 +599,6 @@ class Office365Listener(object):
 			attr in old and attr not in new or
 			(attr in old and attr in new and old[attr] != new[attr])
 		]
-
-	# allow this class to be used outside listener
-	def _get_ldap_connection(self):
-		if not self.lo or not self.po:
-			if self.ldap_cred:
-				self.lo = univention.admin.uldap.access(
-					host=self.ldap_cred["ldapserver"],
-					base=self.ldap_cred["basedn"],
-					binddn=self.ldap_cred["binddn"],
-					bindpw=self.ldap_cred["bindpw"])
-				self.po = univention.admin.uldap.position(self.ucr["ldap/base"])
-			else:
-				self.lo, self.po = univention.admin.uldap.getAdminConnection()
-		return self.lo, self.po
 
 	def _get_usage_location(self, user):
 		if user.get("st"):

@@ -43,6 +43,7 @@ from stat import S_IRUSR, S_IWUSR
 import listener
 from univention.office365.azure_auth import AzureAuth
 from univention.office365.listener import Office365Listener, NoAllocatableSubscriptions, attributes_system
+from univention.office365.udm_helper import UDMHelper
 from univention.office365.logging2udebug import get_logger
 
 
@@ -188,21 +189,17 @@ def save_old(old):
 		json.dump(old, fp)
 
 
-def is_deactived_locked_or_expired(dn, user, ol):
+def is_deactived_locked_or_expired(udm_user):
 	"""
 	Check if a LDAP-user is deactivated or locked (by any method: Windows/Kerberos/POSIX).
 
-	:param dn: str: DN of user
-	:param user: dict: listener LDAP object (now or old)
-	:param ol: Office365Listener instance
+	:param udm_user: UDM user instance
 	:return: bool: whether the user is deactivated or locked
 	"""
 	def boolify(value):
 		if value is None or value.lower() == "none":
 			return False
 		return True
-
-	udm_user = ol.get_udm_user(dn, user)
 
 	if boolify(udm_user.info.get('disabled')) or boolify(udm_user.info.get('locked')):
 		return True
@@ -234,7 +231,7 @@ def clean():
 	user objects.
 	"""
 	logger.info("Removing Office 365 ObjectID and Data from all users...")
-	Office365Listener.clean_udm_objects("users/user", listener.configRegistry["ldap/base"], ldap_cred)
+	UDMHelper.clean_udm_objects("users/user", listener.configRegistry["ldap/base"], ldap_cred)
 
 
 def handler(dn, new, old, command):
@@ -254,12 +251,14 @@ def handler(dn, new, old, command):
 
 	old_enabled = bool(int(old.get("univentionOffice365Enabled", ["0"])[0]))  # "" when disabled, "1" when enabled
 	if old_enabled:
-		enabled = not is_deactived_locked_or_expired(dn, old, ol)
+		udm_user = ol.udm.get_udm_user(dn, old)
+		enabled = not is_deactived_locked_or_expired(udm_user)
 		logger.debug("old was %s.", "enabled" if enabled else "deactivated, locked or expired")
 		old_enabled &= enabled
 	new_enabled = bool(int(new.get("univentionOffice365Enabled", ["0"])[0]))
 	if new_enabled:
-		enabled = not is_deactived_locked_or_expired(dn, new, ol)
+		udm_user = ol.udm.get_udm_user(dn, new)
+		enabled = not is_deactived_locked_or_expired(udm_user)
 		logger.debug("new is %s.", "enabled" if enabled else "deactivated, locked or expired")
 		new_enabled &= enabled
 
@@ -274,7 +273,7 @@ def handler(dn, new, old, command):
 			logger.error(str(exc))
 			new_user = exc.user
 		# save/update Azure objectId and object data in UDM object
-		udm_user = ol.get_udm_user(dn)
+		udm_user = ol.udm.get_udm_user(dn)
 		udm_user["UniventionOffice365ObjectID"] = new_user["objectId"]
 		udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(new_user))).rstrip()
 		udm_user.modify()
@@ -301,7 +300,7 @@ def handler(dn, new, old, command):
 		logger.debug("new and not new_enabled -> DEACTIVATE (%s)", dn)
 		ol.deactivate_user(old)
 		# update Azure objectId and object data in UDM object
-		udm_user = ol.get_udm_user(dn)
+		udm_user = ol.udm.get_udm_user(dn)
 		# Cannot delete UniventionOffice365Data, because it would result in:
 		# ldapError: Inappropriate matching: modify/delete: univentionOffice365Data: no equality matching rule
 		# Explanation: http://gcolpart.evolix.net/blog21/delete-facsimiletelephonenumber-attribute/
@@ -317,7 +316,7 @@ def handler(dn, new, old, command):
 		logger.debug("old_enabled and new_enabled -> MODIFY (%s)", dn)
 		ol.modify_user(old, new)
 		# update Azure object data in UDM object
-		udm_user = ol.get_udm_user(dn)
+		udm_user = ol.udm.get_udm_user(dn)
 		azure_user = ol.get_user(old)
 		udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(azure_user))).rstrip()
 		udm_user.modify()

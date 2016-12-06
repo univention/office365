@@ -41,6 +41,7 @@ from stat import S_IRUSR, S_IWUSR
 import listener
 from univention.office365.azure_auth import AzureAuth
 from univention.office365.listener import Office365Listener
+from univention.office365.udm_helper import UDMHelper
 from univention.office365.logging2udebug import get_logger
 
 
@@ -102,7 +103,7 @@ def clean():
 	user objects.
 	"""
 	logger.info("Removing Office 365 ObjectID and Data from all groups.")
-	Office365Listener.clean_udm_objects("groups/group", listener.configRegistry["ldap/base"], ldap_cred)
+	UDMHelper.clean_udm_objects("groups/group", listener.configRegistry["ldap/base"], ldap_cred)
 
 
 def handler(dn, new, old, command):
@@ -125,10 +126,10 @@ def handler(dn, new, old, command):
 	#
 	if new and not old:
 		logger.debug("new and not old -> NEW (%s)", dn)
-		for groupdn in ol.udm_groups_with_azure_users(dn):
+		for groupdn in ol.udm.udm_groups_with_azure_users(dn):
 			new_group = ol.create_group_from_ldap(groupdn)
 			# save Azure objectId in UDM object
-			udm_group = ol.get_udm_group(dn)
+			udm_group = ol.udm.get_udm_group(dn)
 			udm_group["UniventionOffice365ObjectID"] = new_group["objectId"]
 			udm_group.modify()
 			logger.info("Created group with displayName: %r  (%r)", new_group["displayName"], new_group["objectId"])
@@ -150,7 +151,7 @@ def handler(dn, new, old, command):
 	#
 	if old and new:
 		logger.debug("old and new -> MODIFY (%s)", dn)
-		if "univentionOffice365ObjectID" in old or ol.udm_groups_with_azure_users(dn):
+		if "univentionOffice365ObjectID" in old or ol.udm.udm_groups_with_azure_users(dn):
 			azure_group = ol.modify_group(old, new)
 			# save Azure objectId in UDM object
 			try:
@@ -158,7 +159,7 @@ def handler(dn, new, old, command):
 			except TypeError:
 				# None -> group was deleted
 				object_id = None
-			udm_group = ol.get_udm_group(dn)
+			udm_group = ol.udm.get_udm_group(dn)
 			udm_group["UniventionOffice365ObjectID"] = object_id
 			udm_group.modify()
 

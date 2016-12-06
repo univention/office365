@@ -1,3 +1,10 @@
+univention-office365 (0.2.12-10) unstable; urgency=low
+
+  * Bug #43064: add support for subscription profiles
+  * Bug #43064: rename user/subscription scripts
+
+ -- Daniel Troeder <troeder@univention.de>  Tue, 06 Dec 2016 08:12:53 +0100
+
 univention-office365 (0.2.12-9) unstable; urgency=low
 
   * Bug #43064: add OFFICESUBSCRIPTION to list of plans used to identify
