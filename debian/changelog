@@ -1,3 +1,10 @@
+univention-office365 (0.2.12-13) unstable; urgency=low
+
+  * Bug #41219: Add stop_udm_cli_server call, fix object unregister
+  * Bug #43134: Implement maintaining of service plans and subscriptions
+
+ -- Erik Damrose <damrose@univention.de>  Wed, 07 Dec 2016 14:32:31 +0100
+
 univention-office365 (0.2.12-12) unstable; urgency=low
 
   * Bug #41256: recreate userPrincipalName is mailPrimaryAddress changed

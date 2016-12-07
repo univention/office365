@@ -28,9 +28,50 @@ attributetype ( 1.3.6.1.4.1.10176.4000.104
 	SUBSTR caseIgnoreIA5SubstringsMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{256} )
 
+attributetype ( 1.3.6.1.4.1.10176.4000.105
+	NAME 'univentionOffice365ProfileLink'
+	DESC 'Subscriptions and Plans in Azure AD'
+	SINGLE-VALUE
+	EQUALITY caseExactIA5Match
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
+
 objectclass ( 1.3.6.1.4.1.10176.4000.100
 	NAME 'univentionOffice365'
 	DESC 'Data for the Office 365 provisioning service'
 	SUP top AUXILIARY
 	MAY ( univentionOffice365Enabled $ univentionOffice365ObjectID $
-	    univentionOffice365Data $ univentionOffice365userPrincipalName ) )
+	    univentionOffice365Data $ univentionOffice365userPrincipalName $
+	    univentionOffice365ProfileLink ) )
+
+attributetype ( 1.3.6.1.4.1.10176.4000.201
+	NAME 'office365ProfileName'
+	DESC 'Name of the profile'
+	SINGLE-VALUE
+	EQUALITY caseExactIA5Match
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
+
+attributetype ( 1.3.6.1.4.1.10176.4000.202
+	NAME 'office365ProfileSubscription'
+	DESC 'Name of the subscription'
+	SINGLE-VALUE
+	EQUALITY caseExactIA5Match
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
+
+attributetype ( 1.3.6.1.4.1.10176.4000.203
+	NAME 'office365ProfileWhitelist'
+	DESC 'Whitelist of plans'
+	EQUALITY caseExactIA5Match
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
+
+attributetype ( 1.3.6.1.4.1.10176.4000.204
+	NAME 'office365ProfileBlacklist'
+	DESC 'Blacklist of plans'
+	EQUALITY caseExactIA5Match
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
+
+objectclass ( 1.3.6.1.4.1.10176.4000.200
+	NAME 'univentionOffice365Profile'
+	DESC 'Profiles for the Office 365 provisioning service'
+	SUP top STRUCTURAL
+	MAY ( office365ProfileName $ office365ProfileSubscription $
+	      office365ProfileWhitelist $ office365ProfileBlacklist ) )

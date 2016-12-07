@@ -204,7 +204,7 @@ class Office365Listener(object):
 					# no duplicate values
 					attributes[azure_property_name] = list(set(attributes[azure_property_name]))
 				else:
-					attributes[azure_property_name] = v
+					attributes[azure_property_name] = [v]
 				# recreate userPrincipalName is mailPrimaryAddress changed
 				if k == 'mailPrimaryAddress':
 					local_part_of_email_address = v.rpartition("@")[0]

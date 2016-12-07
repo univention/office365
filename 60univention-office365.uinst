@@ -34,7 +34,7 @@
 VERSION=2
 
 . /usr/share/univention-join/joinscripthelper.lib
-. /usr/share/univention-lib/ldap.sh
+. /usr/share/univention-lib./all.sh
 
 joinscript_init
 
@@ -53,8 +53,6 @@ then
 		--dn "cn=UniventionOffice365GroupObjectID,cn=custom attributes,cn=univention,$ldap_base"
 	udm settings/extended_attribute remove "$@" \
 		--dn "cn=UniventionOffice365userPrincipalName,cn=custom attributes,cn=univention,$ldap_base"
-	udm saml/serviceprovider remove "$@" \
-		--dn "SAMLServiceProviderIdentifier=office365.com,cn=saml-serviceprovider,cn=univention,$ldap_base"
 	udm settings/usertemplate remove "$@" \
 		--dn "cn=Office 365 Account,cn=templates,cn=univention,$ldap_base"
 fi
@@ -66,6 +64,8 @@ ucr unset ucs/web/overview/entries/service/office365/description \
 	ucs/web/overview/entries/service/office365/label/de \
 	ucs/web/overview/entries/service/office365/priority \
 	ucs/web/overview/entries/service/office365/icon
+
+stop_udm_cli_server
 
 joinscript_remove_script_from_status_file univention-office365
 
