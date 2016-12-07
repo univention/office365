@@ -66,8 +66,8 @@ def print_subscriptions():
 		itemgetter('skuPartNumber'),
 		itemgetter('appliesTo'),
 		itemgetter('capabilityStatus'),
-		lambda x: x["prepaidUnits"]["enabled"] + x["prepaidUnits"]["suspended"] + x["prepaidUnits"]["warning"] - x["consumedUnits"],
 		itemgetter('consumedUnits'),
+		lambda x: x["prepaidUnits"]["enabled"] + x["prepaidUnits"]["suspended"] + x["prepaidUnits"]["warning"] - x["consumedUnits"],
 		lambda x: '{enabled}/{suspended}/{warning}'.format(**x['prepaidUnits'])
 	)
 	header_parts = ('Subscription', 'Applies to', 'Status', 'Consumed', 'Remaining', 'Prepaid (*)')

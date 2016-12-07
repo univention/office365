@@ -31,7 +31,8 @@
 # <http://www.gnu.org/licenses/>.
 
 from operator import itemgetter
-from univention.office365.listener import Office365Listener
+from univention.config_registry import ConfigRegistry
+from univention.office365.azure_handler import AzureHandler
 from univention.office365.azure_handler import ResourceNotFoundError
 
 
@@ -56,9 +57,13 @@ def print_table(data, data_fetchers, header_parts, line, epilog, column_lengths=
 
 
 def print_users_and_groups():
-	ol = Office365Listener({}, "print users and groups", {}, {}, "dn")
-	users = ol.ah.list_users()
-	groups = ol.ah.list_groups()
+	ucr = ConfigRegistry()
+	ucr.load()
+	ah = AzureHandler(ucr, "print_subscriptions")
+
+	users = ah.list_users()
+	groups = ah.list_groups()
+	subscriptions = ah.list_subscriptions()["value"]
 
 	# print users
 	plans = set(
@@ -67,11 +72,15 @@ def print_users_and_groups():
 		if plan['capabilityStatus'] == 'Enabled'
 	)
 	plan_to_num = dict((plan, num) for num, plan in enumerate(sorted(plans), 1))
+	subscription_id_to_name = dict((sub['skuId'], sub['skuPartNumber']) for sub in subscriptions)
+	sub_names_to_num = dict((sub, num) for num, sub in enumerate(sorted(subscription_id_to_name.values()), 1))
+
 	data_fetchers = (
 		lambda x: '(DEL) {}'.format(x['displayName'][26:]) if x['displayName'].startswith("ZZZ_deleted_") else x[
 			'displayName'],
 		lambda x: 'x' if x['accountEnabled'] else '',
 		itemgetter('userPrincipalName'),
+		lambda x: ', '.join(str(sub_names_to_num[subscription_id_to_name[y['skuId']]]) for y in x['assignedLicenses']),
 		lambda x: ', '.join(
 			map(str, sorted(set(
 				plan_to_num[x['service']]
@@ -79,33 +88,35 @@ def print_users_and_groups():
 				if x['capabilityStatus'] == 'Enabled')
 			)))
 	)
-	header_parts = ('User', 'Enabled', 'User Principal Name', 'Enabled plans (*)')
-	line = '{: <%d} | {: <%d} | {: <%d} | {: <%d}'
-	epilog = '(*) '
+	header_parts = ('User', 'Enabled', 'User Principal Name', 'Licenses (*)', 'Enabled plans (*)')
+	line = '{: <%d} | {: <%d} | {: <%d} | {: <%d} | {: <%d}'
+	epilog = '(*)  '
+	epilog += ', '.join(['{}: {}'.format(num, sub) for sub, num in sorted(sub_names_to_num.items(), key=itemgetter(1))])
+	epilog += '\n(**) '
 	plan_names = sorted(plan_to_num.keys())
 	for i in range(0, len(plan_names), 4):
 		epilog += '{}{}\n'.format(
-			'    ' if i > 0 else '',
+			'     ' if i > 0 else '',
 			', '.join(['{}: {}'.format(plan_to_num[plan], plan) for plan in plan_names[i:i + 4]]))
 	print_table(users["value"], data_fetchers, header_parts, line, epilog)
 
 	# print groups
 	member_ids = dict()
 	for group in groups["value"]:
-		member_urls = ol.ah.get_groups_direct_members(group["objectId"])["value"]
-		member_ids[group["displayName"]] = ol.ah.directory_object_urls_to_object_ids(member_urls)
+		member_urls = ah.get_groups_direct_members(group["objectId"])["value"]
+		member_ids[group["displayName"]] = ah.directory_object_urls_to_object_ids(member_urls)
 
 	group_members = list()
 	for name, member_ids in member_ids.items():
 		membernames = list()
 		for member_id in member_ids:
 			try:
-				member = ol.ah.list_users(objectid=member_id)
+				member = ah.list_users(objectid=member_id)
 				membername = member["userPrincipalName"]
 				if membername.startswith("ZZZ_deleted_"):
 					membername = "(DEL) {}".format(membername[26:])
 			except ResourceNotFoundError:
-				member = ol.ah.list_groups(objectid=member_id)
+				member = ah.list_groups(objectid=member_id)
 				membername = member["displayName"]
 				if membername.startswith("ZZZ_deleted_"):
 					membername = "(DEL, group) {}".format(membername[26:])

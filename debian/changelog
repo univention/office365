@@ -1,3 +1,10 @@
+univention-office365 (0.2.12-11) unstable; urgency=low
+
+  * Bug #43064: list licenses (even if all plans were deactivated)
+  * fix Consumed<->Remaining transposition
+
+ -- Daniel Troeder <troeder@univention.de>  Wed, 07 Dec 2016 08:36:15 +0100
+
 univention-office365 (0.2.12-10) unstable; urgency=low
 
   * Bug #43064: add support for subscription profiles
