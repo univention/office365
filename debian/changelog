@@ -1,3 +1,10 @@
+univention-office365 (0.2.12-12) unstable; urgency=low
+
+  * Bug #41256: recreate userPrincipalName is mailPrimaryAddress changed
+  * fix multiple value field handling
+
+ -- Daniel Troeder <troeder@univention.de>  Wed, 07 Dec 2016 09:04:01 +0100
+
 univention-office365 (0.2.12-11) unstable; urgency=low
 
   * Bug #43064: list licenses (even if all plans were deactivated)

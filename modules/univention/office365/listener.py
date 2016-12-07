@@ -195,6 +195,8 @@ class Office365Listener(object):
 				azure_property_name = self.attrs["mapping"][k]
 				if azure_property_name in attributes:
 					# must be a list type property, append/extend
+					if not isinstance(attributes[azure_property_name], list):
+						attributes[azure_property_name] = [attributes[azure_property_name]]
 					if isinstance(v, list):
 						attributes[azure_property_name].extend(v)
 					else:
@@ -203,6 +205,12 @@ class Office365Listener(object):
 					attributes[azure_property_name] = list(set(attributes[azure_property_name]))
 				else:
 					attributes[azure_property_name] = v
+				# recreate userPrincipalName is mailPrimaryAddress changed
+				if k == 'mailPrimaryAddress':
+					local_part_of_email_address = v.rpartition("@")[0]
+					attributes['userPrincipalName'] = "{0}@{1}".format(
+						local_part_of_email_address,
+						self.ah.get_verified_domain_from_disk())
 
 			if "usageLocation" in attributes:
 				attributes["usageLocation"] = self._get_usage_location(new)
