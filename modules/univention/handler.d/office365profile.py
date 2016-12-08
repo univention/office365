@@ -41,7 +41,7 @@ childs = 0
 short_description = _(u'Office 365 Profile')
 long_description = _(u'Management of office 365 profiles')
 operations = ['add', 'edit', 'remove', 'search', 'move']
-default_containers=["cn=profiles,cn=office365,cn=univention"]
+default_containers=["cn=profiles,cn=office365"]
 
 options = {}
 
@@ -55,7 +55,7 @@ property_descriptions = {
 		may_change = True,
 		identifies = False
 	),
-	'subscription': univention.admin.property(
+	'subscriptions': univention.admin.property(
 		short_description=_(u'Subscription identifier'),
 		long_description=_(u''),
 		syntax=univention.admin.syntax.string,
@@ -64,7 +64,7 @@ property_descriptions = {
 		may_change=1,
 		identifies=0
 	),
-	'service_plan_whitelist': univention.admin.property(
+	'whitelisted_plans': univention.admin.property(
 		short_description=_(u'Service plan whitelist'),
 		long_description=_(u'Identifiers of service plans, which will be activated for the profile'),
 		syntax=univention.admin.syntax.string,
@@ -73,7 +73,7 @@ property_descriptions = {
 		may_change=1,
 		identifies=0
 	),
-	'service_plan_blacklist': univention.admin.property(
+	'blacklisted_plans': univention.admin.property(
 		short_description=_('Service plan blacklist'),
 		long_description=_('Identifiers of service plans, which will be deactivated for the profile'),
 		syntax=univention.admin.syntax.string,

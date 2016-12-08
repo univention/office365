@@ -1,3 +1,13 @@
+univention-office365 (0.2.12-14) unstable; urgency=medium
+
+  * Bug #43134: Load profiles via udm in listener
+  * Fix position of profiles container
+  * Adapt udm attribute names to code
+  * Fix call to _change_license
+  * Add logging to profile loading
+
+ -- Erik Damrose <damrose@univention.de>  Thu, 08 Dec 2016 17:08:17 +0100
+
 univention-office365 (0.2.12-13) unstable; urgency=low
 
   * Bug #41219: Add stop_udm_cli_server call, fix object unregister

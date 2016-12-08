@@ -491,7 +491,7 @@ class AzureHandler(object):
 		self._change_license("add", user_id, sku_id, deactivate_plans)
 
 	def remove_license(self, user_id, sku_id):
-		self._change_license("remove", user_id, sku_id)
+		self._change_license("remove", user_id, sku_id, None)
 
 	def list_subscriptions(self, object_id=None, ofilter=None):
 		return self._list_objects(object_type="subscription", object_id=object_id, ofilter=ofilter)

@@ -51,6 +51,7 @@ class UDMHelper(object):
 	po = None
 	groupmod = None
 	usersmod = None
+	profilesmod = None
 
 	def __init__(self, ldap_cred):
 		UDMHelper.ldap_cred = ldap_cred
@@ -117,6 +118,17 @@ class UDMHelper(object):
 			cls.usersmod = univention.admin.modules.get("users/user")
 			univention.admin.modules.init(lo, po, cls.usersmod)
 		user = cls.usersmod.object(None, lo, po, userdn, attributes=attributes)
+		user.open()
+		return user
+
+	@classmethod
+	def get_udm_officeprofile(cls, profiledn, attributes=None):
+		lo, po = cls._get_ldap_connection()
+		if not cls.profilesmod:
+			univention.admin.modules.update()
+			cls.profilesmod = univention.admin.modules.get("settings/office365profile")
+			univention.admin.modules.init(lo, po, cls.profilesmod)
+		user = cls.profilesmod.object(None, lo, po, profiledn, attributes=attributes)
 		user.open()
 		return user
 

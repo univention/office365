@@ -56,39 +56,22 @@ class SubscriptionProfile(object):
 		return [('All subscriptions but only office plans', '123abc'), ('Nothing', '0Null')]
 
 	@staticmethod
-	def load(identifier):
+	def load(identifier, udm, logger):
 		"""
 		Load a subscription profile.
 
 		:param identifier: name? DN?
 		:return: a SubscriptionProfile object
 		"""
-		# TODO: impl
-		# mockup
-		if identifier == 'a':
-			obj = SubscriptionProfile('All subscriptions, activate only office plans.')
-			obj.subscriptions = ['ENTERPRISEPACK', 'OFFICESUBSCRIPTION_FACULTY', 'OFFICESUBSCRIPTION_STUDENT']
-			obj.whitelisted_plans = ['SHAREPOINTWAC', 'SHAREPOINTWAC_DEVELOPER', 'OFFICESUBSCRIPTION', 'SWAY']
-			obj.blacklisted_plans = ['SWAY']
-			obj._identifier = identifier
-			return obj
-		elif identifier == 'b':
-			obj = SubscriptionProfile('All subscriptions, activate only SWAY plan.')
-			obj.subscriptions = ['ENTERPRISEPACK', 'OFFICESUBSCRIPTION_FACULTY', 'OFFICESUBSCRIPTION_STUDENT']
-			obj.whitelisted_plans = ['SWAY']
-			obj._identifier = identifier
-			return obj
-		elif identifier == 'c':
-			obj = SubscriptionProfile('All subscriptions, activate all but SWAY plan.')
-			obj.subscriptions = ['ENTERPRISEPACK', 'OFFICESUBSCRIPTION_FACULTY', 'OFFICESUBSCRIPTION_STUDENT']
-			obj.blacklisted_plans = ['SWAY']
-			obj._identifier = identifier
-			return obj
-		else:
-			obj = SubscriptionProfile('All subscriptions, activate all plans.')
-			obj.subscriptions = ['ENTERPRISEPACK', 'OFFICESUBSCRIPTION_FACULTY', 'OFFICESUBSCRIPTION_STUDENT']
-			obj._identifier = identifier
-			return obj
+		profile = udm.get_udm_officeprofile(identifier)
+		logger.info('loading profile: %s, with settings %s' % (identifier, dict(profile)))
+		print identifier
+		print profile
+		print dict(profile)
+		return SubscriptionProfile(name=profile.get('name'),
+				subscriptions=profile.get('subscriptions'),
+				whitelisted_plans=profile.get('whitelisted_plans'),
+				blacklisted_plans=profile.get('blacklisted_plans'))
 
 	def store(self):
 		"""
@@ -100,7 +83,7 @@ class SubscriptionProfile(object):
 		return self._identifier
 
 	@classmethod
-	def get_profiles_for_groups(cls, dns, udm):
+	def get_profiles_for_groups(cls, dns, udm, logger):
 		"""
 		Retrieve subscription profiles for groups.
 
@@ -111,16 +94,15 @@ class SubscriptionProfile(object):
 		# collect extended attribute values from groups
 		profiles = list()
 		for dn in dns:
-			user = udm.get_udm_group(dn)
+			logger.info('group dn: %s' % dn)
+			group = udm.get_udm_group(dn)
 			try:
-				profile = user['office365subscription']  # TODO: fix UDM attribute name
+				profile = group['UniventionOffice365Profile']
 				if profile:
 					profiles.append(profile)
 			except KeyError:
+				logger.info('NO Profile for group %s' % dn)
 				pass
 
-		# mockup
-		profiles = ['a', 'b', 'c', '']  # TODO: remove this
-
 		# load SubscriptionProfiles
-		return [cls.load(profile) for profile in profiles]
+		return [cls.load(p, udm, logger) for p in profiles]

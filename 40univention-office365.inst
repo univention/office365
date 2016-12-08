@@ -87,20 +87,20 @@ ucs_registerLDAPExtension "$@" --udm_syntax /usr/share/univention-office365/synt
 ucs_registerLDAPExtension "$@" --udm_module /usr/share/univention-office365/handler.d/office365profile.py || die
 
 udm container/cn create "$@" --ignore_exists \
-	--position="cn=univention,$ldap_base" \
+	--position="$ldap_base" \
 	--set name="office365" \
 	--set description="Container for Office 365 objects" || die
 
 udm container/cn create "$@" --ignore_exists \
-	--position="cn=office365,cn=univention,$ldap_base" \
+	--position="cn=office365,$ldap_base" \
 	--set name="profiles" \
 	--set description="Container for Office 365 profiles" || die
 
 # Create first Profile
 udm settings/office365profile create "$@" --ignore_exists \
-	--position="cn=profiles,cn=office365,cn=univention,$ldap_base" \
+	--position="cn=profiles,cn=office365,$ldap_base" \
 	--set name="Default Office 365 Subscription" \
-	--set subscription="OFFICESUBSCRIPTION"
+	--set subscription="ENTERPRISEPACK"
 
 udm settings/extended_attribute create "$@" --ignore_exists \
 	--position "cn=custom attributes,cn=univention,$ldap_base" \

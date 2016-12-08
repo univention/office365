@@ -491,7 +491,7 @@ class Office365Listener(object):
 
 		# get SubscriptionProfiles for users groups
 		users_group_dns = self.udm.get_udm_user(new['entryDN'][0])['groups']
-		users_subscription_profiles = SubscriptionProfile.get_profiles_for_groups(users_group_dns, self.udm)
+		users_subscription_profiles = SubscriptionProfile.get_profiles_for_groups(users_group_dns, self.udm, logger)
 		logger.info('SubscriptionProfiles found for %r: %r', new['uid'][0], users_subscription_profiles)
 		if not users_subscription_profiles:
 			logger.warn('No SubscriptionProfiles: using all available subscriptions.')
