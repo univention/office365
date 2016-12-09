@@ -1,3 +1,9 @@
+univention-office365 (0.2.12-16) unstable; urgency=low
+
+  * Bug #41256: fix modify_user() making list of azure single value fields
+
+ -- Daniel Troeder <troeder@univention.de>  Fri, 09 Dec 2016 13:40:48 +0100
+
 univention-office365 (0.2.12-15) unstable; urgency=low
 
   * Bug #41256: the list with the values of the otherMails attribute must be
