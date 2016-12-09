@@ -51,7 +51,7 @@ with utils.AutomaticListenerRestart():
 			time.sleep(5)
 
 			print("*** Checking that user was created...")
-			udm_user = ol.get_udm_user(user_dn)
+			udm_user = ol.udm.get_udm_user(user_dn)
 			user_id = udm_user.get("UniventionOffice365ObjectID")
 			if not user_id:
 				utils.fail("User was not created properly (no UniventionOffice365ObjectID).")
@@ -67,7 +67,7 @@ with utils.AutomaticListenerRestart():
 				utils.fail("One or more properties were not synced correctly:\n{}".format("\n".join(map(str, errors))))
 
 			print("*** Checking that group was created...")
-			udm_group = ol.get_udm_group(group_dn)
+			udm_group = ol.udm.get_udm_group(group_dn)
 			group_id = udm_group.get("UniventionOffice365ObjectID")
 			if not group_id:
 				utils.fail("Group was not created properly (no UniventionOffice365ObjectID in UDM object).")

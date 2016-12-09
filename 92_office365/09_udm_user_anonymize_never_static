@@ -64,7 +64,7 @@ with utils.AutomaticListenerRestart():
 			user_dn, username = udm.create_user(check_for_drs_replication=True, **user_args)
 			time.sleep(5)
 
-			udm_user = ol.get_udm_user(user_dn)
+			udm_user = ol.udm.get_udm_user(user_dn)
 			user_id = udm_user.get("UniventionOffice365ObjectID")
 			if not user_id:
 				utils.fail("User was not created properly (no UniventionOffice365ObjectID).")
