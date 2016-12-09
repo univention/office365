@@ -658,6 +658,14 @@ class AzureHandler(object):
 						res[k].append(val)
 					else:
 						res[k] = val
+				if res[k] and isinstance(res[k], list) and all(isinstance(x, basestring) for x in res[k]):
+					# remove duplicates insensitive (can really only happen in 'otherMails')
+					list_copy = list()
+					for o in res[k]:
+						if o.lower() not in [x.lower() for x in list_copy]:
+							list_copy.append(o)
+					res[k] = list_copy
+
 			except KeyError as exc:
 				raise UnkownTypeError, UnkownTypeError("Attribute '{}' not in azure_attribute_types mapping.".format(k),
 					chained_exc=exc), sys.exc_info()[2]

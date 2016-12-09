@@ -1,3 +1,10 @@
+univention-office365 (0.2.12-15) unstable; urgency=low
+
+  * Bug #41256: the list with the values of the otherMails attribute must be
+    deduplicated in a case insensitive manner
+
+ -- Daniel Troeder <troeder@univention.de>  Fri, 09 Dec 2016 13:03:17 +0100
+
 univention-office365 (0.2.12-14) unstable; urgency=medium
 
   * Bug #43134: Load profiles via udm in listener
@@ -17,7 +24,7 @@ univention-office365 (0.2.12-13) unstable; urgency=low
 
 univention-office365 (0.2.12-12) unstable; urgency=low
 
-  * Bug #41256: recreate userPrincipalName is mailPrimaryAddress changed
+  * Bug #41256: recreate userPrincipalName if mailPrimaryAddress changed
   * fix multiple value field handling
 
  -- Daniel Troeder <troeder@univention.de>  Wed, 07 Dec 2016 09:04:01 +0100
