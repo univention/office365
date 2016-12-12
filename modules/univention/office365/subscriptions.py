@@ -69,7 +69,7 @@ class SubscriptionProfile(object):
 		print profile
 		print dict(profile)
 		return SubscriptionProfile(name=profile.get('name'),
-				subscriptions=profile.get('subscriptions'),
+				subscriptions=profile.get('subscription'),
 				whitelisted_plans=profile.get('whitelisted_plans'),
 				blacklisted_plans=profile.get('blacklisted_plans'))
 

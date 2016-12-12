@@ -229,7 +229,7 @@ define([
 					widgets: [{
 						type: Text,
 						name: 'infos',
-						content: _('You can now enable the Microsoft Azure synchronization for users on the <i>Office 365</i> tab in the %s.', [tools.linkToModule({module: 'udm', flavor: 'users/user'})]) + '<br>' + this.img(_('umc_office365_EN.png'))
+						content: this.getTextSuccessPage1()
 					}]
 				}, {
 					name: 'success2',
@@ -360,6 +360,13 @@ define([
 				_('You may add or remove attributes from the list by using the %s.', [tools.linkToModule({module: 'ucr'})]),
 				_('Additional configuration settings can be viewed in the help of the UCR variables <i>office365/attributes/anonymize</i> and <i>office365/attributes/static/.*</i>.') + ' ' +
 				_('You can enable the UCR variable <i>office365/groups/sync</i> to synchronize the groups of the enabled Office 365 users.')
+			]);
+		},
+
+		getTextSuccessPage1: function() {
+			return this.formatParagraphs([
+				_('You can now enable the Microsoft Azure synchronization for users on the <i>Office 365</i> tab in the %s.', [tools.linkToModule({module: 'udm', flavor: 'users/user'})]),
+				_('To learn more about configuring individual subscriptions and service plans for users, see <a href="%s" target="_blank">the Office 365 Connector documentation</a>', _('http://wiki.univention.de/index.php?title=Microsoft_Office_365_Connector')) + '<br>' + this.img(_('umc_office365_EN.png'))
 			]);
 		},
 

@@ -33,7 +33,7 @@ import univention.admin.filter
 import univention.admin.handlers
 import univention.admin.syntax
 
-translation = univention.admin.localization.translation('office365')
+translation = univention.admin.localization.translation('univention-office365')
 _ = translation.translate
 
 module = 'settings/office365profile'
@@ -55,9 +55,9 @@ property_descriptions = {
 		may_change = True,
 		identifies = False
 	),
-	'subscriptions': univention.admin.property(
+	'subscription': univention.admin.property(
 		short_description=_(u'Subscription identifier'),
-		long_description=_(u''),
+		long_description=_(u'Internal Name of the subscription, as shown by cli tool'),
 		syntax=univention.admin.syntax.string,
 		multivalue=0,
 		required=1,
@@ -87,16 +87,16 @@ property_descriptions = {
 layout = [
 	Tab(_(u'General'), _(u'Office 365 Profile'), layout=[
 			[ 'name', ], [ 'subscription', ],
-			[ 'service_plan_whitelist', ],
-			[ 'service_plan_blacklist', ],
+			[ 'whitelisted_plans', ],
+			[ 'blacklisted_plans', ],
 		]),
 ]
 
 mapping = univention.admin.mapping.mapping()
 mapping.register('name', 'office365ProfileName', None, univention.admin.mapping.ListToString)
 mapping.register('subscription', 'office365ProfileSubscription', None, univention.admin.mapping.ListToString)
-mapping.register('service_plan_whitelist', 'office365ProfileWhitelist', None, None)
-mapping.register('service_plan_blacklist', 'office365ProfileBlacklist', None, None)
+mapping.register('whitelisted_plans', 'office365ProfileWhitelist', None, None)
+mapping.register('blacklisted_plans', 'office365ProfileBlacklist', None, None)
 
 class object(univention.admin.handlers.simpleLdap):
 	module = module

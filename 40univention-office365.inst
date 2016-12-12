@@ -84,7 +84,8 @@ ucs_addServiceToLocalhost "univention-office365" "$@" || die
 
 ucs_registerLDAPExtension "$@" --schema /usr/share/univention-office365/office365.schema || die
 ucs_registerLDAPExtension "$@" --udm_syntax /usr/share/univention-office365/syntax.d/univentionOffice365ProfileSyntax.py || die
-ucs_registerLDAPExtension "$@" --udm_module /usr/share/univention-office365/handler.d/office365profile.py || die
+ucs_registerLDAPExtension "$@" --udm_module /usr/share/univention-office365/handler.d/office365profile.py \
+	--messagecatalog /usr/share/univention-office365/handler.d/de.mo || die
 
 udm container/cn create "$@" --ignore_exists \
 	--position="$ldap_base" \
@@ -100,7 +101,7 @@ udm container/cn create "$@" --ignore_exists \
 udm settings/office365profile create "$@" --ignore_exists \
 	--position="cn=profiles,cn=office365,$ldap_base" \
 	--set name="Default Office 365 Subscription" \
-	--set subscription="ENTERPRISEPACK"
+	--set subscription="ENTERPRISEPACK" || die
 
 udm settings/extended_attribute create "$@" --ignore_exists \
 	--position "cn=custom attributes,cn=univention,$ldap_base" \

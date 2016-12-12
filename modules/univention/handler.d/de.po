@@ -1,0 +1,84 @@
+# Copyright 2016 Univention GmbH
+#
+# http://www.univention.de/
+#
+# All rights reserved.
+#
+# The source code of this program is made available
+# under the terms of the GNU Affero General Public License version 3
+# (GNU AGPL V3) as published by the Free Software Foundation.
+#
+# Binary versions of this program provided by Univention to you as
+# well as other copyrighted, protected or trademarked materials like
+# Logos, graphics, fonts, specific documentations and configurations,
+# cryptographic keys etc. are subject to a license agreement between
+# you and Univention and not subject to the GNU AGPL V3.
+#
+# In the case you use this program under the terms of the GNU AGPL V3,
+# the program is provided in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public
+# License with the Debian GNU/Linux or Univention distribution in file
+# /usr/share/common-licenses/AGPL-3; if not, see
+# <http://www.gnu.org/licenses/>.
+
+msgid ""
+msgstr ""
+"Project-Id-Version: univention-office365\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2016-12-12 12:29+0100\n"
+"PO-Revision-Date: 2016-12-12 12:29+0100\n"
+"Last-Translator: packages@univention.de\n"
+"Language-Team: German\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: unicode\n"
+
+#: modules/univention/handler.d/office365profile.py:41
+#: modules/univention/handler.d/office365profile.py:88
+msgid "Office 365 Profile"
+msgstr "Office 365 Profil"
+
+#: modules/univention/handler.d/office365profile.py:42
+msgid "Management of office 365 profiles"
+msgstr "Verwaltung von Office 365 Profilen"
+
+#: modules/univention/handler.d/office365profile.py:50
+msgid "Profile name"
+msgstr "Profilname"
+
+#: modules/univention/handler.d/office365profile.py:51
+msgid "Displayed profile name when selecting a profile"
+msgstr "Angezeigter Profilname, wenn ein Profil ausgewählt wird"
+
+#: modules/univention/handler.d/office365profile.py:59
+msgid "Subscription identifier"
+msgstr "Bezeichner der Subskription"
+
+#: modules/univention/handler.d/office365profile.py:60
+msgid "Internal Name of the subscription, as shown by cli tool"
+msgstr "Interner Name der Subskription, wie vom cli Programm angezeigt"
+
+#: modules/univention/handler.d/office365profile.py:68
+msgid "Service plan whitelist"
+msgstr "Whitelist der Servicepläne"
+
+#: modules/univention/handler.d/office365profile.py:69
+msgid "Identifiers of service plans, which will be activated for the profile"
+msgstr "Bezeichner der Servicepläne, die in dem Profil aktiviert werden"
+
+#: modules/univention/handler.d/office365profile.py:77
+msgid "Service plan blacklist"
+msgstr "Blacklist der Servicepläne"
+
+#: modules/univention/handler.d/office365profile.py:78
+msgid "Identifiers of service plans, which will be deactivated for the profile"
+msgstr "Bezeichner der Servicepläne, die in dem Profil deaktiviert werden"
+
+#: modules/univention/handler.d/office365profile.py:88
+msgid "General"
+msgstr "Allgemein"

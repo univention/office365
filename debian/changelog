@@ -1,3 +1,9 @@
+univention-office365 (0.2.12-17) unstable; urgency=medium
+
+  * Bug #43134: Fix udm attribute renaming, add translation
+
+ -- Erik Damrose <damrose@univention.de>  Mon, 12 Dec 2016 14:59:22 +0100
+
 univention-office365 (0.2.12-16) unstable; urgency=low
 
   * Bug #41256: fix modify_user() making list of azure single value fields
