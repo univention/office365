@@ -30,79 +30,63 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-from univention.office365.azure_handler import get_service_plan_names
+
+from univention.office365.udm_helper import UDMHelper
+from univention.office365.logging2udebug import get_logger
+
+
+logger = get_logger("office365", "o365")
 
 
 class SubscriptionProfile(object):
-	def __init__(self, name, subscriptions=None, whitelisted_plans=None, blacklisted_plans=None):
+	def __init__(self, name, subscription=None, whitelisted_plans=None, blacklisted_plans=None):
 		self.name = name
-		self.subscriptions = subscriptions or list()  # skuPartNumber
+		self.subscription = subscription  # skuPartNumber
 		self.whitelisted_plans = whitelisted_plans or list()
 		self.blacklisted_plans = blacklisted_plans or list()
-		self._identifier = ''  # DN? file location? not needed?
 
 	def __repr__(self):
-		return 'SubscriptionProfile({}: {})'.format(self.name, self.subscriptions)
+		return 'SubscriptionProfile({}: {})'.format(self.name, self.subscription)
 
 	@staticmethod
-	def list():
-		"""
-		List all available subscription profiles.
-
-		:return: list of 2-tuples (str, str): [(name, identifier), ..]
-		"""
-		# TODO: impl
-		# mockup
-		return [('All subscriptions but only office plans', '123abc'), ('Nothing', '0Null')]
-
-	@staticmethod
-	def load(identifier, udm, logger):
+	def load(dn):
 		"""
 		Load a subscription profile.
 
-		:param identifier: name? DN?
+		:param dn: str: DN of profile
 		:return: a SubscriptionProfile object
 		"""
-		profile = udm.get_udm_officeprofile(identifier)
-		logger.info('loading profile: %s, with settings %s' % (identifier, dict(profile)))
-		print identifier
-		print profile
-		print dict(profile)
-		return SubscriptionProfile(name=profile.get('name'),
-				subscriptions=profile.get('subscription'),
-				whitelisted_plans=profile.get('whitelisted_plans'),
-				blacklisted_plans=profile.get('blacklisted_plans'))
+		profile = UDMHelper.get_udm_officeprofile(dn)
+		logger.debug('loading profile: %r, with settings %r', dn, dict(profile))
+		return SubscriptionProfile(
+			name=profile.get('name'),
+			subscription=profile.get('subscription'),
+			whitelisted_plans=profile.get('whitelisted_plans'),
+			blacklisted_plans=profile.get('blacklisted_plans'))
 
-	def store(self):
-		"""
-		Store this subscription profile.
-
-		:return: bool? identifier? file location? DN?
-		"""
-		# TODO: impl
-		return self._identifier
+	@staticmethod
+	def list_profiles():
+		return UDMHelper.list_udm_officeprofiles()
 
 	@classmethod
-	def get_profiles_for_groups(cls, dns, udm, logger):
+	def get_profiles_for_groups(cls, dns):
 		"""
 		Retrieve subscription profiles for groups.
 
 		:param dns: list of group DNs [str, str, ..]
-		:param udm: initialized UDMHelper instance
 		:return: list of SubscriptionProfile objects
 		"""
 		# collect extended attribute values from groups
 		profiles = list()
 		for dn in dns:
-			logger.info('group dn: %s' % dn)
-			group = udm.get_udm_group(dn)
+			group = UDMHelper.get_udm_group(dn)
 			try:
 				profile = group['UniventionOffice365Profile']
 				if profile:
 					profiles.append(profile)
 			except KeyError:
-				logger.info('NO Profile for group %s' % dn)
+				logger.debug('No Profile for group %r.', dn)
 				pass
 
 		# load SubscriptionProfiles
-		return [cls.load(p, udm, logger) for p in profiles]
+		return [cls.load(p) for p in profiles]

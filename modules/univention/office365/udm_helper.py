@@ -49,9 +49,7 @@ class UDMHelper(object):
 	ldap_cred = None
 	lo = None
 	po = None
-	groupmod = None
-	usersmod = None
-	profilesmod = None
+	modules = dict()
 
 	def __init__(self, ldap_cred):
 		UDMHelper.ldap_cred = ldap_cred
@@ -101,36 +99,20 @@ class UDMHelper(object):
 
 	@classmethod
 	def get_udm_group(cls, groupdn):
-		lo, po = cls._get_ldap_connection()
-		if not cls.groupmod:
-			univention.admin.modules.update()
-			cls.groupmod = univention.admin.modules.get("groups/group")
-			univention.admin.modules.init(lo, po, cls.groupmod)
-		group = cls.groupmod.object(None, lo, po, groupdn)
-		group.open()
-		return group
+		return cls.get_udm_obj("groups/group", groupdn)
 
 	@classmethod
 	def get_udm_user(cls, userdn, attributes=None):
-		lo, po = cls._get_ldap_connection()
-		if not cls.usersmod:
-			univention.admin.modules.update()
-			cls.usersmod = univention.admin.modules.get("users/user")
-			univention.admin.modules.init(lo, po, cls.usersmod)
-		user = cls.usersmod.object(None, lo, po, userdn, attributes=attributes)
-		user.open()
-		return user
+		return cls.get_udm_obj("users/user", userdn, attributes)
+
+	@classmethod
+	def list_udm_officeprofiles(cls, filter_s=''):
+		lo, po, mod = cls.init_udm("settings/office365profile")
+		return mod.lookup(None, lo, filter_s)
 
 	@classmethod
 	def get_udm_officeprofile(cls, profiledn, attributes=None):
-		lo, po = cls._get_ldap_connection()
-		if not cls.profilesmod:
-			univention.admin.modules.update()
-			cls.profilesmod = univention.admin.modules.get("settings/office365profile")
-			univention.admin.modules.init(lo, po, cls.profilesmod)
-		user = cls.profilesmod.object(None, lo, po, profiledn, attributes=attributes)
-		user.open()
-		return user
+		return cls.get_udm_obj("settings/office365profile", profiledn, attributes)
 
 	@classmethod
 	def udm_groups_with_azure_users(cls, groupdn):
@@ -167,3 +149,22 @@ class UDMHelper(object):
 			else:
 				cls.lo, cls.po = univention.admin.uldap.getAdminConnection()
 		return cls.lo, cls.po
+
+	@classmethod
+	def get_udm_obj(cls, module_name, dn, attributes=None):
+		lo, po, mod = cls.init_udm(module_name)
+		obj = mod.object(None, lo, po, dn, attributes=attributes)
+		obj.open()
+		return obj
+
+	@classmethod
+	def init_udm(cls, module_name):
+		lo, po = cls._get_ldap_connection()
+		try:
+			mod = cls.modules[module_name]
+		except KeyError:
+			univention.admin.modules.update()
+			mod = univention.admin.modules.get(module_name)
+			univention.admin.modules.init(lo, po, mod)
+			cls.modules[module_name] = mod
+		return lo, po, mod

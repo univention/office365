@@ -1,3 +1,15 @@
+univention-office365 (0.2.13-1) unstable; urgency=low
+
+  * Bug #43064: adapt code to subscription being a single value UDM property
+  * cleanup SubscriptionProfile
+  * fix whitelist / blacklist calculation
+  * refactor udm_helper to reduce duplicate code
+  * restart umc-server to make it aware of new syntax
+  * add test that checks license assignment and plan restrictions
+    (92_office365/06_udm_group_members)
+
+ -- Daniel Troeder <troeder@univention.de>  Tue, 13 Dec 2016 21:22:23 +0100
+
 univention-office365 (0.2.12-18) unstable; urgency=medium
 
   * Bug #41219: Fix typo in path

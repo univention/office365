@@ -46,7 +46,7 @@ with utils.AutomaticListenerRestart():
 			print("*** Creating office365-activated user in group, should trigger sync of group...")
 			user_args = udm_user_args(ucr, minimal=True)
 			user_args["set"]["UniventionOffice365Enabled"] = 1
-			user_args["append"] = dict(groups=[group_dn])
+			user_args["append"]["groups"] = [group_dn]
 			user_dn, username = udm.create_user(**user_args)
 			time.sleep(5)
 

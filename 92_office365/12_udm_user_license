@@ -1,0 +1,208 @@
+#!/usr/share/ucs-test/runner python
+## -*- coding: utf-8 -*-
+## desc: create user in azure, check license/plan info
+## tags: [apptest]
+## exposure: dangerous
+## packages:
+##   - univention-office365
+
+import time
+
+import univention.testing.strings as uts
+import univention.testing.ucr as ucr_test
+import univention.testing.udm as udm_test
+import univention.testing.utils as utils
+
+from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user
+from univention.office365.listener import Office365Listener
+from univention.office365.subscriptions import SubscriptionProfile
+
+
+def compare_subscriptions(a, b):
+	if isinstance(a, SubscriptionProfile):
+		a = a.__dict__
+	if isinstance(b, SubscriptionProfile):
+		b = b.__dict__
+	assert isinstance(a, dict)
+	assert isinstance(b, dict)
+	a['whitelisted_plans'] = set(a['whitelisted_plans'])
+	a['blacklisted_plans'] = set(a['blacklisted_plans'])
+	b['whitelisted_plans'] = set(b['whitelisted_plans'])
+	b['blacklisted_plans'] = set(b['blacklisted_plans'])
+	return a == b
+
+
+def create_azure_user():
+	print("*** Creating office365-activated user in primary group %r..." % group_name)
+	user_args = udm_user_args(ucr, minimal=True)
+	user_args["set"]["UniventionOffice365Enabled"] = 1
+	user_args["set"]["primaryGroup"] = group_dn
+	user_dn, username = udm.create_user(**user_args)
+	time.sleep(5)
+
+	print("*** Checking that user was created (UniventionOffice365ObjectID in UDM object)...")
+	udm_user = ol.udm.get_udm_user(user_dn)
+	user_id = udm_user.get("UniventionOffice365ObjectID")
+	if not user_id:
+		utils.fail("User was not created properly (no UniventionOffice365ObjectID).")
+
+	if udm_user['groups'] != [group_dn]:
+		utils.fail("User has groups: %r, expected %r." % (udm_user['groups'], [group_dn]))
+
+	return user_dn, udm_user, user_id
+
+
+with utils.AutomaticListenerRestart():
+	with udm_test.UCSTestUDM() as udm:
+		with ucr_test.UCSTestConfigRegistry() as ucr:
+			ucr.load()
+			class _listener(object):
+				configRegistry = ucr
+			ol = Office365Listener(_listener(), "ucs-test", listener_attributes_data, {}, "dn")
+
+			print("*** Creating group without a profile...")
+			group_name = uts.random_name()
+			description = uts.random_string()
+			group_dn = udm.create_object(
+				"groups/group",
+				set=dict(
+					name=group_name,
+					description=description
+				),
+				position="cn=groups,{}".format(ucr.get("ldap/base")),
+				check_for_drs_replication=True
+			)
+
+			user_dn, udm_user, user_id = create_azure_user()
+
+			print("*** Checking license of user - should have all plans enabled...")
+			# create id to plan name mapping
+			# create subscription name to id mapping
+			subscriptions_online = ol.ah.get_enabled_subscriptions()
+			ids_to_plan_names = dict()
+			id_to_subscription_name = dict()
+			subscription_name_to_id = dict()
+			for subscription in subscriptions_online:
+				id_to_subscription_name[subscription['skuId']] = subscription['skuPartNumber']
+				subscription_name_to_id[subscription['skuPartNumber']] = subscription['skuId']
+				for plan in subscription['servicePlans']:
+					ids_to_plan_names[plan['servicePlanId']] = plan['servicePlanName']
+
+			fake_listener_new = dict(
+				entryUUID=[udm_user.dn],
+				univentionOffice365ObjectID=[user_id]
+			)
+			azure_user = ol.get_user(fake_listener_new)
+
+			# deleting as early as possible to free license, and because cleanup fails sometimes
+			print("*** Deleting user...")
+			udm.remove_object('users/user', dn=udm_user.dn)
+
+			if azure_user['assignedLicenses'][0]['skuId'] != subscriptions_online[0]['skuId']:
+				utils.fail(
+					'License of user in Azure (%r/%r) != first one found online (%r/%r).' %
+					(
+						id_to_subscription_name[azure_user['assignedLicenses']['skuId']],
+						azure_user['assignedLicenses']['skuId'],
+						subscriptions_online[0]['skuPartNumber'],
+						subscriptions_online[0]['skuId']
+					)
+				)
+			if any(plan['capabilityStatus'] != 'Enabled' for plan in azure_user['assignedPlans']):
+				utils.fail(
+					'Found disabled plan in fall back subscription.\nassignedPlans=%r' %
+					(azure_user['assignedPlans'],))
+
+			profile_kwargs_list = [
+				dict(
+					name=uts.random_name(),
+					subscription='ENTERPRISEPACK',
+					whitelisted_plans=['SWAY', 'POWERAPPS_O365_P2', 'YAMMER_ENTERPRISE', 'PROJECTWORKMANAGEMENT'],
+					blacklisted_plans=['SWAY', 'POWERAPPS_O365_P2']
+				),
+				dict(
+					name=uts.random_name(),
+					subscription='ENTERPRISEPACK',
+					whitelisted_plans=['PROJECTWORKMANAGEMENT'],
+					blacklisted_plans=[]
+				),
+				dict(
+					name=uts.random_name(),
+					subscription='ENTERPRISEPACK',
+					whitelisted_plans=[],
+					blacklisted_plans=['TEAMS1', 'RMS_S_ENTERPRISE', 'MCOSTANDARD']
+				),
+			]
+			for profile_kwargs in profile_kwargs_list:
+				print("*** Creating license and setting it on group %r..." % group_name)
+				profile_dn = udm.create_object('settings/office365profile', **profile_kwargs)
+				udm.modify_object(
+					"groups/group",
+					dn=group_dn,
+					set=dict(UniventionOffice365Profile=profile_dn),
+					check_for_drs_replication=True
+				)
+				print("*** Checking subscription for group %r..." % group_name)
+				subscriptions = SubscriptionProfile.get_profiles_for_groups([group_dn])
+				if len(subscriptions) != 1:
+					utils.fail('Got != 1 subscriptions for group %r.\nsubscriptions=%r' % (group_name, subscriptions))
+				subscription = subscriptions[0]
+				if not compare_subscriptions(subscription, profile_kwargs):
+					utils.fail(
+						'Subscription loaded from LDAP for group %r differs to expectation:\nexpected: %r\nfound: %r' %
+						(group_name, profile_kwargs, subscription))
+
+				user_dn, udm_user, user_id = create_azure_user()
+
+				print("*** Checking subscription for user %r..." % udm_user['username'])
+				users_group_dns = ol.udm.get_udm_user(user_dn)['groups']
+				users_subscription_profiles = SubscriptionProfile.get_profiles_for_groups(users_group_dns)
+				print('SubscriptionProfiles found for %r: %r' % (udm_user['username'], users_subscription_profiles))
+				if len(subscriptions) != 1:
+					utils.fail('Got != 1 subscriptions for user %r.\nsubscriptions=%r' % (udm_user['username'], subscriptions))
+				subscription = subscriptions[0]
+				if not compare_subscriptions(subscription, profile_kwargs):
+					utils.fail(
+						'Subscription loaded from LDAP for user %r differs to expectation:\nexpected: %r\nfound: %r' %
+						(udm_user['username'], profile_kwargs, subscription))
+
+				fake_listener_new = dict(
+					entryUUID=[udm_user.dn],
+					univentionOffice365ObjectID=[user_id]
+				)
+				azure_user = ol.get_user(fake_listener_new)
+
+				# deleting as early as possible to free license, and because cleanup fails sometimes
+				print("*** Deleting user...")
+				udm.remove_object('users/user', dn=udm_user.dn)
+
+				if id_to_subscription_name[azure_user['assignedLicenses'][0]['skuId']] != subscription.subscription:
+					utils.fail(
+						'Azure user was assigned wrong license.\n'
+						'azure_user[assignedLicenses]=%r\n'
+						'subscription.subscription=%r' %
+						(azure_user['assignedLicenses'], subscription.subscription))
+
+				enabled_plans = set()
+				disabled_plans = set()
+				for plan in azure_user['assignedPlans']:
+					if plan['capabilityStatus'] == 'Enabled':
+						enabled_plans.add(ids_to_plan_names[plan['servicePlanId']])
+					else:
+						disabled_plans.add(ids_to_plan_names[plan['servicePlanId']])
+				whitelisted_plans = set(profile_kwargs['whitelisted_plans'])
+				blacklisted_plans = set(profile_kwargs['blacklisted_plans'])
+
+				debug_msg = 'whitelisted_plans=%r\nblacklisted_plans=%r\nenabled_plans=%r\ndisabled_plans=%r' % (
+					whitelisted_plans, blacklisted_plans, enabled_plans, disabled_plans)
+
+				if blacklisted_plans - disabled_plans:
+					utils.fail(
+						'Blacklisted plans were not disabled: %r\n%s' %
+						(blacklisted_plans - disabled_plans, debug_msg))
+				if whitelisted_plans - blacklisted_plans - enabled_plans:
+					utils.fail(
+						'Whitelisted plans were not enabled: %r\n%s' %
+						(whitelisted_plans - blacklisted_plans - enabled_plans, debug_msg))
+				if whitelisted_plans and len(enabled_plans) > len(whitelisted_plans):
+					utils.fail('More plans enabled than whitelisted plans.\n%s' % debug_msg)

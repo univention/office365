@@ -252,6 +252,7 @@ def udm_user_args(ucr, minimal=True):
 			mailPrimaryAddress="{}@{}".format(uts.random_username(), ucr["domainname"]),
 		)
 	)
+	res["append"] = dict()
 	if not minimal:
 		res["set"].update(dict(
 			birthday="19{}-0{}-{}{}".format(
@@ -272,7 +273,7 @@ def udm_user_args(ucr, minimal=True):
 			street=uts.random_string(),
 			title=uts.random_string()
 		))
-		res["append"] = dict(
+		res["append"].update(dict(
 			homePostalAddress=[
 				'"{}" "{}" "{}"'.format(uts.random_string(), uts.random_string(), uts.random_string()),
 				'"{}" "{}" "{}"'.format(uts.random_string(), uts.random_string(), uts.random_string())
@@ -289,7 +290,7 @@ def udm_user_args(ucr, minimal=True):
 				"uid=Administrator,cn=users,{}".format(ucr["ldap/base"]),
 				"uid=Guest,cn=users,{}".format(ucr["ldap/base"])
 			]
-		)
+		))
 		# func arg name with '-' not allowed
 		res["append"]["e-mail"] = [
 			"{}@{}".format(uts.random_username(), uts.random_username()),

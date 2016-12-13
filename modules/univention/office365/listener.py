@@ -485,13 +485,12 @@ class Office365Listener(object):
 
 		# check subscription availability in azure
 		subscriptions_online = self.ah.get_enabled_subscriptions()
-		logger.debug('subscriptions_online=%r', subscriptions_online)
 		if len(subscriptions_online) < 1:
 			raise NoAllocatableSubscriptions(azure_user, msg_no_allocatable_subscriptions)
 
 		# get SubscriptionProfiles for users groups
 		users_group_dns = self.udm.get_udm_user(new['entryDN'][0])['groups']
-		users_subscription_profiles = SubscriptionProfile.get_profiles_for_groups(users_group_dns, self.udm, logger)
+		users_subscription_profiles = SubscriptionProfile.get_profiles_for_groups(users_group_dns)
 		logger.info('SubscriptionProfiles found for %r: %r', new['uid'][0], users_subscription_profiles)
 		if not users_subscription_profiles:
 			logger.warn('No SubscriptionProfiles: using all available subscriptions.')
@@ -503,39 +502,43 @@ class Office365Listener(object):
 		# find subscription with free seats
 		seats = dict((s["skuPartNumber"], (s["prepaidUnits"]["enabled"], s["consumedUnits"], s['skuId']))
 			for s in subscriptions_online)
-		logger.debug('seats=%r', seats)
+		logger.debug('seats in subscriptions_online: %r', seats)
 		subscription_profile_to_use = None
 		for subscription_profile in users_subscription_profiles:
-			if not any(skuPartNumber in seats for skuPartNumber in subscription_profile.subscriptions):
+			skuPartNumber = subscription_profile.subscription
+			if skuPartNumber not in seats:
+				logger.warn(
+					'Subscription from profile %r could not be found in the enabled subscriptions in Azure.',
+					subscription_profile)
 				continue
 
-			for skuPartNumber in subscription_profile.subscriptions:
-				if seats[skuPartNumber][0] > seats[skuPartNumber][1]:
-					subscription_profile.skuPartNumber = skuPartNumber
-					subscription_profile.skuId = seats[skuPartNumber][2]
-					subscription_profile_to_use = subscription_profile
-					break
+			if seats[skuPartNumber][0] > seats[skuPartNumber][1]:
+				subscription_profile.skuId = seats[skuPartNumber][2]
+				subscription_profile_to_use = subscription_profile
+				break
 
 		if not subscription_profile_to_use:
 			raise NoAllocatableSubscriptions(azure_user, msg_no_allocatable_subscriptions)
 
 		logger.info(
-			'Using subscription %r (%r) from profile %r.',
-			subscription_profile_to_use.skuPartNumber,
-			subscription_profile_to_use.skuId,
-			subscription_profile_to_use.name)
+			'Using subscription profile %r (skuId: %r).',
+			subscription_profile_to_use,
+			subscription_profile_to_use.skuId)
 
 		# calculate plan restrictions
 		# get all plans of this subscription
 		plan_names_to_ids = dict()
 		for subscription in subscriptions_online:
-			if subscription['skuPartNumber'] == subscription_profile_to_use.skuPartNumber:
+			if subscription['skuPartNumber'] == subscription_profile_to_use.subscription:
 				for plan in subscription['servicePlans']:
 					plan_names_to_ids[plan['servicePlanName']] = plan['servicePlanId']
 
-		deactivate_plans = set(plan_names_to_ids.keys()) - set(subscription_profile_to_use.whitelisted_plans)
+		if subscription_profile_to_use.whitelisted_plans:
+			deactivate_plans = set(plan_names_to_ids.keys()) - set(subscription_profile_to_use.whitelisted_plans)
+		else:
+			deactivate_plans = set()
 		deactivate_plans.update(subscription_profile_to_use.blacklisted_plans)
-		logger.info('Deactivating plans %r.', deactivate_plans)
+		logger.info('Deactivating plans %s.', ', '.join(deactivate_plans))
 		deactivate_plan_ids = [plan_names_to_ids[plan] for plan in deactivate_plans]
 		self.ah.add_license(azure_user['objectId'], subscription_profile_to_use.skuId, deactivate_plan_ids)
 

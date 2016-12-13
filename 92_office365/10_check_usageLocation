@@ -20,7 +20,7 @@ from helpers.office365_test_helpers import listener_attributes_data, udm_user_ar
 from univention.office365.listener import Office365Listener
 
 
-blacklisted_ul = ["CU"]  # some usageLocations seem to be invalid, collecting them here
+blacklisted_ul = ["CU", "KP"]  # some usageLocations seem to be invalid, collecting them here
 usage_locations = set(udm_syntax.Country.choices) - set(blacklisted_ul)
 
 
