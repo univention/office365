@@ -1,3 +1,9 @@
+univention-office365 (0.2.12-18) unstable; urgency=medium
+
+  * Bug #41219: Fix typo in path
+
+ -- Erik Damrose <damrose@univention.de>  Tue, 13 Dec 2016 12:38:23 +0100
+
 univention-office365 (0.2.12-17) unstable; urgency=medium
 
   * Bug #43134: Fix udm attribute renaming, add translation
