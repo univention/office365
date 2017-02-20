@@ -1,3 +1,9 @@
+univention-office365 (1.0.0-1) unstable; urgency=medium
+
+  * Bug #43582: adjust paths for UCS 4.2
+
+ -- Florian Best <best@univention.de>  Mon, 20 Feb 2017 11:17:38 +0100
+
 univention-office365 (0.2.13-1) unstable; urgency=low
 
   * Bug #43064: adapt code to subscription being a single value UDM property

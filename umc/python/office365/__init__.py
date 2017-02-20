@@ -38,7 +38,7 @@ import subprocess
 from univention.lib.i18n import Translation
 from univention.management.console.config import ucr
 from univention.management.console.base import Base, UMC_Error, UMC_OptionSanitizeError
-from univention.management.console.modules.decorators import sanitize, simple_response, file_upload
+from univention.management.console.modules.decorators import sanitize, simple_response, file_upload, allow_get_request
 from univention.management.console.modules.sanitizers import StringSanitizer, DictSanitizer, BooleanSanitizer, ValidationError, MultiValidationError
 from univention.management.console.log import MODULE
 
@@ -85,7 +85,7 @@ class Instance(Base):
 		fqdn = '%s.%s' % (ucr.get('hostname'), ucr.get('domainname'))
 		return {
 			'initialized': AzureAuth.is_initialized(),
-			'login-url': '{origin}/univention-management-console/command/office365/authorize',
+			'login-url': '{origin}/univention/command/office365/authorize',
 			'appid-url': 'https://%s/office365' % (fqdn,),
 			'base-url': 'https://%s/' % (fqdn,),
 		}
@@ -126,14 +126,17 @@ class Instance(Base):
 			'authorizationurl': authorizationurl,
 		}, message=_('The manifest has been successfully uploaded.'))
 
+	@allow_get_request
 	def manifest_json(self, request):
 		with open(MANIFEST_FILE, 'rb') as fd:
 			self.finished(request.id, fd.read(), mimetype='application/octet-stream')
 
+	@allow_get_request
 	def saml_setup_script(self, request):
 		with open(SAML_SETUP_SCRIPT_PATH, 'rb') as fd:
 			self.finished(request.id, fd.read(), mimetype='application/octet-stream')
 
+	@allow_get_request
 	@sanitize(
 		id_token=StringSanitizer(),
 		code=StringSanitizer(),

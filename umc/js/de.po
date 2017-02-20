@@ -172,12 +172,12 @@ msgstr "Hilfe"
 #: umc/js/office365.js:325
 msgid ""
 "If the download of the <i>manifest.json</i> file didn't start automatically "
-"<a download=\"manifest.json\" href=\"/univention-management-console/command/"
+"<a download=\"manifest.json\" href=\"/univention/command/"
 "office365/manifest.json\" target=\"_blank\">click here</a>."
 msgstr ""
 "Falls der Download der <i>manifest.json</i> Datei nicht automatisch "
 "gestartet wurde <a download=\"manifest.json\" target=\"_blank\" href=\"/"
-"univention-management-console/command/office365/manifest.json\">hier "
+"univention/command/office365/manifest.json\">hier "
 "klicken</a>."
 
 #: umc/js/office365.js:352
@@ -359,11 +359,11 @@ msgstr "Single Sign-On Einrichtung"
 #: umc/js/office365.js:250
 msgid ""
 "Synchronized users can log into Office 365 by using the link on the <a href="
-"\"/ucs-overview#services\" target=\"_blank\">UCS overview page</a>."
+"\"/univention/\" target=\"_blank\">UCS portal</a>."
 msgstr ""
 "Synchronisierte Benutzer können sich bei Office 365 anmelden, indem Sie den "
-"Link auf der <a href=\"/ucs-overview#services\" target=\"_blank\">UCS "
-"Übersichtsseite</a> nutzen."
+"Link auf dem <a href=\"/univention/\" target=\"_blank\">UCS "
+"Portal</a> nutzen."
 
 #: umc/js/office365.js:219
 msgid ""

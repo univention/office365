@@ -247,7 +247,7 @@ define([
 					widgets: [{
 						type: Text,
 						name: 'infos',
-						content: _('Synchronized users can log into Office 365 by using the link on the <a href="/ucs-overview#services" target="_blank">UCS overview page</a>.') + '<br>' + this.img(_('sso-login_EN.png'))
+						content: _('Synchronized users can log into Office 365 by using the link on the <a href="/univention/" target="_blank">UCS portal</a>.') + '<br>' + this.img(_('sso-login_EN.png'))
 					}]
 				}, {
 					name: 'error',
@@ -322,7 +322,7 @@ define([
 
 		getTextUpdateManifest: function() {
 			return this.formatOrderedList([
-				_('If the download of the <i>manifest.json</i> file didn\'t start automatically <a download="manifest.json" href="/univention-management-console/command/office365/manifest.json" target="_blank">click here</a>.'),
+				_('If the download of the <i>manifest.json</i> file didn\'t start automatically <a download="manifest.json" href="/univention/command/office365/manifest.json" target="_blank">click here</a>.'),
 				_('Select <i>MANAGE MANIFEST</i> and <i>upload manifest</i> in the Azure dashboard.') + this.img(_('manage_manifest_EN.png')),
 				_('To upload the manifest in the new pop up click on <i>BROWSE FOR FILE...</i> and select the previously downloaded <i>manifest.json</i>.') + this.img(_('azure_upload_manifest_window_EN.png')),
 				_('After the upload has succeeded continue this wizard by clicking on <i>Next</i>.')
@@ -347,7 +347,7 @@ define([
 				_('Install the latest version of Microsoft Powershell by installing <a href="%s" target="_blank">Windows Management Framework 5.0</a>', _('https://www.microsoft.com/en-us/download/details.aspx?id=50395')),
 				_('On your Windows PC, follow the <a href="%s" target="_blank">instructions on Microsoft TechNet</a> to install the <i>Microsoft Online Services Sign-In Assistant for IT Professionals RTW</i> and <i>Azure Active Directory Module for Windows PowerShell</i> on your PC.', _('https://technet.microsoft.com/library/jj151815.aspx#bkmk_installmodule')),
 				_('Make sure that the verified domain which is set up in Azure Active Directory is <b>not</b> configured as the primary domain. Otherwise, the next step will fail.'),
-				lang.replace(_('Download the {link} for Microsoft Powershell.'), {link: '<a href="/univention-management-console/command/office365/saml_setup.bat" target="_blank">' + _('SAML configuration script') + '</a>'}) + ' ' +
+				lang.replace(_('Download the {link} for Microsoft Powershell.'), {link: '<a href="/univention/command/office365/saml_setup.bat" target="_blank">' + _('SAML configuration script') + '</a>'}) + ' ' +
 				_('Execute the downloaded SAML configuration script, and authenticate with the Azure Active Directory domain administrator account.') + this.img(_('saml_setup_script_windows_EN.png')),
 				_('If the script has been executed successfully, single sign-on configuration is completed. Continue by clicking on <i>Next</i>.')
 			]);
@@ -399,7 +399,7 @@ define([
 			this.authorizationurl = data.result.authorizationurl;
 //			iframe("data:application/octet-stream;headers=Content-Disposition%3A%20attachment%3B%20filename%3Dmanifest.json;charset=utf-8;base64," + data.result.manifest);  // sucks...
 //			domConstruct.create('a', {href: 'data:application/octet-stream;charset=utf-8;base64,' + data.result.manifest, 'download': 'manifest.json', style: 'display: none;', 'innerHTML': 'manifest.json'}, dojo.body()).click();  // IE11 sucks
-			domConstruct.create('a', {target: '_blank', href: '/univention-management-console/command/office365/manifest.json', 'download': 'manifest.json', style: 'display: none;', 'innerHTML': 'manifest.json'}, dojo.body()).click();
+			domConstruct.create('a', {target: '_blank', href: '/univention/command/office365/manifest.json', 'download': 'manifest.json', style: 'display: none;', 'innerHTML': 'manifest.json'}, dojo.body()).click();
 			this._next('manifest-upload');
 		},
 
