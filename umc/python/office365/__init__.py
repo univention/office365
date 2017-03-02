@@ -37,7 +37,8 @@ import subprocess
 
 from univention.lib.i18n import Translation
 from univention.management.console.config import ucr
-from univention.management.console.base import Base, UMC_Error, UMC_OptionSanitizeError
+from univention.management.console.base import Base
+from univention.management.console.error import UMC_Error, UnprocessableEntity
 from univention.management.console.modules.decorators import sanitize, simple_response, file_upload, allow_get_request
 from univention.management.console.modules.sanitizers import StringSanitizer, DictSanitizer, BooleanSanitizer, ValidationError, MultiValidationError
 from univention.management.console.log import MODULE
@@ -55,9 +56,9 @@ def sanitize_body(sanizer):  # TODO: move into UMC core
 			try:
 				sanizer.sanitize('request.body', {'request.body': request.body})
 			except MultiValidationError as exc:
-				raise UMC_OptionSanitizeError(str(exc), exc.result())
+				raise UnprocessableEntity(str(exc), exc.result())
 			except ValidationError as exc:
-				raise UMC_OptionSanitizeError(str(exc), {exc.name: str(exc)})
+				raise UnprocessableEntity(str(exc), {exc.name: str(exc)})
 			return function(self, request, *args, **kwargs)
 		return _decorated
 	return _decorator
