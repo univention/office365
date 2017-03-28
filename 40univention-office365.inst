@@ -298,7 +298,7 @@ univention-config-registry set \
 	office365/groups/sync=no || die
 
 stop_udm_cli_server
-invoke-rc.d univention-management-console-server restart
+systemctl restart univention-management-console-server.service
 
 joinscript_save_current_version
 

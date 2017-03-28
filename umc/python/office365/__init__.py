@@ -204,7 +204,7 @@ window.top.close();
 				raise UMC_Error(str(exc))
 
 			try:
-				subprocess.call(["invoke-rc.d", "univention-directory-listener", "restart"])
+				subprocess.call(["systemctl", "restart", "univention-directory-listener.service"])
 			except (EnvironmentError,):
 				pass
 			return progress(message=_('Successfully initialized'), finished=True)

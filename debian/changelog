@@ -1,3 +1,9 @@
+univention-office365 (1.0.1-3) unstable; urgency=medium
+
+  * Bug #43995: Adapt invoke-rc.d calls
+
+ -- Erik Damrose <damrose@univention.de>  Tue, 28 Mar 2017 16:58:58 +0200
+
 univention-office365 (1.0.1-2) unstable; urgency=medium
 
   * Bug #43703: Update UCS screenshots
