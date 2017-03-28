@@ -1,3 +1,9 @@
+univention-office365 (1.0.1-2) unstable; urgency=medium
+
+  * Bug #43703: Update UCS screenshots
+
+ -- Erik Damrose <damrose@univention.de>  Tue, 28 Mar 2017 12:17:19 +0200
+
 univention-office365 (1.0.1-1) unstable; urgency=medium
 
   * Bug #43582: fix sanitizers API
