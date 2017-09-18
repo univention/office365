@@ -116,7 +116,10 @@ def print_users_and_groups():
 				if membername.startswith("ZZZ_deleted_"):
 					membername = "(DEL) {}".format(membername[26:])
 			except ResourceNotFoundError:
-				member = ah.list_groups(objectid=member_id)
+				try:
+					member = ah.list_groups(objectid=member_id)
+				except ResourceNotFoundError:
+					member = {"displayName": member_id}
 				membername = member["displayName"]
 				if membername.startswith("ZZZ_deleted_"):
 					membername = "(DEL, group) {}".format(membername[26:])

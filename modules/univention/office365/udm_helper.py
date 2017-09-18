@@ -81,7 +81,7 @@ class UDMHelper(object):
 		search LDAP for UDM objects, static for listener.clean()
 		:param module_s: str: "users/user", "groups/group", etc
 		:param filter_s: str: LDAP filter string
-		:param base: str: note to start search from
+		:param base: str: node to start search from
 		:param ldap_cred: dict: LDAP credentials collected in listeners set_data()
 		:return: list of (not yet opened) UDM objects
 		"""
