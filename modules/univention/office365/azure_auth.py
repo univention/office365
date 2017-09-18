@@ -30,7 +30,7 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-
+import re
 from urllib import urlencode
 import requests
 import json
@@ -53,6 +53,7 @@ from requests.exceptions import RequestException
 from univention.lib.i18n import Translation
 from univention.office365.logging2udebug import get_logger
 from univention.config_registry.frontend import ucr_update
+from univention.config_registry import ConfigRegistry
 
 
 _ = Translation('univention-office365').translate
@@ -78,6 +79,8 @@ oauth2_token_issuer = "https://sts.windows.net/{tenant_id}/"
 federation_metadata_url = "https://login.microsoftonline.com/{tenant_id}/federationmetadata/2007-06/federationmetadata.xml"
 resource_url = "https://graph.windows.net"
 
+ucr = ConfigRegistry()
+ucr.load()
 logger = get_logger("office365", "o365")
 
 
@@ -220,6 +223,7 @@ class JsonStorage(object):
 
 
 class AzureAuth(object):
+	proxies = {}
 
 	def __init__(self, name):
 		global NAME
@@ -237,6 +241,7 @@ class AzureAuth(object):
 			raise NoIDsStored, NoIDsStored(_("The configuration is incomplete and misses some data. Please run the wizard again."), chained_exc=exc), sys.exc_info()[2]
 		self._access_token = None
 		self._access_token_exp_at = None
+		self.__class__.proxies = self.get_http_proxies()
 
 	@classmethod
 	def is_initialized(cls):
@@ -287,6 +292,39 @@ class AzureAuth(object):
 	@staticmethod
 	def store_tokens(**kwargs):
 		JsonStorage(TOKEN_FILE).write(**kwargs)
+
+	@staticmethod
+	def get_http_proxies():
+		res = dict()
+		# 1. proxy settings from environment
+		for req_key, env_key in [
+			('http', 'HTTP_PROXY'), ('http', 'http_proxy'), ('https', 'HTTPS_PROXY'), ('https', 'https_proxy')
+		]:
+			try:
+				res[req_key] = os.environ[env_key]
+			except KeyError:
+				pass
+		# 2. settings from system wide UCR proxy settings
+		for req_key, ucrv in [('http', 'proxy/http'), ('https', 'proxy/https')]:
+			if ucr[ucrv]:
+				res[req_key] = ucr[ucrv]
+		# 3. settings from office365 UCR proxy settings
+		for req_key, ucrv in [('http', 'office365/proxy/http'), ('https', 'office365/proxy/https')]:
+			if ucr[ucrv] and ucr[ucrv] == 'ignore':
+				try:
+					del res[req_key]
+				except KeyError:
+					pass
+			elif ucr[ucrv]:
+				res[req_key] = ucr[ucrv]
+		# remove password from log output
+		res_redacted = res.copy()
+		for k, v in res_redacted.items():
+			password = re.findall(r'http.?://\w+:(\w+)@.*', v)
+			if password:
+				res_redacted[k] = v.replace(password[0], '*****', 1)
+		logger.info('proxy settings: %r', res_redacted)
+		return res
 
 	@classmethod
 	def get_domain(cls):
@@ -368,7 +406,7 @@ class AzureAuth(object):
 			# the certificates with which the tokens were signed can be downloaded from the federation metadata document
 			# https://msdn.microsoft.com/en-us/library/azure/dn195592.aspx
 			try:
-				fed = requests.get(federation_metadata_url.format(tenant_id=tenant_id))
+				fed = requests.get(federation_metadata_url.format(tenant_id=tenant_id), proxies=cls.proxies)
 			except RequestException as exc:
 				logger.exception("Error downloading federation metadata.")
 				raise TokenValidationError, TokenValidationError(_("Error downloading certificates from Azure. Please run the wizard again."), chained_exc=exc), sys.exc_info()[2]
@@ -459,7 +497,7 @@ class AzureAuth(object):
 		url = oauth2_token_url.format(tenant_id=self.tenant_id)
 
 		logger.debug("POST to URL=%r with data=%r", url, post_form)
-		response = requests.post(url, data=post_form, verify=True)
+		response = requests.post(url, data=post_form, verify=True, proxies=self.proxies)
 		if response.status_code != 200:
 			logger.exception("Error retrieving token (status %r), response: %r", response.status_code,
 				response.__dict__)

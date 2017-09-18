@@ -169,6 +169,7 @@ logger.info("attributes to never sync: %r", attributes_never)
 logger.info("attributes to statically set in AAD: %r", attributes_static)
 logger.info("attributes to sync: %r", attributes_sync)
 logger.info("attributes to sync from multiple sources: %r", attributes_multiple_azure2ldap)
+AzureAuth.get_http_proxies()  # log proxy settings
 
 
 def load_old(old):
