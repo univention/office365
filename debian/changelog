@@ -1,3 +1,27 @@
+univention-office365 (2.0.2-12) unstable; urgency=medium
+
+  * Bug #50324: Adapt merge
+
+ -- Erik Damrose <damrose@univention.de>  Thu, 10 Oct 2019 17:42:07 +0200
+
+univention-office365 (2.0.2-11) unstable; urgency=medium
+
+  * Bug #50324: Move multitenant scripts to expected location in srcpkg
+
+ -- Erik Damrose <damrose@univention.de>  Tue, 08 Oct 2019 17:38:33 +0200
+
+univention-office365 (2.0.2-10) unstable; urgency=medium
+
+  * Bug #50324: Fix ucslint
+
+ -- Erik Damrose <damrose@univention.de>  Tue, 08 Oct 2019 17:31:13 +0200
+
+univention-office365 (2.0.2-9) unstable; urgency=low
+
+  * Bug #50324: add multi tenant support
+
+ -- Daniel Troeder <troeder@univention.de>  Mon, 23 Oct 2017 13:13:44 +0200
+
 univention-office365 (2.0.2-8) unstable; urgency=medium
 
   * Bug #49699: Improve o365_usertokens script logging

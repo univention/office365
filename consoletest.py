@@ -49,10 +49,11 @@ def print_users(users, complete=False, short=False):
 	else:
 		users = users["value"]
 	for user in users:
-		print(u"objectType: {0} objectId: {1} accountEnabled: {2} displayName: '{3}'".format(user["objectType"],
-																							 user["objectId"],
-																							 user["accountEnabled"],
-																							 user["displayName"]))
+		print(u"objectType: {0} objectId: {1} accountEnabled: {2} displayName: '{3}'".format(
+			user["objectType"],
+			user["objectId"],
+			user["accountEnabled"],
+			user["displayName"]))
 		if short:
 			pass
 		elif complete:
@@ -66,8 +67,9 @@ def print_users(users, complete=False, short=False):
 					print("      no attr {0}".format(attr))
 			print("      assignedPlans:")
 			for plan in user["assignedPlans"]:
-				print(u"            service: {0} \t capabilityStatus: {1}".format(plan["service"],
-																				  plan["capabilityStatus"]))
+				print(u"            service: {0} \t capabilityStatus: {1}".format(
+					plan["service"],
+					plan["capabilityStatus"]))
 			if not user["assignedPlans"]:
 				print("            None")
 			print("      provisionedPlans:")
@@ -89,8 +91,7 @@ def print_groups(groups, complete=False, short=False):
 		groups = groups["value"]
 	for group in groups:
 		try:
-			print(u"objectType: {0} objectId: {1} displayName: '{2}'".format(group["objectType"], group["objectId"],
-																			 group["displayName"]))
+			print(u"objectType: {0} objectId: {1} displayName: '{2}'".format(group["objectType"], group["objectId"], group["displayName"]))
 			if short:
 				pass
 			else:
@@ -107,7 +108,6 @@ def member_of(action, objectid):
 		return ah.member_of_groups(objectid)
 	else:
 		return ah.member_of_objects(objectid)
-
 
 
 if __name__ == "__main__":
