@@ -36,6 +36,7 @@ import functools
 import subprocess
 
 from univention.lib.i18n import Translation
+from univention.config_registry import handler_set
 from univention.management.console.config import ucr
 from univention.management.console.base import Base
 from univention.management.console.error import UMC_Error, UnprocessableEntity
@@ -43,7 +44,7 @@ from univention.management.console.modules.decorators import sanitize, simple_re
 from univention.management.console.modules.sanitizers import StringSanitizer, DictSanitizer, BooleanSanitizer, ValidationError, MultiValidationError
 from univention.management.console.log import MODULE
 
-from univention.office365.azure_auth import AzureAuth, AzureError, get_conf_path, Manifest, ManifestError, SAML_SETUP_SCRIPT_PATH, TenantIDError
+from univention.office365.azure_auth import AzureAuth, AzureError, get_conf_path, Manifest, ManifestError, SAML_SETUP_SCRIPT_PATH, TenantIDError, tenant_alias_ucrv, tenant_wizard_ucrv
 from univention.office365.azure_handler import AzureHandler
 
 _ = Translation('univention-management-console-module-office365').translate
@@ -80,12 +81,14 @@ class Instance(Base):
 
 	def init(self):
 		self.azure_response = None
+		self.tenant_alias = ucr.get(tenant_wizard_ucrv) or None
+		MODULE.process('tenant_alias={!r}'.format(self.tenant_alias))
 
 	@simple_response
 	def query(self):
 		fqdn = '%s.%s' % (ucr.get('hostname'), ucr.get('domainname'))
 		return {
-			'initialized': AzureAuth.is_initialized(),
+			'initialized': AzureAuth.is_initialized(self.tenant_alias),
 			'login-url': '{origin}/univention/command/office365/authorize',
 			'appid-url': 'https://%s/office365' % (fqdn,),
 			'base-url': 'https://%s/' % (fqdn,),
@@ -100,7 +103,7 @@ class Instance(Base):
 		tenant_id=StringSanitizer(default='common'),
 	), required=True))
 	def upload(self, request):
-		AzureAuth.uninitialize()
+		AzureAuth.uninitialize(self.tenant_alias)
 
 		try:
 			tenant_id = request.body.get('tenant_id') or 'common'
@@ -112,14 +115,14 @@ class Instance(Base):
 			raise UMC_Error(str(exc))
 
 		try:
-			AzureAuth.store_manifest(manifest)
+			AzureAuth.store_manifest(manifest, self.tenant_alias)
 		except TenantIDError:
 			raise UMC_Error(_("Invalid federation metadata document address (e.g. https://login.microsoftonline.com/3e7d9eb4-c4a1-4cfd-893e-a8ec29e46b77/federationmetadata/2007-06/federationmetadata.xml)."))
 		except AzureError as exc:
 			raise UMC_Error(str(exc))
 
 		try:
-			authorizationurl = AzureAuth.get_authorization_url()
+			authorizationurl = AzureAuth.get_authorization_url(self.tenant_alias)
 		except AzureError as exc:
 			raise UMC_Error(str(exc))
 
@@ -129,19 +132,18 @@ class Instance(Base):
 
 	@allow_get_request
 	def manifest_json(self, request):
-		with open(get_conf_path('MANIFEST_FILE'), 'rb') as fd:
+		with open(get_conf_path('MANIFEST_FILE', self.tenant_alias), 'rb') as fd:
 			self.finished(request.id, fd.read(), mimetype='application/octet-stream')
 
 	@allow_get_request
 	def saml_setup_script(self, request):
-		with open(SAML_SETUP_SCRIPT_PATH, 'rb') as fd:
+		with open(SAML_SETUP_SCRIPT_PATH.format(tenant_alias='_{}'.format(self.tenant_alias) if self.tenant_alias else ''), 'rb') as fd:
 			self.finished(request.id, fd.read(), mimetype='application/octet-stream')
 
 	@allow_get_request
 	def public_signing_cert(self, request):
 		with open(get_conf_path('SSL_CERT'), 'rb') as fd:
 			self.finished(request.id, fd.read(), mimetype='application/octet-stream')
-
 
 	@allow_get_request
 	@sanitize(
@@ -183,24 +185,32 @@ window.top.close();
 
 		if options['id_token']:
 			try:
-				AzureAuth.parse_id_token(options['id_token'])
-				AzureAuth.store_tokens(consent_given=True)
-				aa = AzureAuth("office365")
-				aa.write_saml_setup_script()
+				AzureAuth.parse_id_token(options['id_token'], self.tenant_alias)
+				AzureAuth.store_tokens(tenant_alias=self.tenant_alias, consent_given=True)
+				aa = AzureAuth("office365", self.tenant_alias)
+				aa.write_saml_setup_script(self.tenant_alias)
 				aa.set_ucs_overview_link()
 				aa.retrieve_access_token()  # not really necessary, but it'll make sure everything worked
 			except AzureError as exc:
 				self.init()
 				raise UMC_Error(str(exc))
 			options['id_token'] = None
+			if self.tenant_alias:
+				ucrv_set = '{}{}={}'.format(
+					tenant_alias_ucrv,
+					self.tenant_alias,
+					AzureAuth.load_azure_ids(self.tenant_alias)['tenant_id']
+				)
+				MODULE.process('Setting UCR {}...'.format(ucrv_set))
+				handler_set([ucrv_set])
 			return progress(message=_('Successfully authorized. Starting synchronization.'))
 		elif options['error']:
 			self.init()
 			raise UMC_Error(_('Microsoft reported an error condition during authorization. It might help to reauthorize. Error message: {error}: {error_description}').format(**options))
-		elif AzureAuth.is_initialized():
+		elif AzureAuth.is_initialized(self.tenant_alias):
 			self.init()
 			try:
-				ah = AzureHandler(ucr, "wizard")
+				ah = AzureHandler(ucr, "wizard", self.tenant_alias)
 				users = ah.list_users()
 				MODULE.process('Retrieved list of users: %r' % users)
 

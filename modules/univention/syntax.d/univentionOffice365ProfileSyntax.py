@@ -28,10 +28,11 @@
 # <http://www.gnu.org/licenses/>.
 
 import univention.admin.localization
-import univention.admin.syntax
+from univention.admin.syntax import UDM_Objects
 
 translation = univention.admin.localization.translation('univentionOffice365')
 _ = translation.translate
+
 
 class univentionOffice365ProfileSyntax(UDM_Objects):
 	empty_value = True

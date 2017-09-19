@@ -1,0 +1,81 @@
+#!/usr/share/ucs-test/runner python
+## -*- coding: utf-8 -*-
+## desc: list, create, retrieve, modify and delete user in azure with multi tenant support
+## tags: [apptest]
+## exposure: dangerous
+## packages:
+##   - univention-office365
+
+import time
+
+import univention.testing.ucr as ucr_test
+import univention.testing.utils as utils
+
+from helpers.office365_test_helpers import AzureDirectoryTestUsers, azure_user_args, print_users, setup_logging
+from univention.office365.azure_handler import AzureHandler, ResourceNotFoundError
+from univention.office365.azure_auth import AzureAuth, get_tenant_aliases
+
+
+logger = setup_logging()
+tenant_aliases = get_tenant_aliases()
+initialized_tenants = [tenant_alias for tenant_alias in tenant_aliases if AzureAuth.is_initialized(tenant_alias)]
+
+print("*** tenant_aliases={!r}.".format(tenant_aliases))
+print("*** initialized_tenants={!r}.".format(initialized_tenants))
+
+for tenant_alias in initialized_tenants:
+	print("*** Running for tenant_alias={!r}.".format(tenant_alias))
+
+	with ucr_test.UCSTestConfigRegistry() as ucr:
+		ah = AzureHandler(ucr, "ucs-test", tenant_alias)
+
+	args = azure_user_args(ah, minimal=True)
+
+	# workaround for #42931
+	args["mailNickname"] = "AAA{}".format(args["mailNickname"])
+	args["userPrincipalName"] = "AAA{}".format(args["userPrincipalName"])
+
+	users1 = ah.list_users()["value"]
+
+	print("*** list_users() returned:")
+	print_users(users1, complete=False, short=True)
+
+	print("*** create_user(), args={}".format(args))
+	new_user1 = ah.create_user(args)
+	time.sleep(2)
+	print("create_user() returned:")
+	print_users(new_user1, complete=False, short=True)
+
+	with AzureDirectoryTestUsers(a_handler=ah, user_ids=[new_user1["objectId"]]):
+		new_user2 = ah.list_users(objectid=new_user1["objectId"])
+		for k, v in args.items():
+			if k == "passwordProfile":
+				continue
+			if not new_user2[k] == v:
+				utils.fail("Attribute {} has value {}, should be {}.".format(k, v, new_user2[k]))
+
+		users2 = ah.list_users()["value"]
+
+		old_ids = set([user["objectId"] for user in users1])
+		new_ids = set([user["objectId"] for user in users2])
+		diff = new_ids - old_ids
+		if len(diff) == 0:
+			utils.fail("Test user disappeared. old_ids={}, new_ids={}".format(old_ids, new_ids))
+		elif len(diff) > 1 or diff.pop() != new_user1["objectId"]:
+			utils.fail("Unexpected user(s) found. old_ids={}, new_ids={}".format(old_ids, new_ids))
+
+		print("*** delete_user({})".format(new_user1["objectId"]))
+		ah.delete_user(new_user1["objectId"])
+		time.sleep(2)
+
+		try:
+			deleted_user = ah.list_users(objectid=new_user1["objectId"])
+			if deleted_user["accountEnabled"]:
+				utils.fail("User was not deleted.")
+			else:
+				print("OK: user was deleted.")
+		except ResourceNotFoundError:
+			print("OK: user was deleted.")
+
+	print("*** All went well for tenant alias {!r}.".format(tenant_alias))
+print("*** All went well for all in {!r}.".format(initialized_tenants))

@@ -1,0 +1,74 @@
+#!/usr/share/ucs-test/runner python
+## -*- coding: utf-8 -*-
+## desc: test uninitialize, initialize, load and store with multi tenant support
+## tags: [apptest]
+## exposure: dangerous
+## packages:
+##   - univention-office365
+
+import os
+import uuid
+import datetime
+import shutil
+import atexit
+
+import univention.testing.strings as uts
+import univention.testing.utils as utils
+
+from univention.office365.azure_auth import AzureAuth, get_conf_path
+
+tenant1 = uts.random_username()
+tenant2 = uts.random_username()
+tenant3 = uts.random_username()
+
+for tenant in (tenant1, tenant2, tenant3):
+	CONFDIR = get_conf_path("CONFDIR", tenant)
+	print('*** tenant={!r} CONFDIR={!r}'.format(tenant, CONFDIR))
+	os.mkdir(CONFDIR)
+
+	DATETIME_FORMAT = "%Y-%m-%d_%H:%M:%S"
+	IDS_FILE = get_conf_path("IDS_FILE", tenant)
+	IDS_FILE_BAK = "{}.bak_{}".format(IDS_FILE, datetime.datetime.now().strftime(DATETIME_FORMAT.replace(" ", "_")))
+
+	try:
+		shutil.move(IDS_FILE, IDS_FILE_BAK)
+		shutil.copy2(IDS_FILE_BAK, IDS_FILE)
+		has_backup = True
+	except IOError:
+		has_backup = False
+
+
+	@atexit.register
+	def move_ids_file_back():
+		if has_backup:
+			try:
+				shutil.move(IDS_FILE_BAK, IDS_FILE)
+			except IOError:
+				pass
+
+	AzureAuth.uninitialize(tenant)
+
+	if AzureAuth.is_initialized(tenant):
+		utils.fail("App should not be initialized.")
+
+	test_ids = dict(
+		tenant_id=str(uuid.uuid1()),
+		client_id=uts.random_string(),
+		reply_url=uts.random_string(),
+		domain="{}.{}".format(uts.random_string(), uts.random_string())
+	)
+
+	AzureAuth.store_azure_ids(tenant_alias=tenant, **test_ids)
+	AzureAuth.store_tokens(tenant_alias=tenant, consent_given=True)
+
+	if not AzureAuth.is_initialized(tenant):
+		utils.fail("App should be initialized.")
+
+	loaded_ids = AzureAuth.load_azure_ids(tenant)
+
+	if not loaded_ids == test_ids:
+		utils.fail("Stored and loaded data differ.")
+
+	shutil.rmtree(CONFDIR)
+
+print("*** All went well.")

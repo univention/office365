@@ -29,8 +29,7 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-
-__package__ = ''  # workaround for PEP 366
+from __future__ import absolute_import
 
 import os
 import json
@@ -41,11 +40,10 @@ import datetime
 from stat import S_IRUSR, S_IWUSR
 
 import listener
-from univention.office365.azure_auth import AzureAuth
-from univention.office365.listener import Office365Listener, NoAllocatableSubscriptions, attributes_system
+from univention.office365.azure_auth import AzureAuth, get_tenant_aliases, NoIDsStored
+from univention.office365.listener import Office365Listener, NoAllocatableSubscriptions, attributes_system, get_tenant_filter
 from univention.office365.udm_helper import UDMHelper
 from univention.office365.logging2udebug import get_logger
-
 
 listener.configRegistry.load()
 attributes_anonymize = list()
@@ -54,6 +52,8 @@ attributes_never = list()
 attributes_static = dict()
 attributes_sync = list()
 attributes_multiple_azure2ldap = dict()
+tenant_aliases = get_tenant_aliases()
+initialized_tenants = [_ta for _ta in tenant_aliases if AzureAuth.is_initialized(_ta)]
 
 logger = get_logger("office365", "o365")
 
@@ -136,14 +136,19 @@ def get_listener_attributes():
 	return attrs
 
 
+logger.info('Found tenants in UCR: %r', tenant_aliases)
+logger.info('Found initialized tenants: %r', initialized_tenants)
+
+
 name = 'office365-user'
 description = 'sync users to office 365'
-if AzureAuth.is_initialized():
-	filter = '(&(objectClass=univentionOffice365)(uid=*))'
+if initialized_tenants:
+	filter = '(&(objectClass=posixAccount)(objectClass=univentionOffice365)(uid=*){})'.format(get_tenant_filter(listener.configRegistry, tenant_aliases))
 	logger.info("office 365 user listener active with filter=%r", filter)
 else:
 	filter = '(objectClass=deactivatedOffice365UserListener)'  # "objectClass" is indexed
-	logger.warn("office 365 user listener deactivated")
+	# filter = '(foo=bar)'  # TODO: remove me, probably the filter above should be the correct one
+	logger.warn("office 365 user listener deactivated (no initialized tenants)")
 attributes = get_listener_attributes()
 modrdn = "1"
 
@@ -223,8 +228,9 @@ def setdata(key, value):
 
 def initialize():
 	logger.info("office 365 user listener active with filter=%r", filter)
-	if not AzureAuth.is_initialized():
-		raise RuntimeError("Office 365 App ({}) not initialized yet, please run wizard.".format(name))
+	logger.info('tenant aliases: %r', tenant_aliases)
+	if not initialized_tenants:
+		raise RuntimeError("Office 365 App ({}) not initialized for any tenant yet, please run wizard.".format(name))
 
 
 def clean():
@@ -232,15 +238,16 @@ def clean():
 	Remove  univentionOffice365ObjectID and univentionOffice365Data from all
 	user objects.
 	"""
-	logger.info("Removing Office 365 ObjectID and Data from all users...")
-	UDMHelper.clean_udm_objects("users/user", listener.configRegistry["ldap/base"], ldap_cred)
+	tenant_filter = get_tenant_filter(listener.configRegistry, tenant_aliases)
+	logger.info("Removing Office 365 ObjectID and Data from all users (tenant_filter=%r)...", tenant_filter)
+	UDMHelper.clean_udm_objects("users/user", listener.configRegistry["ldap/base"], ldap_cred, tenant_filter)
 
 
 def new_or_reactivate_user(ol, dn, new, old):
 	try:
 		new_user = ol.create_user(new)
 	except NoAllocatableSubscriptions as exc:
-		logger.error(exc)
+		logger.error('{} ({})'.format(exc, exc.tenant_alias))
 		new_user = exc.user
 	# save/update Azure objectId and object data in UDM object
 	udm_user = ol.udm.get_udm_user(dn)
@@ -248,14 +255,14 @@ def new_or_reactivate_user(ol, dn, new, old):
 	udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(new_user))).rstrip()
 	udm_user.modify()
 	logger.info(
-		"User creation success. userPrincipalName: %r objectId: %r dn: %s",
-		new_user["userPrincipalName"], new_user["objectId"], dn
+		"User creation success. userPrincipalName: %r objectId: %r dn: %s tenant: %s",
+		new_user["userPrincipalName"], new_user["objectId"], dn, ol.tenant_alias
 	)
 
 
 def delete_user(ol, dn, new, old):
 	ol.delete_user(old)
-	logger.info("Deleted user %r.", old["uid"][0])
+	logger.info("Deleted user %r tenant: %s.", old["uid"][0], ol.tenant_alias)
 
 
 def deactivate_user(ol, dn, new, old):
@@ -267,7 +274,7 @@ def deactivate_user(ol, dn, new, old):
 	# Explanation: http://gcolpart.evolix.net/blog21/delete-facsimiletelephonenumber-attribute/
 	udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(None))).rstrip()
 	udm_user.modify()
-	logger.info("Deactivated user %r.", old["uid"][0])
+	logger.info("Deactivated user %r tenant: %s.", old["uid"][0], ol.tenant_alias)
 
 
 def modify_user(ol, dn, new, old):
@@ -277,13 +284,13 @@ def modify_user(ol, dn, new, old):
 	azure_user = ol.get_user(old)
 	udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(azure_user))).rstrip()
 	udm_user.modify()
-	logger.info("Modified user %r.", old["uid"][0])
+	logger.info("Modified user %r tenant: %s.", old["uid"][0], ol.tenant_alias)
 
 
 def handler(dn, new, old, command):
 	logger.debug("%s.handler() command: %r dn: %r", name, command, dn)
-	if not AzureAuth.is_initialized():
-		raise RuntimeError("{}.handler() Office 365 App not initialized yet, please run wizard.".format(name))
+	if not initialized_tenants:
+		raise RuntimeError("{}.handler() Office 365 App not initialized for any tenant yet, please run wizard.".format(name))
 	else:
 		pass
 
@@ -293,8 +300,12 @@ def handler(dn, new, old, command):
 	elif command == 'a':
 		old = load_old(old)
 
-	ol = Office365Listener(listener, name, _attrs, ldap_cred, dn)
-	udm_helper = ol.udm
+	tenant_alias_old = old.get('univentionOffice365TenantAlias', [None])[0]
+	tenant_alias_new = new.get('univentionOffice365TenantAlias', [None])[0]
+	tenant_alias = tenant_alias_new or tenant_alias_old
+	logger.info('tenant_alias_old=%r tenant_alias_new=%r', tenant_alias_old, tenant_alias_new)
+
+	udm_helper = UDMHelper(ldap_cred)
 
 	old_enabled = bool(int(old.get("univentionOffice365Enabled", ["0"])[0]))  # "" when disabled, "1" when enabled
 	if old_enabled:
@@ -302,12 +313,38 @@ def handler(dn, new, old, command):
 		enabled = not is_deactived_locked_or_expired(udm_user)
 		logger.debug("old was %s.", "enabled" if enabled else "deactivated, locked or expired")
 		old_enabled &= enabled
+		old_tenant_enabled = tenant_alias_old in initialized_tenants
+		logger.debug("old tenand is %s.", "enabled" if old_tenant_enabled else "not initialized")
+		old_enabled &= old_tenant_enabled
 	new_enabled = bool(int(new.get("univentionOffice365Enabled", ["0"])[0]))
 	if new_enabled:
 		udm_user = udm_helper.get_udm_user(dn, new)
 		enabled = not is_deactived_locked_or_expired(udm_user)
 		logger.debug("new is %s.", "enabled" if enabled else "deactivated, locked or expired")
 		new_enabled &= enabled
+		new_tenant_enabled = tenant_alias_new in initialized_tenants
+		logger.debug("new tenand is %s.", "enabled" if new_tenant_enabled else "not initialized")
+		new_enabled &= new_tenant_enabled
+
+	logger.debug("new_enabled=%r old_enabled=%r", new_enabled, old_enabled)
+
+	#
+	# MOVE between tenants -> delete and create
+	#
+	if new_enabled and tenant_alias_new and tenant_alias_old and tenant_alias_new != tenant_alias_old:
+		logger.info("new_enabled and tenant_alias_old=%r and tenant_alias_new=%r -> MOVE (DELETE old, CREATE new) (%s)", tenant_alias_old, tenant_alias_new, dn)
+		logger.info("DELETE (%s | %s)", tenant_alias_old, dn)
+		try:
+			ol = Office365Listener(listener, name, _attrs, ldap_cred, dn, tenant_alias_old)
+			delete_user(ol, dn, new, old)
+		except NoIDsStored:
+			logger.warn('Tenant %r is not initialized, when trying to delete user %r. Ignoring.', tenant_alias_old, dn)
+		ol = Office365Listener(listener, name, _attrs, ldap_cred, dn, tenant_alias_new)
+		logger.info("CREATE (%s | %s)", tenant_alias_new, dn)
+		new_or_reactivate_user(ol, dn, new, old)
+		return
+
+	ol = Office365Listener(listener, name, _attrs, ldap_cred, dn, tenant_alias)
 
 	logger.debug("new_enabled=%r old_enabled=%r", new_enabled, old_enabled)
 
@@ -315,7 +352,7 @@ def handler(dn, new, old, command):
 	# NEW or REACTIVATED account
 	#
 	if new_enabled and not old_enabled:
-		logger.info("new_enabled and not old_enabled -> NEW or REACTIVATED (%s)", dn)
+		logger.info("new_enabled and not old_enabled -> NEW or REACTIVATED (%s | %s)", tenant_alias, dn)
 		new_or_reactivate_user(ol, dn, new, old)
 		return
 
@@ -323,7 +360,7 @@ def handler(dn, new, old, command):
 	# DELETE account
 	#
 	if old and not new:
-		logger.info("old and not new -> DELETE (%s)", dn)
+		logger.info("old and not new -> DELETE (%s | %s)", tenant_alias, dn)
 		delete_user(ol, dn, new, old)
 		return
 
@@ -331,7 +368,7 @@ def handler(dn, new, old, command):
 	# DEACTIVATE account
 	#
 	if new and not new_enabled:
-		logger.info("new and not new_enabled -> DEACTIVATE (%s)", dn)
+		logger.info("new and not new_enabled -> DEACTIVATE (%s | %s)", tenant_alias, dn)
 		deactivate_user(ol, dn, new, old)
 		return
 
@@ -339,6 +376,6 @@ def handler(dn, new, old, command):
 	# MODIFY account
 	#
 	if old_enabled and new_enabled:
-		logger.info("old_enabled and new_enabled -> MODIFY (%s)", dn)
+		logger.info("old_enabled and new_enabled -> MODIFY (%s | %s)", tenant_alias, dn)
 		modify_user(ol, dn, new, old)
 		return

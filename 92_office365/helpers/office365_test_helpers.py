@@ -201,12 +201,12 @@ def print_users(users, complete=False, short=False):
 def azure_group_args():
 	name = "{} {}".format(uts.random_username(), uts.random_username())
 	return dict(
-			description=uts.random_string(),
-			displayName=name,
-			mailEnabled=False,
-			mailNickname=name.replace(" ", "_-_"),
-			securityEnabled=True
-		)
+		description=uts.random_string(),
+		displayName=name,
+		mailEnabled=False,
+		mailNickname=name.replace(" ", "_-_"),
+		securityEnabled=True
+	)
 
 
 def azure_user_args(azure_handler, minimal=True):
@@ -357,6 +357,7 @@ def check_udm2azure_user(udm_args, azure_user, complete=True):
 				res.append((k, udm_value, azure_values))
 
 	return not fail, res
+
 
 def setup_logging():
 	logger = get_logger("office365", "o365")

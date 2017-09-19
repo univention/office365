@@ -15,3 +15,5 @@ print_users_and_groups usr/share/univention-office365/scripts/
 o365_usertokens usr/share/univention-office365/scripts/
 o365_list_users usr/share/univention-office365/scripts/
 simplesamlSPconfig.php usr/share/univention-office365/
+create_new_tenant usr/share/univention-office365/scripts/
+migrate_to_multi_tenant usr/share/univention-office365/scripts/
