@@ -1,3 +1,9 @@
+univention-office365 (1.1.0-1) unstable; urgency=low
+
+  * Issue #8662 (multi tenant support): add ext attribute and LDAP schema
+
+ -- Daniel Troeder <troeder@univention.de>  Tue, 19 Sep 2017 09:39:55 +0200
+
 univention-office365 (1.0.1-5) unstable; urgency=low
 
   * Bug #44836: update copyright
