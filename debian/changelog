@@ -1,6 +1,13 @@
 univention-office365 (1.1.0-1) unstable; urgency=low
 
   * Issue #8662 (multi tenant support): add ext attribute and LDAP schema
+  * add UCRVs to handle multi tenant support office365/tenant/alias/.*,
+    office365/tenant/filter, office365/tenant/wizard
+  * add multi tenant support to configuration file handling (and test)
+  * add multi tenant support to wizard
+  * add multi tenant support to scripts
+  * listener LDAP filter can be modified with office365/tenant/filter to for
+    example resync only one tenant or to disable a tenant
 
  -- Daniel Troeder <troeder@univention.de>  Tue, 19 Sep 2017 09:39:55 +0200
 

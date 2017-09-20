@@ -30,9 +30,11 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
+import sys
 from operator import itemgetter
 from univention.config_registry import ConfigRegistry
 from univention.office365.azure_handler import AzureHandler
+from univention.office365.azure_auth import get_tenant_aliases
 
 
 def calc_column_lengths(data, data_fetchers, header_parts):
@@ -55,10 +57,10 @@ def print_table(data, data_fetchers, header_parts, line, epilog, column_lengths=
 	print(epilog)
 
 
-def print_subscriptions():
+def print_subscriptions(tenant_alias=None):
 	ucr = ConfigRegistry()
 	ucr.load()
-	ah = AzureHandler(ucr, "print_subscriptions")
+	ah = AzureHandler(ucr, "print_subscriptions", tenant_alias)
 	subscriptions = ah.list_subscriptions()["value"]
 
 	# print all subscriptions
@@ -102,4 +104,14 @@ def print_subscriptions():
 
 
 if __name__ == '__main__':
-	print_subscriptions()
+	try:
+		tenant_alias = sys.argv[1]
+		if tenant_alias not in get_tenant_aliases().keys():
+			print('Usage: {} [tenant alias]'.format(sys.argv[0]))
+			print('Unknown tenant alias {!r}.'.format(tenant_alias))
+			sys.exit(1)
+		print('Using tenant alias {!r}.'.format(tenant_alias))
+	except IndexError:
+		tenant_alias = None
+
+	print_subscriptions(tenant_alias)

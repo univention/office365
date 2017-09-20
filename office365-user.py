@@ -39,9 +39,10 @@ import zlib
 import copy
 import datetime
 from stat import S_IRUSR, S_IWUSR
+from ldap.filter import filter_format
 
 import listener
-from univention.office365.azure_auth import AzureAuth
+from univention.office365.azure_auth import AzureAuth, get_tenant_aliases
 from univention.office365.listener import Office365Listener, NoAllocatableSubscriptions, attributes_system
 from univention.office365.udm_helper import UDMHelper
 from univention.office365.logging2udebug import get_logger
@@ -54,8 +55,26 @@ attributes_never = list()
 attributes_static = dict()
 attributes_sync = list()
 attributes_multiple_azure2ldap = dict()
+tenant_aliases = get_tenant_aliases()
 
 logger = get_logger("office365", "o365")
+
+
+def get_tenant_filter():
+	resync_ucrv = 'office365/tenant/filter'
+	ucr_value = listener.configRegistry[resync_ucrv] or ''
+	aliases = ucr_value.strip().split()
+	res = ''
+	for alias in aliases:
+		if alias not in tenant_aliases.keys():
+			raise Exception('Tenant alias {!r} from office365/tenant/resync not listed in office365/tenant/alias/.* Exiting.'.format(alias))
+		if not AzureAuth.is_initialized(alias):
+			raise Exception('Tenant alias {!r} from office365/tenant/resync is not initialized. Existing.'.format(alias))
+		res += filter_format('(univentionOffice365TenantAlias=%s)', (alias,))
+	if len(res.split('=')) > 2:
+		res = '(|{})'.format(res)
+	logger.warn('Tenant filter is: %r', res)
+	return res
 
 
 def get_listener_attributes():
@@ -138,9 +157,9 @@ def get_listener_attributes():
 
 name = 'office365-user'
 description = 'sync users to office 365'
-if AzureAuth.is_initialized():
-	filter = '(&(objectClass=univentionOffice365)(uid=*))'
-	logger.info("office 365 user listener active")
+if any(AzureAuth.is_initialized(tenant_alias) for tenant_alias in tenant_aliases):
+	filter = '(&(objectClass=univentionOffice365)(uid=*){})'.format(get_tenant_filter())
+	logger.info("office 365 user listener active with filter=%r", filter)
 else:
 	filter = '(foo=bar)'
 	logger.warn("office 365 user listener deactivated")

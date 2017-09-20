@@ -14,9 +14,10 @@ import atexit
 import univention.testing.strings as uts
 import univention.testing.utils as utils
 
-from univention.office365.azure_auth import AzureAuth, IDS_FILE
+from univention.office365.azure_auth import AzureAuth, get_conf_path
 
 DATETIME_FORMAT = "%Y-%m-%d_%H:%M:%S"
+IDS_FILE = get_conf_path("IDS_FILE")
 IDS_FILE_BAK = "{}.bak_{}".format(IDS_FILE, datetime.datetime.now().strftime(DATETIME_FORMAT.replace(" ", "_")))
 
 try:

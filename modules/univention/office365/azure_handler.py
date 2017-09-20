@@ -153,10 +153,12 @@ class UnkownTypeError(AzureError):
 
 
 class AzureHandler(object):
-	def __init__(self, ucr, name):
+	def __init__(self, ucr, name, tenant_alias=None):
 		self.ucr = ucr
 		self.name = name
-		self.auth = AzureAuth(name)
+		self.tenant_alias = tenant_alias
+		logger.info('tenant_alias=%r', tenant_alias)
+		self.auth = AzureAuth(name, tenant_alias)
 		self.uris = _get_azure_uris(self.auth.tenant_id)
 		self.service_plan_names = get_service_plan_names(self.ucr)
 		logger.info("service_plan_names=%r", self.service_plan_names)

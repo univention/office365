@@ -41,6 +41,7 @@ import rsa
 import os
 import datetime
 import sys
+import pwd
 from xml.dom.minidom import parseString
 from stat import S_IRUSR, S_IWUSR
 import operator
@@ -59,19 +60,11 @@ from univention.config_registry import ConfigRegistry
 _ = Translation('univention-office365').translate
 
 NAME = "office365"
-CONFDIR = "/etc/univention-office365"
-SSL_KEY = os.path.join(CONFDIR, "key.pem")
-SSL_CERT = os.path.join(CONFDIR, "cert.pem")
-SSL_CERT_FP = os.path.join(CONFDIR, "cert.fp")
-IDS_FILE = os.path.join(CONFDIR, "ids.json")
-TOKEN_FILE = os.path.join(CONFDIR, "token.json")
-MANIFEST_FILE = os.path.join(CONFDIR, "manifest.json")
 SCOPE = ["Directory.ReadWrite.All"]  # https://msdn.microsoft.com/Library/Azure/Ad/Graph/howto/azure-ad-graph-api-permission-scopes#DirectoryRWDetail
 DEBUG_FORMAT = '%(asctime)s %(levelname)-8s %(module)s.%(funcName)s:%(lineno)d  %(message)s'
 LOG_DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
-SAML_SETUP_SCRIPT_CERT_PATH = "/etc/simplesamlphp/ucs-sso.{domainname}-idp-certificate.crt"
-SAML_SETUP_SCRIPT_PATH = "/var/lib/univention-office365/saml_setup.bat"
-
+SAML_SETUP_SCRIPT_CERT_PATH = "/etc/simplesamlphp/ucs-sso.{domainname}-idp-certificate{tenant_alias}.crt"
+SAML_SETUP_SCRIPT_PATH = "/var/lib/univention-office365/saml_setup{tenant_alias}.bat"
 
 oauth2_auth_url = "https://login.microsoftonline.com/{tenant}/oauth2/authorize?{params}"
 oauth2_token_url = "https://login.microsoftonline.com/{tenant_id}/oauth2/token"
@@ -79,9 +72,46 @@ oauth2_token_issuer = "https://sts.windows.net/{tenant_id}/"
 federation_metadata_url = "https://login.microsoftonline.com/{tenant_id}/federationmetadata/2007-06/federationmetadata.xml"
 resource_url = "https://graph.windows.net"
 
+
 ucr = ConfigRegistry()
 ucr.load()
 logger = get_logger("office365", "o365")
+
+
+def get_conf_path(name, tenant_alias=None):
+	conf_dir = os.path.join('/etc/univention-office365', tenant_alias or '')
+	return {
+		'CONFDIR': conf_dir,
+		'SSL_KEY': os.path.join(conf_dir, "key.pem"),
+		'SSL_CERT': os.path.join(conf_dir, "cert.pem"),
+		'SSL_CERT_FP': os.path.join(conf_dir, "cert.fp"),
+		'IDS_FILE': os.path.join(conf_dir, "ids.json"),
+		'TOKEN_FILE': os.path.join(conf_dir, "token.json"),
+		'MANIFEST_FILE': os.path.join(conf_dir, "manifest.json"),
+	}[name]
+
+
+def get_tenant_aliases():
+	alias_ucrv = 'office365/tenant/alias/'
+	res = dict()
+	ucr.load()
+	for k, v in ucr.items():
+		if k.startswith(alias_ucrv):
+			res[k[len(alias_ucrv):]] = v
+	logger.info('Found tenants in UCR: %r', res)
+	logger.info(
+		'Initialized tenants: %r',
+		[(tenant_alias, AzureAuth.is_initialized(tenant_alias)) for tenant_alias in res.keys()]
+	)
+	return res
+
+
+def tenant_id_to_alias(tenant_id):
+	for alias, t_id in get_tenant_aliases().items():
+		if t_id == tenant_id:
+			return alias
+	logger.error('Unknown tenant ID %r.', tenant_id)
+	return None
 
 
 class AzureError(Exception):
@@ -140,7 +170,9 @@ class Manifest(object):
 
 	def __init__(self, fd, tenant_id, domain):
 		self.tenant_id = tenant_id
+		self.tenant_alias = tenant_id_to_alias(tenant_id)
 		self.domain = domain
+		logger.info('Manifest() for tenant_alias=%r tenant_id=%r domain=%r', self.tenant_alias, tenant_id, domain)
 		try:
 			self.manifest = json.load(fd)
 			if not all([isinstance(self.manifest, dict), self.app_id, self.reply_url]):  # TODO: do schema validation
@@ -153,9 +185,9 @@ class Manifest(object):
 
 	def transform(self):
 		try:
-			with open("/etc/univention-office365/cert.pem", "rb") as fd:
+			with open(get_conf_path("SSL_CERT", self.tenant_alias), "rb") as fd:
 				cert = fd.read()
-			with open("/etc/univention-office365/cert.fp", "rb") as fd:
+			with open(get_conf_path("SSL_CERT_FP", self.tenant_alias), "rb") as fd:
 				cert_fp = fd.read().strip()
 		except (OSError, IOError):
 			raise ManifestError(_('Could not read certificate. Please make sure the joinscript'
@@ -181,7 +213,7 @@ class Manifest(object):
 				usage="verify",
 				value=key)
 
-			logger.info("Manifest.transform(): added key to manifest: fp=%r id=%r", cert_fp, keyCredentials["keyId"])
+			logger.info("Manifest.transform(%r): added key to manifest: fp=%r id=%r", self.tenant_alias, cert_fp, keyCredentials["keyId"])
 
 			self.manifest["keyCredentials"].append(keyCredentials)
 		self.manifest["oauth2AllowImplicitFlow"] = True
@@ -192,9 +224,13 @@ class Manifest(object):
 
 
 class JsonStorage(object):
+	listener_uid = None
 
 	def __init__(self, filename):
+		logger.debug('filename=%r', filename)
 		self.filename = filename
+		if not self.listener_uid:
+			self.__class__.listener_uid = pwd.getpwnam('listener').pw_uid
 
 	def read(self):
 		try:
@@ -217,6 +253,7 @@ class JsonStorage(object):
 
 	def _save(self, data):
 		open(self.filename, "w").close()  # touch
+		os.chown(self.filename, self.listener_uid, 0)
 		os.chmod(self.filename, S_IRUSR | S_IWUSR)
 		with open(self.filename, "wb") as fd:
 			json.dump(data, fd)
@@ -225,11 +262,13 @@ class JsonStorage(object):
 class AzureAuth(object):
 	proxies = {}
 
-	def __init__(self, name):
+	def __init__(self, name, tenant_alias=None):
 		global NAME
 		NAME = name
 
-		ids = self.load_azure_ids()
+		self.tenant_alias = tenant_alias
+		logger.info('tenant_alias=%r', tenant_alias)
+		ids = self.load_azure_ids(tenant_alias)
 		try:
 			self.client_id = ids["client_id"]
 			self.tenant_id = ids["tenant_id"]
@@ -244,37 +283,42 @@ class AzureAuth(object):
 		self.__class__.proxies = self.get_http_proxies()
 
 	@classmethod
-	def is_initialized(cls):
+	def is_initialized(cls, tenant_alias=None):
+		logger.debug('tenant_alias=%r', tenant_alias)
 		try:
-			tokens = cls.load_tokens()
+			tokens = cls.load_tokens(tenant_alias)
 			# Check if wizard was completed
 			if "consent_given" not in tokens or not tokens["consent_given"]:
 				return False
 
-			ids = cls.load_azure_ids()
+			ids = cls.load_azure_ids(tenant_alias)
 			return all([ids["client_id"], ids["tenant_id"], ids["reply_url"], ids["domain"]])
 		except (NoIDsStored, KeyError) as exc:
-			logger.info("AzureAuth.is_initialized(): %r", exc)
+			logger.info("AzureAuth.is_initialized(%r): %r", tenant_alias, exc)
 			return False
 
 	@staticmethod
-	def uninitialize():
-		JsonStorage(IDS_FILE).purge()
-		JsonStorage(TOKEN_FILE).purge()
+	def uninitialize(tenant_alias=None):
+		logger.debug('tenant_alias=%r', tenant_alias)
+		JsonStorage(get_conf_path('IDS_FILE', tenant_alias)).purge()
+		JsonStorage(get_conf_path('TOKEN_FILE', tenant_alias)).purge()
 
 	@staticmethod
-	def load_azure_ids():
-		return JsonStorage(IDS_FILE).read()
+	def load_azure_ids(tenant_alias=None):
+		logger.debug('tenant_alias=%r', tenant_alias)
+		return JsonStorage(get_conf_path('IDS_FILE', tenant_alias)).read()
 
 	@classmethod
-	def store_manifest(cls, manifest):
-		with open(MANIFEST_FILE, 'wb') as fd:
+	def store_manifest(cls, manifest, tenant_alias=None):
+		logger.debug('tenant_alias=%r', tenant_alias)
+		with open(get_conf_path('MANIFEST_FILE', tenant_alias), 'wb') as fd:
 			json.dump(manifest.as_dict(), fd, indent=2, separators=(',', ': '), sort_keys=True)
-		os.chmod(MANIFEST_FILE, S_IRUSR | S_IWUSR)
-		cls.store_azure_ids(client_id=manifest.app_id, tenant_id=manifest.tenant_id, reply_url=manifest.reply_url, domain=manifest.domain)
+		os.chmod(get_conf_path('MANIFEST_FILE', tenant_alias), S_IRUSR | S_IWUSR)
+		cls.store_azure_ids(tenant_alias=tenant_alias, client_id=manifest.app_id, tenant_id=manifest.tenant_id, reply_url=manifest.reply_url, domain=manifest.domain)
 
 	@staticmethod
-	def store_azure_ids(**kwargs):
+	def store_azure_ids(tenant_alias=None, **kwargs):
+		logger.debug('tenant_alias=%r', tenant_alias)
 		if "tenant_id" in kwargs:
 			tid = kwargs["tenant_id"]
 			try:
@@ -283,15 +327,17 @@ class AzureAuth(object):
 			except ValueError:
 				raise TenantIDError(_("Tenant-ID '{}' has wrong format.".format(tid)))
 
-		JsonStorage(IDS_FILE).write(**kwargs)
+		JsonStorage(get_conf_path('IDS_FILE', tenant_alias)).write(**kwargs)
 
 	@staticmethod
-	def load_tokens():
-		return JsonStorage(TOKEN_FILE).read()
+	def load_tokens(tenant_alias=None):
+		logger.debug('tenant_alias=%r', tenant_alias)
+		return JsonStorage(get_conf_path('TOKEN_FILE', tenant_alias)).read()
 
 	@staticmethod
-	def store_tokens(**kwargs):
-		JsonStorage(TOKEN_FILE).write(**kwargs)
+	def store_tokens(tenant_alias=None, **kwargs):
+		logger.debug('tenant_alias=%r', tenant_alias)
+		JsonStorage(get_conf_path('TOKEN_FILE', tenant_alias)).write(**kwargs)
 
 	@staticmethod
 	def get_http_proxies():
@@ -327,18 +373,18 @@ class AzureAuth(object):
 		return res
 
 	@classmethod
-	def get_domain(cls):
+	def get_domain(cls, tenant_alias=None):
 		"""
 		static method to access wizard supplied domain
 		:return: str: domain name verified by MS
 		"""
-		ids = cls.load_azure_ids()
+		ids = cls.load_azure_ids(tenant_alias)
 		return ids["domain"]
 
 	def get_access_token(self):
 		if not self._access_token:
 			logger.debug("Loading token from disk...")
-			tokens = self.load_tokens()
+			tokens = self.load_tokens(self.tenant_alias)
 			self._access_token = tokens.get("access_token")
 			self._access_token_exp_at = datetime.datetime.fromtimestamp(int(tokens.get("access_token_exp_at") or 0))
 		if not self._access_token_exp_at or datetime.datetime.now() > self._access_token_exp_at:
@@ -348,10 +394,10 @@ class AzureAuth(object):
 		return self._access_token
 
 	@classmethod
-	def get_authorization_url(cls):
+	def get_authorization_url(cls, tenant_alias=None):
 		nonce = str(uuid.uuid4())
-		cls.store_tokens(nonce=nonce)
-		ids = cls.load_azure_ids()
+		cls.store_tokens(tenant_alias=tenant_alias, nonce=nonce)
+		ids = cls.load_azure_ids(tenant_alias)
 		try:
 			client_id = ids["client_id"]
 			reply_url = ids["reply_url"]
@@ -371,7 +417,7 @@ class AzureAuth(object):
 		return oauth2_auth_url.format(tenant=tenant, params=urlencode(params))
 
 	@classmethod
-	def parse_id_token(cls, id_token):
+	def parse_id_token(cls, id_token, tenant_alias=None):
 		def _decode_b64(base64data):
 			# base64 strings should have a length divisible by 4
 			# If this one doesn't, add the '=' padding to fix it
@@ -465,21 +511,21 @@ class AzureAuth(object):
 		# get the tenant ID from the id token
 		header_, body, signature_ = _parse_token(id_token)
 		tenant_id = body['tid']
-		ids = cls.load_azure_ids()
+		ids = cls.load_azure_ids(tenant_alias)
 		try:
 			client_id = ids["client_id"]
 			reply_url = ids["reply_url"]
 		except KeyError as exc:
 			raise NoIDsStored, NoIDsStored(_("The configuration is incomplete and misses some data. Please run the wizard again."), chained_exc=exc), sys.exc_info()[2]
 
-		nonce_old = cls.load_tokens()["nonce"]
+		nonce_old = cls.load_tokens(tenant_alias)["nonce"]
 		if not body["nonce"] == nonce_old:
 			logger.error("Stored (%r) and received (%r) nonce of token do not match. ID token: %r.",
 				nonce_old, body["nonce"], id_token)
 			raise TokenValidationError(_("The received token is not valid. Please run the wizard again."))
 		# check validity of token
 		_new_cryptography_checks(client_id, tenant_id, id_token)
-		cls.store_azure_ids(client_id=client_id, tenant_id=tenant_id, reply_url=reply_url)
+		cls.store_azure_ids(tenant_alias=tenant_alias, client_id=client_id, tenant_id=tenant_id, reply_url=reply_url)
 		return tenant_id
 
 	def retrieve_access_token(self):
@@ -509,7 +555,7 @@ class AzureAuth(object):
 		if "access_token" in at and at["access_token"]:
 			self._access_token = at["access_token"]
 			self._access_token_exp_at = datetime.datetime.fromtimestamp(int(at["expires_on"]))
-			self.store_tokens(access_token=at["access_token"], access_token_exp_at=at["expires_on"])
+			self.store_tokens(tenant_alias=self.tenant_alias, access_token=at["access_token"], access_token_exp_at=at["expires_on"])
 			return at["access_token"]
 		else:
 			logger.exception("Response didn't contain an access_token. response: %r", response)
@@ -517,7 +563,7 @@ class AzureAuth(object):
 
 	def _get_client_assertion(self):
 		def _load_certificate_fingerprint():
-			with open(SSL_CERT_FP, "r") as fd:
+			with open(get_conf_path('SSL_CERT_FP', self.tenant_alias), "r") as fd:
 				fp = fd.read()
 			return fp.strip()
 
@@ -529,7 +575,7 @@ class AzureAuth(object):
 			return '{0}.{1}'.format(encoded_header, encoded_payload)  # <base64-encoded-header>.<base64-encoded-payload>
 
 		def _get_key_file_data():
-			with open(SSL_KEY, "rb") as pem_file:
+			with open(get_conf_path('SSL_KEY', self.tenant_alias), "rb") as pem_file:
 				key_data = pem_file.read()
 			return key_data
 
@@ -549,7 +595,7 @@ class AzureAuth(object):
 
 		# thanks to Vittorio Bertocci for this:
 		# http://www.cloudidentity.com/blog/2015/02/06/requesting-an-aad-token-with-a-certificate-without-adal/
-		not_before = int(time.time()) - 300  # -5min to allow time deff between the us and server
+		not_before = int(time.time()) - 300  # -5min to allow time diff between us and the server
 		exp_time = int(time.time()) + 600  # 10min
 		client_assertion_payload = {
 			'sub': self.client_id,
@@ -569,7 +615,7 @@ class AzureAuth(object):
 		return client_assertion
 
 	@classmethod
-	def write_saml_setup_script(cls):
+	def write_saml_setup_script(cls, tenant_alias=None):
 		from univention.config_registry import ConfigRegistry
 		ucr = ConfigRegistry()
 		ucr.load()
@@ -578,7 +624,11 @@ class AzureAuth(object):
 		ucs_sso_fqdn = ucr.get('ucs/server/sso/fqdn', "%s.%s" % (ucr.get('hostname', 'undefined'), ucr.get('domainname', 'undefined')))
 		cert = ""
 		try:
-			with open(ucr.get('saml/idp/certificate/certificate', SAML_SETUP_SCRIPT_CERT_PATH.format(domainname=ucr.get('domainname', 'undefined'))), 'rb') as fd:
+			cert_path = SAML_SETUP_SCRIPT_CERT_PATH.format(
+				domainname=ucr.get('domainname', 'undefined'),
+				tenant_alias='_{}'.format(tenant_alias) if tenant_alias else ''
+			)
+			with open(ucr.get('saml/idp/certificate/certificate', cert_path), 'rb') as fd:
 				raw_cert = fd.read()
 		except IOError as exc:
 			logger.exception("while reading certificate: %s", exc)
@@ -598,12 +648,13 @@ ECHO Asking for Azure Administator credentials
 powershell Connect-MsolService; Set-MsolDomainAuthentication -DomainName "{domain}" -Authentication Managed; Set-MsolDomainAuthentication -DomainName "{domain}" -FederationBrandName "UCS" -Authentication Federated -ActiveLogOnUri "https://{ucs_sso_fqdn}/simplesamlphp/saml2/idp/SSOService.php" -PassiveLogOnUri "https://{ucs_sso_fqdn}/simplesamlphp/saml2/idp/SSOService.php" -SigningCertificate "{cert}" -IssuerUri "{issuer}" -LogOffUri "https://{ucs_sso_fqdn}/simplesamlphp/saml2/idp/SingleLogoutService.php?ReturnTo=/univention/" -PreferredAuthenticationProtocol SAMLP;  Get-MsolDomain
 ECHO Finished single sign-on configuration change
 pause
-'''.format(domain=cls.get_domain(), ucs_sso_fqdn=ucs_sso_fqdn, cert=cert, issuer=issuer)
+'''.format(domain=cls.get_domain(tenant_alias), ucs_sso_fqdn=ucs_sso_fqdn, cert=cert, issuer=issuer)
 
 		try:
-			with open(SAML_SETUP_SCRIPT_PATH, 'wb') as fd:
+			script_path = SAML_SETUP_SCRIPT_PATH.format(tenant_alias='_{}'.format(tenant_alias) if tenant_alias else '')
+			with open(script_path, 'wb') as fd:
 				fd.write(template)
-			os.chmod(SAML_SETUP_SCRIPT_PATH, 0644)
+			os.chmod(script_path, 0644)
 		except IOError as exc:
 			logger.exception("while writing powershell script: %s", exc)
 			raise WriteScriptError(_("Error writing SAML setup script."))
