@@ -54,6 +54,7 @@ attributes_static = dict()
 attributes_sync = list()
 attributes_multiple_azure2ldap = dict()
 tenant_aliases = get_tenant_aliases()
+initialized_tenants = [_ta for _ta in tenant_aliases if AzureAuth.is_initialized(_ta)]
 
 logger = get_logger("office365", "o365")
 
@@ -71,7 +72,6 @@ def get_tenant_filter():
 		res += filter_format('(univentionOffice365TenantAlias=%s)', (alias,))
 	if len(res.split('=')) > 2:
 		res = '(|{})'.format(res)
-	logger.warn('Tenant filter is: %r', res)
 	return res
 
 
@@ -153,14 +153,19 @@ def get_listener_attributes():
 	return attrs
 
 
+logger.info('Found tenants in UCR: %r', tenant_aliases)
+logger.info('Found initialized tenants: %r', initialized_tenants)
+
+
 name = 'office365-user'
 description = 'sync users to office 365'
-if any(AzureAuth.is_initialized(tenant_alias) for tenant_alias in tenant_aliases):
+if initialized_tenants:
 	filter = '(&(objectClass=univentionOffice365)(uid=*){})'.format(get_tenant_filter())
 	logger.info("office 365 user listener active with filter=%r", filter)
 else:
 	filter = '(objectClass=deactivatedOffice365UserListener)'  # "objectClass" is indexed
-	logger.warn("office 365 user listener deactivated")
+	# filter = '(foo=bar)'  # TODO: remove me, probably the filter above should be the correct one
+	logger.warn("office 365 user listener deactivated (no initialized tenants)")
 attributes = get_listener_attributes()
 modrdn = "1"
 
@@ -240,8 +245,9 @@ def setdata(key, value):
 
 def initialize():
 	logger.info("office 365 user listener active with filter=%r", filter)
-	if not AzureAuth.is_initialized():
-		raise RuntimeError("Office 365 App ({}) not initialized yet, please run wizard.".format(name))
+	logger.info('tenant aliases: %r', tenant_aliases)
+	if not initialized_tenants:
+		raise RuntimeError("Office 365 App not initialized yet, please run wizard.")
 
 
 def clean():
@@ -250,7 +256,7 @@ def clean():
 	user objects.
 	"""
 	logger.info("Removing Office 365 ObjectID and Data from all users...")
-	UDMHelper.clean_udm_objects("users/user", listener.configRegistry["ldap/base"], ldap_cred)
+	UDMHelper.clean_udm_objects("users/user", listener.configRegistry["ldap/base"], ldap_cred, get_tenant_filter())
 
 
 def new_or_reactivate_user(ol, dn, new, old):
@@ -299,8 +305,8 @@ def modify_user(ol, dn, new, old):
 
 def handler(dn, new, old, command):
 	logger.debug("%s.handler() command: %r dn: %r", name, command, dn)
-	if not AzureAuth.is_initialized():
-		raise RuntimeError("{}.handler() Office 365 App not initialized yet, please run wizard.".format(name))
+	if not initialized_tenants:
+		raise RuntimeError("{}.handler() Office 365 App not initialized for any tenant yet, please run wizard.".format(name))
 	else:
 		pass
 
@@ -310,8 +316,11 @@ def handler(dn, new, old, command):
 	elif command == 'a':
 		old = load_old(old)
 
-	ol = Office365Listener(listener, name, _attrs, ldap_cred, dn)
-	udm_helper = ol.udm
+	tenant_alias_old = old.get('univentionOffice365TenantAlias', [None])[0]
+	tenant_alias_new = new.get('univentionOffice365TenantAlias', [None])[0]
+	logger.debug('tenant_alias_old=%r tenant_alias_new=%r', tenant_alias_old, tenant_alias_new)
+
+	udm_helper = UDMHelper(ldap_cred)
 
 	old_enabled = bool(int(old.get("univentionOffice365Enabled", ["0"])[0]))  # "" when disabled, "1" when enabled
 	if old_enabled:
@@ -319,12 +328,35 @@ def handler(dn, new, old, command):
 		enabled = not is_deactived_locked_or_expired(udm_user)
 		logger.debug("old was %s.", "enabled" if enabled else "deactivated, locked or expired")
 		old_enabled &= enabled
+		old_tenant_enabled = tenant_alias_old in initialized_tenants
+		logger.debug("old tenand is %s.", "enabled" if old_tenant_enabled else "not initialized")
+		old_enabled &= old_tenant_enabled
 	new_enabled = bool(int(new.get("univentionOffice365Enabled", ["0"])[0]))
 	if new_enabled:
 		udm_user = udm_helper.get_udm_user(dn, new)
 		enabled = not is_deactived_locked_or_expired(udm_user)
 		logger.debug("new is %s.", "enabled" if enabled else "deactivated, locked or expired")
 		new_enabled &= enabled
+		new_tenant_enabled = tenant_alias_new in initialized_tenants
+		logger.debug("new tenand is %s.", "enabled" if new_tenant_enabled else "not initialized")
+		new_enabled &= new_tenant_enabled
+
+	logger.debug("new_enabled=%r old_enabled=%r", new_enabled, old_enabled)
+
+	#
+	# MOVE between tenants -> delete and create
+	#
+	if new_enabled and tenant_alias_new and tenant_alias_old and tenant_alias_new != tenant_alias_old:
+		logger.debug("new_enabled and tenant_alias_old=%r and tenant_alias_new=%r -> MOVE between tenants -> DELETE old, CREATE new (%s)",  tenant_alias_old, tenant_alias_new, dn)
+		logger.debug("DELETE (%s)", dn)
+		ol = Office365Listener(listener, name, _attrs, ldap_cred, dn, tenant_alias_old)
+		delete_user(ol, dn, new, old)
+		ol = Office365Listener(listener, name, _attrs, ldap_cred, dn, tenant_alias_new)
+		logger.debug("CREATE (%s)", dn)
+		new_or_reactivate_user(ol, dn, new, old)
+		return
+
+	ol = Office365Listener(listener, name, _attrs, ldap_cred, dn, tenant_alias_new or tenant_alias_old)
 
 	logger.debug("new_enabled=%r old_enabled=%r", new_enabled, old_enabled)
 
@@ -332,7 +364,7 @@ def handler(dn, new, old, command):
 	# NEW or REACTIVATED account
 	#
 	if new_enabled and not old_enabled:
-		logger.info("new_enabled and not old_enabled -> NEW or REACTIVATED (%s)", dn)
+		logger.debug("new_enabled and not old_enabled -> NEW or REACTIVATED (%s)", dn)
 		new_or_reactivate_user(ol, dn, new, old)
 		return
 
@@ -340,7 +372,7 @@ def handler(dn, new, old, command):
 	# DELETE account
 	#
 	if old and not new:
-		logger.info("old and not new -> DELETE (%s)", dn)
+		logger.debug("old and not new -> DELETE (%s)", dn)
 		delete_user(ol, dn, new, old)
 		return
 
@@ -348,7 +380,7 @@ def handler(dn, new, old, command):
 	# DEACTIVATE account
 	#
 	if new and not new_enabled:
-		logger.info("new and not new_enabled -> DEACTIVATE (%s)", dn)
+		logger.debug("new and not new_enabled -> DEACTIVATE (%s)", dn)
 		deactivate_user(ol, dn, new, old)
 		return
 
@@ -356,6 +388,6 @@ def handler(dn, new, old, command):
 	# MODIFY account
 	#
 	if old_enabled and new_enabled:
-		logger.info("old_enabled and new_enabled -> MODIFY (%s)", dn)
+		logger.debug("old_enabled and new_enabled -> MODIFY (%s)", dn)
 		modify_user(ol, dn, new, old)
 		return

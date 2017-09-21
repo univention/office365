@@ -30,9 +30,10 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-__package__ = ''  # workaround for PEP 366
+from __future__ import absolute_import
 
 import json
+from simplejson import JSONDecodeError
 import urllib
 import uuid
 import requests
@@ -48,7 +49,7 @@ from univention.office365.azure_auth import AzureAuth, AzureError, resource_url
 from univention.office365.logging2udebug import get_logger
 
 try:
-	from json.decoder import JSONDecodeError  # python-requests with py3
+	from json.decoder import JSONDecodeError  # noqa: F811 # python-requests with py3
 except ImportError:
 	JSONDecodeError = ValueError  # requests with py2
 
@@ -170,7 +171,7 @@ class AzureHandler(object):
 		self.ucr = ucr
 		self.name = name
 		self.tenant_alias = tenant_alias
-		logger.info('tenant_alias=%r', tenant_alias)
+		logger.debug('tenant_alias=%r', tenant_alias)
 		self.auth = AzureAuth(name, tenant_alias)
 		self.uris = _get_azure_uris(self.auth.tenant_id)
 		self.service_plan_names = get_service_plan_names(self.ucr)
@@ -207,7 +208,7 @@ class AzureHandler(object):
 				response_json = response.json
 				if callable(response_json):  # requests version compatibility
 					response_json = response_json()
-			except (TypeError, JSONDecodeError) as exc:
+			except (TypeError, ValueError, JSONDecodeError) as exc:
 				if method.upper() in ["DELETE", "PATCH", "PUT"]:
 					# no/empty response expected
 					response_json = {}
@@ -217,7 +218,6 @@ class AzureHandler(object):
 				else:
 					logger.exception("response is not JSON. response.__dict__: %r", response.__dict__)
 					raise ApiError, ApiError(response, chained_exc=exc), sys.exc_info()[2]
-
 			logger.info(
 				"status: %r (%s)%s (%s %s)",
 				response.status_code,

@@ -98,11 +98,6 @@ def get_tenant_aliases():
 	for k, v in ucr.items():
 		if k.startswith(alias_ucrv):
 			res[k[len(alias_ucrv):]] = v
-	logger.info('Found tenants in UCR: %r', res)
-	logger.info(
-		'Initialized tenants: %r',
-		[(tenant_alias, AzureAuth.is_initialized(tenant_alias)) for tenant_alias in res.keys()]
-	)
 	return res
 
 
@@ -117,6 +112,7 @@ def tenant_id_to_alias(tenant_id):
 class AzureError(Exception):
 	def __init__(self, msg, chained_exc=None, *args, **kwargs):
 		self.chained_exc = chained_exc
+		# TODO: add tenant_alias to all error messages
 		super(AzureError, self).__init__(msg, *args, **kwargs)
 
 
@@ -280,7 +276,7 @@ class AzureAuth(object):
 		NAME = name
 
 		self.tenant_alias = tenant_alias
-		logger.info('tenant_alias=%r', tenant_alias)
+		logger.debug('tenant_alias=%r', tenant_alias)
 		ids = self.load_azure_ids(tenant_alias)
 		try:
 			self.client_id = ids["client_id"]
@@ -319,12 +315,10 @@ class AzureAuth(object):
 
 	@staticmethod
 	def load_azure_ids(tenant_alias=None):
-		logger.debug('tenant_alias=%r', tenant_alias)
 		return JsonStorage(get_conf_path('IDS_FILE', tenant_alias)).read()
 
 	@classmethod
 	def store_manifest(cls, manifest, tenant_alias=None):
-		logger.debug('tenant_alias=%r', tenant_alias)
 		with open(get_conf_path('MANIFEST_FILE', tenant_alias), 'wb') as fd:
 			json.dump(manifest.as_dict(), fd, indent=2, separators=(',', ': '), sort_keys=True)
 		os.chmod(get_conf_path('MANIFEST_FILE', tenant_alias), S_IRUSR | S_IWUSR)
@@ -332,7 +326,6 @@ class AzureAuth(object):
 
 	@staticmethod
 	def store_azure_ids(tenant_alias=None, **kwargs):
-		logger.debug('tenant_alias=%r', tenant_alias)
 		if "tenant_id" in kwargs:
 			tid = kwargs["tenant_id"]
 			try:
@@ -345,12 +338,10 @@ class AzureAuth(object):
 
 	@staticmethod
 	def load_tokens(tenant_alias=None):
-		logger.debug('tenant_alias=%r', tenant_alias)
 		return JsonStorage(get_conf_path('TOKEN_FILE', tenant_alias)).read()
 
 	@staticmethod
 	def store_tokens(tenant_alias=None, **kwargs):
-		logger.debug('tenant_alias=%r', tenant_alias)
 		JsonStorage(get_conf_path('TOKEN_FILE', tenant_alias)).write(**kwargs)
 
 	@staticmethod

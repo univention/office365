@@ -50,6 +50,7 @@ attributes_system = set((
 	"shadowLastChange",
 	"shadowMax",
 	"univentionOffice365Enabled",
+	"univentionOffice365TenantAlias",
 	"userexpiry",
 	"userPassword",
 ))  # set literals unknown in python 2.6
@@ -64,7 +65,7 @@ class NoAllocatableSubscriptions(Exception):
 
 
 class Office365Listener(object):
-	def __init__(self, listener, name, attrs, ldap_cred, dn):
+	def __init__(self, listener, name, attrs, ldap_cred, dn, tenant_alias=None):
 		"""
 		:param listener: listener object or None
 		:param name: str, prepend to log messages
@@ -77,6 +78,8 @@ class Office365Listener(object):
 		self.udm = UDMHelper(ldap_cred)
 		# self.ldap_cred = ldap_cred
 		self.dn = dn
+		self.tenant_alias = tenant_alias
+		logger.debug('tenant_alias=%r', tenant_alias)
 
 		if self.listener:
 			self.ucr = self.listener.configRegistry
@@ -86,7 +89,7 @@ class Office365Listener(object):
 			self.ucr = ConfigRegistry()
 		self.ucr.load()
 
-		self.ah = AzureHandler(self.ucr, name)
+		self.ah = AzureHandler(self.ucr, name, self.tenant_alias)
 
 	@property
 	def verified_domains(self):
@@ -457,10 +460,10 @@ class Office365Listener(object):
 		# get all users (ignoring group membership) and compare
 		# with group members to get azure IDs, because it's faster than
 		# iterating (and opening!) lots of UDM objects
-		all_users_lo = self.udm.get_lo_o365_users(attributes=['univentionOffice365ObjectID'])
+		all_users_lo = self.udm.get_lo_o365_users(enabled='0', attributes=['univentionOffice365ObjectID', 'UniventionOffice365TenantAlias'])
 		all_user_dns = set(all_users_lo.keys())
 		member_dns = all_user_dns.intersection(set(udm_target_group["users"]))
-		users_and_groups_to_add = [attr['univentionOffice365ObjectID'][0] for dn, attr in all_users_lo.items() if dn in member_dns]
+		users_and_groups_to_add = [attr['univentionOffice365ObjectID'][0] for dn, attr in all_users_lo.items() if dn in member_dns and self.tenant_alias in attr.get('univentionOffice365TenantAlias', [])]
 
 		# search tree downwards, create groups as we go, add users to them later
 		for groupdn in udm_target_group["nestedGroup"]:

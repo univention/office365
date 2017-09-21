@@ -56,7 +56,7 @@ class UDMHelper(object):
 		self.__class__.ldap_cred = ldap_cred
 
 	@classmethod
-	def clean_udm_objects(cls, module_s, base, ldap_cred):
+	def clean_udm_objects(cls, module_s, base, ldap_cred, tenant_filter=''):
 		"""
 		Remove  univentionOffice365ObjectID and univentionOffice365Data from all
 		user/group objects, static for listener.clean().
@@ -64,8 +64,12 @@ class UDMHelper(object):
 		:param module_s: str: "users/user", "groups/group", etc
 		:param base: str: note to start search from
 		:param ldap_cred: dict: LDAP credentials collected in listeners set_data()
+		:param tenant_filter: str: optional LDAP filter to remove data only
+		from matching LDAP objects
 		"""
 		filter_s = "(&(objectClass=univentionOffice365)(|(univentionOffice365ObjectID=*)(univentionOffice365Data=*)))"
+		if tenant_filter:
+			filter_s = '(&{}{})'.format(filter_s, tenant_filter)
 		logger.info("Cleaning %r objects with filter=%r....", module_s, filter_s)
 		udm_objs = cls.find_udm_objects(module_s, filter_s, base, ldap_cred)
 		for udm_obj in udm_objs:
@@ -178,6 +182,25 @@ class UDMHelper(object):
 		"""
 		filter_s = '(&(objectClass=posixGroup)(objectClass=univentionOffice365)(cn=*)(univentionOffice365ObjectID=*){})'.format(additional_filter)
 		return cls._get_lo_o365_objects(filter_s, attributes)
+
+	def is_group(cls, dn):
+		lo, po = cls._get_ldap_connection()
+		return 'posixGroup' in lo.get(dn)['objectClass']
+
+	@classmethod
+	def is_user(cls, dn):
+		lo, po = cls._get_ldap_connection()
+		return 'posixAccount' in lo.get(dn)['objectClass']
+
+	@classmethod
+	def get_tenant_alias(cls, dn):
+		if cls.is_user(dn):
+			return cls.get_udm_user(dn).get('UniventionOffice365TenantAlias')
+		elif cls.is_group(dn):
+			# return cls.get_udm_group(dn).get('UniventionOffice365TenantAlias')
+			raise NotImplementedError('Multi tenant support not yet available for groups.')
+		else:
+			raise RuntimeError('DN {!r} is neither a user nor a group.'.format(dn))
 
 	@classmethod
 	def _get_ldap_connection(cls, ldap_cred=None):

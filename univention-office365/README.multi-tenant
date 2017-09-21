@@ -1,0 +1,1 @@
+To download the SAML configuration script for Microsoft Powershell for a tenant, go to the filesystem of the server and copy /var/lib/univention-office365/saml_setup<TENANT_ALIAS>.bat.
