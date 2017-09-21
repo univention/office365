@@ -59,8 +59,9 @@ logger = get_logger("office365", "o365")
 
 
 class NoAllocatableSubscriptions(Exception):
-	def __init__(self, user, *args, **kwargs):
+	def __init__(self, user, tenant_alias=None, *args, **kwargs):
 		self.user = user
+		self.tenant_alias = tenant_alias
 		super(NoAllocatableSubscriptions, self).__init__(*args, **kwargs)
 
 
@@ -145,8 +146,8 @@ class Office365Listener(object):
 			new_user = user["value"][0]
 		else:
 			raise RuntimeError(
-				"Office365Listener.create_user() created user {!r} cannot be retrieved.".format(
-					attributes["userPrincipalName"])
+				"Office365Listener.create_user() created user {!r} cannot be retrieved ({!r}).".format(
+					attributes["userPrincipalName"], self.tenant_alias)
 			)
 		try:
 			self.assign_subscription(new, new_user)
@@ -247,7 +248,7 @@ class Office365Listener(object):
 
 		new_group = self.find_aad_group_by_name(name)
 		if not new_group:
-			raise RuntimeError("Office365Listener.create_group() created group {!r} cannot be retrieved.".format(name))
+			raise RuntimeError("Office365Listener.create_group() created group {!r} cannot be retrieved ({!r}).".format(name, self.tenant_alias))
 		if add_members:
 			self.add_ldap_members_to_azure_group(group_dn, new_group["objectId"])
 		return new_group
@@ -295,8 +296,7 @@ class Office365Listener(object):
 						azure_objs.append(self.ah.list_groups(objectid=member_id))
 					except ResourceNotFoundError:
 						# ignore
-						logger.error("Office365Listener.delete_empty_group() found unexpected object in group: %r, "
-							"ignoring.", member_id)
+						logger.error("Office365Listener.delete_empty_group() found unexpected object in group: %r, ignoring.", member_id)
 			if all(azure_obj["mailNickname"].startswith("ZZZ_deleted_") for azure_obj in azure_objs):
 				logger.info("All members of group %r are deactivated, deleting it.", group_id)
 				self.ah.delete_group(group_id)
@@ -386,8 +386,10 @@ class Office365Listener(object):
 						if group_with_azure_users in udm_group["nestedGroup"]:  # only add direct members to group
 							users_and_groups_to_add.append(udm_group_with_azure_users["UniventionOffice365ObjectID"])
 				else:
-					raise RuntimeError("Office365Listener.modify_group() {!r} from new[uniqueMember] not in "
-						"'nestedGroup' or 'users'.".format(added_member))
+					raise RuntimeError(
+						"Office365Listener.modify_group() {!r} from new[uniqueMember] not in "
+						"'nestedGroup' or 'users' ({!r}).".format(added_member, self.tenant_alias)
+					)
 
 			if users_and_groups_to_add:
 				self.ah.add_objects_to_azure_group(group_id, users_and_groups_to_add)
@@ -501,7 +503,7 @@ class Office365Listener(object):
 		# check subscription availability in azure
 		subscriptions_online = self.ah.get_enabled_subscriptions()
 		if len(subscriptions_online) < 1:
-			raise NoAllocatableSubscriptions(azure_user, msg_no_allocatable_subscriptions)
+			raise NoAllocatableSubscriptions(azure_user, msg_no_allocatable_subscriptions, self.tenant_alias)
 
 		# get SubscriptionProfiles for users groups
 		users_group_dns = self.udm.get_udm_user(new['entryDN'][0])['groups']
@@ -515,8 +517,7 @@ class Office365Listener(object):
 			return
 
 		# find subscription with free seats
-		seats = dict((s["skuPartNumber"], (s["prepaidUnits"]["enabled"], s["consumedUnits"], s['skuId']))
-			for s in subscriptions_online)
+		seats = dict((s["skuPartNumber"], (s["prepaidUnits"]["enabled"], s["consumedUnits"], s['skuId'])) for s in subscriptions_online)
 		logger.debug('seats in subscriptions_online: %r', seats)
 		subscription_profile_to_use = None
 		for subscription_profile in users_subscription_profiles:
@@ -533,7 +534,7 @@ class Office365Listener(object):
 				break
 
 		if not subscription_profile_to_use:
-			raise NoAllocatableSubscriptions(azure_user, msg_no_allocatable_subscriptions)
+			raise NoAllocatableSubscriptions(azure_user, msg_no_allocatable_subscriptions, self.tenant_alias)
 
 		logger.info(
 			'Using subscription profile %r (skuId: %r).',
@@ -620,7 +621,8 @@ class Office365Listener(object):
 		:param new: listener 'new' dict
 		:return: list of attributes that changed
 		"""
-		return [attr for attr in attribs
+		return [
+			attr for attr in attribs
 			if attr in new and attr not in old or
 			attr in old and attr not in new or
 			(attr in old and attr in new and old[attr] != new[attr])
