@@ -59,8 +59,9 @@ logger = get_logger("office365", "o365")
 
 
 class NoAllocatableSubscriptions(Exception):
-	def __init__(self, user, *args, **kwargs):
+	def __init__(self, user, tenant_alias=None, *args, **kwargs):
 		self.user = user
+		self.tenant_alias = tenant_alias
 		super(NoAllocatableSubscriptions, self).__init__(*args, **kwargs)
 
 
@@ -145,8 +146,8 @@ class Office365Listener(object):
 			new_user = user["value"][0]
 		else:
 			raise RuntimeError(
-				"Office365Listener.create_user() created user '{}' cannot be retrieved.".format(
-					attributes["userPrincipalName"])
+				"Office365Listener.create_user() created user {!r} cannot be retrieved ({!r}).".format(
+					attributes["userPrincipalName"], self.tenant_alias)
 			)
 
 		self.assign_subscription(new, new_user)
@@ -243,7 +244,7 @@ class Office365Listener(object):
 
 		new_group = self.find_aad_group_by_name(name)
 		if not new_group:
-			raise RuntimeError("Office365Listener.create_group() created group '{}' cannot be retrieved.".format(name))
+			raise RuntimeError("Office365Listener.create_group() created group {!r} cannot be retrieved ({!r}).".format(name, self.tenant_alias))
 		if add_members:
 			self.add_ldap_members_to_azure_group(group_dn, new_group["objectId"])
 		return new_group
@@ -376,8 +377,10 @@ class Office365Listener(object):
 						if group_with_azure_users in udm_group_old["nestedGroup"]:  # only add direct members to group
 							users_and_groups_to_add.append(udm_group["UniventionOffice365ObjectID"])
 				else:
-					raise RuntimeError("Office365Listener.modify_group() '{}' from new[uniqueMember] not in "
-						"'nestedGroup' or 'users'.".format(added_member))
+					raise RuntimeError(
+						"Office365Listener.modify_group() {!r} from new[uniqueMember] not in "
+						"'nestedGroup' or 'users' ({!r}).".format(added_member, self.tenant_alias)
+					)
 
 			if users_and_groups_to_add:
 				self.ah.add_objects_to_azure_group(group_id, users_and_groups_to_add)
@@ -495,7 +498,7 @@ class Office365Listener(object):
 		# check subscription availability in azure
 		subscriptions_online = self.ah.get_enabled_subscriptions()
 		if len(subscriptions_online) < 1:
-			raise NoAllocatableSubscriptions(azure_user, msg_no_allocatable_subscriptions)
+			raise NoAllocatableSubscriptions(azure_user, msg_no_allocatable_subscriptions, self.tenant_alias)
 
 		# get SubscriptionProfiles for users groups
 		users_group_dns = self.udm.get_udm_user(new['entryDN'][0])['groups']
@@ -527,7 +530,7 @@ class Office365Listener(object):
 				break
 
 		if not subscription_profile_to_use:
-			raise NoAllocatableSubscriptions(azure_user, msg_no_allocatable_subscriptions)
+			raise NoAllocatableSubscriptions(azure_user, msg_no_allocatable_subscriptions, self.tenant_alias)
 
 		logger.info(
 			'Using subscription profile %r (skuId: %r).',
@@ -588,7 +591,7 @@ class Office365Listener(object):
 			elif attr in self.attrs["sync"]:
 				tmp = user.get(attr)  # Azure does not like empty strings - it wants None!
 			else:
-				raise RuntimeError("Attribute to sync '{}' is not configured through UCR.".format(attr))
+				raise RuntimeError("Attribute to sync {!r} is not configured through UCR.".format(attr))
 
 			if attr in res:
 				if isinstance(res[attr], list):

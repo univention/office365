@@ -203,8 +203,8 @@ class AzureHandler(object):
 					# no/empty response expected (add_objects_to_azure_group())
 					response_json = {}
 				else:
-					logger.exception("response is not JSON. response.__dict__: %r", response.__dict__)
-					raise ApiError, ApiError(response, chained_exc=exc), sys.exc_info()[2]
+					logger.exception("response is not JSON (tenant_alias=%r). response.__dict__: %r", self.tenant_alias, response.__dict__)
+					raise ApiError, ApiError(response, chained_exc=exc, tenant_alias=self.tenant_alias), sys.exc_info()[2]
 			logger.info(
 				"status: %r (%s)%s (%s %s)",
 				response.status_code,
@@ -215,21 +215,21 @@ class AzureHandler(object):
 
 			if not (200 <= response.status_code <= 299):
 				if response.status_code == 404 and response_json["odata.error"]["code"] == "Request_ResourceNotFound":
-					raise ResourceNotFoundError(response)
+					raise ResourceNotFoundError(response, tenant_alias=self.tenant_alias)
 				elif 500 <= response.status_code <= 599:
 					# server error
 					if retry > 0:
-						raise ApiError(response)
+						raise ApiError(response, tenant_alias=self.tenant_alias)
 					else:
 						logger.error("AzureHandler.call_api() Server error. Azure said: %r. Will sleep 10s and then"
 							"retry one time.", response_json["odata.error"]["message"]["value"])
 						time.sleep(10)
 						self.call_api(method, url, data=data, retry=retry + 1)
 				else:
-					raise ApiError(response)
+					raise ApiError(response, tenant_alias=self.tenant_alias)
 		else:
 			logger.error("AzureHandler.call_api() response is None")
-			raise ApiError("Response is None")
+			raise ApiError("Response is None", tenant_alias=self.tenant_alias)
 		return response_json or response
 
 	def _list_objects(self, object_type, object_id=None, ofilter=None, params_extra=None, url_extra=None):
@@ -339,7 +339,7 @@ class AzureHandler(object):
 
 	def modify_group(self, object_id, modifications):
 		if "uniqueMember" in modifications:
-			raise RuntimeError("Attribute uniqueMember must be dealt with in listener.")
+			raise RuntimeError("Attribute uniqueMember must be dealt with in listener (tenant_alias=%r).", self.tenant_alias)
 		return self._modify_objects(object_type="group", object_id=object_id, modifications=modifications)
 
 	def _delete_objects(self, object_type, object_id):
