@@ -56,6 +56,7 @@ attributes_static = dict()
 attributes_sync = list()
 attributes_multiple_azure2ldap = dict()
 tenant_aliases = get_tenant_aliases()
+initialized_tenants = [_ta for _ta in tenant_aliases if AzureAuth.is_initialized(_ta)]
 
 logger = get_logger("office365", "o365")
 
@@ -73,7 +74,6 @@ def get_tenant_filter():
 		res += filter_format('(univentionOffice365TenantAlias=%s)', (alias,))
 	if len(res.split('=')) > 2:
 		res = '(|{})'.format(res)
-	logger.warn('Tenant filter is: %r', res)
 	return res
 
 
@@ -155,14 +155,18 @@ def get_listener_attributes():
 	return attrs
 
 
+logger.info('Found tenants in UCR: %r', tenant_aliases)
+logger.info('Found initialized tenants: %r', initialized_tenants)
+
+
 name = 'office365-user'
 description = 'sync users to office 365'
-if any(AzureAuth.is_initialized(tenant_alias) for tenant_alias in tenant_aliases):
+if initialized_tenants:
 	filter = '(&(objectClass=univentionOffice365)(uid=*){})'.format(get_tenant_filter())
 	logger.info("office 365 user listener active with filter=%r", filter)
 else:
 	filter = '(foo=bar)'
-	logger.warn("office 365 user listener deactivated")
+	logger.warn("office 365 user listener deactivated (no initialized tenants)")
 attributes = get_listener_attributes()
 modrdn = "1"
 
@@ -241,7 +245,9 @@ def setdata(key, value):
 
 
 def initialize():
-	if not AzureAuth.is_initialized():
+	logger.info("office 365 user listener active with filter=%r", filter)
+	logger.info('tenant aliases: %r', tenant_aliases)
+	if not initialized_tenants:
 		raise RuntimeError("Office 365 App not initialized yet, please run wizard.")
 
 
@@ -251,13 +257,58 @@ def clean():
 	user objects.
 	"""
 	logger.info("Removing Office 365 ObjectID and Data from all users...")
-	UDMHelper.clean_udm_objects("users/user", listener.configRegistry["ldap/base"], ldap_cred)
+	UDMHelper.clean_udm_objects("users/user", listener.configRegistry["ldap/base"], ldap_cred, get_tenant_filter())
+
+
+def new_or_reactivate_user(ol, dn, new, old):
+	try:
+		new_user = ol.create_user(new)
+	except NoAllocatableSubscriptions as exc:
+		logger.error(str(exc))
+		new_user = exc.user
+	# save/update Azure objectId and object data in UDM object
+	udm_user = ol.udm.get_udm_user(dn)
+	udm_user["UniventionOffice365ObjectID"] = new_user["objectId"]
+	udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(new_user))).rstrip()
+	udm_user.modify()
+	logger.info(
+		"User creation success. userPrincipalName: %r objectId: %r dn: %s",
+		new_user["userPrincipalName"],
+		new_user["objectId"], dn
+	)
+
+
+def delete_user(ol, dn, new, old):
+	ol.delete_user(old)
+	logger.info("Deleted user %r.", old["uid"][0])
+
+
+def deactivate_user(ol, dn, new, old):
+	ol.deactivate_user(old)
+	# update Azure objectId and object data in UDM object
+	udm_user = ol.udm.get_udm_user(dn)
+	# Cannot delete UniventionOffice365Data, because it would result in:
+	# ldapError: Inappropriate matching: modify/delete: univentionOffice365Data: no equality matching rule
+	# Explanation: http://gcolpart.evolix.net/blog21/delete-facsimiletelephonenumber-attribute/
+	udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(None))).rstrip()
+	udm_user.modify()
+	logger.info("Deactivated user %r.", old["uid"][0])
+
+
+def modify_user(ol, dn, new, old):
+	ol.modify_user(old, new)
+	# update Azure object data in UDM object
+	udm_user = ol.udm.get_udm_user(dn)
+	azure_user = ol.get_user(old)
+	udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(azure_user))).rstrip()
+	udm_user.modify()
+	logger.info("Modified user %r.", old["uid"][0])
 
 
 def handler(dn, new, old, command):
 	logger.debug("%s.handler() command: %r dn: %r", name, command, dn)
-	if not AzureAuth.is_initialized():
-		raise RuntimeError("{}.handler() Office 365 App not initialized yet, please run wizard.".format(name))
+	if not initialized_tenants:
+		raise RuntimeError("{}.handler() Office 365 App not initialized for any tenant yet, please run wizard.".format(name))
 	else:
 		pass
 
@@ -267,41 +318,54 @@ def handler(dn, new, old, command):
 	elif command == 'a':
 		old = load_old(old)
 
-	ol = Office365Listener(listener, name, _attrs, ldap_cred, dn)
+	tenant_alias_old = old.get('univentionOffice365TenantAlias', [None])[0]
+	tenant_alias_new = new.get('univentionOffice365TenantAlias', [None])[0]
+	logger.debug('tenant_alias_old=%r tenant_alias_new=%r', tenant_alias_old, tenant_alias_new)
+
+	udm_helper = UDMHelper(ldap_cred)
 
 	old_enabled = bool(int(old.get("univentionOffice365Enabled", ["0"])[0]))  # "" when disabled, "1" when enabled
 	if old_enabled:
-		udm_user = ol.udm.get_udm_user(dn, old)
+		udm_user = udm_helper.get_udm_user(dn, old)
 		enabled = not is_deactived_locked_or_expired(udm_user)
 		logger.debug("old was %s.", "enabled" if enabled else "deactivated, locked or expired")
 		old_enabled &= enabled
+		old_tenant_enabled = tenant_alias_old in initialized_tenants
+		logger.debug("old tenand is %s.", "enabled" if old_tenant_enabled else "not initialized")
+		old_enabled &= old_tenant_enabled
 	new_enabled = bool(int(new.get("univentionOffice365Enabled", ["0"])[0]))
 	if new_enabled:
-		udm_user = ol.udm.get_udm_user(dn, new)
+		udm_user = udm_helper.get_udm_user(dn, new)
 		enabled = not is_deactived_locked_or_expired(udm_user)
 		logger.debug("new is %s.", "enabled" if enabled else "deactivated, locked or expired")
 		new_enabled &= enabled
+		new_tenant_enabled = tenant_alias_new in initialized_tenants
+		logger.debug("new tenand is %s.", "enabled" if new_tenant_enabled else "not initialized")
+		new_enabled &= new_tenant_enabled
+
+	logger.debug("new_enabled=%r old_enabled=%r", new_enabled, old_enabled)
+
+	#
+	# MOVE between tenants -> delete and create
+	#
+	if new_enabled and tenant_alias_new and tenant_alias_old and tenant_alias_new != tenant_alias_old:
+		logger.debug("new_enabled and tenant_alias_old=%r and tenant_alias_new=%r -> MOVE between tenants -> DELETE old, CREATE new (%s)",  tenant_alias_old, tenant_alias_new, dn)
+		logger.debug("DELETE (%s)", dn)
+		ol = Office365Listener(listener, name, _attrs, ldap_cred, dn, tenant_alias_old)
+		delete_user(ol, dn, new, old)
+		ol = Office365Listener(listener, name, _attrs, ldap_cred, dn, tenant_alias_new)
+		logger.debug("CREATE (%s)", dn)
+		new_or_reactivate_user(ol, dn, new, old)
+		return
+
+	ol = Office365Listener(listener, name, _attrs, ldap_cred, dn, tenant_alias_new or tenant_alias_old)
 
 	#
 	# NEW or REACTIVATED account
 	#
 	if new_enabled and not old_enabled:
 		logger.debug("new_enabled and not old_enabled -> NEW or REACTIVATED (%s)", dn)
-		try:
-			new_user = ol.create_user(new)
-		except NoAllocatableSubscriptions as exc:
-			logger.error(str(exc))
-			new_user = exc.user
-		# save/update Azure objectId and object data in UDM object
-		udm_user = ol.udm.get_udm_user(dn)
-		udm_user["UniventionOffice365ObjectID"] = new_user["objectId"]
-		udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(new_user))).rstrip()
-		udm_user.modify()
-		logger.info(
-			"User creation success. userPrincipalName: %r objectId: %r dn: %s",
-			new_user["userPrincipalName"],
-			new_user["objectId"], dn
-		)
+		new_or_reactivate_user(ol, dn, new, old)
 		return
 
 	#
@@ -309,8 +373,7 @@ def handler(dn, new, old, command):
 	#
 	if old and not new:
 		logger.debug("old and not new -> DELETE (%s)", dn)
-		ol.delete_user(old)
-		logger.info("Deleted user %r.", old["uid"][0])
+		delete_user(ol, dn, new, old)
 		return
 
 	#
@@ -318,15 +381,7 @@ def handler(dn, new, old, command):
 	#
 	if new and not new_enabled:
 		logger.debug("new and not new_enabled -> DEACTIVATE (%s)", dn)
-		ol.deactivate_user(old)
-		# update Azure objectId and object data in UDM object
-		udm_user = ol.udm.get_udm_user(dn)
-		# Cannot delete UniventionOffice365Data, because it would result in:
-		# ldapError: Inappropriate matching: modify/delete: univentionOffice365Data: no equality matching rule
-		# Explanation: http://gcolpart.evolix.net/blog21/delete-facsimiletelephonenumber-attribute/
-		udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(None))).rstrip()
-		udm_user.modify()
-		logger.info("Deactivated user %r.", old["uid"][0])
+		deactivate_user(ol, dn, new, old)
 		return
 
 	#
@@ -334,11 +389,5 @@ def handler(dn, new, old, command):
 	#
 	if old_enabled and new_enabled:
 		logger.debug("old_enabled and new_enabled -> MODIFY (%s)", dn)
-		ol.modify_user(old, new)
-		# update Azure object data in UDM object
-		udm_user = ol.udm.get_udm_user(dn)
-		azure_user = ol.get_user(old)
-		udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(azure_user))).rstrip()
-		udm_user.modify()
-		logger.info("Modified user %r.", old["uid"][0])
+		modify_user(ol, dn, new, old)
 		return

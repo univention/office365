@@ -50,6 +50,7 @@ attributes_system = set((
 	"shadowLastChange",
 	"shadowMax",
 	"univentionOffice365Enabled",
+	"univentionOffice365TenantAlias",
 	"userexpiry",
 	"userPassword",
 ))  # set literals unknown in python 2.6
@@ -64,7 +65,7 @@ class NoAllocatableSubscriptions(Exception):
 
 
 class Office365Listener(object):
-	def __init__(self, listener, name, attrs, ldap_cred, dn):
+	def __init__(self, listener, name, attrs, ldap_cred, dn, tenant_alias=None):
 		"""
 		:param listener: listener object or None
 		:param name: str, prepend to log messages
@@ -77,6 +78,8 @@ class Office365Listener(object):
 		self.udm = UDMHelper(ldap_cred)
 		# self.ldap_cred = ldap_cred
 		self.dn = dn
+		self.tenant_alias = tenant_alias
+		logger.debug('tenant_alias=%r', tenant_alias)
 
 		if self.listener:
 			self.ucr = self.listener.configRegistry
@@ -86,7 +89,7 @@ class Office365Listener(object):
 			self.ucr = ConfigRegistry()
 		self.ucr.load()
 
-		self.ah = AzureHandler(self.ucr, name)
+		self.ah = AzureHandler(self.ucr, name, self.tenant_alias)
 
 	@property
 	def verified_domains(self):
@@ -447,8 +450,14 @@ class Office365Listener(object):
 
 		for userdn in udm_target_group["users"]:
 			udm_user = self.udm.get_udm_user(userdn)
-			if bool(int(udm_user.get("UniventionOffice365Enabled", "0"))):
+			if (
+				bool(int(udm_user.get("UniventionOffice365Enabled", "0"))) and
+				self.tenant_alias == udm_user.get('UniventionOffice365TenantAlias')
+			):
 				users_and_groups_to_add.append(udm_user["UniventionOffice365ObjectID"])
+			else:
+				# TODO: DEBUG - remove me
+				logger.debug('*** userdn=%r not added to group_dn=%r: self.tenant_alias=%r udm_user.get(UniventionOffice365TenantAlias)=%r', userdn, group_dn, self.tenant_alias, udm_user.get('UniventionOffice365TenantAlias'))
 
 		# search tree downwards, create groups as we go, add users to them later
 		for groupdn in udm_target_group["nestedGroup"]:

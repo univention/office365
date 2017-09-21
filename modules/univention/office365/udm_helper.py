@@ -52,19 +52,24 @@ class UDMHelper(object):
 	modules = dict()
 
 	def __init__(self, ldap_cred):
-		UDMHelper.ldap_cred = ldap_cred
+		self.__class__.ldap_cred = ldap_cred
 
 	@classmethod
-	def clean_udm_objects(cls, module_s, base, ldap_cred):
+	def clean_udm_objects(cls, module_s, base, ldap_cred, tenant_filter=''):
 		"""
 		Remove  univentionOffice365ObjectID and univentionOffice365Data from all
 		user/group objects, static for listener.clean().
+
 		:param module_s: str: "users/user", "groups/group", etc
 		:param base: str: note to start search from
 		:param ldap_cred: dict: LDAP credentials collected in listeners set_data()
+		:param tenant_filter: str: optional LDAP filter to remove data only
+		from matching LDAP objects
 		"""
-		logger.info("Cleaning %r objects....", module_s)
 		filter_s = "(|(univentionOffice365ObjectID=*)(univentionOffice365Data=*))"
+		if tenant_filter:
+			filter_s = '(&{}{})'.format(filter_s, tenant_filter)
+		logger.info("Cleaning %r objects with filter=%r....", module_s, filter_s)
 		udm_objs = cls.find_udm_objects(module_s, filter_s, base, ldap_cred)
 		for udm_obj in udm_objs:
 			udm_obj.open()
@@ -75,21 +80,18 @@ class UDMHelper(object):
 			udm_obj.modify()
 		logger.info("Cleaning done.")
 
-	@staticmethod
-	def find_udm_objects(module_s, filter_s, base, ldap_cred):
+	@classmethod
+	def find_udm_objects(cls, module_s, filter_s, base, ldap_cred):
 		"""
 		search LDAP for UDM objects, static for listener.clean()
+
 		:param module_s: str: "users/user", "groups/group", etc
 		:param filter_s: str: LDAP filter string
 		:param base: str: node to start search from
 		:param ldap_cred: dict: LDAP credentials collected in listeners set_data()
 		:return: list of (not yet opened) UDM objects
 		"""
-		lo = univention.admin.uldap.access(
-			host=ldap_cred["ldapserver"],
-			base=ldap_cred["basedn"],
-			binddn=ldap_cred["binddn"],
-			bindpw=ldap_cred["bindpw"])
+		lo = cls._get_ldap_connection(ldap_cred)
 		po = univention.admin.uldap.position(base)
 		univention.admin.modules.update()
 		module = univention.admin.modules.get(module_s)
@@ -135,7 +137,29 @@ class UDMHelper(object):
 		return groups
 
 	@classmethod
-	def _get_ldap_connection(cls):
+	def is_group(cls, dn):
+		lo, po = cls._get_ldap_connection()
+		return 'posixGroup' in lo.get(dn)['objectClass']
+
+	@classmethod
+	def is_user(cls, dn):
+		lo, po = cls._get_ldap_connection()
+		return 'posixAccount' in lo.get(dn)['objectClass']
+
+	@classmethod
+	def get_tenant_alias(cls, dn):
+		if cls.is_user(dn):
+			return cls.get_udm_user(dn).get('UniventionOffice365TenantAlias')
+		elif cls.is_group(dn):
+			# return cls.get_udm_group(dn).get('UniventionOffice365TenantAlias')
+			raise NotImplementedError('Multi tenant support not yet available for groups.')
+		else:
+			raise RuntimeError('DN {!r} is neither a user nor a group.'.format(dn))
+
+	@classmethod
+	def _get_ldap_connection(cls, ldap_cred=None):
+		if ldap_cred and not cls.ldap_cred:
+			cls.ldap_cred = ldap_cred
 		if not cls.lo or not cls.po:
 			if cls.ldap_cred:
 				cls.lo = univention.admin.uldap.access(

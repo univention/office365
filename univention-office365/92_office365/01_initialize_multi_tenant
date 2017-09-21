@@ -1,6 +1,6 @@
 #!/usr/share/ucs-test/runner python
 ## -*- coding: utf-8 -*-
-## desc: test uninitialize, initialize, load and store
+## desc: test uninitialize, initialize, load and store with multi tenant support
 ## tags: [apptest]
 ## exposure: dangerous
 ## packages:

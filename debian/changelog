@@ -8,6 +8,7 @@ univention-office365 (1.1.0-1) unstable; urgency=low
   * add multi tenant support to scripts
   * listener LDAP filter can be modified with office365/tenant/filter to for
     example resync only one tenant or to disable a tenant
+  * add multi tenant support to user listener (and tests)
 
  -- Daniel Troeder <troeder@univention.de>  Tue, 19 Sep 2017 09:39:55 +0200
 

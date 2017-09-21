@@ -34,7 +34,7 @@ import sys
 from operator import itemgetter
 from univention.config_registry import ConfigRegistry
 from univention.office365.azure_handler import AzureHandler, ResourceNotFoundError
-from univention.office365.azure_auth import get_tenant_aliases
+from univention.office365.azure_auth import AzureAuth, get_tenant_aliases
 
 
 def calc_column_lengths(data, data_fetchers, header_parts):
@@ -161,9 +161,17 @@ def print_users_and_groups(tenant_alias=None):
 if __name__ == '__main__':
 	try:
 		tenant_alias = sys.argv[1]
-		if tenant_alias not in get_tenant_aliases().keys():
+		print('sys.argv={!r}'.format(sys.argv))
+		tenant_aliases = get_tenant_aliases().keys()
+		initialized_tenants = [ta for ta in tenant_aliases if AzureAuth.is_initialized(ta)]
+		print('tenant_alias={!r} tenant_aliases={!r} initialized_tenants={!r}'.format(tenant_alias, tenant_aliases, initialized_tenants))
+		if tenant_alias not in tenant_aliases:
 			print('Usage: {} [tenant alias]'.format(sys.argv[0]))
 			print('Unknown tenant alias {!r}.'.format(tenant_alias))
+			sys.exit(1)
+		elif tenant_alias not in initialized_tenants:
+			print('Usage: {} [tenant alias]'.format(sys.argv[0]))
+			print('Tenant not yet initialized: {!r}.'.format(tenant_alias))
 			sys.exit(1)
 		print('Using tenant alias {!r}.'.format(tenant_alias))
 	except IndexError:

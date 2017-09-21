@@ -33,6 +33,7 @@
 __package__ = ''  # workaround for PEP 366
 
 import json
+from simplejson import JSONDecodeError
 import urllib
 import uuid
 import requests
@@ -157,7 +158,7 @@ class AzureHandler(object):
 		self.ucr = ucr
 		self.name = name
 		self.tenant_alias = tenant_alias
-		logger.info('tenant_alias=%r', tenant_alias)
+		logger.debug('tenant_alias=%r', tenant_alias)
 		self.auth = AzureAuth(name, tenant_alias)
 		self.uris = _get_azure_uris(self.auth.tenant_id)
 		self.service_plan_names = get_service_plan_names(self.ucr)
@@ -194,17 +195,16 @@ class AzureHandler(object):
 				response_json = response.json
 				if callable(response_json):  # requests version compatibility
 					response_json = response_json()
-			except (TypeError, ValueError) as exc:
+			except (TypeError, ValueError, JSONDecodeError) as exc:
 				if method.upper() in ["DELETE", "PATCH", "PUT"]:
-					# no response expected
-					pass
+					# no/empty response expected
+					response_json = {}
 				elif method.upper() == "POST" and "members" in url:
-					# no response expected (add_objects_to_azure_group())
-					pass
+					# no/empty response expected (add_objects_to_azure_group())
+					response_json = {}
 				else:
 					logger.exception("response is not JSON. response.__dict__: %r", response.__dict__)
 					raise ApiError, ApiError(response, chained_exc=exc), sys.exc_info()[2]
-
 			logger.info(
 				"status: %r (%s)%s (%s %s)",
 				response.status_code,
