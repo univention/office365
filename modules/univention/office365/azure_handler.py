@@ -276,12 +276,12 @@ class AzureHandler(object):
 		assert "value" in obj_id
 
 		# hide password
-		msg = self._fprints_hide_pw(attributes, "Creating %s with properties: {data}" % object_type)
+		msg = self._fprints_hide_pw(attributes, "Creating %s for tenant %s with properties: {data}" % (object_type, self.tenant_alias))
 		logger.info(msg)
 
 		obj = self._list_objects(object_type=object_type, ofilter="{key} eq '{value}'".format(**obj_id))
 		if obj["value"]:
-			logger.info("%s %r exists, modifying it.", object_type, obj["value"][0]["displayName"])
+			logger.info("%s %r exists (%s), modifying it.", object_type, obj["value"][0]["displayName"], self.tenant_alias)
 
 			return self._modify_objects(
 					object_type=object_type,
@@ -328,7 +328,7 @@ class AzureHandler(object):
 				# read text at beginning delete_user()
 				del modifications[attrib]
 				logger.warn("Modifying %r is currently not supported, removed it from modification list.", attrib)
-		logger.info("Modifying %s with object_id %r and modifications %r...", object_type, object_id, modifications)
+		logger.info("Modifying %s with object_id %r (%s) and modifications %r...", object_type, object_id, self.tenant_alias, modifications)
 
 		params = urllib.urlencode(azure_params)
 		url = self.uris[object_type].format(object_id=object_id, params=params)
@@ -345,14 +345,14 @@ class AzureHandler(object):
 	def _delete_objects(self, object_type, object_id):
 		assert object_type in ["user", "group"], 'Currently only "user" and "group" supported.'
 		assert type(object_id) in [str, unicode], "The ObjectId must be a string."
-		logger.info("Deleting %s with object_id %r...", object_type, object_id)
+		logger.info("Deleting %s with object_id %r (%s)...", object_type, object_id, self.tenant_alias)
 
 		params = urllib.urlencode(azure_params)
 		url = self.uris[object_type].format(object_id=object_id, params=params)
 		try:
 			return self.call_api("DELETE", url)
 		except ResourceNotFoundError as exc:
-			logger.error("Object %r didn't exist: %r", object_id, exc)
+			logger.error("Object %r didn't exist: %r (%s)", object_id, exc, self.tenant_alias)
 			return
 
 	def delete_user(self, object_id):
@@ -381,7 +381,7 @@ class AzureHandler(object):
 		"""
 		Transitive versions (incl nested groups)
 		"""
-		logger.debug("Querying memberOf %r for %r with object_id %r...", obj, resource_collection, object_id)
+		logger.debug("Querying memberOf %r for %r with object_id %r (%s)...", obj, resource_collection, object_id, self.tenant_alias)
 		assert type(resource_collection) in [str, unicode], "resource_collection must be a string."
 		assert type(object_id) in [str, unicode], "The ObjectId must be a string."
 
@@ -425,8 +425,9 @@ class AzureHandler(object):
 		:return: None
 		"""
 		assert type(group_id) in [str, unicode], "The ObjectId must be a string."
-		assert type(object_ids) == list, "object_ids must be a list of objectID strings."
-		logger.debug("Adding objects %r to group %r...", object_ids, group_id)
+		assert type(object_ids) == list, "object_ids must be a list."
+		assert all(type(o_id) in [str, unicode] for o_id in object_ids), "object_ids must be a list of objectID strings."
+		logger.debug("Adding objects %r to group %r (%s)...", object_ids, group_id, self.tenant_alias)
 
 		# While the Graph API clearly states that multiple objects can be added
 		# at once to a group that is no entirely true, as the usual API syntax
@@ -457,7 +458,7 @@ class AzureHandler(object):
 			self.call_api("POST", url, data=objs)
 
 	def delete_group_member(self, group_id, member_id):
-		logger.info("Removing member %r from group %r...", member_id, group_id)
+		logger.info("Removing member %r from group %r (%s)...", member_id, group_id, self.tenant_alias)
 		params = urllib.urlencode(azure_params)
 		url = self.uris["group_member"].format(group_id=group_id, member_id=member_id, params=params)
 
@@ -475,11 +476,12 @@ class AzureHandler(object):
 
 	def _change_license(self, operation, user_id, sku_id, deactivate_plans):
 		logger.debug(
-			"operation: %r user_id: %r sku_id: %r deactivate_plans=%r",
+			"operation: %r user_id: %r sku_id: %r deactivate_plans=%r (%s)",
 			operation,
 			user_id,
 			sku_id,
-			deactivate_plans)
+			deactivate_plans,
+			self.tenant_alias)
 		data = dict(addLicenses=list(), removeLicenses=list())
 		if operation == "add":
 			data["addLicenses"].append(dict(disabledPlans=deactivate_plans if deactivate_plans else [], skuId=sku_id))
@@ -540,8 +542,8 @@ class AzureHandler(object):
 
 	def deactivate_user(self, object_id, rename=False):
 		user_obj = self.list_users(objectid=object_id)
-		logger.info("Deactivating%s user %r / %r...", " and renaming" if rename else "",
-			user_obj["displayName"], object_id)
+		logger.info("Deactivating%s user %r / %r (%s)...", " and renaming" if rename else "",
+			user_obj["displayName"], object_id, self.tenant_alias)
 
 		# deactivate user, remove email addresses
 		modifications = dict(
@@ -551,7 +553,7 @@ class AzureHandler(object):
 		if rename:
 			if re.match(r'^ZZZ_deleted_.+_.+', user_obj["userPrincipalName"]):
 				# this shouldn't happen
-				logger.warn("User %r already deactivated, ignoring.", user_obj["userPrincipalName"])
+				logger.warn("User %r (%s) already deactivated, ignoring.", user_obj["userPrincipalName"], self.tenant_alias)
 			else:
 				name_pattern = "ZZZ_deleted_{time}_{orig}"
 				modifications["displayName"] = name_pattern.format(time=time.time(), orig=user_obj["displayName"])
@@ -570,14 +572,14 @@ class AzureHandler(object):
 			self.remove_license(object_id, lic["skuId"])
 
 	def deactivate_group(self, object_id):
-		logger.debug("object_id=%r", object_id)
+		logger.debug("object_id=%r tenant_alias=%r", object_id, self.tenant_alias)
 		group_obj = self.list_groups(objectid=object_id)
 
 		if (group_obj["description"] == "deleted group" and
 			group_obj["displayName"].startswith("ZZZ_deleted_") and
 			group_obj["mailNickname"].startswith("ZZZ_deleted_")):
 			# group was already deactivated
-			logger.warn("Group already deactivated: %r.", group_obj["displayName"])
+			logger.warn("Group already deactivated: %r (%s).", group_obj["displayName"], self.tenant_alias)
 			return
 
 		members = self.get_groups_direct_members(object_id)
@@ -591,7 +593,7 @@ class AzureHandler(object):
 			mailEnabled=False,
 			mailNickname=name.replace(" ", "_-_"),
 		)
-		logger.info("Renaming group %r to %r.", group_obj["displayName"], name)
+		logger.info("Renaming group %r to %r (%s).", group_obj["displayName"], name, self.tenant_alias)
 		return self.modify_group(object_id=object_id, modifications=modifications)
 
 	def directory_object_urls_to_object_ids(self, urls):

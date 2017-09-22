@@ -39,24 +39,32 @@ import copy
 from stat import S_IRUSR, S_IWUSR
 
 import listener
-from univention.office365.azure_auth import AzureAuth
-from univention.office365.listener import Office365Listener
+from univention.office365.azure_auth import AzureAuth, get_tenant_aliases
+from univention.office365.listener import Office365Listener, get_tenant_filter
 from univention.office365.udm_helper import UDMHelper
 from univention.office365.logging2udebug import get_logger
 
 
 logger = get_logger("office365", "o365")
 listener.configRegistry.load()
+tenant_aliases = get_tenant_aliases()
+initialized_tenants = [_ta for _ta in tenant_aliases if AzureAuth.is_initialized(_ta)]
+
+logger.info('Found tenants in UCR: %r', tenant_aliases)
+logger.info('Found initialized tenants: %r', initialized_tenants)
 
 
 name = 'office365-group'
 description = 'sync groups to office 365'
-if AzureAuth.is_initialized() and listener.configRegistry.is_true("office365/groups/sync", False):
-	filter = '(objectClass=posixGroup)'
-	logger.info("office 365 group listener active")
+if not listener.configRegistry.is_true("office365/groups/sync", False):
+	filter = '(foo=bar)'
+	logger.warn("office 365 group listener deactivated by UCR office365/groups/sync")
+elif initialized_tenants:
+	filter = '(&(objectClass=posixGroup)(objectClass=univentionOffice365){})'.format(get_tenant_filter(listener.configRegistry, tenant_aliases))
+	logger.info("office 365 group listener active with filter=%r", filter)
 else:
 	filter = '(foo=bar)'
-	logger.warn("office 365 group listener deactivated")
+	logger.warn("office 365 group listener deactivated (no initialized tenants)")
 attributes = ["cn", "description", "uniqueMember"]
 modrdn = "1"
 
@@ -91,10 +99,10 @@ def setdata(key, value):
 
 def initialize():
 	if not listener.configRegistry.is_true("office365/groups/sync", False):
-		raise RuntimeError("Office 365 App: syncing of groups is deactivated.")
+		raise RuntimeError("Office 365 App: syncing of groups is deactivated by UCR.")
 
-	if not AzureAuth.is_initialized():
-		raise RuntimeError("Office 365 App not initialized yet, please run wizard.")
+	if not initialized_tenants:
+		raise RuntimeError("Office 365 App ({}) not initialized for any tenant yet, please run wizard.".format(name))
 
 
 def clean():
@@ -102,16 +110,17 @@ def clean():
 	Remove  univentionOffice365ObjectID and univentionOffice365Data from all
 	user objects.
 	"""
-	logger.info("Removing Office 365 ObjectID and Data from all groups.")
-	UDMHelper.clean_udm_objects("groups/group", listener.configRegistry["ldap/base"], ldap_cred)
+	tenant_filter = get_tenant_filter(listener.configRegistry, tenant_aliases)
+	logger.info("Removing Office 365 ObjectID and Data from all users (tenant_filter=%r)...", tenant_filter)
+	UDMHelper.clean_udm_objects("groups/group", listener.configRegistry["ldap/base"], ldap_cred, tenant_filter)
 
 
 def handler(dn, new, old, command):
 	logger.debug("%s.handler() command: %r dn: %r", name, command, dn)
 	if not listener.configRegistry.is_true("office365/groups/sync", False):
 		return
-	if not AzureAuth.is_initialized():
-		raise RuntimeError("{}.handler() Office 365 App not initialized yet, please run wizard.".format(name))
+	if not initialized_tenants:
+		raise RuntimeError("{}.handler() Office 365 App not initialized for any tenant yet, please run wizard.".format(name))
 
 	if command == 'r':
 		save_old(old)
@@ -119,7 +128,12 @@ def handler(dn, new, old, command):
 	elif command == 'a':
 		old = load_old(old)
 
-	ol = Office365Listener(listener, name, dict(listener=attributes_copy), ldap_cred, dn)
+	tenant_alias_old = old.get('univentionOffice365TenantAlias', [None])[0]
+	tenant_alias_new = new.get('univentionOffice365TenantAlias', [None])[0]
+	tenant_alias = tenant_alias_new or tenant_alias_old
+	logger.info('tenant_alias_old=%r tenant_alias_new=%r', tenant_alias_old, tenant_alias_new)
+
+	ol = Office365Listener(listener, name, dict(listener=attributes_copy), ldap_cred, dn, tenant_alias)
 
 	#
 	# NEW group
@@ -132,7 +146,7 @@ def handler(dn, new, old, command):
 			udm_group = ol.udm.get_udm_group(dn)
 			udm_group["UniventionOffice365ObjectID"] = new_group["objectId"]
 			udm_group.modify()
-			logger.info("Created group with displayName: %r  (%r)", new_group["displayName"], new_group["objectId"])
+			logger.info("Created group with displayName: %r (%r) tenant: %s", new_group["displayName"], new_group["objectId"], tenant_alias_new)
 		logger.debug("done (%s)", dn)
 		return
 

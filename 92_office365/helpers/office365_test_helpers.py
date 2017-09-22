@@ -32,11 +32,14 @@ import random
 import pprint
 from operator import itemgetter
 import base64
+import logging
 
 import univention.admin.syntax as udm_syntax
 import univention.testing.strings as uts
 
 from univention.office365.azure_handler import ResourceNotFoundError
+from univention.office365.logging2udebug import get_logger, LevelDependentFormatter
+
 
 udm2azure = dict(
 	firstname=lambda x: itemgetter("givenName")(x),
@@ -354,3 +357,12 @@ def check_udm2azure_user(udm_args, azure_user, complete=True):
 				res.append((k, udm_value, azure_values))
 
 	return not fail, res
+
+def setup_logging():
+	logger = get_logger("office365", "o365")
+	handler = logging.StreamHandler()
+	handler.setLevel(logging.DEBUG)
+	handler.setFormatter(LevelDependentFormatter())
+	logger.addHandler(handler)
+	logger.setLevel(logging.DEBUG)
+	return logger

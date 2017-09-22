@@ -39,11 +39,10 @@ import zlib
 import copy
 import datetime
 from stat import S_IRUSR, S_IWUSR
-from ldap.filter import filter_format
 
 import listener
 from univention.office365.azure_auth import AzureAuth, get_tenant_aliases, NoIDsStored
-from univention.office365.listener import Office365Listener, NoAllocatableSubscriptions, attributes_system
+from univention.office365.listener import Office365Listener, NoAllocatableSubscriptions, attributes_system, get_tenant_filter
 from univention.office365.udm_helper import UDMHelper
 from univention.office365.logging2udebug import get_logger
 
@@ -59,22 +58,6 @@ tenant_aliases = get_tenant_aliases()
 initialized_tenants = [_ta for _ta in tenant_aliases if AzureAuth.is_initialized(_ta)]
 
 logger = get_logger("office365", "o365")
-
-
-def get_tenant_filter():
-	resync_ucrv = 'office365/tenant/filter'
-	ucr_value = listener.configRegistry[resync_ucrv] or ''
-	aliases = ucr_value.strip().split()
-	res = ''
-	for alias in aliases:
-		if alias not in tenant_aliases.keys():
-			raise Exception('Tenant alias {!r} from office365/tenant/resync not listed in office365/tenant/alias/.* Exiting.'.format(alias))
-		if not AzureAuth.is_initialized(alias):
-			raise Exception('Tenant alias {!r} from office365/tenant/resync is not initialized. Existing.'.format(alias))
-		res += filter_format('(univentionOffice365TenantAlias=%s)', (alias,))
-	if len(res.split('=')) > 2:
-		res = '(|{})'.format(res)
-	return res
 
 
 def get_listener_attributes():
@@ -162,7 +145,7 @@ logger.info('Found initialized tenants: %r', initialized_tenants)
 name = 'office365-user'
 description = 'sync users to office 365'
 if initialized_tenants:
-	filter = '(&(objectClass=univentionOffice365)(uid=*){})'.format(get_tenant_filter())
+	filter = '(&(objectClass=posixAccount)(objectClass=univentionOffice365)(uid=*){})'.format(get_tenant_filter(listener.configRegistry, tenant_aliases))
 	logger.info("office 365 user listener active with filter=%r", filter)
 else:
 	filter = '(foo=bar)'
@@ -248,7 +231,7 @@ def initialize():
 	logger.info("office 365 user listener active with filter=%r", filter)
 	logger.info('tenant aliases: %r', tenant_aliases)
 	if not initialized_tenants:
-		raise RuntimeError("{}.handler() Office 365 App not initialized for any tenant yet, please run wizard.".format(name))
+		raise RuntimeError("Office 365 App ({}) not initialized for any tenant yet, please run wizard.".format(name))
 
 
 def clean():
@@ -256,7 +239,7 @@ def clean():
 	Remove  univentionOffice365ObjectID and univentionOffice365Data from all
 	user objects.
 	"""
-	tenant_filter = get_tenant_filter()
+	tenant_filter = get_tenant_filter(listener.configRegistry, tenant_aliases)
 	logger.info("Removing Office 365 ObjectID and Data from all users (tenant_filter=%r)...", tenant_filter)
 	UDMHelper.clean_udm_objects("users/user", listener.configRegistry["ldap/base"], ldap_cred, tenant_filter)
 
@@ -292,7 +275,7 @@ def deactivate_user(ol, dn, new, old):
 	# Explanation: http://gcolpart.evolix.net/blog21/delete-facsimiletelephonenumber-attribute/
 	udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(None))).rstrip()
 	udm_user.modify()
-	logger.info("Deactivated user %r, tenant: %s.", old["uid"][0], ol.tenant_alias)
+	logger.info("Deactivated user %r tenant: %s.", old["uid"][0], ol.tenant_alias)
 
 
 def modify_user(ol, dn, new, old):

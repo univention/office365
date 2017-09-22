@@ -66,9 +66,7 @@ class UDMHelper(object):
 		:param tenant_filter: str: optional LDAP filter to remove data only
 		from matching LDAP objects
 		"""
-		filter_s = "(|(univentionOffice365ObjectID=*)(univentionOffice365Data=*))"
-		if tenant_filter:
-			filter_s = '(&{}{})'.format(filter_s, tenant_filter)
+		filter_s = "(&(objectClass=univentionOffice365)(|(univentionOffice365ObjectID=*)(univentionOffice365Data=*)){})".format(tenant_filter)
 		logger.info("Cleaning %r objects with filter=%r....", module_s, filter_s)
 		udm_objs = cls.find_udm_objects(module_s, filter_s, base, ldap_cred)
 		for udm_obj in udm_objs:
@@ -134,26 +132,6 @@ class UDMHelper(object):
 				groups.append(groupdn)
 				break
 		return groups
-
-	@classmethod
-	def is_group(cls, dn):
-		lo, po = cls._get_ldap_connection()
-		return 'posixGroup' in lo.get(dn)['objectClass']
-
-	@classmethod
-	def is_user(cls, dn):
-		lo, po = cls._get_ldap_connection()
-		return 'posixAccount' in lo.get(dn)['objectClass']
-
-	@classmethod
-	def get_tenant_alias(cls, dn):
-		if cls.is_user(dn):
-			return cls.get_udm_user(dn).get('UniventionOffice365TenantAlias')
-		elif cls.is_group(dn):
-			# return cls.get_udm_group(dn).get('UniventionOffice365TenantAlias')
-			raise NotImplementedError('Multi tenant support not yet available for groups.')
-		else:
-			raise RuntimeError('DN {!r} is neither a user nor a group.'.format(dn))
 
 	@classmethod
 	def _get_ldap_connection(cls, ldap_cred=None):

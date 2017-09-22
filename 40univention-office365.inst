@@ -247,9 +247,9 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set name="UniventionOffice365TenantAlias" \
 	--set CLIName="UniventionOffice365TenantAlias" \
 	--set shortDescription="Tenant alias" \
-	--set translationShortDescription='"de_DE" "Accounts (tenant) alias"' \
+	--set translationShortDescription='"de_DE" "Mandanten (tenant) alias"' \
 	--set longDescription="Alias of the tenant to use for syncing this user to Azure AD" \
-	--set translationLongDescription='"de_DE" "Alias des zu nutzenden Accounts (tenant) zum Synchronisieren dieses Benutzers zum Azure AD."' \
+	--set translationLongDescription='"de_DE" "Alias des zu nutzenden Mandanten (tenant) zum Synchronisieren dieses Benutzers zum Azure AD."' \
 	--set tabAdvanced=0 \
 	--set tabName="Office 365" \
 	--set translationTabName='"de_DE" "Office 365"' \
@@ -266,6 +266,31 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set overwriteTab=0 \
 	--set disableUDMWeb=0 \
 	--set tabPosition=4 || die
+
+udm settings/extended_attribute create "$@" --ignore_exists \
+	--position "cn=custom attributes,cn=univention,$ldap_base" \
+	--set name="UniventionOffice365GroupTenantAlias" \
+	--set CLIName="UniventionOffice365TenantAlias" \
+	--set shortDescription="Tenant alias" \
+	--set translationShortDescription='"de_DE" "Mandanten (tenant) alias"' \
+	--set longDescription="Alias of the tenant to use for syncing this group to Azure AD" \
+	--set translationLongDescription='"de_DE" "Alias des zu nutzenden Mandanten (tenant) zum Synchronisieren dieser Gruppe zum Azure AD."' \
+	--set module="groups/group" \
+	--set tabAdvanced=0 \
+	--set tabName="Office 365" \
+	--set tabPosition=2 \
+	--set translationTabName='"de_DE" "Office 365"' \
+	--set syntax=string_numbers_letters_dots \
+	--set default="" \
+	--set multivalue=0 \
+	--set valueRequired=0 \
+	--set mayChange=1 \
+	--set doNotSearch=1 \
+	--set objectClass=univentionOffice365 \
+	--set ldapMapping=univentionOffice365TenantAlias \
+	--set deleteObjectClass=0 \
+	--set overwriteTab=0 \
+	--set disableUDMWeb=0 || die
 
 # Add required attributes to saml/idp/ldap/get_attributes
 O_ATTRS="univentionOffice365Enabled entryUUID univentionOffice365userPrincipalName"

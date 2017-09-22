@@ -33,7 +33,9 @@ from operator import itemgetter
 import uuid
 import re
 import base64
+from ldap.filter import filter_format
 
+from univention.office365.azure_auth import AzureAuth
 from univention.office365.azure_handler import AzureHandler, ResourceNotFoundError
 from univention.office365.logging2udebug import get_logger
 from univention.office365.udm_helper import UDMHelper
@@ -56,6 +58,22 @@ attributes_system = set((
 ))  # set literals unknown in python 2.6
 
 logger = get_logger("office365", "o365")
+
+
+def get_tenant_filter(ucr, tenant_aliases):
+	resync_ucrv = 'office365/tenant/filter'
+	ucr_value = ucr[resync_ucrv] or ''
+	aliases = ucr_value.strip().split()
+	res = ''
+	for alias in aliases:
+		if alias not in tenant_aliases.keys():
+			raise Exception('Tenant alias {!r} from office365/tenant/resync not listed in office365/tenant/alias/.* Exiting.'.format(alias))
+		if not AzureAuth.is_initialized(alias):
+			raise Exception('Tenant alias {!r} from office365/tenant/resync is not initialized. Existing.'.format(alias))
+		res += filter_format('(univentionOffice365TenantAlias=%s)', (alias,))
+	if len(res.split('=')) > 2:
+		res = '(|{})'.format(res)
+	return res
 
 
 class NoAllocatableSubscriptions(Exception):
@@ -99,7 +117,7 @@ class Office365Listener(object):
 
 	def create_user(self, new):
 		udm_attrs = self._get_sync_values(self.attrs["listener"], new)
-		logger.debug("udm_attrs=%r", udm_attrs)
+		logger.debug("udm_attrs=%r tenant_alias=%r", udm_attrs, self.tenant_alias)
 
 		attributes = dict()
 		for k, v in udm_attrs.items():
@@ -273,7 +291,7 @@ class Office365Listener(object):
 		:param group_id: str: object id of group (and its parents) to check
 		:return: bool: if the group was deleted
 		"""
-		logger.debug("group_id=%r", group_id)
+		logger.debug("group_id=%r (%s)", group_id, self.tenant_alias)
 
 		# get IDs of groups this group is a member of before deleting it
 		nested_parent_group_ids = self.ah.member_of_groups(group_id, "groups")["value"]
@@ -295,13 +313,13 @@ class Office365Listener(object):
 						logger.error("Office365Listener.delete_empty_group() found unexpected object in group: %r, "
 							"ignoring.", member_id)
 			if all(azure_obj["mailNickname"].startswith("ZZZ_deleted_") for azure_obj in azure_objs):
-				logger.info("All members of group %r are deactivated, deleting it.", group_id)
+				logger.info("All members of group %r (%s) are deactivated, deleting it.", group_id, self.tenant_alias)
 				self.ah.delete_group(group_id)
 			else:
 				logger.debug("Group has active members, not deleting it.")
 				return False
 		else:
-			logger.info("Removing empty group %r...", group_id)
+			logger.info("Removing empty group %r (%s)...", group_id, self.tenant_alias)
 			self.ah.delete_group(group_id)
 
 		# check parent groups
@@ -312,7 +330,7 @@ class Office365Listener(object):
 
 	def modify_group(self, old, new):
 		modification_attributes = self._diff_old_new(self.attrs["listener"], old, new)
-		logger.debug("dn=%r modification_attributes=%r", self.dn, modification_attributes)
+		logger.debug("dn=%r modification_attributes=%r (%s)", self.dn, modification_attributes, self.tenant_alias)
 
 		if not modification_attributes:
 			logger.debug("No modifications found, ignoring.")
@@ -447,7 +465,7 @@ class Office365Listener(object):
 		:param object_id: Azure object ID of group to add users/groups to
 		:return: None
 		"""
-		logger.debug("group_dn=%r object_id=%r", group_dn, object_id)
+		logger.debug("group_dn=%r object_id=%r tenant_alias=%r", group_dn, object_id, self.tenant_alias)
 		udm_target_group = self.udm.get_udm_group(group_dn)
 		users_and_groups_to_add = list()
 
@@ -458,7 +476,10 @@ class Office365Listener(object):
 				self.tenant_alias == udm_user.get('UniventionOffice365TenantAlias')
 			):
 				users_and_groups_to_add.append(udm_user["UniventionOffice365ObjectID"])
-			else:
+			elif (
+				bool(int(udm_user.get("UniventionOffice365Enabled", "0"))) and
+				self.tenant_alias == udm_user.get('UniventionOffice365TenantAlias')
+			):
 				# TODO: DEBUG - remove me
 				logger.debug('*** userdn=%r not added to group_dn=%r: self.tenant_alias=%r udm_user.get(UniventionOffice365TenantAlias)=%r', userdn, group_dn, self.tenant_alias, udm_user.get('UniventionOffice365TenantAlias'))
 
