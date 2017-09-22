@@ -8,26 +8,18 @@
 
 import copy
 import time
-import logging
 
 import univention.testing.ucr as ucr_test
 import univention.testing.udm as udm_test
 import univention.testing.utils as utils
 from univention.config_registry import handler_set, handler_unset
 
-from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user
+from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user, setup_logging
 from univention.office365.listener import Office365Listener
 from univention.office365.azure_auth import AzureAuth, get_tenant_aliases
-from univention.office365.logging2udebug import get_logger, LevelDependentFormatter
 
 
-logger = get_logger("office365", "o365")
-handler = logging.StreamHandler()
-handler.setLevel(logging.DEBUG)
-handler.setFormatter(LevelDependentFormatter())
-logger.addHandler(handler)
-logger.setLevel(logging.DEBUG)
-
+logger = setup_logging()
 tenant_aliases = get_tenant_aliases()
 initialized_tenants = [tenant_alias for tenant_alias in tenant_aliases if AzureAuth.is_initialized(tenant_alias)]
 
