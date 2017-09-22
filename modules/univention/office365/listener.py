@@ -159,12 +159,12 @@ class Office365Listener(object):
 		except KeyError:
 			object_id = self.find_aad_user_by_entryUUID(old["entryUUID"][0])
 		if not object_id:
-			logger.error("Couldn't find object_id for user %r, cannot delete.", old["uid"][0])
+			logger.error("Couldn't find object_id for user %r (%s), cannot delete.", old["uid"][0], self.tenant_alias)
 			return
 		try:
 			return self.ah.delete_user(object_id)
 		except ResourceNotFoundError as exc:
-			logger.error("User %r didn't exist in Azure: %r.", old["uid"][0], exc)
+			logger.error("User %r didn't exist in Azure (%s): %r.", old["uid"][0], self.tenant_alias, exc)
 			return
 
 	def deactivate_user(self, old):
@@ -491,8 +491,8 @@ class Office365Listener(object):
 		_groups_up_the_tree(udm_target_group)
 
 	def assign_subscription(self, new, azure_user):
-		msg_no_allocatable_subscriptions = 'User {}/{} created in Azure AD, but no allocatable subscriptions' \
-			' found.'.format(new['uid'][0], azure_user['objectId'])
+		msg_no_allocatable_subscriptions = 'User {}/{} created in Azure AD ({}), but no allocatable subscriptions' \
+			' found.'.format(new['uid'][0], azure_user['objectId'], self.tenant_alias)
 		msg_multiple_subscriptions = 'More than one usable Office 365 subscription found.'
 
 		# check subscription availability in azure
@@ -503,9 +503,9 @@ class Office365Listener(object):
 		# get SubscriptionProfiles for users groups
 		users_group_dns = self.udm.get_udm_user(new['entryDN'][0])['groups']
 		users_subscription_profiles = SubscriptionProfile.get_profiles_for_groups(users_group_dns)
-		logger.info('SubscriptionProfiles found for %r: %r', new['uid'][0], users_subscription_profiles)
+		logger.info('SubscriptionProfiles found for %r (%s): %r', new['uid'][0], self.tenant_alias, users_subscription_profiles)
 		if not users_subscription_profiles:
-			logger.warn('No SubscriptionProfiles: using all available subscriptions.')
+			logger.warn('No SubscriptionProfiles: using all available subscriptions (%s).', self.tenant_alias)
 			if len(subscriptions_online) > 1:
 				logger.warn(msg_multiple_subscriptions)
 			self.ah.add_license(azure_user['objectId'], subscriptions_online[0]['skuId'])
@@ -520,8 +520,8 @@ class Office365Listener(object):
 			skuPartNumber = subscription_profile.subscription
 			if skuPartNumber not in seats:
 				logger.warn(
-					'Subscription from profile %r could not be found in the enabled subscriptions in Azure.',
-					subscription_profile)
+					'Subscription from profile %r (%s) could not be found in the enabled subscriptions in Azure.',
+					subscription_profile, self.tenant_alias)
 				continue
 
 			if seats[skuPartNumber][0] > seats[skuPartNumber][1]:
@@ -550,7 +550,7 @@ class Office365Listener(object):
 		else:
 			deactivate_plans = set()
 		deactivate_plans.update(subscription_profile_to_use.blacklisted_plans)
-		logger.info('Deactivating plans %s.', ', '.join(deactivate_plans))
+		logger.info('Deactivating plans %s (%s).', ', '.join(deactivate_plans, self.tenant_alias))
 		deactivate_plan_ids = [plan_names_to_ids[plan] for plan in deactivate_plans]
 		self.ah.add_license(azure_user['objectId'], subscription_profile_to_use.skuId, deactivate_plan_ids)
 
@@ -559,7 +559,7 @@ class Office365Listener(object):
 		if user["value"]:
 			return user["value"][0]["objectId"]
 		else:
-			logger.error("Could not find user with entryUUID=%r.", entryUUID)
+			logger.error("Could not find user with entryUUID=%r (%s).", entryUUID, self.tenant_alias)
 			return None
 
 	def find_aad_group_by_name(self, name):
@@ -567,7 +567,7 @@ class Office365Listener(object):
 		if group["value"]:
 			return group["value"][0]
 		else:
-			logger.warn("Could not find group with name=%r, ignore this if it is a user.", name)
+			logger.warn("Could not find group with name=%r (%s), ignore this if it is a user.", name, self.tenant_alias)
 			return None
 
 	@staticmethod

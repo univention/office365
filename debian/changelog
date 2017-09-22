@@ -11,6 +11,7 @@ univention-office365 (1.1.0-1) unstable; urgency=low
   * add multi tenant support to user listener (and tests)
   * add tenant name to all exception messages
   * improve logging
+  * fix bug in udm hook
 
  -- Daniel Troeder <troeder@univention.de>  Tue, 19 Sep 2017 09:39:55 +0200
 

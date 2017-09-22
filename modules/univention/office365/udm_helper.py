@@ -91,8 +91,7 @@ class UDMHelper(object):
 		:param ldap_cred: dict: LDAP credentials collected in listeners set_data()
 		:return: list of (not yet opened) UDM objects
 		"""
-		lo = cls._get_ldap_connection(ldap_cred)
-		po = univention.admin.uldap.position(base)
+		lo, po = cls._get_ldap_connection(ldap_cred)
 		univention.admin.modules.update()
 		module = univention.admin.modules.get(module_s)
 		univention.admin.modules.init(lo, po, module)

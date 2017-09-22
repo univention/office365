@@ -256,8 +256,9 @@ def clean():
 	Remove  univentionOffice365ObjectID and univentionOffice365Data from all
 	user objects.
 	"""
-	logger.info("Removing Office 365 ObjectID and Data from all users...")
-	UDMHelper.clean_udm_objects("users/user", listener.configRegistry["ldap/base"], ldap_cred, get_tenant_filter())
+	tenant_filter = get_tenant_filter()
+	logger.info("Removing Office 365 ObjectID and Data from all users (tenant_filter=%r)...", tenant_filter)
+	UDMHelper.clean_udm_objects("users/user", listener.configRegistry["ldap/base"], ldap_cred, tenant_filter)
 
 
 def new_or_reactivate_user(ol, dn, new, old):
@@ -272,15 +273,14 @@ def new_or_reactivate_user(ol, dn, new, old):
 	udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(new_user))).rstrip()
 	udm_user.modify()
 	logger.info(
-		"User creation success. userPrincipalName: %r objectId: %r dn: %s",
-		new_user["userPrincipalName"],
-		new_user["objectId"], dn
+		"User creation success. userPrincipalName: %r objectId: %r dn: %s tenant: %s",
+		new_user["userPrincipalName"], new_user["objectId"], dn, ol.tenant_alias
 	)
 
 
 def delete_user(ol, dn, new, old):
 	ol.delete_user(old)
-	logger.info("Deleted user %r.", old["uid"][0])
+	logger.info("Deleted user %r tenant: %s.", old["uid"][0], ol.tenant_alias)
 
 
 def deactivate_user(ol, dn, new, old):
@@ -292,7 +292,7 @@ def deactivate_user(ol, dn, new, old):
 	# Explanation: http://gcolpart.evolix.net/blog21/delete-facsimiletelephonenumber-attribute/
 	udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(None))).rstrip()
 	udm_user.modify()
-	logger.info("Deactivated user %r.", old["uid"][0])
+	logger.info("Deactivated user %r, tenant: %s.", old["uid"][0], ol.tenant_alias)
 
 
 def modify_user(ol, dn, new, old):
@@ -302,7 +302,7 @@ def modify_user(ol, dn, new, old):
 	azure_user = ol.get_user(old)
 	udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(azure_user))).rstrip()
 	udm_user.modify()
-	logger.info("Modified user %r.", old["uid"][0])
+	logger.info("Modified user %r tenant: %s.", old["uid"][0], ol.tenant_alias)
 
 
 def handler(dn, new, old, command):
