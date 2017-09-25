@@ -338,6 +338,7 @@ class Office365Listener(object):
 
 		try:
 			group_id = old["univentionOffice365ObjectID"][0]
+			logger.info("No objectID for group %r found, create a new azure group.", self.dn)
 		except KeyError:
 			# just create a new group
 			azure_group = self.create_group_from_new(new)
@@ -467,21 +468,14 @@ class Office365Listener(object):
 		"""
 		logger.debug("group_dn=%r object_id=%r tenant_alias=%r", group_dn, object_id, self.tenant_alias)
 		udm_target_group = self.udm.get_udm_group(group_dn)
-		users_and_groups_to_add = list()
 
-		for userdn in udm_target_group["users"]:
-			udm_user = self.udm.get_udm_user(userdn)
-			if (
-				bool(int(udm_user.get("UniventionOffice365Enabled", "0"))) and
-				self.tenant_alias == udm_user.get('UniventionOffice365TenantAlias')
-			):
-				users_and_groups_to_add.append(udm_user["UniventionOffice365ObjectID"])
-			elif (
-				bool(int(udm_user.get("UniventionOffice365Enabled", "0"))) and
-				self.tenant_alias == udm_user.get('UniventionOffice365TenantAlias')
-			):
-				# TODO: DEBUG - remove me
-				logger.debug('*** userdn=%r not added to group_dn=%r: self.tenant_alias=%r udm_user.get(UniventionOffice365TenantAlias)=%r', userdn, group_dn, self.tenant_alias, udm_user.get('UniventionOffice365TenantAlias'))
+		# get all users for the tenant (ignoring group membership) and compare
+		# with group members to get azure IDs, because it's faster than
+		# iterating (and opening!) lots of UDM objects
+		all_users_lo = self.udm.get_lo_o365_users(attributes=['univentionOffice365ObjectID'], tenant_alias=self.tenant_alias)
+		all_user_dns = set(all_users_lo.keys())
+		member_dns = all_user_dns.intersection(set(udm_target_group["users"]))
+		users_and_groups_to_add = [attr['univentionOffice365ObjectID'][0] for dn, attr in all_users_lo.items() if dn in member_dns]
 
 		# search tree downwards, create groups as we go, add users to them later
 		for groupdn in udm_target_group["nestedGroup"]:

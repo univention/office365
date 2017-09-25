@@ -33,6 +33,7 @@
 import json
 import base64
 import zlib
+from ldap.filter import filter_format
 import univention.admin.uldap
 import univention.admin.objects
 from univention.config_registry import ConfigRegistry
@@ -132,6 +133,27 @@ class UDMHelper(object):
 				groups.append(groupdn)
 				break
 		return groups
+
+	@classmethod
+	def get_lo_o365_users(cls, attributes=None, tenant_alias=None):
+		"""
+		Get all LDAP user objects (not UDM users) that are enabled for office 365 sync.
+
+		:param attributes: list: get only those attributes
+		:param tenant_alias: str: get only those users for this tenant
+		:return: dict: dn(str) -> attributes(dict)
+		"""
+		logger.debug('attributes=%r tenant_alias=%r', attributes, tenant_alias)
+		lo, po = cls._get_ldap_connection()
+		if tenant_alias:
+			tenant_filter = filter_format('(univentionOffice365TenantAlias=%s)', (tenant_alias,))
+		else:
+			tenant_filter = ''
+		filter_s = '(&(objectClass=posixAccount)(objectClass=univentionOffice365)(uid=*)(univentionOffice365Enabled=1)(univentionOffice365ObjectID=*){})'.format(tenant_filter)
+		logger.debug('filter_s=%r', filter_s)
+		res = lo.search(filter_s, attr=attributes)
+		logger.debug('res=%r', res)
+		return dict(res)
 
 	@classmethod
 	def _get_ldap_connection(cls, ldap_cred=None):
