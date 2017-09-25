@@ -72,6 +72,7 @@ oauth2_token_issuer = "https://sts.windows.net/{tenant_id}/"
 federation_metadata_url = "https://login.microsoftonline.com/{tenant_id}/federationmetadata/2007-06/federationmetadata.xml"
 resource_url = "https://graph.windows.net"
 
+tenant_alias_ucrv = 'office365/tenant/alias/'
 
 ucr = ConfigRegistry()
 ucr.load()
@@ -92,12 +93,11 @@ def get_conf_path(name, tenant_alias=None):
 
 
 def get_tenant_aliases():
-	alias_ucrv = 'office365/tenant/alias/'
 	res = dict()
 	ucr.load()
 	for k, v in ucr.items():
-		if k.startswith(alias_ucrv):
-			res[k[len(alias_ucrv):]] = v
+		if k.startswith(tenant_alias_ucrv):
+			res[k[len(tenant_alias_ucrv):]] = v
 	return res
 
 
