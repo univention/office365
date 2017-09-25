@@ -341,7 +341,6 @@ class Office365Listener(object):
 
 		try:
 			group_id = old["univentionOffice365ObjectID"][0]
-			logger.info("No objectID for group %r found, create a new azure group.", self.dn)
 		except KeyError:
 			# just create a new group
 			logger.info("No objectID for group %r found, creating a new azure group...", self.dn)
@@ -350,6 +349,7 @@ class Office365Listener(object):
 			modification_attributes = dict()
 			udm_group = self.udm.get_udm_group(self.dn)
 			udm_group["UniventionOffice365ObjectID"] = group_id
+			udm_group["UniventionOffice365TenantAlias"] = self.tenant_alias
 			udm_group.modify()
 
 		try:
@@ -389,8 +389,14 @@ class Office365Listener(object):
 				if added_member in udm_group["users"]:
 					# it's a user
 					udm_user = self.udm.get_udm_user(added_member)
-					if (bool(int(udm_user.get("UniventionOffice365Enabled", "0"))) and
-						udm_user["UniventionOffice365ObjectID"]):
+					if (
+							bool(int(udm_user.get("UniventionOffice365Enabled", "0"))) and
+							udm_user["UniventionOffice365ObjectID"] and
+							(
+								not self.tenant_alias or
+								udm_user["UniventionOffice365TenantAlias"] == self.tenant_alias
+							)
+						):
 						users_and_groups_to_add.append(udm_user["UniventionOffice365ObjectID"])
 				elif added_member in udm_group["nestedGroup"]:
 					# it's a group
@@ -401,6 +407,7 @@ class Office365Listener(object):
 						if not udm_group_with_azure_users.get("UniventionOffice365ObjectID"):
 							new_group = self.create_group_from_ldap(group_with_azure_users)
 							udm_group_with_azure_users["UniventionOffice365ObjectID"] = new_group["objectId"]
+							udm_group_with_azure_users["UniventionOffice365TenantAlias"] = self.tenant_alias
 							udm_group_with_azure_users.modify()
 						if group_with_azure_users in udm_group["nestedGroup"]:  # only add direct members to group
 							users_and_groups_to_add.append(udm_group_with_azure_users["UniventionOffice365ObjectID"])
@@ -494,6 +501,7 @@ class Office365Listener(object):
 				if not udm_group.get("UniventionOffice365ObjectID"):
 					new_group = self.create_group_from_ldap(group_with_azure_users_dn, add_members=False)
 					udm_group["UniventionOffice365ObjectID"] = new_group["objectId"]
+					udm_group["UniventionOffice365TenantAlias"] = self.tenant_alias
 					udm_group.modify()
 				if group_with_azure_users_dn in udm_target_group["nestedGroup"]:
 					users_and_groups_to_add.append(udm_group["UniventionOffice365ObjectID"])
@@ -509,6 +517,7 @@ class Office365Listener(object):
 				if not udm_member.get("UniventionOffice365ObjectID"):
 					new_group = self.create_group_from_ldap(member_dn, add_members=False)
 					udm_member["UniventionOffice365ObjectID"] = new_group["objectId"]
+					udm_member["UniventionOffice365TenantAlias"] = self.tenant_alias
 					udm_member.modify()
 				_groups_up_the_tree(udm_member)
 
