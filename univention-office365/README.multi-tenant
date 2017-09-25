@@ -1,1 +1,32 @@
-To download the SAML configuration script for Microsoft Powershell for a tenant, go to the filesystem of the server and copy /var/lib/univention-office365/saml_setup<TENANT_ALIAS>.bat.
+Introduction
+------------
+The multi tenant support for the Office 365 connector allows the synchronisation of UCS user accounts of one UCS domain to Microsoft Azure Active Directory using multiple tenants.
+
+The Office 365 connector is implemented in two univention directory listener modules, one for users and one for groups, and a configuration wizard. All three have been modified to handle multiple tenants.
+
+Configuration files
+-------------------
+In a single tenant setup the connectors configuration files are stored directly in /etc/univention-office365. In a multi tenant setup the configuration files for each tenant are stored in /etc/univention-office365/<tenant alias>.
+
+The certificate files (cert.fp, cert.pem, key.pem) are shared between tenants, the other files (ids.json, manifest.json, token.json) are different for each tenant.
+
+Migration
+---------
+If there is already an existing connector configuration and synchronized user accounts, it is highly recommended to migrate them as soon as possible. The connector with multi tenant support does currently NOT support using configuration files from a single tenant setup and will thus stop to work!
+
+A migration script makes migrating an existing connector configuration and its synchronized user accounts easy.
+Decide on a unique tenant alias name (without spaces) and run:
+$ /usr/share/univention-office365/scripts/migrate_to_multi_tenant --dryrun <tenant_alias>
+
+If all looks good, run the same command without "--dryrun".
+
+Configuring new tenants
+-----------------------
+To configure a new tenants, decide on a unique tenant alias name (without spaces), run the "create_new_tenant" script and then open the wizard in the UMC:
+$ /usr/share/univention-office365/scripts/create_new_tenant --dryrun <tenant_alias>
+
+If all looks good, run the same command without "--dryrun".
+
+SAML configuration script for Microsoft Powershell
+--------------------------------------------------
+To download the SAML configuration script for Microsoft Powershell created for a tenant by the wizard, go to the filesystem of the server and copy /var/lib/univention-office365/saml_setup<TENANT_ALIAS>.bat.

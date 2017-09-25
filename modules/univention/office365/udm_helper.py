@@ -135,6 +135,19 @@ class UDMHelper(object):
 		return groups
 
 	@classmethod
+	def _get_lo_o365_objects(cls, filter_s, attributes):
+		"""
+		Get all LDAP group/user objects (not UDM groups/users) that are enabled for office 365 sync.
+
+		:param filter_s: str: LDAP filter
+		:param attributes: list: get only those attributes
+		:return: dict: dn(str) -> attributes(dict)
+		"""
+		lo, po = cls._get_ldap_connection()
+		logger.debug('filter_s=%r', filter_s)
+		return dict(lo.search(filter_s, attr=attributes))
+
+	@classmethod
 	def get_lo_o365_users(cls, attributes=None, tenant_alias=None, enabled='1', additional_filter=''):
 		"""
 		Get all LDAP user objects (not UDM users) that are enabled for office 365 sync.
@@ -145,7 +158,6 @@ class UDMHelper(object):
 		:param additional_filter: str: will be appended to the AND clause
 		:return: dict: dn(str) -> attributes(dict)
 		"""
-		lo, po = cls._get_ldap_connection()
 		if enabled == '':
 			enabled_filter = ''
 		elif enabled in ('0', '1'):
@@ -158,7 +170,24 @@ class UDMHelper(object):
 			tenant_filter = ''
 		filter_s = '(&(objectClass=posixAccount)(objectClass=univentionOffice365)(uid=*)(univentionOffice365ObjectID=*){}{}{})'.format(tenant_filter, enabled_filter, additional_filter)
 		logger.debug('filter_s=%r', filter_s)
-		return dict(lo.search(filter_s, attr=attributes))
+		return cls._get_lo_o365_objects(filter_s, attributes)
+
+	@classmethod
+	def get_lo_o365_groups(cls, attributes=None, tenant_alias=None, additional_filter=''):
+		"""
+		Get all LDAP user objects (not UDM users) that are enabled for office 365 sync.
+
+		:param attributes: list: get only those attributes
+		:param tenant_alias: str: get only those users for this tenant
+		:param additional_filter: str: will be appended to the AND clause
+		:return: dict: dn(str) -> attributes(dict)
+		"""
+		if tenant_alias:
+			tenant_filter = filter_format('(univentionOffice365TenantAlias=%s)', (tenant_alias,))
+		else:
+			tenant_filter = ''
+		filter_s = '(&(objectClass=posixGroup)(objectClass=univentionOffice365)(cn=*)(univentionOffice365ObjectID=*){}{})'.format(tenant_filter, additional_filter)
+		return cls._get_lo_o365_objects(filter_s, attributes)
 
 	@classmethod
 	def _get_ldap_connection(cls, ldap_cred=None):

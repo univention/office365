@@ -2,6 +2,9 @@ univention-office365 (1.1.0-2) unstable; urgency=low
 
   * Issue #8662: improve group member management speed
   * add multi tenant support for nested groups
+  * add migration script
+  * add new_tenant script
+  * add README for multi tenant support
 
  -- Daniel Troeder <troeder@univention.de>  Mon, 25 Sep 2017 11:10:55 +0200
 
