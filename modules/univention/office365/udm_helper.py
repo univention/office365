@@ -148,7 +148,7 @@ class UDMHelper(object):
 		return dict(lo.search(filter_s, attr=attributes))
 
 	@classmethod
-	def get_lo_o365_users(cls, attributes=None, additional_filter='', tenant_alias=None):
+	def get_lo_o365_users(cls, attributes=None, tenant_alias=None, enabled='1', additional_filter=''):
 		"""
 		Get all LDAP user objects (not UDM users) that are enabled for office 365 sync.
 
@@ -158,16 +158,23 @@ class UDMHelper(object):
 		:param additional_filter: str: will be appended to the AND clause
 
 		:param tenant_alias: str: get only those users for this tenant
+		:param enabled: str: if the user must be enabled for office 365 use: '0': not, '1': yes, '': both
+		:param additional_filter: str: will be appended to the AND clause
 		:return: dict: dn(str) -> attributes(dict)
 		"""
-
-		logger.debug('attributes=%r tenant_alias=%r', attributes, tenant_alias)
 		lo, po = cls._get_ldap_connection()
+		if enabled == '':
+			enabled_filter = ''
+		elif enabled in ('0', '1'):
+			enabled_filter = '(univentionOffice365Enabled={})'.format(enabled)
+		else:
+			raise ValueError("Argument 'enabled' must have value '', '0' or '1'.")
 		if tenant_alias:
 			tenant_filter = filter_format('(univentionOffice365TenantAlias=%s)', (tenant_alias,))
 		else:
 			tenant_filter = ''
-		filter_s = '(&(objectClass=posixAccount)(objectClass=univentionOffice365)(uid=*)(univentionOffice365ObjectID=*){}{})'.format(tenant_filter, additional_filter)
+
+		filter_s = '(&(objectClass=posixAccount)(objectClass=univentionOffice365)(uid=*)(univentionOffice365ObjectID=*){}{}{})'.format(tenant_filter, enabled_filter, additional_filter)
 		logger.debug('filter_s=%r', filter_s)
 		return cls._get_lo_o365_objects(filter_s, attributes)
 

@@ -36,7 +36,7 @@ import base64
 from ldap.filter import filter_format
 
 from univention.office365.azure_handler import AzureHandler, AddLicenseError, ResourceNotFoundError
-from univention.office365.azure_auth import AzureAuth
+from univention.office365.azure_auth import AzureAuth, tenant_alias_ucrv
 from univention.office365.logging2udebug import get_logger
 from univention.office365.udm_helper import UDMHelper
 from univention.office365.subscriptions import SubscriptionProfile
@@ -56,20 +56,20 @@ attributes_system = set((
 	"userexpiry",
 	"userPassword",
 ))  # set literals unknown in python 2.6
+tenant_filter_ucrv = 'office365/tenant/filter'
 
 logger = get_logger("office365", "o365")
 
 
 def get_tenant_filter(ucr, tenant_aliases):
-	resync_ucrv = 'office365/tenant/filter'
-	ucr_value = ucr[resync_ucrv] or ''
+	ucr_value = ucr[tenant_filter_ucrv] or ''
 	aliases = ucr_value.strip().split()
 	res = ''
 	for alias in aliases:
 		if alias not in tenant_aliases.keys():
-			raise Exception('Tenant alias {!r} from office365/tenant/resync not listed in office365/tenant/alias/.* Exiting.'.format(alias))
+			raise Exception('Tenant alias {!r} from UCR {!r} not listed in UCR {!r}. Exiting.'.format(alias, tenant_filter_ucrv, tenant_alias_ucrv))
 		if not AzureAuth.is_initialized(alias):
-			raise Exception('Tenant alias {!r} from office365/tenant/resync is not initialized. Existing.'.format(alias))
+			raise Exception('Tenant alias {!r} from UCR {!r} is not initialized. Exiting.'.format(alias, tenant_filter_ucrv))
 		res += filter_format('(univentionOffice365TenantAlias=%s)', (alias,))
 	if len(res.split('=')) > 2:
 		res = '(|{})'.format(res)
