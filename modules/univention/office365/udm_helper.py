@@ -162,7 +162,6 @@ class UDMHelper(object):
 		:param additional_filter: str: will be appended to the AND clause
 		:return: dict: dn(str) -> attributes(dict)
 		"""
-		lo, po = cls._get_ldap_connection()
 		if enabled == '':
 			enabled_filter = ''
 		elif enabled in ('0', '1'):
@@ -179,7 +178,7 @@ class UDMHelper(object):
 		return cls._get_lo_o365_objects(filter_s, attributes)
 
 	@classmethod
-	def get_lo_o365_groups(cls, attributes=None, additional_filter=''):
+	def get_lo_o365_groups(cls, attributes=None, tenant_alias=None, additional_filter=''):
 		"""
 		Get all LDAP user objects (not UDM users) that are enabled for office 365 sync.
 
@@ -188,7 +187,11 @@ class UDMHelper(object):
 		:param additional_filter: str: will be appended to the AND clause
 		:return: dict: dn(str) -> attributes(dict)
 		"""
-		filter_s = '(&(objectClass=posixGroup)(objectClass=univentionOffice365)(cn=*)(univentionOffice365ObjectID=*){})'.format(additional_filter)
+		if tenant_alias:
+			tenant_filter = filter_format('(univentionOffice365TenantAlias=%s)', (tenant_alias,))
+		else:
+			tenant_filter = ''
+		filter_s = '(&(objectClass=posixGroup)(objectClass=univentionOffice365)(cn=*)(univentionOffice365ObjectID=*){}{})'.format(tenant_filter, additional_filter)
 		return cls._get_lo_o365_objects(filter_s, attributes)
 
 	@classmethod

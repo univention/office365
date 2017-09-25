@@ -73,6 +73,7 @@ federation_metadata_url = "https://login.microsoftonline.com/{tenant_id}/federat
 resource_url = "https://graph.windows.net"
 
 tenant_alias_ucrv = 'office365/tenant/alias/'
+tenant_wizard_ucrv = 'office365/tenant/wizard'
 
 ucr = ConfigRegistry()
 ucr.load()

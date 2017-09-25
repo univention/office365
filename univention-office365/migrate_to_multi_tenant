@@ -1,7 +1,7 @@
 #!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
 #
-# Univention Office 365 - migartion helper
+# Univention Office 365 - migration script
 #
 # Copyright 2017 Univention GmbH
 #
@@ -33,10 +33,13 @@
 import os
 import pwd
 import sys
+import stat
+import json
 import shutil
 import argparse
+import subprocess
 import univention.admin.uldap
-from univention.config_registry import ConfigRegistry
+from univention.config_registry import ConfigRegistry, handler_set
 from univention.office365.azure_auth import AzureAuth, get_tenant_aliases, tenant_alias_ucrv
 from univention.office365.udm_helper import UDMHelper
 
@@ -45,10 +48,10 @@ conf_path = '/etc/univention-office365'
 ucr = ConfigRegistry()
 ucr.load()
 
-if __name__ == "__main__":
-	parser = argparse.ArgumentParser(description="Migrate a single tenant office 365 connector installation to a multi tenant setup.")
-	parser.add_argument("tenant_alias", help="Value to be written to user attribute. Must not be listed in UCR {}.".format(tenant_alias_ucrv))
-	parser.add_argument("--dryrun", help="Simulate the migration, but don't actually change anything [default off].", action="store_true")
+if __name__ == '__main__':
+	parser = argparse.ArgumentParser(description='Migrate a single tenant office 365 connector installation to a multi tenant setup.')
+	parser.add_argument('tenant_alias', help='Value to be written to user attribute. Must not be listed in UCR {}.'.format(tenant_alias_ucrv))
+	parser.add_argument('--dryrun', help='Simulate the migration, but don\'t actually change anything [default off].', action='store_true')
 	args = parser.parse_args()
 
 	if not AzureAuth.is_initialized():
@@ -74,17 +77,20 @@ if __name__ == "__main__":
 	print('Setting permissions on {!r}...'.format(target_path))
 	if not args.dryrun:
 		os.chown(target_path, pwd.getpwnam('listener').pw_uid, 0)
-		for filename in ('cert.fp', 'cert.pem', 'key.pem'):
-			src = os.path.join(conf_path, filename)
-			print('Copying {!r} to {!r}...'.format(src, target_path))
-			if not args.dryrun:
-				shutil.copy2(src, target_path)
-				os.chown(os.path.join(target_path, filename), pwd.getpwnam('listener').pw_uid, 0)
-		for filename in ('ids.json', 'manifest.json', 'token.json'):
-			src = os.path.join(conf_path, filename)
-			print('Moving {!r} to {!r}...'.format(src, target_path))
-			if not args.dryrun:
-				shutil.move(src, target_path)
+	for filename in ('cert.fp', 'cert.pem', 'key.pem'):
+		src = os.path.join(conf_path, filename)
+		print('Copying {!r} to {!r}...'.format(src, target_path))
+		if not args.dryrun:
+			shutil.copy2(src, target_path)
+			os.chown(os.path.join(target_path, filename), pwd.getpwnam('listener').pw_uid, 0)
+			os.chmod(os.path.join(target_path, filename), stat.S_IRUSR)
+	for filename in ('ids.json', 'manifest.json', 'token.json'):
+		src = os.path.join(conf_path, filename)
+		print('Moving {!r} to {!r}...'.format(src, target_path))
+		if not args.dryrun:
+			shutil.move(src, target_path)
+			os.chown(os.path.join(target_path, filename), pwd.getpwnam('listener').pw_uid, 0)
+			os.chmod(os.path.join(target_path, filename), stat.S_IRUSR | stat.S_IWUSR)
 
 	if args.dryrun or AzureAuth.is_initialized(args.tenant_alias):
 		print('OK: Tenant {!r} is now initialized.'.format(args.tenant_alias))
@@ -119,5 +125,52 @@ if __name__ == "__main__":
 				lo.modify(dn, [('univentionOffice365TenantAlias', None, args.tenant_alias)])
 	else:
 		print('No users found.')
-	print('Finished.\n')
-	print('Please add {!r} to UCR {} now and restart\nthe univention-directory-listener.'.format(args.tenant_alias, tenant_alias_ucrv))
+	print('Finished migrating users.\n')
+
+	groups = UDMHelper.get_lo_o365_groups(
+		attributes=['cn', 'univentionOffice365ObjectID'],
+		additional_filter='(!(univentionOffice365TenantAlias=*))'
+	)
+	print('Found the following groups:\n')
+	print('           group name          | Azure object ID')
+	print('-' * 69)
+	for dn in sorted(groups.keys()):
+		attr = groups[dn]
+		print('{: <30} | {}'.format(
+			attr['cn'][0],
+			attr['univentionOffice365ObjectID'][0])
+		)
+	if groups:
+		print('\nSetting the tenant alias of those groups to {!r}...\n'.format(args.tenant_alias))
+		lo, po = univention.admin.uldap.getAdminConnection()
+		for dn in sorted(groups.keys()):
+			attr = groups[dn]
+			print('Changing {} ({})...'.format(attr['cn'][0], dn))
+			if not args.dryrun:
+				lo.modify(dn, [('univentionOffice365TenantAlias', None, args.tenant_alias)])
+	else:
+		print('No groups found.')
+	print('Finished migrating groups.\n')
+
+	if args.dryrun:
+		ids_file = os.path.join(conf_path, 'ids.json')
+	else:
+		ids_file = os.path.join(target_path, 'ids.json')
+	with open(ids_file, 'rb') as fp:
+		ids = json.load(fp)
+		tenant_id = ids['tenant_id']
+
+	ucrv_set = '{}{}={}'.format(tenant_alias_ucrv, args.tenant_alias, tenant_id)
+	print('Setting UCR {}...'.format(ucrv_set))
+	if not args.dryrun:
+		handler_set([ucrv_set])
+	print('Restarting the univention-directory-listener...')
+	if args.dryrun:
+		res = 0
+	else:
+		res = subprocess.call('systemctl restart univention-directory-listener.service'.split())
+	print('{}: Return value {!r} for "systemctl restart univention-directory-listener.service".'.format(
+		'OK' if res == 0 else 'Error',
+		res)
+	)
+	print('\nEnd of migration.\n')

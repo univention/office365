@@ -43,7 +43,7 @@ from univention.management.console.modules.decorators import sanitize, simple_re
 from univention.management.console.modules.sanitizers import StringSanitizer, DictSanitizer, BooleanSanitizer, ValidationError, MultiValidationError
 from univention.management.console.log import MODULE
 
-from univention.office365.azure_auth import AzureAuth, AzureError, get_conf_path, Manifest, ManifestError, SAML_SETUP_SCRIPT_PATH, TenantIDError
+from univention.office365.azure_auth import AzureAuth, AzureError, get_conf_path, Manifest, ManifestError, SAML_SETUP_SCRIPT_PATH, TenantIDError, tenant_wizard_ucrv
 from univention.office365.azure_handler import AzureHandler
 
 _ = Translation('univention-management-console-module-office365').translate
@@ -80,7 +80,7 @@ class Instance(Base):
 
 	def init(self):
 		self.azure_response = None
-		self.tenant_alias = ucr.get('office365/tenant/wizard') or None
+		self.tenant_alias = ucr.get(tenant_wizard_ucrv) or None
 		MODULE.process('tenant_alias={!r}'.format(self.tenant_alias))
 
 	@simple_response
