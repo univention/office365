@@ -223,7 +223,7 @@ class JsonStorage(object):
 
 
 class AzureAuth(object):
-	proxies = {}
+	proxies = None
 
 	def __init__(self, name):
 		global NAME
@@ -241,7 +241,8 @@ class AzureAuth(object):
 			raise NoIDsStored, NoIDsStored(_("The configuration is incomplete and misses some data. Please run the wizard again."), chained_exc=exc), sys.exc_info()[2]
 		self._access_token = None
 		self._access_token_exp_at = None
-		self.__class__.proxies = self.get_http_proxies()
+		if self.proxies is None:
+			self.__class__.proxies = self.get_http_proxies()
 
 	@classmethod
 	def is_initialized(cls):
@@ -405,6 +406,8 @@ class AzureAuth(object):
 				return ''.join(text.partition('<')[1:])
 			# the certificates with which the tokens were signed can be downloaded from the federation metadata document
 			# https://msdn.microsoft.com/en-us/library/azure/dn195592.aspx
+			if cls.proxies is None:
+				cls.proxies = cls.get_http_proxies()
 			try:
 				fed = requests.get(federation_metadata_url.format(tenant_id=tenant_id), proxies=cls.proxies)
 			except RequestException as exc:

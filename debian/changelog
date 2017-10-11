@@ -1,3 +1,10 @@
+univention-office365 (1.0.1-6) unstable; urgency=low
+
+  * Bug #44836: get proxy configuration when called from wizard (without
+    running AzureAuth.__init__)
+
+ -- Daniel Troeder <troeder@univention.de>  Wed, 11 Oct 2017 14:42:35 +0200
+
 univention-office365 (1.0.1-5) unstable; urgency=low
 
   * Bug #44836: update copyright
