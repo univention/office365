@@ -36,6 +36,7 @@ import functools
 import subprocess
 
 from univention.lib.i18n import Translation
+from univention.config_registry import handler_set
 from univention.management.console.config import ucr
 from univention.management.console.base import Base
 from univention.management.console.error import UMC_Error, UnprocessableEntity
@@ -43,7 +44,7 @@ from univention.management.console.modules.decorators import sanitize, simple_re
 from univention.management.console.modules.sanitizers import StringSanitizer, DictSanitizer, BooleanSanitizer, ValidationError, MultiValidationError
 from univention.management.console.log import MODULE
 
-from univention.office365.azure_auth import AzureAuth, AzureError, get_conf_path, Manifest, ManifestError, SAML_SETUP_SCRIPT_PATH, TenantIDError, tenant_wizard_ucrv
+from univention.office365.azure_auth import AzureAuth, AzureError, get_conf_path, Manifest, ManifestError, SAML_SETUP_SCRIPT_PATH, TenantIDError, tenant_alias_ucrv, tenant_wizard_ucrv
 from univention.office365.azure_handler import AzureHandler
 
 _ = Translation('univention-management-console-module-office365').translate
@@ -136,7 +137,9 @@ class Instance(Base):
 
 	@allow_get_request
 	def saml_setup_script(self, request):
-		with open(SAML_SETUP_SCRIPT_PATH, 'rb') as fd:
+		with open(
+				SAML_SETUP_SCRIPT_PATH.format(tenant_alias='_{}'.format(self.tenant_alias) if self.tenant_alias else ''),
+				'rb') as fd:
 			self.finished(request.id, fd.read(), mimetype='application/octet-stream')
 
 	@allow_get_request
@@ -194,6 +197,14 @@ window.top.close();
 				self.init()
 				raise UMC_Error(str(exc))
 			options['id_token'] = None
+			if self.tenant_alias:
+				ucrv_set = '{}{}={}'.format(
+					tenant_alias_ucrv,
+					self.tenant_alias,
+					AzureAuth.load_azure_ids(self.tenant_alias)['tenant_id']
+				)
+				MODULE.process('Setting UCR {}...'.format(ucrv_set))
+				handler_set([ucrv_set])
 			return progress(message=_('Successfully authorized. Starting synchronization.'))
 		elif options['error']:
 			self.init()
