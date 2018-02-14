@@ -3,7 +3,7 @@
 # Univention Office 365 - UDM hook to set user property
 # UniventionOffice365userPrincipalName that is configured notEditable=1
 #
-# Copyright 2016-2017 Univention GmbH
+# Copyright 2016-2018 Univention GmbH
 #
 # http://www.univention.de/
 #

@@ -2,7 +2,7 @@
 #
 # Univention Office 365 - listener module impl
 #
-# Copyright 2016-2017 Univention GmbH
+# Copyright 2016-2018 Univention GmbH
 #
 # http://www.univention.de/
 #
