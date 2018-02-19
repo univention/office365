@@ -236,6 +236,50 @@ def clean():
 	UDMHelper.clean_udm_objects("users/user", listener.configRegistry["ldap/base"], ldap_cred)
 
 
+def new_or_reactivate_user(ol, dn, new, old):
+	try:
+		new_user = ol.create_user(new)
+	except NoAllocatableSubscriptions as exc:
+		logger.error(exc)
+		new_user = exc.user
+	# save/update Azure objectId and object data in UDM object
+	udm_user = ol.udm.get_udm_user(dn)
+	udm_user["UniventionOffice365ObjectID"] = new_user["objectId"]
+	udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(new_user))).rstrip()
+	udm_user.modify()
+	logger.info(
+		"User creation success. userPrincipalName: %r objectId: %r dn: %s",
+		new_user["userPrincipalName"], new_user["objectId"], dn
+	)
+
+
+def delete_user(ol, dn, new, old):
+	ol.delete_user(old)
+	logger.info("Deleted user %r.", old["uid"][0])
+
+
+def deactivate_user(ol, dn, new, old):
+	ol.deactivate_user(old)
+	# update Azure objectId and object data in UDM object
+	udm_user = ol.udm.get_udm_user(dn)
+	# Cannot delete UniventionOffice365Data, because it would result in:
+	# ldapError: Inappropriate matching: modify/delete: univentionOffice365Data: no equality matching rule
+	# Explanation: http://gcolpart.evolix.net/blog21/delete-facsimiletelephonenumber-attribute/
+	udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(None))).rstrip()git diff
+	udm_user.modify()
+	logger.info("Deactivated user %r.", old["uid"][0])
+
+
+def modify_user(ol, dn, new, old):
+	ol.modify_user(old, new)
+	# update Azure object data in UDM object
+	udm_user = ol.udm.get_udm_user(dn)
+	azure_user = ol.get_user(old)
+	udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(azure_user))).rstrip()
+	udm_user.modify()
+	logger.info("Modified user %r.", old["uid"][0])
+
+
 def handler(dn, new, old, command):
 	logger.debug("%s.handler() command: %r dn: %r", name, command, dn)
 	if not AzureAuth.is_initialized():
@@ -250,77 +294,51 @@ def handler(dn, new, old, command):
 		old = load_old(old)
 
 	ol = Office365Listener(listener, name, _attrs, ldap_cred, dn)
+	udm_helper = ol.udm
 
 	old_enabled = bool(int(old.get("univentionOffice365Enabled", ["0"])[0]))  # "" when disabled, "1" when enabled
 	if old_enabled:
-		udm_user = ol.udm.get_udm_user(dn, old)
+		udm_user = udm_helper.get_udm_user(dn, old)
 		enabled = not is_deactived_locked_or_expired(udm_user)
 		logger.debug("old was %s.", "enabled" if enabled else "deactivated, locked or expired")
 		old_enabled &= enabled
 	new_enabled = bool(int(new.get("univentionOffice365Enabled", ["0"])[0]))
 	if new_enabled:
-		udm_user = ol.udm.get_udm_user(dn, new)
+		udm_user = udm_helper.get_udm_user(dn, new)
 		enabled = not is_deactived_locked_or_expired(udm_user)
 		logger.debug("new is %s.", "enabled" if enabled else "deactivated, locked or expired")
 		new_enabled &= enabled
+
+	logger.debug("new_enabled=%r old_enabled=%r", new_enabled, old_enabled)
 
 	#
 	# NEW or REACTIVATED account
 	#
 	if new_enabled and not old_enabled:
-		logger.debug("new_enabled and not old_enabled -> NEW or REACTIVATED (%s)", dn)
-		try:
-			new_user = ol.create_user(new)
-		except NoAllocatableSubscriptions as exc:
-			logger.error(str(exc))
-			new_user = exc.user
-		# save/update Azure objectId and object data in UDM object
-		udm_user = ol.udm.get_udm_user(dn)
-		udm_user["UniventionOffice365ObjectID"] = new_user["objectId"]
-		udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(new_user))).rstrip()
-		udm_user.modify()
-		logger.info(
-			"User creation success. userPrincipalName: %r objectId: %r dn: %s",
-			new_user["userPrincipalName"],
-			new_user["objectId"], dn
-		)
+		logger.info("new_enabled and not old_enabled -> NEW or REACTIVATED (%s)", dn)
+		new_or_reactivate_user(ol, dn, new, old)
 		return
 
 	#
 	# DELETE account
 	#
 	if old and not new:
-		logger.debug("old and not new -> DELETE (%s)", dn)
-		ol.delete_user(old)
-		logger.info("Deleted user %r.", old["uid"][0])
+		logger.info("old and not new -> DELETE (%s)", dn)
+		delete_user(ol, dn, new, old)
 		return
 
 	#
 	# DEACTIVATE account
 	#
 	if new and not new_enabled:
-		logger.debug("new and not new_enabled -> DEACTIVATE (%s)", dn)
-		ol.deactivate_user(old)
-		# update Azure objectId and object data in UDM object
-		udm_user = ol.udm.get_udm_user(dn)
-		# Cannot delete UniventionOffice365Data, because it would result in:
-		# ldapError: Inappropriate matching: modify/delete: univentionOffice365Data: no equality matching rule
-		# Explanation: http://gcolpart.evolix.net/blog21/delete-facsimiletelephonenumber-attribute/
-		udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(None))).rstrip()
-		udm_user.modify()
-		logger.info("Deactivated user %r.", old["uid"][0])
+		logger.info("new and not new_enabled -> DEACTIVATE (%s)", dn)
+		deactivate_user(ol, dn, new, old)
 		return
 
 	#
 	# MODIFY account
 	#
 	if old_enabled and new_enabled:
-		logger.debug("old_enabled and new_enabled -> MODIFY (%s)", dn)
-		ol.modify_user(old, new)
-		# update Azure object data in UDM object
-		udm_user = ol.udm.get_udm_user(dn)
-		azure_user = ol.get_user(old)
-		udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(azure_user))).rstrip()
-		udm_user.modify()
-		logger.info("Modified user %r.", old["uid"][0])
+		logger.info("old_enabled and new_enabled -> MODIFY (%s)", dn)
+		modify_user(ol, dn, new, old)
 		return
