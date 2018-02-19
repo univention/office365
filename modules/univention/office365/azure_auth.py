@@ -563,7 +563,7 @@ class AzureAuth(object):
 
 		# thanks to Vittorio Bertocci for this:
 		# http://www.cloudidentity.com/blog/2015/02/06/requesting-an-aad-token-with-a-certificate-without-adal/
-		not_before = int(time.time()) - 300  # -5min to allow time deff between the us and server
+		not_before = int(time.time()) - 300  # -5min to allow time diff between us and the server
 		exp_time = int(time.time()) + 600  # 10min
 		client_assertion_payload = {
 			'sub': self.client_id,

@@ -52,19 +52,20 @@ class UDMHelper(object):
 	modules = dict()
 
 	def __init__(self, ldap_cred):
-		UDMHelper.ldap_cred = ldap_cred
+		self.__class__.ldap_cred = ldap_cred
 
 	@classmethod
 	def clean_udm_objects(cls, module_s, base, ldap_cred):
 		"""
 		Remove  univentionOffice365ObjectID and univentionOffice365Data from all
 		user/group objects, static for listener.clean().
+
 		:param module_s: str: "users/user", "groups/group", etc
 		:param base: str: note to start search from
 		:param ldap_cred: dict: LDAP credentials collected in listeners set_data()
 		"""
-		logger.info("Cleaning %r objects....", module_s)
-		filter_s = "(|(univentionOffice365ObjectID=*)(univentionOffice365Data=*))"
+		filter_s = "(&(objectClass=univentionOffice365)(|(univentionOffice365ObjectID=*)(univentionOffice365Data=*)))"
+		logger.info("Cleaning %r objects with filter=%r....", module_s, filter_s)
 		udm_objs = cls.find_udm_objects(module_s, filter_s, base, ldap_cred)
 		for udm_obj in udm_objs:
 			udm_obj.open()
@@ -75,22 +76,18 @@ class UDMHelper(object):
 			udm_obj.modify()
 		logger.info("Cleaning done.")
 
-	@staticmethod
-	def find_udm_objects(module_s, filter_s, base, ldap_cred):
+	@classmethod
+	def find_udm_objects(cls, module_s, filter_s, base, ldap_cred):
 		"""
 		search LDAP for UDM objects, static for listener.clean()
+
 		:param module_s: str: "users/user", "groups/group", etc
 		:param filter_s: str: LDAP filter string
 		:param base: str: node to start search from
 		:param ldap_cred: dict: LDAP credentials collected in listeners set_data()
 		:return: list of (not yet opened) UDM objects
 		"""
-		lo = univention.admin.uldap.access(
-			host=ldap_cred["ldapserver"],
-			base=ldap_cred["basedn"],
-			binddn=ldap_cred["binddn"],
-			bindpw=ldap_cred["bindpw"])
-		po = univention.admin.uldap.position(base)
+		lo, po = cls._get_ldap_connection(ldap_cred)
 		univention.admin.modules.update()
 		module = univention.admin.modules.get(module_s)
 		univention.admin.modules.init(lo, po, module)
@@ -136,6 +133,11 @@ class UDMHelper(object):
 
 	@classmethod
 	def _get_ldap_connection(cls):
+
+	@classmethod
+	def _get_ldap_connection(cls, ldap_cred=None):
+		if ldap_cred and not cls.ldap_cred:
+			cls.ldap_cred = ldap_cred
 		if not cls.lo or not cls.po:
 			if cls.ldap_cred:
 				cls.lo = univention.admin.uldap.access(

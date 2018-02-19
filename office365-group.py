@@ -91,10 +91,10 @@ def setdata(key, value):
 
 def initialize():
 	if not listener.configRegistry.is_true("office365/groups/sync", False):
-		raise RuntimeError("Office 365 App: syncing of groups is deactivated.")
+		raise RuntimeError("Office 365 App: syncing of groups is deactivated by UCR.")
 
 	if not AzureAuth.is_initialized():
-		raise RuntimeError("Office 365 App not initialized yet, please run wizard.")
+		raise RuntimeError("Office 365 App ({}) not initialized yet, please run wizard.".format(name))
 
 
 def clean():
@@ -132,7 +132,7 @@ def handler(dn, new, old, command):
 			udm_group = ol.udm.get_udm_group(dn)
 			udm_group["UniventionOffice365ObjectID"] = new_group["objectId"]
 			udm_group.modify()
-			logger.info("Created group with displayName: %r  (%r)", new_group["displayName"], new_group["objectId"])
+			logger.info("Created group with displayName: %r (%r)", new_group["displayName"], new_group["objectId"])
 		logger.debug("done (%s)", dn)
 		return
 

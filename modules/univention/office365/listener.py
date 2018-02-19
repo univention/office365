@@ -142,7 +142,7 @@ class Office365Listener(object):
 			new_user = user["value"][0]
 		else:
 			raise RuntimeError(
-				"Office365Listener.create_user() created user '{}' cannot be retrieved.".format(
+				"Office365Listener.create_user() created user {!r} cannot be retrieved.".format(
 					attributes["userPrincipalName"])
 			)
 
@@ -240,7 +240,7 @@ class Office365Listener(object):
 
 		new_group = self.find_aad_group_by_name(name)
 		if not new_group:
-			raise RuntimeError("Office365Listener.create_group() created group '{}' cannot be retrieved.".format(name))
+			raise RuntimeError("Office365Listener.create_group() created group {!r} cannot be retrieved.".format(name))
 		if add_members:
 			self.add_ldap_members_to_azure_group(group_dn, new_group["objectId"])
 		return new_group
@@ -579,7 +579,7 @@ class Office365Listener(object):
 			elif attr in self.attrs["sync"]:
 				tmp = user.get(attr)  # Azure does not like empty strings - it wants None!
 			else:
-				raise RuntimeError("Attribute to sync '{}' is not configured through UCR.".format(attr))
+				raise RuntimeError("Attribute to sync {!r} is not configured through UCR.".format(attr))
 
 			if attr in res:
 				if isinstance(res[attr], list):
