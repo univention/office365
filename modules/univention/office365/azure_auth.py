@@ -41,6 +41,7 @@ import rsa
 import os
 import datetime
 import sys
+import pwd
 from xml.dom.minidom import parseString
 from stat import S_IRUSR, S_IWUSR
 import operator
@@ -198,9 +199,12 @@ class Manifest(object):
 
 
 class JsonStorage(object):
+	listener_uid = None
 
 	def __init__(self, filename):
 		self.filename = filename
+		if not self.listener_uid:
+			self.__class__.listener_uid = pwd.getpwnam('listener').pw_uid
 
 	def read(self):
 		try:
@@ -223,6 +227,7 @@ class JsonStorage(object):
 
 	def _save(self, data):
 		open(self.filename, "w").close()  # touch
+		os.chown(self.filename, self.listener_uid, 0)
 		os.chmod(self.filename, S_IRUSR | S_IWUSR)
 		with open(self.filename, "wb") as fd:
 			json.dump(data, fd)
