@@ -265,7 +265,7 @@ def deactivate_user(ol, dn, new, old):
 	# Cannot delete UniventionOffice365Data, because it would result in:
 	# ldapError: Inappropriate matching: modify/delete: univentionOffice365Data: no equality matching rule
 	# Explanation: http://gcolpart.evolix.net/blog21/delete-facsimiletelephonenumber-attribute/
-	udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(None))).rstrip()git diff
+	udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(None))).rstrip()
 	udm_user.modify()
 	logger.info("Deactivated user %r.", old["uid"][0])
 
