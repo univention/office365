@@ -51,12 +51,15 @@ listener.configRegistry.load()
 
 name = 'office365-group'
 description = 'sync groups to office 365'
-if AzureAuth.is_initialized() and listener.configRegistry.is_true("office365/groups/sync", False):
-	filter = '(objectClass=posixGroup)'
+if not listener.configRegistry.is_true("office365/groups/sync", False):
+	filter = '(objectClass=deactivatedOffice365GroupListener)'  # "objectClass" is indexed
+	logger.warn("office 365 group listener deactivated by UCR office365/groups/sync")
+elif AzureAuth.is_initialized():
+	filter = '(&(objectClass=posixGroup)(objectClass=univentionOffice365))'
 	logger.info("office 365 group listener active")
 else:
-	filter = '(foo=bar)'
-	logger.warn("office 365 group listener deactivated")
+	filter = '(objectClass=deactivatedOffice365GroupListener)'
+	logger.warn("office 365 group listener deactivated (not yet initialized)")
 attributes = ["cn", "description", "uniqueMember"]
 modrdn = "1"
 

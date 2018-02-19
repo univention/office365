@@ -139,10 +139,10 @@ def get_listener_attributes():
 name = 'office365-user'
 description = 'sync users to office 365'
 if AzureAuth.is_initialized():
-	filter = '(&(objectClass=univentionOffice365)(uid=*))'
-	logger.info("office 365 user listener active")
+	filter = '(&(objectClass=univentionOffice365)(objectClass=univentionOffice365)(uid=*))'
+	logger.info("office 365 user listener active with filter=%r", filter)
 else:
-	filter = '(foo=bar)'
+	filter = '(objectClass=deactivatedOffice365UserListener)'  # "objectClass" is indexed
 	logger.warn("office 365 user listener deactivated")
 attributes = get_listener_attributes()
 modrdn = "1"
@@ -222,8 +222,9 @@ def setdata(key, value):
 
 
 def initialize():
+	logger.info("office 365 user listener active with filter=%r", filter)
 	if not AzureAuth.is_initialized():
-		raise RuntimeError("Office 365 App not initialized yet, please run wizard.")
+		raise RuntimeError("Office 365 App ({}) not initialized yet, please run wizard.".format(name))
 
 
 def clean():
