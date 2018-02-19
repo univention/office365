@@ -43,7 +43,7 @@ from univention.management.console.modules.decorators import sanitize, simple_re
 from univention.management.console.modules.sanitizers import StringSanitizer, DictSanitizer, BooleanSanitizer, ValidationError, MultiValidationError
 from univention.management.console.log import MODULE
 
-from univention.office365.azure_auth import AzureAuth, AzureError, Manifest, ManifestError, MANIFEST_FILE, SAML_SETUP_SCRIPT_PATH, TenantIDError
+from univention.office365.azure_auth import AzureAuth, AzureError, get_conf_path, Manifest, ManifestError, SAML_SETUP_SCRIPT_PATH, TenantIDError
 from univention.office365.azure_handler import AzureHandler
 
 _ = Translation('univention-management-console-module-office365').translate
@@ -129,7 +129,7 @@ class Instance(Base):
 
 	@allow_get_request
 	def manifest_json(self, request):
-		with open(MANIFEST_FILE, 'rb') as fd:
+		with open(get_conf_path('MANIFEST_FILE'), 'rb') as fd:
 			self.finished(request.id, fd.read(), mimetype='application/octet-stream')
 
 	@allow_get_request

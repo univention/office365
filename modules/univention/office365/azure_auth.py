@@ -59,13 +59,6 @@ from univention.config_registry import ConfigRegistry
 _ = Translation('univention-office365').translate
 
 NAME = "office365"
-CONFDIR = "/etc/univention-office365"
-SSL_KEY = os.path.join(CONFDIR, "key.pem")
-SSL_CERT = os.path.join(CONFDIR, "cert.pem")
-SSL_CERT_FP = os.path.join(CONFDIR, "cert.fp")
-IDS_FILE = os.path.join(CONFDIR, "ids.json")
-TOKEN_FILE = os.path.join(CONFDIR, "token.json")
-MANIFEST_FILE = os.path.join(CONFDIR, "manifest.json")
 SCOPE = ["Directory.ReadWrite.All"]  # https://msdn.microsoft.com/Library/Azure/Ad/Graph/howto/azure-ad-graph-api-permission-scopes#DirectoryRWDetail
 DEBUG_FORMAT = '%(asctime)s %(levelname)-8s %(module)s.%(funcName)s:%(lineno)d  %(message)s'
 LOG_DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
@@ -82,6 +75,19 @@ resource_url = "https://graph.windows.net"
 ucr = ConfigRegistry()
 ucr.load()
 logger = get_logger("office365", "o365")
+
+
+def get_conf_path(name):
+	conf_dir = '/etc/univention-office365'
+	return {
+		'CONFDIR': conf_dir,
+		'SSL_KEY': os.path.join(conf_dir, "key.pem"),
+		'SSL_CERT': os.path.join(conf_dir, "cert.pem"),
+		'SSL_CERT_FP': os.path.join(conf_dir, "cert.fp"),
+		'IDS_FILE': os.path.join(conf_dir, "ids.json"),
+		'TOKEN_FILE': os.path.join(conf_dir, "token.json"),
+		'MANIFEST_FILE': os.path.join(conf_dir, "manifest.json"),
+	}[name]
 
 
 class AzureError(Exception):
@@ -153,9 +159,9 @@ class Manifest(object):
 
 	def transform(self):
 		try:
-			with open("/etc/univention-office365/cert.pem", "rb") as fd:
+			with open(get_conf_path("SSL_CERT"), "rb") as fd:
 				cert = fd.read()
-			with open("/etc/univention-office365/cert.fp", "rb") as fd:
+			with open(get_conf_path("SSL_CERT_FP"), "rb") as fd:
 				cert_fp = fd.read().strip()
 		except (OSError, IOError):
 			raise ManifestError(_('Could not read certificate. Please make sure the joinscript'
@@ -260,18 +266,18 @@ class AzureAuth(object):
 
 	@staticmethod
 	def uninitialize():
-		JsonStorage(IDS_FILE).purge()
-		JsonStorage(TOKEN_FILE).purge()
+		JsonStorage(get_conf_path('IDS_FILE')).purge()
+		JsonStorage(get_conf_path('TOKEN_FILE')).purge()
 
 	@staticmethod
 	def load_azure_ids():
-		return JsonStorage(IDS_FILE).read()
+		return JsonStorage(get_conf_path('IDS_FILE')).read()
 
 	@classmethod
 	def store_manifest(cls, manifest):
-		with open(MANIFEST_FILE, 'wb') as fd:
+		with open(get_conf_path('MANIFEST_FILE'), 'wb') as fd:
 			json.dump(manifest.as_dict(), fd, indent=2, separators=(',', ': '), sort_keys=True)
-		os.chmod(MANIFEST_FILE, S_IRUSR | S_IWUSR)
+		os.chmod(get_conf_path('MANIFEST_FILE'), S_IRUSR | S_IWUSR)
 		cls.store_azure_ids(client_id=manifest.app_id, tenant_id=manifest.tenant_id, reply_url=manifest.reply_url, domain=manifest.domain)
 
 	@staticmethod
@@ -284,15 +290,15 @@ class AzureAuth(object):
 			except ValueError:
 				raise TenantIDError(_("Tenant-ID '{}' has wrong format.".format(tid)))
 
-		JsonStorage(IDS_FILE).write(**kwargs)
+		JsonStorage(get_conf_path('IDS_FILE')).write(**kwargs)
 
 	@staticmethod
 	def load_tokens():
-		return JsonStorage(TOKEN_FILE).read()
+		return JsonStorage(get_conf_path('TOKEN_FILE')).read()
 
 	@staticmethod
 	def store_tokens(**kwargs):
-		JsonStorage(TOKEN_FILE).write(**kwargs)
+		JsonStorage(get_conf_path('TOKEN_FILE')).write(**kwargs)
 
 	@staticmethod
 	def get_http_proxies():
@@ -520,7 +526,7 @@ class AzureAuth(object):
 
 	def _get_client_assertion(self):
 		def _load_certificate_fingerprint():
-			with open(SSL_CERT_FP, "r") as fd:
+			with open(get_conf_path('SSL_CERT_FP'), "r") as fd:
 				fp = fd.read()
 			return fp.strip()
 
@@ -532,7 +538,7 @@ class AzureAuth(object):
 			return '{0}.{1}'.format(encoded_header, encoded_payload)  # <base64-encoded-header>.<base64-encoded-payload>
 
 		def _get_key_file_data():
-			with open(SSL_KEY, "rb") as pem_file:
+			with open(get_conf_path('SSL_KEY'), "rb") as pem_file:
 				key_data = pem_file.read()
 			return key_data
 
@@ -581,7 +587,10 @@ class AzureAuth(object):
 		ucs_sso_fqdn = ucr.get('ucs/server/sso/fqdn', "%s.%s" % (ucr.get('hostname', 'undefined'), ucr.get('domainname', 'undefined')))
 		cert = ""
 		try:
-			with open(ucr.get('saml/idp/certificate/certificate', SAML_SETUP_SCRIPT_CERT_PATH.format(domainname=ucr.get('domainname', 'undefined'))), 'rb') as fd:
+			cert_path = SAML_SETUP_SCRIPT_CERT_PATH.format(
+				domainname=ucr.get('domainname', 'undefined'),
+			)
+			with open(ucr.get('saml/idp/certificate/certificate', cert_path), 'rb') as fd:
 				raw_cert = fd.read()
 		except IOError as exc:
 			logger.exception("while reading certificate: %s", exc)
@@ -604,9 +613,10 @@ pause
 '''.format(domain=cls.get_domain(), ucs_sso_fqdn=ucs_sso_fqdn, cert=cert, issuer=issuer)
 
 		try:
-			with open(SAML_SETUP_SCRIPT_PATH, 'wb') as fd:
+			script_path = SAML_SETUP_SCRIPT_PATH
+			with open(script_path, 'wb') as fd:
 				fd.write(template)
-			os.chmod(SAML_SETUP_SCRIPT_PATH, 0644)
+			os.chmod(script_path, 0644)
 		except IOError as exc:
 			logger.exception("while writing powershell script: %s", exc)
 			raise WriteScriptError(_("Error writing SAML setup script."))
