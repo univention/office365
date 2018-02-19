@@ -1,3 +1,16 @@
+univention-office365 (1.0.1-7) unstable; urgency=low
+
+  * Bug #45507: backport fix to correctly handle empty response
+  * Bug #45507: backport central config file path handling
+  * Bug #45507: backport setting owner of session and settings files
+  * Bug #45507: backport cosmetic fixes
+  * Bug #45507: backport improved filtering
+  * Bug #45507: backport improved group handling
+  * Bug #45507: backport improved LDAP objects querying
+  * Bug #45507: backport refactoring for better readability
+
+ -- Daniel Troeder <troeder@univention.de>  Mon, 19 Feb 2018 17:41:00 +0100
+
 univention-office365 (1.0.1-6) unstable; urgency=low
 
   * Bug #44836: get proxy configuration when called from wizard (without
