@@ -33,6 +33,7 @@
 __package__ = ''  # workaround for PEP 366
 
 import json
+from simplejson import JSONDecodeError
 import urllib
 import uuid
 import requests
@@ -192,13 +193,13 @@ class AzureHandler(object):
 				response_json = response.json
 				if callable(response_json):  # requests version compatibility
 					response_json = response_json()
-			except (TypeError, ValueError) as exc:
+			except (TypeError, ValueError, JSONDecodeError) as exc:
 				if method.upper() in ["DELETE", "PATCH", "PUT"]:
-					# no response expected
-					pass
+					# no/empty response expected
+					response_json = {}
 				elif method.upper() == "POST" and "members" in url:
-					# no response expected (add_objects_to_azure_group())
-					pass
+					# no/empty response expected (add_objects_to_azure_group())
+					response_json = {}
 				else:
 					logger.exception("response is not JSON. response.__dict__: %r", response.__dict__)
 					raise ApiError, ApiError(response, chained_exc=exc), sys.exc_info()[2]
@@ -423,7 +424,8 @@ class AzureHandler(object):
 		:return: None
 		"""
 		assert type(group_id) in [str, unicode], "The ObjectId must be a string."
-		assert type(object_ids) == list, "object_ids must be a list of objectID strings."
+		assert type(object_ids) == list, "object_ids must be a list."
+		assert all(type(o_id) in [str, unicode] for o_id in object_ids), "object_ids must be a list of objectID strings."
 		logger.debug("Adding objects %r to group %r...", object_ids, group_id)
 
 		# While the Graph API clearly states that multiple objects can be added
