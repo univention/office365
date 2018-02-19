@@ -318,9 +318,13 @@ class Office365Listener(object):
 			group_id = old["univentionOffice365ObjectID"][0]
 		except KeyError:
 			# just create a new group
+			logger.info("No objectID for group %r found, creating a new azure group...", self.dn)
 			azure_group = self.create_group_from_new(new)
 			group_id = azure_group["objectId"]
 			modification_attributes = dict()
+			udm_group = self.udm.get_udm_group(self.dn)
+			udm_group["UniventionOffice365ObjectID"] = group_id
+			udm_group.modify()
 
 		try:
 			azure_group = self.ah.list_groups(objectid=group_id)
@@ -351,29 +355,31 @@ class Office365Listener(object):
 			removed_members = set_old - set_new
 			added_members = set_new - set_old
 			logger.debug("dn=%r added_members=%r removed_members=%r", self.dn, added_members, removed_members)
-			udm_group_old = self.udm.get_udm_group(self.dn)
+			udm_group = self.udm.get_udm_group(self.dn)
 
 			# add new members to Azure
 			users_and_groups_to_add = list()
 			for added_member in added_members:
-				if added_member in udm_group_old["users"]:
+				if added_member in udm_group["users"]:
+					# it's a user
 					udm_user = self.udm.get_udm_user(added_member)
 					if (bool(int(udm_user.get("UniventionOffice365Enabled", "0"))) and
 						udm_user["UniventionOffice365ObjectID"]):
 						users_and_groups_to_add.append(udm_user["UniventionOffice365ObjectID"])
-				elif added_member in udm_group_old["nestedGroup"]:
+				elif added_member in udm_group["nestedGroup"]:
+					# it's a group
 					# check if this group or any of its nested groups has azure_users
 					for group_with_azure_users in self.udm.udm_groups_with_azure_users(added_member):
 						logger.debug("Found nested group %r with azure users...", group_with_azure_users)
-						udm_group = self.udm.get_udm_group(group_with_azure_users)
-						if not udm_group.get("UniventionOffice365ObjectID"):
+						udm_group_with_azure_users = self.udm.get_udm_group(group_with_azure_users)
+						if not udm_group_with_azure_users.get("UniventionOffice365ObjectID"):
 							new_group = self.create_group_from_ldap(group_with_azure_users)
-							udm_group["UniventionOffice365ObjectID"] = new_group["objectId"]
-							udm_group.modify()
-						if group_with_azure_users in udm_group_old["nestedGroup"]:  # only add direct members to group
-							users_and_groups_to_add.append(udm_group["UniventionOffice365ObjectID"])
+							udm_group_with_azure_users["UniventionOffice365ObjectID"] = new_group["objectId"]
+							udm_group_with_azure_users.modify()
+						if group_with_azure_users in udm_group["nestedGroup"]:  # only add direct members to group
+							users_and_groups_to_add.append(udm_group_with_azure_users["UniventionOffice365ObjectID"])
 				else:
-					raise RuntimeError("Office365Listener.modify_group() '{}' from new[uniqueMember] not in "
+					raise RuntimeError("Office365Listener.modify_group() {!r} from new[uniqueMember] not in "
 						"'nestedGroup' or 'users'.".format(added_member))
 
 			if users_and_groups_to_add:
@@ -443,12 +449,14 @@ class Office365Listener(object):
 		"""
 		logger.debug("group_dn=%r object_id=%r", group_dn, object_id)
 		udm_target_group = self.udm.get_udm_group(group_dn)
-		users_and_groups_to_add = list()
 
-		for userdn in udm_target_group["users"]:
-			udm_user = self.udm.get_udm_user(userdn)
-			if bool(int(udm_user.get("UniventionOffice365Enabled", "0"))):
-				users_and_groups_to_add.append(udm_user["UniventionOffice365ObjectID"])
+		# get all users (ignoring group membership) and compare
+		# with group members to get azure IDs, because it's faster than
+		# iterating (and opening!) lots of UDM objects
+		all_users_lo = self.udm.get_lo_o365_users(attributes=['univentionOffice365ObjectID'])
+		all_user_dns = set(all_users_lo.keys())
+		member_dns = all_user_dns.intersection(set(udm_target_group["users"]))
+		users_and_groups_to_add = [attr['univentionOffice365ObjectID'][0] for dn, attr in all_users_lo.items() if dn in member_dns]
 
 		# search tree downwards, create groups as we go, add users to them later
 		for groupdn in udm_target_group["nestedGroup"]:
