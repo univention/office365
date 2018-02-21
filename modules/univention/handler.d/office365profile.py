@@ -28,7 +28,7 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-from univention.admin.layout import Tab, Group
+from univention.admin.layout import Tab
 import univention.admin.filter
 import univention.admin.handlers
 import univention.admin.syntax
@@ -41,19 +41,19 @@ childs = 0
 short_description = _(u'Office 365 Profile')
 long_description = _(u'Management of office 365 profiles')
 operations = ['add', 'edit', 'remove', 'search', 'move']
-default_containers=["cn=profiles,cn=office365"]
+default_containers = ["cn=profiles,cn=office365"]
 
 options = {}
 
 property_descriptions = {
 	'name': univention.admin.property(
-		short_description = _(u'Profile name'),
-		long_description = _(u'Displayed profile name when selecting a profile'),
-		syntax = univention.admin.syntax.string,
-		multivalue = False,
-		required = True,
-		may_change = True,
-		identifies = False
+		short_description=_(u'Profile name'),
+		long_description=_(u'Displayed profile name when selecting a profile'),
+		syntax=univention.admin.syntax.string,
+		multivalue=False,
+		required=True,
+		may_change=True,
+		identifies=False
 	),
 	'subscription': univention.admin.property(
 		short_description=_(u'Subscription identifier'),
@@ -86,10 +86,10 @@ property_descriptions = {
 
 layout = [
 	Tab(_(u'General'), _(u'Office 365 Profile'), layout=[
-			[ 'name', ], [ 'subscription', ],
-			[ 'whitelisted_plans', ],
-			[ 'blacklisted_plans', ],
-		]),
+		['name'], ['subscription'],
+		['whitelisted_plans'],
+		['blacklisted_plans'],
+	]),
 ]
 
 mapping = univention.admin.mapping.mapping()
@@ -116,12 +116,13 @@ class object(univention.admin.handlers.simpleLdap):
 		self.dn = '%s=%s,%s' % (mapping.mapName('name'), mapping.mapValue('name', self.info['name']), self.position.getDn())
 
 	def _ldap_addlist(self):
-		return [('objectClass', ['top', 'univentionOffice365Profile',])]
+		return [('objectClass', ['top', 'univentionOffice365Profile'])]
+
 
 def lookup(co, lo, filter_s, base='', superordinate=None, scope='sub', unique=0, required=0, timeout=-1, sizelimit=0):
 	searchfilter = univention.admin.filter.conjunction('&', [
-				univention.admin.filter.expression('objectClass', 'univentionOffice365Profile'),
-				])
+		univention.admin.filter.expression('objectClass', 'univentionOffice365Profile'),
+	])
 
 	if filter_s:
 		filter_p = univention.admin.filter.parse(filter_s)
@@ -132,6 +133,7 @@ def lookup(co, lo, filter_s, base='', superordinate=None, scope='sub', unique=0,
 	for dn in lo.searchDn(unicode(searchfilter), base, scope, unique, required, timeout, sizelimit):
 		res.append(object(co, lo, None, dn))
 	return res
+
 
 def identify(distinguished_name, attributes, canonical=False):
 	return 'univentionOffice365Profile' in attributes.get('objectClass', [])

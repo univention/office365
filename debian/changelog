@@ -1,3 +1,12 @@
+univention-office365 (1.0.1-10) unstable; urgency=low
+
+  * Bug #43294: remove empty methods
+  * fix call to super class
+  * remove code already in super class
+  * PEP8
+
+ -- Daniel Troeder <troeder@univention.de>  Wed, 21 Feb 2018 10:30:16 +0100
+
 univention-office365 (1.0.1-9) unstable; urgency=low
 
   * Bug #45729: handle activating group that already has Azure users
