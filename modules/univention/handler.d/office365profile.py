@@ -98,6 +98,7 @@ mapping.register('subscription', 'office365ProfileSubscription', None, univentio
 mapping.register('whitelisted_plans', 'office365ProfileWhitelist', None, None)
 mapping.register('blacklisted_plans', 'office365ProfileBlacklist', None, None)
 
+
 class object(univention.admin.handlers.simpleLdap):
 	module = module
 
@@ -117,24 +118,6 @@ class object(univention.admin.handlers.simpleLdap):
 
 	def _ldap_pre_create(self):
 		self.dn = '%s=%s,%s' % (mapping.mapName('name'), mapping.mapValue('name', self.info['name']), self.position.getDn())
-
-	def _ldap_post_create(self):
-		pass
-
-	def _ldap_pre_modify(self):
-		pass
-
-	def _ldap_post_modify(self):
-		pass
-
-	def _ldap_pre_remove(self):
-		pass
-
-	def _ldap_post_remove(self):
-		pass
-
-	def _update_policies(self):
-		pass
 
 	def _ldap_addlist(self):
 		return [('objectClass', ['top', 'univentionOffice365Profile',])]
