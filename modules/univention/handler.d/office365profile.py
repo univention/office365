@@ -109,7 +109,7 @@ class object(univention.admin.handlers.simpleLdap):
 		self.position = position
 		self.mapping = mapping
 		self.descriptions = property_descriptions
-		univention.admin.handlers.simpleLdap.__init__(self, co, lo, position, dn, superordinate)
+		super(object, self).__init__(co, lo, position, dn, superordinate, attributes)
 		self.options = []
 
 	def open(self):
