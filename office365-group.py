@@ -109,6 +109,16 @@ def clean():
 	UDMHelper.clean_udm_objects("groups/group", listener.configRegistry["ldap/base"], ldap_cred)
 
 
+def create_groups(ol, dn):
+	for groupdn in ol.udm.udm_groups_with_azure_users(dn):
+		new_group = ol.create_group_from_ldap(groupdn)
+		# save Azure objectId in UDM object
+		udm_group = ol.udm.get_udm_group(dn)
+		udm_group["UniventionOffice365ObjectID"] = new_group["objectId"]
+		udm_group.modify()
+		logger.info("Created group with displayName: %r (%r)", new_group["displayName"], new_group["objectId"])
+
+
 def handler(dn, new, old, command):
 	logger.debug("%s.handler() command: %r dn: %r", name, command, dn)
 	if not listener.configRegistry.is_true("office365/groups/sync", False):
@@ -129,13 +139,7 @@ def handler(dn, new, old, command):
 	#
 	if new and not old:
 		logger.debug("new and not old -> NEW (%s)", dn)
-		for groupdn in ol.udm.udm_groups_with_azure_users(dn):
-			new_group = ol.create_group_from_ldap(groupdn)
-			# save Azure objectId in UDM object
-			udm_group = ol.udm.get_udm_group(dn)
-			udm_group["UniventionOffice365ObjectID"] = new_group["objectId"]
-			udm_group.modify()
-			logger.info("Created group with displayName: %r (%r)", new_group["displayName"], new_group["objectId"])
+		create_groups(ol, dn)
 		logger.debug("done (%s)", dn)
 		return
 
@@ -154,7 +158,7 @@ def handler(dn, new, old, command):
 	#
 	if old and new:
 		logger.debug("old and new -> MODIFY (%s)", dn)
-		if "univentionOffice365ObjectID" in old or ol.udm.udm_groups_with_azure_users(dn):
+		if "univentionOffice365ObjectID" in old:
 			azure_group = ol.modify_group(old, new)
 			# save Azure objectId in UDM object
 			try:
@@ -167,4 +171,6 @@ def handler(dn, new, old, command):
 			udm_group.modify()
 
 			logger.info("Modified group %r (%r).", old["cn"][0], object_id)
+		elif ol.udm.udm_groups_with_azure_users(dn):
+			create_groups(ol, dn)
 		return

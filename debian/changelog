@@ -1,3 +1,9 @@
+univention-office365 (1.0.1-9) unstable; urgency=low
+
+  * Bug #45729: handle activating group that already has Azure users
+
+ -- Daniel Troeder <troeder@univention.de>  Wed, 21 Feb 2018 10:03:05 +0100
+
 univention-office365 (1.0.1-8) unstable; urgency=low
 
   * Bug #45507: fix typo
