@@ -112,10 +112,6 @@ class object(univention.admin.handlers.simpleLdap):
 		super(object, self).__init__(co, lo, position, dn, superordinate, attributes)
 		self.options = []
 
-	def open(self):
-		univention.admin.handlers.simpleLdap.open(self)
-		self.save()
-
 	def _ldap_pre_create(self):
 		self.dn = '%s=%s,%s' % (mapping.mapName('name'), mapping.mapValue('name', self.info['name']), self.position.getDn())
 
