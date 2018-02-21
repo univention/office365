@@ -139,7 +139,7 @@ def get_listener_attributes():
 name = 'office365-user'
 description = 'sync users to office 365'
 if AzureAuth.is_initialized():
-	filter = '(&(objectClass=univentionOffice365)(objectClass=univentionOffice365)(uid=*))'
+	filter = '(&(objectClass=univentionOffice365)(uid=*))'
 	logger.info("office 365 user listener active with filter=%r", filter)
 else:
 	filter = '(objectClass=deactivatedOffice365UserListener)'  # "objectClass" is indexed
