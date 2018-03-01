@@ -34,7 +34,7 @@ import uuid
 import re
 import base64
 
-from univention.office365.azure_handler import AzureHandler, ResourceNotFoundError
+from univention.office365.azure_handler import AzureHandler, AddLicenseError, ResourceNotFoundError
 from univention.office365.logging2udebug import get_logger
 from univention.office365.udm_helper import UDMHelper
 from univention.office365.subscriptions import SubscriptionProfile
@@ -145,8 +145,10 @@ class Office365Listener(object):
 				"Office365Listener.create_user() created user {!r} cannot be retrieved.".format(
 					attributes["userPrincipalName"])
 			)
-
-		self.assign_subscription(new, new_user)
+		try:
+			self.assign_subscription(new, new_user)
+		except AddLicenseError as exc:
+			logger.warn('Could not add license for subscription %r to user %r: %s', exc.user_id, exc.sku_id, exc.message)
 		return new_user
 
 	def delete_user(self, old):

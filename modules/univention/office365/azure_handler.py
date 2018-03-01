@@ -149,6 +149,13 @@ class ResourceNotFoundError(ApiError):
 	pass
 
 
+class AddLicenseError(AzureError):
+	def __init__(self, msg, user_id, sku_id, chained_exc=None, *args, **kwargs):
+		self.user_id = user_id
+		self.sku_id = sku_id
+		super(AddLicenseError, self).__init__(msg, chained_exc, *args, **kwargs)
+
+
 class UnkownTypeError(AzureError):
 	pass
 
@@ -490,7 +497,10 @@ class AzureHandler(object):
 		return self.call_api("POST", url, data)
 
 	def add_license(self, user_id, sku_id, deactivate_plans=None):
-		self._change_license("add", user_id, sku_id, deactivate_plans)
+		try:
+			self._change_license("add", user_id, sku_id, deactivate_plans)
+		except ApiError as exc:
+			raise AddLicenseError, AddLicenseError(str(exc), user_id, sku_id, exc), sys.exc_info()[2]
 
 	def remove_license(self, user_id, sku_id):
 		self._change_license("remove", user_id, sku_id, None)
