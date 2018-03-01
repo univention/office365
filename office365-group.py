@@ -171,6 +171,6 @@ def handler(dn, new, old, command):
 			udm_group.modify()
 
 			logger.info("Modified group %r (%r).", old["cn"][0], object_id)
-		elif ol.udm.udm_groups_with_azure_users(dn):
+		else:
 			create_groups(ol, dn)
 		return
