@@ -1,3 +1,9 @@
+univention-office365 (2.0.0-1) unstable; urgency=low
+
+  * Bug #46259: version bump for UCS 4.3
+
+ -- Daniel Troeder <troeder@univention.de>  Thu, 01 Mar 2018 21:39:22 +0100
+
 univention-office365 (1.0.1-11) unstable; urgency=low
 
   * Bug #45729: no need to search for udm_groups_with_azure_users twice: if
