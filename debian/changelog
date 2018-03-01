@@ -1,3 +1,12 @@
+univention-office365 (1.0.1-11) unstable; urgency=low
+
+  * Bug #45729: no need to search for udm_groups_with_azure_users twice: if
+    result is an empty list nothing will happen
+  * Bug #45729: UMC wizard package and main package must have same version
+  * handle "Subscription with SKU ... does not have any available licenses."
+
+ -- Daniel Troeder <troeder@univention.de>  Thu, 01 Mar 2018 16:18:22 +0100
+
 univention-office365 (1.0.1-10) unstable; urgency=low
 
   * Bug #43294: remove empty methods
