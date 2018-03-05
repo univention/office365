@@ -103,15 +103,9 @@ define([
 						readOnly: true,
 						label: _('SIGN-ON URL')
 					}, {
-						type: TextBox,
-						name: 'appid-url',
-						sizeClass: 'Two',
-						readOnly: true,
-						label: _('APP ID URI')
-					}, {
 						name: 'complete',
 						type: Text,
-						content: this.formatOrderedList([_('Complete the <i>Add application</i> wizard in the Azure portal.')], {start: 8})
+						content: this.formatOrderedList([_('Complete the <i>Add application</i> wizard in the Azure portal.')], {start: 9})
 					}]
 				}, {
 					name: 'ucs-integration',
@@ -293,21 +287,22 @@ define([
 
 		getTextConfiguration: function() {
 			return _('Please follow the next steps to create a new application in the Azure active directory:') + this.formatOrderedList([
-				_('Login to the <a href="https://manage.windowsazure.com/" target="_blank">Microsoft Azure portal</a>.'),
-				_('Select your Active Directory.'),
-				_('On the <i>APPLICATIONS</i> tab, start the wizard to add a new application to your directory.') + this.img(_('bottom_bar_add_app_EN.png')),
-				_('Choose the option that you want to <i>add an application my organization is developing</i>.') + this.img(_('add_application_EN.png')),
+				_('Login to the <a href="https://portal.azure.com/" target="_blank">Microsoft Azure portal</a>.'),
+				_('Select the Azure Active Directory service. In case you have multiple Active Directories, click <i>Switch directory</i> to choose the one you wish to synchronize with UCS.') + this.img(_('AAD.png')),
+				_('Open the <i>APP REGISTRATIONS</i> module.') + this.img(_('app_registrations_EN.png')),
+				_('If existing applications are not shown, select <i>All apps</i>to the right of the search field.'),
+				_('Click <i>NEW APPLICATION REGISTRATION</i> to add a new application to your directory.') + this.img(_('top_bar_add_app_EN.png')),
 				_('Enter a name for your application, e.g. <i>UCS Office 365</i>.'),
-				_('Select the <i>WEB APPLICATION AND/OR WEB-API</i> option and click on the <i>Next</i> button in Azures Add-Application wizard.'),
-				_('Copy the values below and paste them into the respective fields in the Azure wizard.') // + this.img('uri_input_fields.png')
+				_('As application type select <i>Web app / API</i>.') + this.img(_('app_name_EN.png')),
+				_('Copy the value below and paste it into the <i>Sign-on URL</i> field in the Azure wizard. Then click on the <i>Create</i> button in Azures Add-Application wizard.')
 			]);
 		},
 
 		getTextUCSIntegration: function() {
 			return this.formatOrderedList([
 				_('Make sure the newly created application is selected or open it by clicking on it.'),
-				_('In the bottom bar, click <i>MANAGE MANIFEST</i> and then <i>Download Manifest</i>. Save the manifest file on your computer.') + this.img(_('manage_manifest_EN.png')),
-				_('Click on <i>VIEW ENDPOINTS</i> and copy the value for <i>FEDERATION METADATA DOCUMENT</i>.') + this.img(_('copy_tenant_id_EN.png')),
+				_('In the top navigation bar, click <i>MANIFEST</i> and then <i>DOWNLOAD</i>. It is not necessary to include the logo image. Save the manifest file on your computer.') + this.img(_('manage_manifest_EN.png')),
+				_('Scroll to the left to the first panel and click on <i>ENDPOINTS</i>. Copy the value for <i>FEDERATION METADATA DOCUMENT</i>.') + this.img(_('copy_tenant_id_EN.png')),
 				_('Insert the copied value into the text box below.')
 			]);
 		},
@@ -317,15 +312,17 @@ define([
 		},
 
 		getTextManifestUpload: function() {
-			return _('Please upload the manifest (which has a similar name as <i>7e428ea7-e7d8-4f0c-93ed-c8e74c4050c9.json</i>) that you just downloaded from the Azure Portal by using the upload button below.') + ' ' + _('After uploading the manifest you will be offered to download a file <i>manifest.json</i>. Store this file on your computer.');
+			return _('Please upload the manifest that you just downloaded from the Azure Portal by using the upload button below. (The downloaded manifest is a file with the same name as the app and ends in ".json".)') + ' ' + _('After uploading the manifest you will be offered to download a file <i>manifest.json</i>. Store this file on your computer.');
 		},
 
 		getTextUpdateManifest: function() {
 			return this.formatOrderedList([
 				_('If the download of the <i>manifest.json</i> file didn\'t start automatically <a download="manifest.json" href="/univention/command/office365/manifest.json" target="_blank">click here</a>.'),
-				_('Select <i>MANAGE MANIFEST</i> and <i>upload manifest</i> in the Azure dashboard.') + this.img(_('manage_manifest_EN.png')),
-				_('To upload the manifest in the new pop up click on <i>BROWSE FOR FILE...</i> and select the previously downloaded <i>manifest.json</i>.') + this.img(_('azure_upload_manifest_window_EN.png')),
-				_('After the upload has succeeded continue this wizard by clicking on <i>Next</i>.')
+				_('Select your app, <i>MANIFEST</i> and <i>UPLOAD</i> the manifest in the Azure dashboard.'),
+				_('To upload the manifest in the panel click on <i>SELECT A FILE</i> and choose the previously downloaded <i>manifest.json</i>.') + this.img(_('azure_upload_manifest_window_EN.png')),
+				_('After the upload has succeeded, scroll to the left and open the <i>SETTINGS</i> to edit the <i>REQUIRED PERMISSIONS</i>.') + this.img(_('required_perms_btn_EN.png')),
+				_('The permissions have already be configured by the manifest. Click <i>GRANT PERMISSIONS</i> and <i>YES</i> in the following dialog.') + this.img(_('grant_perms_EN.png')) + this.img(_('grant_perms_yes_EN.png')),
+				_('After the permission granting has succeeded continue this wizard by clicking on <i>Next</i>.')
 			]);
 		},
 
