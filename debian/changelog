@@ -1,3 +1,9 @@
+univention-office365 (1.0.1-16) unstable; urgency=low
+
+  * Bug #46259: fix typo
+
+ -- Daniel Troeder <troeder@univention.de>  Tue, 06 Mar 2018 13:13:46 +0100
+
 univention-office365 (1.0.1-15) unstable; urgency=low
 
   * Bug 46495: fix translation
