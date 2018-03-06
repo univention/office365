@@ -1,3 +1,9 @@
+univention-office365 (2.0.0-4) unstable; urgency=low
+
+  * Bug #46259: fix to restrictive group LDAP filter
+
+ -- Daniel Troeder <troeder@univention.de>  Tue, 06 Mar 2018 12:22:01 +0100
+
 univention-office365 (2.0.0-3) unstable; urgency=low
 
   * Bug #46259: adapt to changes on disabled/locked property in UCS 4.3
