@@ -1,8 +1,8 @@
 univention-office365 (1.0.1-14) unstable; urgency=low
 
-  * Bug #46493: add instructions to wizard for additional permission granting
+  * Bug #46496: add instructions to wizard for additional permission granting
     step
-  * Bug #45425: update texts and screenshots to guide through new Azure portal
+  * Bug #46495: update texts and screenshots to guide through new Azure portal
 
  -- Daniel Troeder <troeder@univention.de>  Mon, 05 Mar 2018 20:20:19 +0100
 
