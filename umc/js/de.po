@@ -228,7 +228,7 @@ msgid ""
 "It is not necessary to include the logo image. Save the manifest file on "
 "your computer."
 msgstr ""
-"Klicken Sie in der unteren Navigationsleiste auf <i>MANIFEST VERWALTEN</i> "
+"Klicken Sie in der oberen Navigationsleiste auf <i>MANIFEST</i> "
 "und dann auf <i>HERUNTERLADEN</i>. Es ist nicht nötig das Logobild "
 "einzubeziehen. Speichern Sie die Manifest-Datei auf Ihrem Computer."
 

@@ -1,3 +1,9 @@
+univention-office365 (2.0.0-5) unstable; urgency=low
+
+  * Bug #45425: fix translation
+
+ -- Daniel Troeder <troeder@univention.de>  Tue, 06 Mar 2018 12:50:04 +0100
+
 univention-office365 (2.0.0-4) unstable; urgency=low
 
   * Bug #46259: fix to restrictive group LDAP filter
