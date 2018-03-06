@@ -198,7 +198,7 @@ def is_deactived_locked_or_expired(udm_user):
 	:return: bool: whether the user is deactivated or locked
 	"""
 	def boolify(value):
-		if value is None or value.lower() == "none":
+		if value is None or value.lower() in ("none", "0"):
 			return False
 		return True
 
