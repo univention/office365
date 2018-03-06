@@ -55,7 +55,7 @@ if not listener.configRegistry.is_true("office365/groups/sync", False):
 	filter = '(objectClass=deactivatedOffice365GroupListener)'  # "objectClass" is indexed
 	logger.warn("office 365 group listener deactivated by UCR office365/groups/sync")
 elif AzureAuth.is_initialized():
-	filter = '(&(objectClass=posixGroup)(objectClass=univentionOffice365))'
+	filter = 'objectClass=posixGroup'
 	logger.info("office 365 group listener active")
 else:
 	filter = '(objectClass=deactivatedOffice365GroupListener)'

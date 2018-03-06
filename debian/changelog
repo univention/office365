@@ -1,3 +1,9 @@
+univention-office365 (1.0.1-12) unstable; urgency=low
+
+  * Bug #46259: fix to restrictive group LDAP filter
+
+ -- Daniel Troeder <troeder@univention.de>  Tue, 06 Mar 2018 12:23:25 +0100
+
 univention-office365 (1.0.1-11) unstable; urgency=low
 
   * Bug #45729: no need to search for udm_groups_with_azure_users twice: if
