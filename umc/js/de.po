@@ -2,8 +2,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: univention-management-console-module-office365\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-03-05 19:58+0100\n"
+"Report-Msgid-Bugs-To: packages@univention.de\n"
+"POT-Creation-Date: 2018-03-21 10:57+0100\n"
 "PO-Revision-Date: 2016-01-14 11:26+0100\n"
 "Last-Translator: Univention GmbH <packages@univention.de>\n"
 "Language-Team: Univention GmbH <packages@univention.de>\n"
@@ -178,8 +178,8 @@ msgstr "Hilfe"
 
 #: umc/js/office365.js:293
 msgid ""
-"If existing applications are not shown, select <i>All apps</i>to the right of "
-"the search field."
+"If existing applications are not shown, select <i>All apps</i>to the right "
+"of the search field."
 msgstr ""
 "Wenn bereits existierende Applikationen nicht angezeigt werden, wählen Sie "
 "rechts vom Suchfeld <i>Alle apps</i> aus."
@@ -228,9 +228,9 @@ msgid ""
 "It is not necessary to include the logo image. Save the manifest file on "
 "your computer."
 msgstr ""
-"Klicken Sie in der oberen Navigationsleiste auf <i>MANIFEST</i> "
-"und dann auf <i>HERUNTERLADEN</i>. Es ist nicht nötig das Logobild "
-"einzubeziehen. Speichern Sie die Manifest-Datei auf Ihrem Computer."
+"Klicken Sie in der oberen Navigationsleiste auf <i>MANIFEST</i> und dann auf "
+"<i>HERUNTERLADEN</i>. Es ist nicht nötig das Logobild einzubeziehen. "
+"Speichern Sie die Manifest-Datei auf Ihrem Computer."
 
 #: umc/js/office365.js:306
 msgid "Insert the copied value into the text box below."
@@ -239,12 +239,12 @@ msgstr "Fügen Sie den kopierten Wert in die unten stehende Textbox ein."
 #: umc/js/office365.js:344
 #, javascript-format
 msgid ""
-"Install the latest version of Microsoft Powershell by installing <a href=\"%s"
-"\" target=\"_blank\">Windows Management Framework 5.0</a>"
+"Install the latest version of Microsoft Powershell, at least <a href=\"%s\" "
+"target=\"_blank\">Windows Management Framework 5.0</a> has to be installed."
 msgstr ""
-"Installieren Sie auf Ihrem Windows PC eine aktuelle Version von Microsoft "
-"Powershell durch die Installation von <a href=\"%s\" target=\"_blank"
-"\">Windows Management Framework 5.0</a>"
+"Installieren Sie auf Ihrem Windows PC die aktuellste Version von Microsoft "
+"Powershell. Es muss mindestens das <a href=\"%s\" target=\"_blank\">Windows "
+"Management Framework 5.0</a> installiert sein."
 
 #: umc/js/office365.js:282
 msgid ""
@@ -296,14 +296,12 @@ msgstr "Office 365 Einrichtung abgeschlossen"
 #, javascript-format
 msgid ""
 "On your Windows PC, follow the <a href=\"%s\" target=\"_blank\">instructions "
-"on Microsoft TechNet</a> to install the <i>Microsoft Online Services Sign-In "
-"Assistant for IT Professionals RTW</i> and <i>Azure Active Directory Module "
-"for Windows PowerShell</i> on your PC."
+"from Microsoft PowerShell Gallery</a> to install the <i>Microsoft Online "
+"Services PowerShell for Azure Active Directory</i> module."
 msgstr ""
 "Folgen sie auf Ihrem Windows PC den <a href=\"%s\" target=\"_blank"
-"\">Anweisungen von Microsoft TechNet</a>, um den <i>Microsoft Online "
-"Services-Anmelde-Assistenten für IT-Experten RTW</i> und das <i>Azure Active "
-"Directory-Modul für Windows PowerShell</i> zu installieren."
+"\">Anweisungen in der Microsoft PowerShell Gallery</a>, um das <i>Microsoft Online "
+"Services PowerShell for Azure Active Directory</i> Modul zu installieren."
 
 #: umc/js/office365.js:82
 msgid "Open single sign-on configuration instructions"
@@ -353,11 +351,13 @@ msgstr ""
 
 #: umc/js/office365.js:291
 msgid ""
-"Select the Azure Active Directory service. In case you have multiple Active Directories, click <i>Switch directory</i> to choose the one you wish to synchronize with UCS."
+"Select the Azure Active Directory service. In case you have multiple Active "
+"Directories, click <i>Switch directory</i> to choose the one you wish to "
+"synchronize with UCS."
 msgstr ""
-"Wählen Sie den Azure Active Directory Dienst aus. (Sollten Sie mehrere Active "
-"Directories haben, klicken Sie auf <i>Verzeichnis wechseln</i> um das auszuwählen, das mit UCS synchronisiert werden "
-"soll."
+"Wählen Sie den Azure Active Directory Dienst aus. (Sollten Sie mehrere "
+"Active Directories haben, klicken Sie auf <i>Verzeichnis wechseln</i> um das "
+"auszuwählen, das mit UCS synchronisiert werden soll."
 
 #: umc/js/office365.js:321
 msgid ""
@@ -656,10 +656,6 @@ msgstr ""
 msgid "https://manage.windowsazure.com/"
 msgstr "https://manage.windowsazure.com/"
 
-#: umc/js/office365.js:345
-msgid "https://technet.microsoft.com/library/jj151815.aspx#bkmk_installmodule"
-msgstr "https://technet.microsoft.com/library/jj151815.aspx#bkmk_installmodule"
-
 #: umc/js/office365.js:343
 msgid "https://www.microsoft.com/download/details.aspx?id=40779"
 msgstr "https://www.microsoft.com/download/details.aspx?id=40779"
@@ -668,7 +664,11 @@ msgstr "https://www.microsoft.com/download/details.aspx?id=40779"
 msgid "https://www.microsoft.com/en-us/download/details.aspx?id=50395"
 msgstr "https://www.microsoft.com/en-us/download/details.aspx?id=50395"
 
-#: umc/js/office365.js:304 umc/js/office365.js:321
+#: umc/js/office365.js:345
+msgid "https://www.powershellgallery.com/packages/MSOnline"
+msgstr ""
+
+#: umc/js/office365.js:304
 msgid "manage_manifest_EN.png"
 msgstr "manage_manifest_DE.png"
 
