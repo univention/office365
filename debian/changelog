@@ -1,3 +1,9 @@
+univention-office365 (1.0.1-17) unstable; urgency=medium
+
+  * Bug #46335: Update instructions to setup required powershell modules
+
+ -- Erik Damrose <damrose@univention.de>  Wed, 21 Mar 2018 11:04:14 +0100
+
 univention-office365 (1.0.1-16) unstable; urgency=low
 
   * Bug #46259: fix typo
