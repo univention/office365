@@ -38,6 +38,7 @@ import univention.admin.uldap
 import univention.admin.objects
 from univention.config_registry import ConfigRegistry
 from univention.office365.logging2udebug import get_logger
+from univention.admin.simple_udm import UdmObject
 
 
 logger = get_logger("office365", "o365")
@@ -67,14 +68,14 @@ class UDMHelper(object):
 		"""
 		filter_s = "(&(objectClass=univentionOffice365)(|(univentionOffice365ObjectID=*)(univentionOffice365Data=*)))"
 		logger.info("Cleaning %r objects with filter=%r....", module_s, filter_s)
-		udm_objs = cls.find_udm_objects(module_s, filter_s, base, ldap_cred)
+		lo, po = cls._get_ldap_connection(ldap_cred)
+		udm_objs = UdmObject.search(module_s, lo, filter_s, base)
 		for udm_obj in udm_objs:
-			udm_obj.open()
-			logger.info("%r...", udm_obj["username"] if "username" in udm_obj else udm_obj["name"])
-			udm_obj["UniventionOffice365ObjectID"] = None
-			if "UniventionOffice365Data" in udm_obj:
-				udm_obj["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(None))).rstrip()
-			udm_obj.modify()
+			logger.info("%r...", udm_obj.attr.username if hasattr(udm_obj.attr, "username") else udm_obj.attr.name)
+			udm_obj.attr.UniventionOffice365ObjectID = None
+			if hasattr(udm_obj.attr, "UniventionOffice365Data"):
+				udm_obj.attr.UniventionOffice365Data = base64.encodestring(zlib.compress(json.dumps(None))).rstrip()
+			udm_obj.save()
 		logger.info("Cleaning done.")
 
 	@classmethod
@@ -89,28 +90,34 @@ class UDMHelper(object):
 		:return: list of (not yet opened) UDM objects
 		"""
 		lo, po = cls._get_ldap_connection(ldap_cred)
-		univention.admin.modules.update()
-		module = univention.admin.modules.get(module_s)
-		univention.admin.modules.init(lo, po, module)
-		config = univention.admin.config.config()
-		return module.lookup(config, lo, filter_s=filter_s, base=base)
+		UdmObject(module_s, lo, filter_s, base)
 
 	@classmethod
 	def get_udm_group(cls, groupdn):
-		return cls.get_udm_obj("groups/group", groupdn)
+		lo, po = cls._get_ldap_connection()
+		return UdmObject('groups/group', lo, groupdn)
 
 	@classmethod
 	def get_udm_user(cls, userdn, attributes=None):
-		return cls.get_udm_obj("users/user", userdn, attributes)
+		lo, po = cls._get_ldap_connection()
+		obj = UdmObject('users/user', lo, userdn)
+		if attributes:
+			for k, v in attributes.items():
+				setattr(obj.attr, k, v)
+		return obj
 
 	@classmethod
 	def list_udm_officeprofiles(cls, filter_s=''):
-		lo, po, mod = cls.init_udm("settings/office365profile")
-		return mod.lookup(None, lo, filter_s)
+		lo, po = cls._get_ldap_connection()
+		return UdmObject.search('settings/office365profile', lo, filter_s)
 
 	@classmethod
 	def get_udm_officeprofile(cls, profiledn, attributes=None):
-		return cls.get_udm_obj("settings/office365profile", profiledn, attributes)
+		lo, po = cls._get_ldap_connection()
+		obj = UdmObject('settings/office365profile', lo, profiledn)
+		if attributes:
+			obj.attr.update(attributes)
+		return obj
 
 	@classmethod
 	def udm_groups_with_azure_users(cls, groupdn):
@@ -120,14 +127,15 @@ class UDMHelper(object):
 		:param groupdn: group to start with
 		:return: list of DNs of groups that have at least one user with UniventionOffice365Enabled=1
 		"""
-		udm_group = cls.get_udm_group(groupdn)
+		lo, po = cls._get_ldap_connection()
+		udm_group = UdmObject('groups/group', lo, groupdn)
 
 		groups = list()
-		for nested_groupdn in udm_group.get("nestedGroup", []):
+		for nested_groupdn in getattr(udm_group.attr, "nestedGroup", []):
 			groups.extend(cls.udm_groups_with_azure_users(nested_groupdn))
-		for userdn in udm_group.get("users", []):
+		for userdn in getattr(udm_group.attr, "users", []):
 			udm_user = cls.get_udm_user(userdn)
-			if bool(int(udm_user.get("UniventionOffice365Enabled", "0"))):
+			if bool(int(udm_user.attr.UniventionOffice365Enabled or "0")):
 				groups.append(groupdn)
 				break
 		return groups
@@ -196,22 +204,3 @@ class UDMHelper(object):
 			else:
 				cls.lo, cls.po = univention.admin.uldap.getAdminConnection()
 		return cls.lo, cls.po
-
-	@classmethod
-	def get_udm_obj(cls, module_name, dn, attributes=None):
-		lo, po, mod = cls.init_udm(module_name)
-		obj = mod.object(None, lo, po, dn, attributes=attributes)
-		obj.open()
-		return obj
-
-	@classmethod
-	def init_udm(cls, module_name):
-		lo, po = cls._get_ldap_connection()
-		try:
-			mod = cls.modules[module_name]
-		except KeyError:
-			univention.admin.modules.update()
-			mod = univention.admin.modules.get(module_name)
-			univention.admin.modules.init(lo, po, mod)
-			cls.modules[module_name] = mod
-		return lo, po, mod

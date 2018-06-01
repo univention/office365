@@ -114,8 +114,8 @@ def create_groups(ol, dn):
 		new_group = ol.create_group_from_ldap(groupdn)
 		# save Azure objectId in UDM object
 		udm_group = ol.udm.get_udm_group(dn)
-		udm_group["UniventionOffice365ObjectID"] = new_group["objectId"]
-		udm_group.modify()
+		udm_group.attr.UniventionOffice365ObjectID = new_group["objectId"]
+		udm_group.save()
 		logger.info("Created group with displayName: %r (%r)", new_group["displayName"], new_group["objectId"])
 
 
@@ -167,8 +167,8 @@ def handler(dn, new, old, command):
 				# None -> group was deleted
 				object_id = None
 			udm_group = ol.udm.get_udm_group(dn)
-			udm_group["UniventionOffice365ObjectID"] = object_id
-			udm_group.modify()
+			udm_group.attr.UniventionOffice365ObjectID = object_id
+			udm_group.save()
 
 			logger.info("Modified group %r (%r).", old["cn"][0], object_id)
 		else:

@@ -254,8 +254,8 @@ class Office365Listener(object):
 
 	def create_group_from_ldap(self, groupdn, add_members=True):
 		udm_group = self.udm.get_udm_group(groupdn)
-		desc = udm_group.get("description", None)
-		name = udm_group["name"]
+		desc = getattr(udm_group.attr, "description", None)
+		name = udm_group.attr.name
 		return self.create_group(name, desc, groupdn, add_members)
 
 	def delete_group(self, old):
@@ -325,8 +325,8 @@ class Office365Listener(object):
 			group_id = azure_group["objectId"]
 			modification_attributes = dict()
 			udm_group = self.udm.get_udm_group(self.dn)
-			udm_group["UniventionOffice365ObjectID"] = group_id
-			udm_group.modify()
+			udm_group.attr.UniventionOffice365ObjectID = group_id
+			udm_group.save()
 
 		try:
 			azure_group = self.ah.list_groups(objectid=group_id)
@@ -362,24 +362,24 @@ class Office365Listener(object):
 			# add new members to Azure
 			users_and_groups_to_add = list()
 			for added_member in added_members:
-				if added_member in udm_group["users"]:
+				if added_member in udm_group.attr.users:
 					# it's a user
 					udm_user = self.udm.get_udm_user(added_member)
-					if (bool(int(udm_user.get("UniventionOffice365Enabled", "0"))) and
-						udm_user["UniventionOffice365ObjectID"]):
-						users_and_groups_to_add.append(udm_user["UniventionOffice365ObjectID"])
-				elif added_member in udm_group["nestedGroup"]:
+					if (bool(int(udm_user.attr.UniventionOffice365Enabled or "0")) and
+						udm_user.attr.UniventionOffice365ObjectID):
+						users_and_groups_to_add.append(udm_user.attr.UniventionOffice365ObjectID)
+				elif added_member in udm_group.attr.nestedGroup:
 					# it's a group
 					# check if this group or any of its nested groups has azure_users
 					for group_with_azure_users in self.udm.udm_groups_with_azure_users(added_member):
 						logger.debug("Found nested group %r with azure users...", group_with_azure_users)
 						udm_group_with_azure_users = self.udm.get_udm_group(group_with_azure_users)
-						if not udm_group_with_azure_users.get("UniventionOffice365ObjectID"):
+						if not udm_group_with_azure_users.attr.UniventionOffice365ObjectID:
 							new_group = self.create_group_from_ldap(group_with_azure_users)
-							udm_group_with_azure_users["UniventionOffice365ObjectID"] = new_group["objectId"]
-							udm_group_with_azure_users.modify()
-						if group_with_azure_users in udm_group["nestedGroup"]:  # only add direct members to group
-							users_and_groups_to_add.append(udm_group_with_azure_users["UniventionOffice365ObjectID"])
+							udm_group_with_azure_users.attr.UniventionOffice365ObjectID = new_group["objectId"]
+							udm_group_with_azure_users.save()
+						if group_with_azure_users in udm_group.attr.nestedGroup:  # only add direct members to group
+							users_and_groups_to_add.append(udm_group_with_azure_users.attr.UniventionOffice365ObjectID)
 				else:
 					raise RuntimeError("Office365Listener.modify_group() {!r} from new[uniqueMember] not in "
 						"'nestedGroup' or 'users'.".format(added_member))
@@ -391,11 +391,11 @@ class Office365Listener(object):
 			for removed_member in removed_members:
 				# try with UDM user
 				udm_obj = self.udm.get_udm_user(removed_member)
-				member_id = udm_obj.get("UniventionOffice365ObjectID")
+				member_id = udm_obj.attr.UniventionOffice365ObjectID
 				if not member_id:
 					# try with UDM group
 					udm_obj = self.udm.get_udm_group(removed_member)
-					member_id = udm_obj.get("UniventionOffice365ObjectID")
+					member_id = udm_obj.attr.UniventionOffice365ObjectID
 				if not member_id:
 					# group may have been deleted or group may not be an Azure group
 					# let's try to remove it from Azure anyway
@@ -457,20 +457,20 @@ class Office365Listener(object):
 		# iterating (and opening!) lots of UDM objects
 		all_users_lo = self.udm.get_lo_o365_users(attributes=['univentionOffice365ObjectID'])
 		all_user_dns = set(all_users_lo.keys())
-		member_dns = all_user_dns.intersection(set(udm_target_group["users"]))
+		member_dns = all_user_dns.intersection(set(udm_target_group.attr.users))
 		users_and_groups_to_add = [attr['univentionOffice365ObjectID'][0] for dn, attr in all_users_lo.items() if dn in member_dns]
 
 		# search tree downwards, create groups as we go, add users to them later
-		for groupdn in udm_target_group["nestedGroup"]:
+		for groupdn in udm_target_group.attr.nestedGroup:
 			# check if this group or any of its nested groups has azure_users
 			for group_with_azure_users_dn in self.udm.udm_groups_with_azure_users(groupdn):
 				udm_group = self.udm.get_udm_group(group_with_azure_users_dn)
-				if not udm_group.get("UniventionOffice365ObjectID"):
+				if not udm_group.attr.UniventionOffice365ObjectID:
 					new_group = self.create_group_from_ldap(group_with_azure_users_dn, add_members=False)
-					udm_group["UniventionOffice365ObjectID"] = new_group["objectId"]
-					udm_group.modify()
-				if group_with_azure_users_dn in udm_target_group["nestedGroup"]:
-					users_and_groups_to_add.append(udm_group["UniventionOffice365ObjectID"])
+					udm_group.attr.UniventionOffice365ObjectID = new_group["objectId"]
+					udm_group.save()
+				if group_with_azure_users_dn in udm_target_group.attr.nestedGroup:
+					users_and_groups_to_add.append(udm_group.attr.UniventionOffice365ObjectID)
 
 		# add users to groups
 		if users_and_groups_to_add:
@@ -478,12 +478,12 @@ class Office365Listener(object):
 
 		# search tree upwards, create groups as we go, don't add users
 		def _groups_up_the_tree(group):
-			for member_dn in group["memberOf"]:
+			for member_dn in group.attr.memberOf:
 				udm_member = self.udm.get_udm_group(member_dn)
-				if not udm_member.get("UniventionOffice365ObjectID"):
+				if not udm_member.attr.UniventionOffice365ObjectID:
 					new_group = self.create_group_from_ldap(member_dn, add_members=False)
-					udm_member["UniventionOffice365ObjectID"] = new_group["objectId"]
-					udm_member.modify()
+					udm_member.attr.UniventionOffice365ObjectID = new_group["objectId"]
+					udm_member.save()
 				_groups_up_the_tree(udm_member)
 
 		_groups_up_the_tree(udm_target_group)
@@ -499,7 +499,7 @@ class Office365Listener(object):
 			raise NoAllocatableSubscriptions(azure_user, msg_no_allocatable_subscriptions)
 
 		# get SubscriptionProfiles for users groups
-		users_group_dns = self.udm.get_udm_user(new['entryDN'][0])['groups']
+		users_group_dns = self.udm.get_udm_user(new['entryDN'][0]).attr.groups
 		users_subscription_profiles = SubscriptionProfile.get_profiles_for_groups(users_group_dns)
 		logger.info('SubscriptionProfiles found for %r: %r', new['uid'][0], users_subscription_profiles)
 		if not users_subscription_profiles:

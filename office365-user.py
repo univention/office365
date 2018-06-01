@@ -202,15 +202,15 @@ def is_deactived_locked_or_expired(udm_user):
 			return False
 		return True
 
-	if boolify(udm_user.info.get('disabled')) or boolify(udm_user.info.get('locked')):
+	if boolify(udm_user.attr.disabled) or boolify(udm_user.attr.locked):
 		return True
 
-	if udm_user.info.get('userexpiry'):
+	if udm_user.attr.userexpiry:
 		try:
-			if datetime.datetime.strptime(udm_user.info.get('userexpiry'), "%Y-%m-%d") <= datetime.datetime.now():
+			if datetime.datetime.strptime(udm_user.attr.userexpiry, "%Y-%m-%d") <= datetime.datetime.now():
 				return True
 		except ValueError:
-			logger.exception("Bad data in userexpiry: %r", udm_user.info.get('userexpiry'))
+			logger.exception("Bad data in userexpiry: %r", udm_user.attr.userexpiry)
 			return True
 
 	return False
@@ -244,9 +244,9 @@ def new_or_reactivate_user(ol, dn, new, old):
 		new_user = exc.user
 	# save/update Azure objectId and object data in UDM object
 	udm_user = ol.udm.get_udm_user(dn)
-	udm_user["UniventionOffice365ObjectID"] = new_user["objectId"]
-	udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(new_user))).rstrip()
-	udm_user.modify()
+	udm_user.attr.UniventionOffice365ObjectID = new_user["objectId"]
+	udm_user.attr.UniventionOffice365Data = base64.encodestring(zlib.compress(json.dumps(new_user))).rstrip()
+	udm_user.save()
 	logger.info(
 		"User creation success. userPrincipalName: %r objectId: %r dn: %s",
 		new_user["userPrincipalName"], new_user["objectId"], dn
@@ -265,8 +265,8 @@ def deactivate_user(ol, dn, new, old):
 	# Cannot delete UniventionOffice365Data, because it would result in:
 	# ldapError: Inappropriate matching: modify/delete: univentionOffice365Data: no equality matching rule
 	# Explanation: http://gcolpart.evolix.net/blog21/delete-facsimiletelephonenumber-attribute/
-	udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(None))).rstrip()
-	udm_user.modify()
+	udm_user.attr.UniventionOffice365Data = base64.encodestring(zlib.compress(json.dumps(None))).rstrip()
+	udm_user.save()
 	logger.info("Deactivated user %r.", old["uid"][0])
 
 
@@ -275,8 +275,8 @@ def modify_user(ol, dn, new, old):
 	# update Azure object data in UDM object
 	udm_user = ol.udm.get_udm_user(dn)
 	azure_user = ol.get_user(old)
-	udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(azure_user))).rstrip()
-	udm_user.modify()
+	udm_user.attr.UniventionOffice365Data = base64.encodestring(zlib.compress(json.dumps(azure_user))).rstrip()
+	udm_user.save()
 	logger.info("Modified user %r.", old["uid"][0])
 
 
@@ -304,7 +304,7 @@ def handler(dn, new, old, command):
 		old_enabled &= enabled
 	new_enabled = bool(int(new.get("univentionOffice365Enabled", ["0"])[0]))
 	if new_enabled:
-		udm_user = udm_helper.get_udm_user(dn, new)
+		udm_user = udm_helper.get_udm_user(dn)
 		enabled = not is_deactived_locked_or_expired(udm_user)
 		logger.debug("new is %s.", "enabled" if enabled else "deactivated, locked or expired")
 		new_enabled &= enabled
