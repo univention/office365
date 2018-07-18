@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # -*- coding: utf-8 -*-
 #
 # MS Office 365 provisioning
@@ -31,7 +31,7 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-VERSION=3
+VERSION=4
 
 . /usr/share/univention-join/joinscripthelper.lib
 . /usr/share/univention-lib/all.sh
@@ -243,11 +243,14 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set deleteObjectClass=0 || die
 
 # Add required attributes to saml/idp/ldap/get_attributes
+LDAP_OBJ="$saml_idp_configobject"
+[ -z "$LDAP_OBJ" ] && LDAP_OBJ="id=default-saml-idp,cn=univention,$ldap_base"
+
 O_ATTRS="univentionOffice365Enabled entryUUID univentionOffice365userPrincipalName"
 for attr in ${O_ATTRS}; do
-	if ! echo "${saml_idp_ldap_get_attributes}" | grep -q "${attr}"; then
-		ucr set saml/idp/ldap/get_attributes="$(ucr get saml/idp/ldap/get_attributes), '${attr}'"
-	fi
+	udm saml/idpconfig modify "$@" \
+		--dn="$LDAP_OBJ" \
+		--append LdapGetAttributes="$attr"
 done
 
 # user template
@@ -296,6 +299,15 @@ univention-config-registry set \
 	office365/attributes/mapping/telephoneNumber?telephoneNumber \
 	office365/attributes/sync?displayName,employeeType,givenName,l,mailPrimaryAddress,mobile,mailAlternativeAddress,mail,postalCode,roomNumber,st,street,sn,telephoneNumber \
 	office365/groups/sync=no || die
+
+udm saml/serviceprovider create "$@" \
+	--ignore_exists \
+	--position "cn=saml-serviceprovider,cn=univention,$ldap_base" \
+	--set isActivated=TRUE \
+	--set Identifier=univention-office365 \
+	--set AssertionConsumerService="https://login.microsoftonline.com" \
+	--set rawsimplesamlSPconfig="$(</usr/share/univention-office365/simplesamlSPconfig.php)"
+
 
 stop_udm_cli_server
 systemctl restart univention-management-console-server.service

@@ -1,3 +1,11 @@
+univention-office365 (2.0.0-8) unstable; urgency=medium
+
+  * Bug #45537: Replicate SAML metadata to all SSO servers by storing it
+    in LDAP
+  * Store values for UCRv saml/idp/ldap/get_attributes for the app in LDAP
+
+ -- Erik Damrose <damrose@univention.de>  Wed, 18 Jul 2018 16:26:10 +0200
+
 univention-office365 (2.0.0-7) unstable; urgency=medium
 
   * Bug #46715: Update instructions to setup required powershell modules
