@@ -1,3 +1,9 @@
+univention-office365 (2.0.0-9) unstable; urgency=medium
+
+  * Bug #45537: Add dependency to required univention-saml version
+
+ -- Erik Damrose <damrose@univention.de>  Tue, 24 Jul 2018 11:38:18 +0200
+
 univention-office365 (2.0.0-8) unstable; urgency=medium
 
   * Bug #45537: Replicate SAML metadata to all SSO servers by storing it
