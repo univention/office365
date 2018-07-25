@@ -60,12 +60,11 @@ if ! joinscript_check_any_version_executed || [ -n "$FORCE_NEW_CERT" ]; then
     chmod 0700 "$CONFDIR" "$VARDIR"
     chmod 0600 key.pem cert.pem cert.fp ids.json token.json
 
-    # create SSL key, cert and fp
-    SSL_NAME="office365.sync.$DATE@$hostname.$domainname"
-    SSL_DIR="/etc/univention/ssl/$SSL_NAME"
-    univention-certificate new -name "$SSL_NAME" -days 3650 || die
+    # use key, cert and fp from machine certificate
+    SSL_DIR="/etc/univention/ssl/$hostname.$domainname"
     cat "$SSL_DIR/cert.pem" > cert.pem
     cat "$SSL_DIR/private.key" > key.pem
+
     openssl x509 -in cert.pem -fingerprint -noout | sed 's/SHA1 Fingerprint=//g' | sed 's/://g' | xxd -r -ps | base64 > cert.fp || die
 
     # create empty id and token stores

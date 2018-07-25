@@ -1,3 +1,10 @@
+univention-office365 (2.0.0-10) unstable; urgency=medium
+
+  * Bug #45508: Adapt package to allow installation on DC backup.
+  * Use machine certificate for API connection
+
+ -- Erik Damrose <damrose@univention.de>  Wed, 25 Jul 2018 10:01:04 +0200
+
 univention-office365 (2.0.0-9) unstable; urgency=medium
 
   * Bug #45537: Add dependency to required univention-saml version
