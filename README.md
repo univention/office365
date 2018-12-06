@@ -80,7 +80,7 @@ When modifying code, please keep the separation of where which objects are used.
 * go to https://FQDN/univention-office365/wizard?client_id=<........-....-....-....-............>
 * Authorize
 * Enable UDM property UniventionOffice365Enabled for users/groups
-* observe listener.log (and during development office365-py.log)
+* observe listener.log
 
 # TODO
 

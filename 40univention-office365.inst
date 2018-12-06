@@ -72,11 +72,6 @@ if ! joinscript_check_any_version_executed || [ -n "$FORCE_NEW_CERT" ]; then
 
     # set paranoid permissions
     chmod 0400 key.pem cert.pem cert.fp
-
-    # DEBUG, remove later
-    touch /var/log/univention/office365-py.log /var/log/univention/office365-ud.log
-    chown listener:www-data /var/log/univention/office365-*.log
-    chmod 664 /var/log/univention/office365-*.log
 fi
 
 ucs_addServiceToLocalhost "univention-office365" "$@" || die

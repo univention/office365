@@ -1,3 +1,9 @@
+univention-office365 (2.0.0-11) unstable; urgency=low
+
+  * Bug #48286: remove unused log files
+
+ -- Daniel Troeder <troeder@univention.de>  Thu, 06 Dec 2018 09:34:40 +0100
+
 univention-office365 (2.0.0-10) unstable; urgency=medium
 
   * Bug #45508: Adapt package to allow installation on DC backup.
