@@ -259,7 +259,7 @@ def delete_user(ol, dn, new, old):
 
 
 def deactivate_user(ol, dn, new, old):
-	ol.deactivate_user(old)
+	ol.deactivate_user(old or new)
 	# update Azure objectId and object data in UDM object
 	udm_user = ol.udm.get_udm_user(dn)
 	# Cannot delete UniventionOffice365Data, because it would result in:

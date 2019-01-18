@@ -165,11 +165,11 @@ class Office365Listener(object):
 			logger.error("User %r didn't exist in Azure: %r.", old["uid"][0], exc)
 			return
 
-	def deactivate_user(self, old):
-		if "univentionOffice365ObjectID" in old and old["univentionOffice365ObjectID"][0]:
-			object_id = old["univentionOffice365ObjectID"][0]
+	def deactivate_user(self, old_or_new):
+		if "univentionOffice365ObjectID" in old_or_new and old_or_new["univentionOffice365ObjectID"][0]:
+			object_id = old_or_new["univentionOffice365ObjectID"][0]
 		else:
-			object_id = self.find_aad_user_by_entryUUID(old["entryUUID"][0])
+			object_id = self.find_aad_user_by_entryUUID(old_or_new["entryUUID"][0])
 			if not object_id:
 				return
 		return self.ah.deactivate_user(object_id)
