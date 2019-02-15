@@ -31,7 +31,7 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-VERSION=4
+VERSION=5
 
 . /usr/share/univention-join/joinscripthelper.lib
 . /usr/share/univention-lib/all.sh
@@ -97,6 +97,26 @@ udm settings/office365profile create "$@" --ignore_exists \
 	--set name="Default Office 365 Subscription" \
 	--set subscription="ENTERPRISEPACK" || die
 
+ICON_USER="/usr/share/univention-management-console-frontend/js/dijit/themes/umc/icons/scalable/office365User.svg"
+[ -e "$ICON_USER" ] && rm "$ICON_USER"
+ln -s "apps-$(univention-app get office365 component_id --values-only)".svg "$ICON_USER"
+
+ICON_GROUP="/usr/share/univention-management-console-frontend/js/dijit/themes/umc/icons/scalable/office365Group.svg"
+[ -e "$ICON_GROUP" ] && rm "$ICON_GROUP"
+ln -s "apps-$(univention-app get office365 component_id --values-only)".svg "$ICON_GROUP"
+
+univention-directory-manager settings/extended_options create "$@" \
+	--position "cn=custom attributes,cn=univention,$ldap_base" --set module="users/user" \
+	--set name="office365User" \
+	--set isApp=1 \
+	--set default="0" \
+	--set editable=1 \
+	--set shortDescription='Office 365' \
+	--set objectClass="univentionOffice365" \
+	--set longDescription='Enable user for Office 365' \
+	--set translationShortDescription='"de_DE" "Office 365"' \
+	--set translationLongDescription='"de_DE" "Benutzer für Nutzung von Office 365 aktivieren"'
+
 udm settings/extended_attribute create "$@" --ignore_exists \
 	--position "cn=custom attributes,cn=univention,$ldap_base" \
 	--set name="UniventionOffice365ObjectID" \
@@ -119,7 +139,10 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set ldapMapping=univentionOffice365ObjectID \
 	--set deleteObjectClass=0 \
 	--set overwriteTab=0 \
+	--set options="office365User" \
 	--set disableUDMWeb=1 || die
+
+udm settings/extended_attribute modify "$@" --dn "cn=UniventionOffice365ObjectID,cn=custom attributes,cn=univention,$ldap_base" --set options="office365User" || die
 
 udm settings/extended_attribute create "$@" --ignore_exists \
 	--position "cn=custom attributes,cn=univention,$ldap_base" \
@@ -136,7 +159,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set module="users/user" \
 	--set module="settings/usertemplate" \
 	--set syntax=boolean \
-	--set default=0 \
+	--set default=1 \
 	--set multivalue=0 \
 	--set valueRequired=0 \
 	--set mayChange=1 \
@@ -145,7 +168,11 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set ldapMapping=univentionOffice365Enabled \
 	--set deleteObjectClass=0 \
 	--set overwriteTab=0 \
+	--set options="office365User" \
+	--set disableUDMWeb='1' \
 	--set fullWidth=1 || die
+
+udm settings/extended_attribute modify "$@" --dn "cn=UniventionOffice365Enabled,cn=custom attributes,cn=univention,$ldap_base" --set options="office365User" --set default=1 --set disableUDMWeb='1' || die
 
 udm settings/extended_attribute create "$@" --ignore_exists \
 	--position "cn=custom attributes,cn=univention,$ldap_base" \
@@ -165,7 +192,9 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set objectClass=univentionOffice365 \
 	--set ldapMapping=univentionOffice365Data \
 	--set deleteObjectClass=0 \
+	--set options="office365User" \
 	--set disableUDMWeb=1 || die
+udm settings/extended_attribute modify "$@" --dn "cn=UniventionOffice365Data,cn=custom attributes,cn=univention,$ldap_base" --set options="office365User" || die
 
 udm settings/extended_attribute create "$@" --ignore_exists \
 	--position "cn=custom attributes,cn=univention,$ldap_base" \
@@ -185,7 +214,9 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set objectClass=univentionOffice365 \
 	--set ldapMapping=univentionOffice365ObjectID \
 	--set deleteObjectClass=0 \
+	--set options="office365User" \
 	--set disableUDMWeb=1 || die
+udm settings/extended_attribute modify "$@" --dn "cn=UniventionOffice365GroupObjectID,cn=custom attributes,cn=univention,$ldap_base" --set options="office365User" || die
 
 udm settings/extended_attribute create "$@" --ignore_exists \
     --position "cn=custom attributes,cn=univention,$ldap_base" \
@@ -211,7 +242,21 @@ udm settings/extended_attribute create "$@" --ignore_exists \
     --set overwriteTab=0 \
     --set notEditable=1 \
     --set hook="OfficeUserPrincipalNameHook" \
+    --set options="office365User" \
     --set fullWidth=1 || die
+udm settings/extended_attribute modify "$@" --dn "cn=UniventionOffice365userPrincipalName,cn=custom attributes,cn=univention,$ldap_base" --set options="office365User" || die
+
+univention-directory-manager settings/extended_options create "$@" \
+	--position "cn=custom attributes,cn=univention,$ldap_base" --set module="groups/group" \
+	--set name="office365Group" \
+	--set isApp=1 \
+	--set default="0" \
+	--set editable=1 \
+	--set shortDescription='Office 365' \
+	--set objectClass="univentionOffice365" \
+	--set longDescription='Enable group for Office 365' \
+	--set translationShortDescription='"de_DE" "Office 365"' \
+	--set translationLongDescription='"de_DE" "Gruppe für Nutzung von Office 365 aktivieren"'
 
 udm settings/extended_attribute create "$@" --ignore_exists \
 	--position "cn=custom attributes,cn=univention,$ldap_base" \
@@ -234,7 +279,9 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set doNotSearch=1 \
 	--set objectClass=univentionOffice365 \
 	--set ldapMapping=univentionOffice365ProfileLink \
+	--set options="office365Group" \
 	--set deleteObjectClass=0 || die
+udm settings/extended_attribute modify "$@" --dn "cn=UniventionOffice365GroupProfile,cn=custom attributes,cn=univention,$ldap_base" --set options="office365Group" || die
 
 # Add required attributes to saml/idp/ldap/get_attributes
 LDAP_OBJ="$saml_idp_configobject"
