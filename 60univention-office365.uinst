@@ -53,10 +53,6 @@ then
 		--dn "cn=UniventionOffice365GroupObjectID,cn=custom attributes,cn=univention,$ldap_base"
 	udm settings/extended_attribute remove "$@" \
 		--dn "cn=UniventionOffice365userPrincipalName,cn=custom attributes,cn=univention,$ldap_base"
-	udm settings/extended_options remove "$@" \
-		--dn "cn=office365User,cn=custom attributes,cn=univention,$ldap_base"
-	udm settings/extended_options remove "$@" \
-		--dn "cn=office365Group,cn=custom attributes,cn=univention,$ldap_base"
 	udm settings/usertemplate remove "$@" \
 		--dn "cn=Office 365 Account,cn=templates,cn=univention,$ldap_base"
 fi
