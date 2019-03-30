@@ -53,7 +53,7 @@ property_descriptions = {
 		multivalue=False,
 		required=True,
 		may_change=True,
-		identifies=False
+		identifies=True,
 	),
 	'subscription': univention.admin.property(
 		short_description=_(u'Subscription identifier'),
@@ -101,19 +101,6 @@ mapping.register('blacklisted_plans', 'office365ProfileBlacklist', None, None)
 
 class object(univention.admin.handlers.simpleLdap):
 	module = module
-
-	def __init__(self, co, lo, position, dn='', superordinate=None, attributes=None):
-		self.co = co
-		self.lo = lo
-		self.dn = dn
-		self.position = position
-		self.mapping = mapping
-		self.descriptions = property_descriptions
-		super(object, self).__init__(co, lo, position, dn, superordinate, attributes)
-		self.options = []
-
-	def _ldap_pre_create(self):
-		self.dn = '%s=%s,%s' % (mapping.mapName('name'), mapping.mapValue('name', self.info['name']), self.position.getDn())
 
 	def _ldap_addlist(self):
 		return [('objectClass', ['top', 'univentionOffice365Profile'])]
