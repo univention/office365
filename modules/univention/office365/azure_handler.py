@@ -33,7 +33,6 @@
 __package__ = ''  # workaround for PEP 366
 
 import json
-from simplejson import JSONDecodeError
 import urllib
 import uuid
 import requests
@@ -47,6 +46,11 @@ import sys
 
 from univention.office365.azure_auth import AzureAuth, AzureError, resource_url
 from univention.office365.logging2udebug import get_logger
+
+try:
+	from json.decoder import JSONDecodeError  # python-requests with py3
+except ImportError:
+	JSONDecodeError = ValueError  # requests with py2
 
 
 azure_params = {"api-version": "1.6"}
@@ -200,7 +204,7 @@ class AzureHandler(object):
 				response_json = response.json
 				if callable(response_json):  # requests version compatibility
 					response_json = response_json()
-			except (TypeError, ValueError, JSONDecodeError) as exc:
+			except (TypeError, JSONDecodeError) as exc:
 				if method.upper() in ["DELETE", "PATCH", "PUT"]:
 					# no/empty response expected
 					response_json = {}
