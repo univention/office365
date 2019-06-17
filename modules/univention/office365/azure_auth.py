@@ -141,7 +141,7 @@ class Manifest(object):
 	@property
 	def reply_url(self):
 		try:
-			return self.manifest["replyUrls"][0]
+			return self.manifest["replyUrlsWithType"][0]["url"]
 		except (IndexError, KeyError):
 			pass
 
@@ -159,43 +159,23 @@ class Manifest(object):
 		return self.manifest.copy()
 
 	def transform(self):
-		try:
-			with open(get_conf_path("SSL_CERT"), "rb") as fd:
-				cert = fd.read()
-			with open(get_conf_path("SSL_CERT_FP"), "rb") as fd:
-				cert_fp = fd.read().strip()
-		except (OSError, IOError):
-			raise ManifestError(_('Could not read certificate. Please make sure the joinscript'
-				' 40univention-office365.inst is executed successfully or execute it again.'))
-
-		if cert_fp not in map(operator.itemgetter("customKeyIdentifier"), self.manifest["keyCredentials"]):
-			in_key = False
-			cert_key = list()
-			for num, line in enumerate(cert.split("\n")):
-				if line == "-----BEGIN CERTIFICATE-----":
-					in_key = True
-					continue
-				elif line == "-----END CERTIFICATE-----":
-					break
-				if in_key:
-					cert_key.append(line)
-			key = "".join(cert_key)
-
-			keyCredentials = dict(
-				customKeyIdentifier=cert_fp,
-				keyId=str(uuid.uuid4()),
-				type="AsymmetricX509Cert",
-				usage="verify",
-				value=key)
-
-			logger.info("Manifest.transform(): added key to manifest: fp=%r id=%r", cert_fp, keyCredentials["keyId"])
-
-			self.manifest["keyCredentials"].append(keyCredentials)
 		self.manifest["oauth2AllowImplicitFlow"] = True
+		self.manifest["oauth2AllowIdTokenImplicitFlow"] = True
 
+		# Permission: Azure Active Directory Graph; Permission Name: Directory.ReadWrite.All, Type: Application
 		permission = {"id": "78c8a3c8-a07e-4b9e-af1b-b5ccab50a175", "type": "Role"}
-		if not self.manifest["requiredResourceAccess"][0]["resourceAccess"].count(permission):
-			self.manifest["requiredResourceAccess"][0]["resourceAccess"].append(permission)
+
+		# AppID ..02-000..: Azure Active Directory Graph API
+		rAppId = {"resourceAppId": "00000002-0000-0000-c000-000000000000"}
+		if not self.manifest["requiredResourceAccess"].count(rAppId):
+			rAppId.update({"resourceAccess": [permission]})
+			self.manifest["requiredResourceAccess"].insert(0, rAppId)
+		else:
+			for access in self.manifest["requiredResourceAccess"]:
+				if access["resourceAppId"] != "00000002-0000-0000-c000-000000000000":
+					continue
+				if not access["resourceAccess"].count(permission):
+					access["resourceAccess"].append(permission)
 
 
 class JsonStorage(object):

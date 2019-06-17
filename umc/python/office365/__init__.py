@@ -138,6 +138,12 @@ class Instance(Base):
 			self.finished(request.id, fd.read(), mimetype='application/octet-stream')
 
 	@allow_get_request
+	def public_signing_cert(self, request):
+		with open(get_conf_path('SSL_CERT'), 'rb') as fd:
+			self.finished(request.id, fd.read(), mimetype='application/octet-stream')
+
+
+	@allow_get_request
 	@sanitize(
 		id_token=StringSanitizer(),
 		code=StringSanitizer(),
