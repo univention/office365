@@ -1,6 +1,7 @@
 <?php
 $metadata['urn:federation:MicrosoftOnline'] = array(
 	'AssertionConsumerService'	=> array('https://login.microsoftonline.com/login.srf'),
+	'SingleLogoutService'	=> array('https://login.microsoftonline.com/common/saml2'),
 	'NameIDFormat'	=> 'urn:oasis:names:tc:SAML:2.0:nameid-format:persistent',
 	'simplesaml.nameidattribute'	=> 'entryUUID',
 	'simplesaml.attributes'	=> true,

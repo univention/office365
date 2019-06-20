@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-5) unstable; urgency=medium
+
+  * Bug #48237: Add SingleLogoutService to SAML configuration
+
+ -- Erik Damrose <damrose@univention.de>  Thu, 20 Jun 2019 14:28:29 +0200
+
 univention-office365 (2.0.2-4) unstable; urgency=medium
 
   * Bug #49216: remove unused simplejson
