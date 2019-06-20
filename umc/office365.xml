@@ -13,6 +13,6 @@
 		<command name="office365/state" function="state"/>
 		<command name="office365/manifest.json" function="manifest_json"/>
 		<command name="office365/saml_setup.bat" function="saml_setup_script"/>
-		<command name="office365/public_signing_cert" function="public_signing_cert"/>
+		<command name="office365/o365_public_signing_cert.pem" function="public_signing_cert"/>
 	</module>
 </umc>
