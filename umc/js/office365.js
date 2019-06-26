@@ -305,7 +305,8 @@ define([
 		getTextUCSIntegration: function() {
 			return this.formatOrderedList([
 				_('Make sure the newly created application is selected or open it by clicking on it.'),
-				_('On the app <i>Overview</i>, click on <i>ENDPOINTS</i>. Copy the value for <i>FEDERATION METADATA DOCUMENT</i>.') + this.img(_('copy_tenant_id_EN.png')),
+				_('On the app <i>Overview</i>, click on <i>ENDPOINTS</i>.') + this.img(_('endpoints_EN.png')),
+				_('Copy the value for <i>FEDERATION METADATA DOCUMENT</i>.') + this.img(_('copy_tenant_id_EN.png')),
 				_('Insert the copied value into the text box below.')
 			]);
 		},
@@ -332,7 +333,7 @@ define([
 				_('Select your app, <i>MANIFEST</i> and <i>UPLOAD</i> the manifest in the Azure dashboard.'),
 				_('To upload the manifest in the panel click on <i>SELECT A FILE</i> and choose the previously downloaded <i>manifest.json</i>. Click on <i>Save</i> to complete the upload.') + this.img(_('azure_upload_manifest_window_EN.png')),
 				_('After the upload has succeeded, select the <i>API permissions</i> section.') + this.img(_('required_perms_btn_EN.png')),
-				_('The permissions have already be configured by the manifest. Click the <i>Grant admin consent for ...</i> button and <i>Save</i> in the following dialog.') + this.img(_('grant_perms_EN.png')) + this.img(_('grant_perms_yes_EN.png')),
+				_('The permissions have already been configured by the manifest. Click the <i>Grant admin consent for ...</i> button and <i>Yes</i> in the following dialog.') + this.img(_('grant_perms_EN.png')) + this.img(_('grant_perms_yes_EN.png')),
 				_('After the permission granting has succeeded continue this wizard by clicking on <i>Next</i>.')
 			]);
 		},
