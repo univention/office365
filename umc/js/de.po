@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: univention-management-console-module-office365\n"
 "Report-Msgid-Bugs-To: packages@univention.de\n"
-"POT-Creation-Date: 2019-06-26 11:52+0200\n"
+"POT-Creation-Date: 2019-07-02 13:44+0200\n"
 "PO-Revision-Date: 2016-01-14 11:26+0100\n"
 "Last-Translator: Univention GmbH <packages@univention.de>\n"
 "Language-Team: Univention GmbH <packages@univention.de>\n"
@@ -49,6 +49,7 @@ msgstr ""
 "Nach dem erfolgreichen Hochladen, öffnen Sie die <I>API-Berechtigungen</i> "
 "Sektion."
 
+#: umc/js/office365.js:344
 msgid ""
 "After this the browser window will close itself and the connection between "
 "UCS and the Office 365 application will be established."
@@ -145,8 +146,9 @@ msgstr "Laden Sie das {link} für Microsoft Powershell herunter."
 msgid ""
 "Download the {link} which is used to prove the application’s identity when "
 "requesting a token."
-msgstr "Laden Sie den {link} herunter. Er wird verwendet um die Identität der"
-"Applikation, beim Holen eines Tokens, zu beweisen."
+msgstr ""
+"Laden Sie den {link} herunter. Er wird verwendet um die Identität "
+"derApplikation, beim Holen eines Tokens, zu beweisen."
 
 #: umc/js/office365.js:299
 msgid "Enter a name for your application, e.g. <i>UCS Office 365</i>."
@@ -176,7 +178,7 @@ msgstr ""
 "entsprechende Konten im Microsoft-Verzeichnis angelegt und ausgewählte "
 "Kontoattribute zu diesem synchronisiert."
 
-#: umc/js/office365.js:533
+#: umc/js/office365.js:540
 msgid "Help"
 msgstr "Hilfe"
 
@@ -228,10 +230,10 @@ msgid ""
 "i> and select the certificate file that was downloaded in the above step. "
 "Click on <i>Add</i> to add the certificate to the Azure app."
 msgstr ""
-"Klicken Sie in der Sektion <i>Zertifikate & Geheimnisse</i> auf <i>Zertifikat"
-" hochladen</i> und wählen Sie die im vorherigen Schritt heruntergeladene "
-"Zertifikatsdatei aus. Klicken Sie auf <i>Hinzufügen</i> um das Zertifikat "
-"zur Azure App hinzuzufügen."
+"Klicken Sie in der Sektion <i>Zertifikate & Geheimnisse</i> auf "
+"<i>Zertifikat hochladen</i> und wählen Sie die im vorherigen Schritt "
+"heruntergeladene Zertifikatsdatei aus. Klicken Sie auf <i>Hinzufügen</i> um "
+"das Zertifikat zur Azure App hinzuzufügen."
 
 #: umc/js/office365.js:318
 msgid ""
@@ -263,11 +265,22 @@ msgstr "Fügen Sie den kopierten Wert in die unten stehende Textbox ein."
 #, javascript-format
 msgid ""
 "Install the latest version of Microsoft Powershell, at least <a href=\"%s\" "
-"target=\"_blank\">Windows Management Framework 5.0</a> has to be installed."
+"target=\"_blank\">Windows Management Framework 5.1</a> has to be installed."
 msgstr ""
 "Installieren Sie auf Ihrem Windows PC die aktuellste Version von Microsoft "
 "Powershell. Es muss mindestens das <a href=\"%s\" target=\"_blank\">Windows "
-"Management Framework 5.0</a> installiert sein."
+"Management Framework 5.1</a> installiert sein."
+
+#: umc/js/office365.js:474
+msgid ""
+"It is necessary to <a href=\"https://%(url)s\">run this wizard while using "
+"the Univention Management Console with a https connection.</a> If you "
+"continue without a https connection, the wizard will likely not complete."
+msgstr ""
+"Es ist notwendig <a href=\"https://%(url)s\">den Einrichtungswizard in der "
+"Univention Management Console mit einer https Verbindung zu nutzen.</a> Wenn "
+"Sie ohne https Verbindung fortfahren, wird die Einrichtung wahrscheinlich "
+"nicht erfolgreich sein."
 
 #: umc/js/office365.js:286
 msgid ""
@@ -303,7 +316,7 @@ msgstr ""
 "Stellen Sie sicher, dass die neu erstellte Anwendung ausgewählt ist oder "
 "öffnen Sie sie durch einen Klick."
 
-#: umc/js/office365.js:541
+#: umc/js/office365.js:548
 msgid "Microsoft Office 365 setup wizard"
 msgstr "Microsoft Office 365 Einrichtungsassistent"
 
@@ -450,7 +463,7 @@ msgstr ""
 "Konfiguration des Office 365 Konto, eingerichtet wurde. Fügen Sie ihn in das "
 "unten stehende Eingabefeld ein."
 
-#: umc/js/office365.js:536
+#: umc/js/office365.js:543
 msgid ""
 "This wizard helps you to configure the connection between UCS and Microsoft "
 "Office 365."
@@ -569,6 +582,10 @@ msgstr ""
 "welche LDAP-Attribute (z.B. Vorname, Nachname, etc.) eines Benutzerkontos "
 "synchronisiert werden."
 
+#: umc/js/office365.js:477
+msgid "Warning"
+msgstr "Warnung"
+
 #: umc/js/office365.js:285
 msgid ""
 "Welcome to the <a href=\"https://products.office.com/\" target=\"_blank"
@@ -622,7 +639,7 @@ msgid "You may add or remove attributes from the list by using the %s."
 msgstr ""
 "Sie können mithilfe des %s Attribute von der Liste löschen oder hinzufügen."
 
-#: umc/js/office365.js:537
+#: umc/js/office365.js:544
 msgid ""
 "You need a <a href=\"%(domain)s\" target=\"_blank\">verified domain</a> and "
 "access to the <a href=\"%(dev)s\" target=\"_blank\">Microsoft Azure Portal</"
@@ -670,7 +687,11 @@ msgid ""
 msgstr ""
 "http://wiki.univention.de/index.php?title=Microsoft_Office_365_Connector"
 
-#: umc/js/office365.js:538
+#: umc/js/office365.js:356
+msgid "https://aka.ms/wmf5download"
+msgstr "https://aka.ms/wmf5download"
+
+#: umc/js/office365.js:545
 msgid ""
 "https://azure.microsoft.com/en-us/documentation/articles/active-directory-"
 "add-domain/"
@@ -678,17 +699,13 @@ msgstr ""
 "https://azure.microsoft.com/de-de/documentation/articles/active-directory-"
 "add-domain/"
 
-#: umc/js/office365.js:539
+#: umc/js/office365.js:546
 msgid "https://manage.windowsazure.com/"
 msgstr "https://manage.windowsazure.com/"
 
 #: umc/js/office365.js:355
 msgid "https://www.microsoft.com/download/details.aspx?id=40779"
 msgstr "https://www.microsoft.com/download/details.aspx?id=40779"
-
-#: umc/js/office365.js:356
-msgid "https://www.microsoft.com/en-us/download/details.aspx?id=50395"
-msgstr "https://www.microsoft.com/en-us/download/details.aspx?id=50395"
 
 #: umc/js/office365.js:357
 msgid "https://www.powershellgallery.com/packages/MSOnline"
