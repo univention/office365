@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-6) unstable; urgency=medium
+
+  * Bug #49416: Adapt setup wizard to current Azure API and Layout
+
+ -- Erik Damrose <damrose@univention.de>  Tue, 02 Jul 2019 14:36:31 +0200
+
 univention-office365 (2.0.2-5) unstable; urgency=medium
 
   * Bug #48237: Add SingleLogoutService to SAML configuration
