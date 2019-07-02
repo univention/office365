@@ -32,6 +32,7 @@ define([
 	"dojo/_base/declare",
 	"dojo/_base/lang",
 	"dojo/_base/array",
+	"dojo/aspect",
 	"dojo/dom-construct",
 	"dojo/Deferred",
 	"umc/tools",
@@ -45,13 +46,13 @@ define([
 	"umc/widgets/ProgressBar",
 	"umc/i18n!umc/modules/office365",
 	"xstyle/css!./office365.css"
-], function(declare, lang, array, domConstruct, Deferred, tools, dialog, Module, Wizard, Text, TextBox, Button, Uploader, ProgressBar, _) {
+], function(declare, lang, array, aspect, domConstruct, Deferred, tools, dialog, Module, Wizard, Text, TextBox, Button, Uploader, ProgressBar, _) {
 
 	var OfficeWizard = declare('umc.modules.office365.OfficeWizard', [Wizard], {
 
 		_uploadDeferred: null,
 		autoValidate: true,
-		autoFocus: true,
+		autoFocus: false,
 		authorizationurl: null,
 
 		constructor: function() {
@@ -136,7 +137,7 @@ define([
 					}, {
 						type: Text,
 						name: 'continue',
-						content: this.formatOrderedList([_('Continue by clicking on <i>Next</i>.')], {start: 5})
+						content: this.formatOrderedList([_('Continue by clicking on <i>Next</i>.')], {start: 7})
 					}]
 				}, {
 					name: 'manifest-upload',
@@ -553,6 +554,13 @@ define([
 		buildRendering: function() {
 			this.inherited(arguments);
 			this.addChild(this._wizard);
+		},
+
+		postCreate: function() {
+			this.inherited(arguments);
+			aspect.after(this._wizard, 'switchPage', lang.hitch(this, function() {
+				this._bottom.domNode.scrollTo(0, 0);
+			}));
 		}
 	});
 });
