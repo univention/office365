@@ -353,7 +353,7 @@ define([
 			return '<p>' + _('To finish configuration, single sign-on has to be configured for the Office 365 domain. Microsoft only supports to configure single sign-on by running a Microsoft Powershell script on a Windows PC.') + '</p>' + this.formatOrderedList([
 				_('If you open this setup wizard again at a later time, a link on the first page will take you back to this instructions.'),
 				_('To use the single sign-on script, your Windows PC must have at least installed the <a href="%s" target="_blank">.NET runtime environment version 4.5.1.</a>.', _('https://www.microsoft.com/download/details.aspx?id=40779')),
-				_('Install the latest version of Microsoft Powershell, at least <a href="%s" target="_blank">Windows Management Framework 5.0</a> has to be installed.', _('https://www.microsoft.com/en-us/download/details.aspx?id=50395')),
+				_('Install the latest version of Microsoft Powershell, at least <a href="%s" target="_blank">Windows Management Framework 5.1</a> has to be installed.', _('https://aka.ms/wmf5download')),
 				_('On your Windows PC, follow the <a href="%s" target="_blank">instructions from Microsoft PowerShell Gallery</a> to install the <i>Microsoft Online Services PowerShell for Azure Active Directory</i> module.', _('https://www.powershellgallery.com/packages/MSOnline')),
 				_('Make sure that the verified domain which is set up in Azure Active Directory is <b>not</b> configured as the primary domain. Otherwise, the next step will fail.'),
 				lang.replace(_('Download the {link} for Microsoft Powershell.'), {link: '<a href="/univention/command/office365/saml_setup.bat" target="_blank">' + _('SAML configuration script') + '</a>'}) + ' ' +
@@ -469,6 +469,13 @@ define([
 				}, function() {
 					return pageName;
 				});
+			} else if (nextPage == 'add-application') {
+				if (window.location.protocol != 'https:') {
+					dialog.alert(_('It is necessary to <a href="https://%(url)s">run this wizard while using the Univention Management Console with a https connection.</a> If you continue without a https connection, the wizard will likely not complete.', {
+								url: window.location.href.slice(7)	
+							}),
+						_('Warning'));
+				}
 			}
 			return nextPage;
 		},
