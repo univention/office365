@@ -149,6 +149,8 @@ class Office365Listener(object):
 			self.assign_subscription(new, new_user)
 		except AddLicenseError as exc:
 			logger.warn('Could not add license for subscription %r to user %r: %s', exc.user_id, exc.sku_id, exc.message)
+
+		self.ah.invalidate_all_tokens_for_user(new_user["objectId"])
 		return new_user
 
 	def delete_user(self, old):

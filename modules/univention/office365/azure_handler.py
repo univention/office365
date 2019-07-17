@@ -127,6 +127,7 @@ def _get_azure_uris(tenant_id):
 		domains="%s/domains?{params}" % graph_base_url,
 		domain="%s/domains({domain_name})?{params}" % graph_base_url,
 		tenantDetails="%s/tenantDetails?{params}" % graph_base_url,
+		invalidateTokens="%s/users/{user_id}/invalidateAllRefreshTokens" % graph_base_url,
 	)
 
 
@@ -301,6 +302,23 @@ class AzureHandler(object):
 			params = urllib.urlencode(azure_params)
 			url = self.uris[object_type + "s"].format(params=params)
 			return self.call_api("POST", url, attributes)
+
+	def invalidate_all_tokens_for_user(self, user_id):
+		# https://docs.microsoft.com/de-de/previous-versions/azure/ad/graph/api/users-operations#invalidate-all-refresh-tokens-for-a-user
+		params = urllib.urlencode(azure_params)
+		url = self.uris["invalidateTokens"].format(user_id=user_id, params=params)
+		return self.call_api("POST", url)
+
+	def reset_user_password(self, user_id):
+		# reset the user password to a random string, to reset the attribute when
+		# the last userpassword change happened, pwdLastSet. Bug #49699
+		pwdProfile = dict(
+			password=self.create_random_pw(),
+			forceChangePasswordNextLogin=False
+		),
+		params = urllib.urlencode(azure_params)
+		url = self.uris["user"].format(object_id=user_id, params=params)
+		return self.call_api("PATCH", url, pwdProfile)
 
 	def create_user(self, attributes):
 		"""
