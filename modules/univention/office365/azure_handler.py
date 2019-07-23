@@ -127,7 +127,7 @@ def _get_azure_uris(tenant_id):
 		domains="%s/domains?{params}" % graph_base_url,
 		domain="%s/domains({domain_name})?{params}" % graph_base_url,
 		tenantDetails="%s/tenantDetails?{params}" % graph_base_url,
-		invalidateTokens="%s/users/{user_id}/invalidateAllRefreshTokens" % graph_base_url,
+		invalidateTokens="%s/users/{user_id}/invalidateAllRefreshTokens?{params}" % graph_base_url,
 	)
 
 
@@ -193,7 +193,7 @@ class AzureHandler(object):
 		logger.debug(msg)
 
 		args = dict(url=url, headers=headers, verify=True, proxies=self.auth.proxies)
-		if method.upper() in ["PATCH", "POST"]:
+		if method.upper() in ["PATCH", "POST"] and data:
 			headers["Content-Type"] = "application/json"
 			args["data"] = json.dumps(data)
 
@@ -313,9 +313,11 @@ class AzureHandler(object):
 		# reset the user password to a random string, to reset the attribute when
 		# the last userpassword change happened, pwdLastSet. Bug #49699
 		pwdProfile = dict(
-			password=self.create_random_pw(),
-			forceChangePasswordNextLogin=False
-		),
+			passwordProfile=dict(
+				password=self.create_random_pw(),
+				forceChangePasswordNextLogin=False
+			)
+		)
 		params = urllib.urlencode(azure_params)
 		url = self.uris["user"].format(object_id=user_id, params=params)
 		return self.call_api("PATCH", url, pwdProfile)
