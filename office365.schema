@@ -35,13 +35,21 @@ attributetype ( 1.3.6.1.4.1.10176.4000.105
 	EQUALITY caseExactIA5Match
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
 
+attributetype ( 1.3.6.1.4.1.10176.4000.106
+	NAME 'univentionOffice365TokenResetDate'
+	DESC 'Date azure tokens should be invalidated (YYYYMMDD)'
+	SINGLE-VALUE
+	ORDERING integerOrderingMatch
+	EQUALITY integerMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )
+
 objectclass ( 1.3.6.1.4.1.10176.4000.100
 	NAME 'univentionOffice365'
 	DESC 'Data for the Office 365 provisioning service'
 	SUP top AUXILIARY
 	MAY ( univentionOffice365Enabled $ univentionOffice365ObjectID $
 	    univentionOffice365Data $ univentionOffice365userPrincipalName $
-	    univentionOffice365ProfileLink ) )
+	    univentionOffice365ProfileLink $ univentionOffice365TokenResetDate ) )
 
 attributetype ( 1.3.6.1.4.1.10176.4000.201
 	NAME 'office365ProfileName'
