@@ -1,0 +1,105 @@
+#!/usr/bin/env python2.7
+# -*- coding: utf-8 -*-
+#
+# Univention Office 365 - print users and groups
+#
+# Copyright 2016-2019 Univention GmbH
+#
+# http://www.univention.de/
+#
+# All rights reserved.
+#
+# The source code of this program is made available
+# under the terms of the GNU Affero General Public License version 3
+# (GNU AGPL V3) as published by the Free Software Foundation.
+#
+# Binary versions of this program provided by Univention to you as
+# well as other copyrighted, protected or trademarked materials like
+# Logos, graphics, fonts, specific documentations and configurations,
+# cryptographic keys etc. are subject to a license agreement between
+# you and Univention and not subject to the GNU AGPL V3.
+#
+# In the case you use this program under the terms of the GNU AGPL V3,
+# the program is provided in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public
+# License with the Debian GNU/Linux or Univention distribution in file
+# /usr/share/common-licenses/AGPL-3; if not, see
+# <http://www.gnu.org/licenses/>.
+
+from univention.config_registry import ConfigRegistry
+from univention.office365.azure_handler import AzureHandler
+import univention.admin.uldap
+import univention.admin.objects
+from optparse import OptionParser
+import traceback
+from datetime import datetime, timedelta
+from random import randrange
+
+
+# Query local LDAP for users that are activated for O365
+# invalidate all auth tokens for one or --max-modifications users
+if __name__ == '__main__':
+	ucr = ConfigRegistry()
+	ucr.load()
+
+	parser = OptionParser()
+	parser.add_option('-m', '--modify', dest='modify', action='store_true', help='Modify users, default: dry-run')
+	parser.add_option('-o', '--onlyone', dest='oneuser', help='option: uid; Only look at and modify one user (for testing purposes)')
+	parser.add_option('--max-modifications', dest='max_modifications', default=1000, help='Invalidate tokens for a maximum of X users (default: 1000, overwrite default with UCR office365/invalidate_tokens/max_modifications)')
+	options, args = parser.parse_args()
+
+	options.max_modifications = ucr.get("office365/invalidate_tokens/max_modifications", 1000)
+	modified_users = 0
+
+	# base period, after which user tokens get invalidated
+	base_reset_period = ucr.get("office365/invalidate_tokens/base_reset_period", 60)
+	# randomize the reset period for some days, so not everyone will be reset at the same time
+	# should also reduce runtime of script and azure API calls, as fewer modifications are necessary
+	reset_period_modifier = ucr.get("office365/invalidate_tokens/reset_period_modifier", 15)
+
+	base = ucr["ldap/base"]
+	ah = AzureHandler(ucr, "invalidatetokens")
+	lo, po = univention.admin.uldap.getAdminConnection()
+	univention.admin.modules.update()
+	usermod = univention.admin.modules.get('users/user')
+	univention.admin.modules.init(lo, po, usermod)
+	config = univention.admin.config.config()
+
+	today = datetime.today()
+	today_as_string = today.strftime("%Y%m%d")
+	lookup_attributes = ["univentionOffice365TokenResetDate", "univentionOffice365ObjectID", "uid"]
+
+	lookup_result = []
+	if options.oneuser:
+		lookup_result = lo.search(filter="(&(univentionObjectType=users/user)(uid=%s))" % options.uid, base=base, attr=lookup_attributes)
+	else:
+		lookup_result = lo.search(filter="(&(univentionOffice365Enabled=1)(univentionObjectType=users/user)(|(UniventionOffice365TokenResetDate<=%s)(!(UniventionOffice365TokenResetDate=*))))" % today_as_string, base=base, attr=lookup_attributes)
+
+	for ldap_user in lookup_result:
+		try:
+			if options.modify:
+				if modified_users >= options.max_modifications:
+					print "Modified %s users, exiting" % modified_users
+					exit(0)
+
+				ah.invalidate_all_tokens_for_user(user_id=ldap_user[1]["univentionOffice365ObjectID"][0])
+				# modify the ldap user, set the next modification date: base_reset_period + up to period_modifier days
+				next_mod_date = today + timedelta(days=base_reset_period + randrange(reset_period_modifier + 1))
+
+				if "univentionOffice365TokenResetDate" in ldap_user[1]:
+					ldap_user_old_reset_date = ldap_user[1]["univentionOffice365TokenResetDate"][0]
+				else:
+					ldap_user_old_reset_date = []
+
+				lo.modify(ldap_user[0], [('univentionOffice365TokenResetDate', ldap_user_old_reset_date, [next_mod_date.strftime("%Y%m%d")])])
+				modified_users += 1
+				print "Invalidate tokens for user: %s, next reset will be %s" % (ldap_user[1]["uid"], next_mod_date.strftime("%Y-%m-%d"))
+			else:
+				print "Would invalidate tokens for user: %s" % ldap_user[1]["uid"]
+		except Exception as ex:
+			traceback.print_exc()
+			exit(1)
