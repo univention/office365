@@ -1,3 +1,10 @@
+univention-office365 (2.0.2-7) unstable; urgency=medium
+
+  * Bug #49699: Add usertoken reset ldap attribute and cronjob
+    The script o365_usertokens handles the reset
+
+ -- Erik Damrose <damrose@univention.de>  Mon, 05 Aug 2019 17:38:36 +0200
+
 univention-office365 (2.0.2-6) unstable; urgency=medium
 
   * Bug #49416: Adapt setup wizard to current Azure API and Layout

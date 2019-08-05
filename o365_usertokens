@@ -49,20 +49,26 @@ if __name__ == '__main__':
 	parser = OptionParser()
 	parser.add_option('-m', '--modify', dest='modify', action='store_true', help='Modify users, default: dry-run')
 	parser.add_option('-o', '--onlyone', dest='oneuser', help='option: uid; Only look at and modify one user (for testing purposes)')
-	parser.add_option('--max-modifications', dest='max_modifications', default=1000, help='Invalidate tokens for a maximum of X users (default: 1000, overwrite default with UCR office365/invalidate_tokens/max_modifications)')
+	parser.add_option('-n', '--new-password', dest='newpassword', action='store_true', help='Set a new random password for the Azure AD user')
+	parser.add_option('-i', '--invalidate-tokens', dest='invalidatetokens', action='store_true', help='Invalidate login tokens, forcing reauthentication')
+	parser.add_option('--max-modifications', dest='max_modifications', default=1000, help='Invalidate tokens for a maximum of X users (default: 1000, overwrite default with UCR office365/tokens/max_modifications)')
 	options, args = parser.parse_args()
 
-	options.max_modifications = ucr.get("office365/invalidate_tokens/max_modifications", 1000)
+	if not options.newpassword and not options.invalidatetokens:
+		print "At least one option of --new-password or --invalidate-tokens is required"
+		exit(1)
+
+	options.max_modifications = ucr.get("office365/tokens/max_modifications", 1000)
 	modified_users = 0
 
 	# base period, after which user tokens get invalidated
-	base_reset_period = ucr.get("office365/invalidate_tokens/base_reset_period", 60)
+	base_reset_period = ucr.get("office365/tokens/base_reset_period", 60)
 	# randomize the reset period for some days, so not everyone will be reset at the same time
 	# should also reduce runtime of script and azure API calls, as fewer modifications are necessary
-	reset_period_modifier = ucr.get("office365/invalidate_tokens/reset_period_modifier", 15)
+	reset_period_modifier = ucr.get("office365/tokens/reset_period_modifier", 15)
 
 	base = ucr["ldap/base"]
-	ah = AzureHandler(ucr, "invalidatetokens")
+	ah = AzureHandler(ucr, "tokens")
 	lo, po = univention.admin.uldap.getAdminConnection()
 	univention.admin.modules.update()
 	usermod = univention.admin.modules.get('users/user')
@@ -75,7 +81,7 @@ if __name__ == '__main__':
 
 	lookup_result = []
 	if options.oneuser:
-		lookup_result = lo.search(filter="(&(univentionObjectType=users/user)(uid=%s))" % options.uid, base=base, attr=lookup_attributes)
+		lookup_result = lo.search(filter="(&(univentionObjectType=users/user)(uid=%s))" % options.oneuser, base=base, attr=lookup_attributes)
 	else:
 		lookup_result = lo.search(filter="(&(univentionOffice365Enabled=1)(univentionObjectType=users/user)(|(UniventionOffice365TokenResetDate<=%s)(!(UniventionOffice365TokenResetDate=*))))" % today_as_string, base=base, attr=lookup_attributes)
 
@@ -86,7 +92,11 @@ if __name__ == '__main__':
 					print "Modified %s users, exiting" % modified_users
 					exit(0)
 
-				ah.invalidate_all_tokens_for_user(user_id=ldap_user[1]["univentionOffice365ObjectID"][0])
+				if options.newpassword:
+					ah.reset_user_password(user_id=ldap_user[1]["univentionOffice365ObjectID"][0])
+				if options.invalidatetokens:
+					ah.invalidate_all_tokens_for_user(user_id=ldap_user[1]["univentionOffice365ObjectID"][0])
+
 				# modify the ldap user, set the next modification date: base_reset_period + up to period_modifier days
 				next_mod_date = today + timedelta(days=base_reset_period + randrange(reset_period_modifier + 1))
 
@@ -97,9 +107,9 @@ if __name__ == '__main__':
 
 				lo.modify(ldap_user[0], [('univentionOffice365TokenResetDate', ldap_user_old_reset_date, [next_mod_date.strftime("%Y%m%d")])])
 				modified_users += 1
-				print "Invalidate tokens for user: %s, next reset will be %s" % (ldap_user[1]["uid"], next_mod_date.strftime("%Y-%m-%d"))
+				print "Modified user: %s, next reset will be %s" % (ldap_user[1]["uid"], next_mod_date.strftime("%Y-%m-%d"))
 			else:
-				print "Would invalidate tokens for user: %s" % ldap_user[1]["uid"]
+				print "Would modify user: %s" % ldap_user[1]["uid"]
 		except Exception as ex:
 			traceback.print_exc()
 			exit(1)

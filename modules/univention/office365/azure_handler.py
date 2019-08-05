@@ -312,6 +312,7 @@ class AzureHandler(object):
 	def reset_user_password(self, user_id):
 		# reset the user password to a random string, to reset the attribute when
 		# the last userpassword change happened, pwdLastSet. Bug #49699
+		# "Either delegated scope User.ReadWrite.All or Directory.AccessAsUser.All is required to reset a user's password."
 		pwdProfile = dict(
 			passwordProfile=dict(
 				password=self.create_random_pw(),
