@@ -1,8 +1,6 @@
 #!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
 #
-# Univention Office 365 - print users and groups
-#
 # Copyright 2016-2019 Univention GmbH
 #
 # http://www.univention.de/
@@ -30,14 +28,21 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
+"""
+Univention Office 365 reset tokens
+"""
+
 from univention.config_registry import ConfigRegistry
 from univention.office365.azure_handler import AzureHandler
-import univention.admin.uldap
+from univention.office365.logging2udebug import get_logger
 import univention.admin.objects
 from optparse import OptionParser
 import traceback
 from datetime import datetime, timedelta
 from random import randrange
+import sys
+import logging
+from logging.handlers import SysLogHandler
 
 
 # Query local LDAP for users that are activated for O365
@@ -45,6 +50,14 @@ from random import randrange
 if __name__ == '__main__':
 	ucr = ConfigRegistry()
 	ucr.load()
+
+	logger = get_logger("office365", "o365")
+	_handler = logging.StreamHandler(sys.stdout)
+	_handler.setLevel(logging.INFO)
+	logger.addHandler(_handler)
+	_handler = SysLogHandler(address="/dev/log", facility=SysLogHandler.LOG_SYSLOG)
+	_handler.setLevel(logging.INFO)
+	logger.addHandler(_handler)
 
 	parser = OptionParser()
 	parser.add_option('-m', '--modify', dest='modify', action='store_true', help='Modify users, default: dry-run')
@@ -55,7 +68,7 @@ if __name__ == '__main__':
 	options, args = parser.parse_args()
 
 	if not options.newpassword and not options.invalidatetokens:
-		print "At least one option of --new-password or --invalidate-tokens is required"
+		logger.error("At least one option of --new-password or --invalidate-tokens is required")
 		exit(1)
 
 	options.max_modifications = ucr.get("office365/tokens/max_modifications", 1000)
@@ -68,12 +81,16 @@ if __name__ == '__main__':
 	reset_period_modifier = ucr.get("office365/tokens/reset_period_modifier", 15)
 
 	base = ucr["ldap/base"]
-	ah = AzureHandler(ucr, "tokens")
-	lo, po = univention.admin.uldap.getAdminConnection()
-	univention.admin.modules.update()
-	usermod = univention.admin.modules.get('users/user')
-	univention.admin.modules.init(lo, po, usermod)
-	config = univention.admin.config.config()
+	try:
+		ah = AzureHandler(ucr, "tokens")
+		lo, po = univention.admin.uldap.getAdminConnection()
+		univention.admin.modules.update()
+		usermod = univention.admin.modules.get('users/user')
+		univention.admin.modules.init(lo, po, usermod)
+		config = univention.admin.config.config()
+	except Exception as exc:
+		logger.exception("Failed to initilize Office 365 token reset script: %s", exc)
+		sys.exit(1)
 
 	today = datetime.today()
 	today_as_string = today.strftime("%Y%m%d")
@@ -89,7 +106,7 @@ if __name__ == '__main__':
 		try:
 			if options.modify:
 				if modified_users >= options.max_modifications:
-					print "Modified %s users, exiting" % modified_users
+					logger.info("Modified %s users, exiting", modified_users)
 					exit(0)
 
 				if options.newpassword:
@@ -107,9 +124,9 @@ if __name__ == '__main__':
 
 				lo.modify(ldap_user[0], [('univentionOffice365TokenResetDate', ldap_user_old_reset_date, [next_mod_date.strftime("%Y%m%d")])])
 				modified_users += 1
-				print "Modified user: %s, next reset will be %s" % (ldap_user[1]["uid"], next_mod_date.strftime("%Y-%m-%d"))
+				logger.info("Modified user: %s, next reset will be %s", ldap_user[1]["uid"][0], next_mod_date.strftime("%Y-%m-%d"))
 			else:
-				print "Would modify user: %s" % ldap_user[1]["uid"]
+				logger.info("Would modify user: %s", ldap_user[1]["uid"][0])
 		except Exception as ex:
 			traceback.print_exc()
 			exit(1)
