@@ -15,11 +15,11 @@ from univention.config_registry import handler_set, handler_unset
 
 from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user, setup_logging
 from univention.office365.listener import Office365Listener
-from univention.office365.azure_auth import AzureAuth, get_tenant_aliases
+from univention.office365.azure_auth import AzureAuth, AzureTenantHandler
 
 
 logger = setup_logging()
-tenant_aliases = get_tenant_aliases()
+tenant_aliases = AzureTenantHandler.get_tenant_aliases()
 initialized_tenants = [tenant_alias for tenant_alias in tenant_aliases if AzureAuth.is_initialized(tenant_alias)]
 
 print("*** tenant_aliases={!r}.".format(tenant_aliases))

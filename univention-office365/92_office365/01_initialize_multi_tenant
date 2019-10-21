@@ -15,19 +15,19 @@ import atexit
 import univention.testing.strings as uts
 import univention.testing.utils as utils
 
-from univention.office365.azure_auth import AzureAuth, get_conf_path
+from univention.office365.azure_auth import AzureAuth, AzureTenantHandler
 
 tenant1 = uts.random_username()
 tenant2 = uts.random_username()
 tenant3 = uts.random_username()
 
 for tenant in (tenant1, tenant2, tenant3):
-	CONFDIR = get_conf_path("CONFDIR", tenant)
+	CONFDIR = AzureTenantHandler.get_conf_path("CONFDIR", tenant)
 	print('*** tenant={!r} CONFDIR={!r}'.format(tenant, CONFDIR))
 	os.mkdir(CONFDIR)
 
 	DATETIME_FORMAT = "%Y-%m-%d_%H:%M:%S"
-	IDS_FILE = get_conf_path("IDS_FILE", tenant)
+	IDS_FILE = AzureTenantHandler.get_conf_path("IDS_FILE", tenant)
 	IDS_FILE_BAK = "{}.bak_{}".format(IDS_FILE, datetime.datetime.now().strftime(DATETIME_FORMAT.replace(" ", "_")))
 
 	try:
