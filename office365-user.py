@@ -40,7 +40,7 @@ import datetime
 from stat import S_IRUSR, S_IWUSR
 
 import listener
-from univention.office365.azure_auth import AzureAuth, get_tenant_aliases, NoIDsStored
+from univention.office365.azure_auth import AzureAuth, AzureTenantHandler, NoIDsStored
 from univention.office365.listener import Office365Listener, NoAllocatableSubscriptions, attributes_system, get_tenant_filter
 from univention.office365.udm_helper import UDMHelper
 from univention.office365.logging2udebug import get_logger
@@ -52,7 +52,7 @@ attributes_never = list()
 attributes_static = dict()
 attributes_sync = list()
 attributes_multiple_azure2ldap = dict()
-tenant_aliases = get_tenant_aliases()
+tenant_aliases = AzureTenantHandler.get_tenant_aliases()
 initialized_tenants = [_ta for _ta in tenant_aliases if AzureAuth.is_initialized(_ta)]
 
 logger = get_logger("office365", "o365")
