@@ -50,11 +50,13 @@ from cryptography.hazmat.backends import default_backend
 import OpenSSL.crypto
 import jwt
 from requests.exceptions import RequestException
+import subprocess
+import shutil
 
 from univention.lib.i18n import Translation
 from univention.office365.logging2udebug import get_logger
 from univention.config_registry.frontend import ucr_update
-from univention.config_registry import ConfigRegistry
+from univention.config_registry import ConfigRegistry, handler_set, handler_unset
 
 
 _ = Translation('univention-office365').translate
@@ -65,6 +67,7 @@ DEBUG_FORMAT = '%(asctime)s %(levelname)-8s %(module)s.%(funcName)s:%(lineno)d  
 LOG_DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 SAML_SETUP_SCRIPT_CERT_PATH = "/etc/simplesamlphp/ucs-sso.{domainname}-idp-certificate{tenant_alias}.crt"
 SAML_SETUP_SCRIPT_PATH = "/var/lib/univention-office365/saml_setup{tenant_alias}.bat"
+TENANT_CONF_BASEPATH = "/etc/univention-office365"
 
 oauth2_auth_url = "https://login.microsoftonline.com/{tenant}/oauth2/authorize?{params}"
 oauth2_token_url = "https://login.microsoftonline.com/{tenant_id}/oauth2/token"
@@ -80,34 +83,133 @@ ucr.load()
 logger = get_logger("office365", "o365")
 
 
-def get_conf_path(name, tenant_alias=None):
-	conf_dir = os.path.join('/etc/univention-office365', tenant_alias or '')
-	return {
-		'CONFDIR': conf_dir,
-		'SSL_KEY': os.path.join(conf_dir, "key.pem"),
-		'SSL_CERT': os.path.join(conf_dir, "cert.pem"),
-		'SSL_CERT_FP': os.path.join(conf_dir, "cert.fp"),
-		'IDS_FILE': os.path.join(conf_dir, "ids.json"),
-		'TOKEN_FILE': os.path.join(conf_dir, "token.json"),
-		'MANIFEST_FILE': os.path.join(conf_dir, "manifest.json"),
-	}[name]
+class AzureTenantHandler(object):
+	def __init__(self):
+		self.tenant = None
 
+	@classmethod
+	def listener_restart(self):
+		logger.info('Restarting univention-directory-listener service')
+		subprocess.call(['systemctl', 'restart', 'univention-directory-listener'])
 
-def get_tenant_aliases():
-	res = dict()
-	ucr.load()
-	for k, v in ucr.items():
-		if k.startswith(tenant_alias_ucrv):
-			res[k[len(tenant_alias_ucrv):]] = v
-	return res
+	@classmethod
+	def get_conf_path(self, name, tenant_alias):
+		conf_dir = os.path.join(TENANT_CONF_BASEPATH, tenant_alias)
+		if not os.path.exists(conf_dir):
+			logger.error('Config dir for tenant %s not found (%s)', tenant_alias, conf_dir)
+			return None
+		return {
+			'CONFDIR': conf_dir,
+			'SSL_KEY': os.path.join(conf_dir, "key.pem"),
+			'SSL_CERT': os.path.join(conf_dir, "cert.pem"),
+			'SSL_CERT_FP': os.path.join(conf_dir, "cert.fp"),
+			'IDS_FILE': os.path.join(conf_dir, "ids.json"),
+			'TOKEN_FILE': os.path.join(conf_dir, "token.json"),
+			'MANIFEST_FILE': os.path.join(conf_dir, "manifest.json"),
+		}[name]
 
+	@classmethod
+	def get_tenant_aliases(self):
+		res = dict()
+		ucr.load()
+		for k, v in ucr.items():
+			if k.startswith(tenant_alias_ucrv):
+				res[k[len(tenant_alias_ucrv):]] = v
+		return res
 
-def tenant_id_to_alias(tenant_id):
-	for alias, t_id in get_tenant_aliases().items():
-		if t_id == tenant_id:
-			return alias
-	logger.error('Unknown tenant ID %r.', tenant_id)
-	return None
+	@classmethod
+	def tenant_id_to_alias(self, tenant_id):
+		for alias, t_id in self.get_tenant_aliases().items():
+			if t_id == tenant_id:
+				return alias
+		logger.error('Unknown tenant ID %r.', tenant_id)
+		return None
+
+	@classmethod
+	def get_tenants(self):
+		res = []
+		aliases = self.get_tenant_aliases().items()
+		for alias, tenant_id in aliases:
+			confdir = self.get_conf_path('CONFDIR', alias)
+			res.append((alias, tenant_id, confdir))
+		return res
+
+	@classmethod
+	def configure_wizard_for_tenant(self, tenant_alias):
+		# configure UCR to let wizard configure this tenant
+		# TODO: Should be removed in the future, as the wizard should be able to configure
+		# tenants by itself
+		ucrv_set = '{}={}'.format(tenant_wizard_ucrv, tenant_alias)
+		handler_set([ucrv_set])
+		subprocess.call(['pkill', '-f', '/usr/sbin/univention-management-console-module -m office365'])
+
+	@classmethod
+	def create_new_tenant(self, tenant_alias):
+		aliases = self.get_tenant_aliases()
+		if tenant_alias in aliases:
+			logger.error('Tenant alias %s is already listed in UCR %s.', tenant_alias, tenant_alias_ucrv)
+			return None
+
+		target_path = os.path.join(TENANT_CONF_BASEPATH, tenant_alias)
+		if os.path.exists(target_path):
+			logger.error('Path %s already exists, but no UCR configuration for the tenant was found.', target_path)
+			return None
+
+		os.mkdir(target_path, 0o700)
+		os.chown(target_path, pwd.getpwnam('listener').pw_uid, 0)
+		for filename in ('cert.fp', 'cert.pem', 'key.pem'):
+			src = os.path.join(TENANT_CONF_BASEPATH, filename)
+			shutil.copy2(src, target_path)
+			os.chown(os.path.join(target_path, filename), pwd.getpwnam('listener').pw_uid, 0)
+
+		AzureAuth.uninitialize(tenant_alias)
+		ucrv_set = '{}{}=uninitialized'.format(tenant_alias_ucrv, tenant_alias)
+		handler_set([ucrv_set])
+		self.configure_wizard_for_tenant(tenant_alias)
+		self.listener_restart()
+
+	@classmethod
+	def rename_tenant(self, old_tenant_alias, new_tenant_alias):
+		aliases = self.get_tenant_aliases()
+		if old_tenant_alias not in aliases:
+			logger.error('Tenant alias %s is not listed in UCR %s.', old_tenant_alias, tenant_alias_ucrv)
+			return None
+		if new_tenant_alias in aliases:
+			logger.error('Tenant alias %s is already configured in UCR %s, cannot rename tenant %s.', new_tenant_alias, tenant_alias_ucrv, old_tenant_alias)
+			return None
+
+		new_tenant_path = os.path.join(TENANT_CONF_BASEPATH, new_tenant_alias)
+		if os.path.exists(new_tenant_path):
+			logger.error('The path for the target tenant name %s already exists, but no UCR configuration for the tenant was found.', new_tenant_path)
+			return None
+		old_tenant_path = os.path.join(TENANT_CONF_BASEPATH, old_tenant_alias)
+		if not os.path.exists(old_tenant_path):
+			logger.error('The path for the old tenant %s does not exist.', old_tenant_path)
+			return None
+
+		shutil.move(old_tenant_path, new_tenant_path)
+		ucrv_set = '{}={}'.format('%s%s' % (tenant_alias_ucrv, new_tenant_alias), ucr.get('%s%s' % (tenant_alias_ucrv, old_tenant_alias)))
+		handler_set([ucrv_set])
+		ucrv_unset = '%s%s' % (tenant_alias_ucrv, old_tenant_alias)
+		handler_unset([ucrv_unset])
+		self.listener_restart()
+
+	@classmethod
+	def remove_tenant(self, tenant_alias):
+		aliases = self.get_tenant_aliases()
+		# Checks
+		if tenant_alias not in aliases:
+			logger.error('Tenant alias %s is not listed in UCR %s.', tenant_alias, tenant_alias_ucrv)
+			return None
+
+		target_path = os.path.join(TENANT_CONF_BASEPATH, tenant_alias)
+		if not os.path.exists(target_path):
+			logger.info('Configuration files for the tenant in %s do not exist. Removing tenant anyway...', target_path)
+
+		shutil.rmtree(target_path)
+		ucrv_unset = '%s%s' % (tenant_alias_ucrv, tenant_alias)
+		handler_unset([ucrv_unset])
+		self.listener_restart()
 
 
 class AzureError(Exception):
@@ -167,7 +269,7 @@ class Manifest(object):
 
 	def __init__(self, fd, tenant_id, domain):
 		self.tenant_id = tenant_id
-		self.tenant_alias = tenant_id_to_alias(tenant_id)
+		self.tenant_alias = AzureTenantHandler.tenant_id_to_alias(tenant_id)
 		self.domain = domain
 		logger.info('Manifest() for tenant_alias=%r tenant_id=%r domain=%r', self.tenant_alias, tenant_id, domain)
 		try:
@@ -277,18 +379,18 @@ class AzureAuth(object):
 	@staticmethod
 	def uninitialize(tenant_alias=None):
 		logger.debug('tenant_alias=%r', tenant_alias)
-		JsonStorage(get_conf_path('IDS_FILE', tenant_alias)).purge()
-		JsonStorage(get_conf_path('TOKEN_FILE', tenant_alias)).purge()
+		JsonStorage(AzureTenantHandler.get_conf_path('IDS_FILE', tenant_alias)).purge()
+		JsonStorage(AzureTenantHandler.get_conf_path('TOKEN_FILE', tenant_alias)).purge()
 
 	@staticmethod
 	def load_azure_ids(tenant_alias=None):
-		return JsonStorage(get_conf_path('IDS_FILE', tenant_alias)).read()
+		return JsonStorage(AzureTenantHandler.get_conf_path('IDS_FILE', tenant_alias)).read()
 
 	@classmethod
 	def store_manifest(cls, manifest, tenant_alias=None):
-		with open(get_conf_path('MANIFEST_FILE', tenant_alias), 'wb') as fd:
+		with open(AzureTenantHandler.get_conf_path('MANIFEST_FILE', tenant_alias), 'wb') as fd:
 			json.dump(manifest.as_dict(), fd, indent=2, separators=(',', ': '), sort_keys=True)
-		os.chmod(get_conf_path('MANIFEST_FILE', tenant_alias), S_IRUSR | S_IWUSR)
+		os.chmod(AzureTenantHandler.get_conf_path('MANIFEST_FILE', tenant_alias), S_IRUSR | S_IWUSR)
 		cls.store_azure_ids(tenant_alias=tenant_alias, client_id=manifest.app_id, tenant_id=manifest.tenant_id, reply_url=manifest.reply_url, domain=manifest.domain)
 
 	@staticmethod
@@ -301,15 +403,15 @@ class AzureAuth(object):
 			except ValueError:
 				raise TenantIDError(_("Tenant-ID '{}' has wrong format.".format(tid)))
 
-		JsonStorage(get_conf_path('IDS_FILE', tenant_alias)).write(**kwargs)
+		JsonStorage(AzureTenantHandler.get_conf_path('IDS_FILE', tenant_alias)).write(**kwargs)
 
 	@staticmethod
 	def load_tokens(tenant_alias=None):
-		return JsonStorage(get_conf_path('TOKEN_FILE', tenant_alias)).read()
+		return JsonStorage(AzureTenantHandler.get_conf_path('TOKEN_FILE', tenant_alias)).read()
 
 	@staticmethod
 	def store_tokens(tenant_alias=None, **kwargs):
-		JsonStorage(get_conf_path('TOKEN_FILE', tenant_alias)).write(**kwargs)
+		JsonStorage(AzureTenantHandler.get_conf_path('TOKEN_FILE', tenant_alias)).write(**kwargs)
 
 	@staticmethod
 	def get_http_proxies():
@@ -534,7 +636,7 @@ class AzureAuth(object):
 
 	def _get_client_assertion(self):
 		def _load_certificate_fingerprint():
-			with open(get_conf_path('SSL_CERT_FP', self.tenant_alias), "r") as fd:
+			with open(AzureTenantHandler.get_conf_path('SSL_CERT_FP', self.tenant_alias), "r") as fd:
 				fp = fd.read()
 			return fp.strip()
 
@@ -546,7 +648,7 @@ class AzureAuth(object):
 			return '{0}.{1}'.format(encoded_header, encoded_payload)  # <base64-encoded-header>.<base64-encoded-payload>
 
 		def _get_key_file_data():
-			with open(get_conf_path('SSL_KEY', self.tenant_alias), "rb") as pem_file:
+			with open(AzureTenantHandler.get_conf_path('SSL_KEY', self.tenant_alias), "rb") as pem_file:
 				key_data = pem_file.read()
 			return key_data
 
