@@ -1,0 +1,20 @@
+[
+	{
+		"input_files": [
+			"modules/univention/handler.d/.*.py",
+			"modules/univention/syntax.d/.*.py",
+			"office365_userPrincipalName_hook.py"
+		],
+		"po_subdir": "modules/univention/handler.d",
+		"target_type": "mo",
+		"destination": "usr/share/univention-office365/handler.d/de.mo"
+	},
+	{
+		"input_files": [
+			"modules/univention/office365/*.py"
+		],
+		"po_subdir": "modules/univention/office356",
+		"target_type": "mo",
+		"destination": "usr/share/locale/de/LC_MESSAGES/univention-office365.mo"
+	}
+]

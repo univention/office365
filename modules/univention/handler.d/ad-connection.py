@@ -1,7 +1,7 @@
 #!/usr/bin/python2.7
 # -*- coding: utf-8 -*-
 #
-# Copyright 2013-2019 Univention GmbH
+# Copyright 2019 Univention GmbH
 #
 # http://www.univention.de/
 #
@@ -36,61 +36,46 @@ import univention.admin.syntax
 translation = univention.admin.localization.translation('univention-admin-handlers-office356')
 _ = translation.translate
 
-module = 'settings/office365profile'
+module = 'office365/ad-connection'
 childs = False
-short_description = _(u'Office 365 Profile')
-long_description = _(u'Management of office 365 profiles')
+short_description = _(u'Office 365 Azure AD Connection')
+long_description = _(u'Management of Office 365 Azure AD connections')
 operations = ['add', 'edit', 'remove', 'search', 'move']
-default_containers = ["cn=profiles,cn=office365"]
+default_containers = ["cn=ad-connections,cn=office365"]
 
 options = {
 	'default': univention.admin.option(
 		short_description='',
-		objectClasses=['univentionOffice365Profile'],
+		objectClasses=['univentionOffice365ADConnection'],
 	),
 }
 
 property_descriptions = {
 	'name': univention.admin.property(
-		short_description=_(u'Profile name'),
-		long_description=_(u'Displayed profile name when selecting a profile'),
+		short_description=_(u'Name'),
+		long_description=_(u'Alias name of the connection.'),
 		syntax=univention.admin.syntax.string,
 		required=True,
+		may_change=False,
 		identifies=True,
 	),
-	'subscription': univention.admin.property(
-		short_description=_(u'Subscription identifier'),
-		long_description=_(u'Internal Name of the subscription, as shown by cli tool'),
+	'description': univention.admin.property(
+		short_description=_(u'Description'),
+		long_description='',
 		syntax=univention.admin.syntax.string,
-		required=True,
-	),
-	'whitelisted_plans': univention.admin.property(
-		short_description=_(u'Service plan whitelist'),
-		long_description=_(u'Identifiers of service plans, which will be activated for the profile'),
-		syntax=univention.admin.syntax.string,
-		multivalue=True,
-	),
-	'blacklisted_plans': univention.admin.property(
-		short_description=_('Service plan blacklist'),
-		long_description=_('Identifiers of service plans, which will be deactivated for the profile'),
-		syntax=univention.admin.syntax.string,
-		multivalue=True,
 	),
 }
 
 layout = [
-	Tab(_(u'General'), _(u'Office 365 Profile'), layout=[
-		['name'], ['subscription'],
-		['whitelisted_plans'],
-		['blacklisted_plans'],
+	Tab(_(u'General'), _(u'Office 365 Azure AD Alias'), layout=[
+		['name'],
+		['description'],
 	]),
 ]
 
 mapping = univention.admin.mapping.mapping()
-mapping.register('name', 'office365ProfileName', None, univention.admin.mapping.ListToString)
-mapping.register('subscription', 'office365ProfileSubscription', None, univention.admin.mapping.ListToString)
-mapping.register('whitelisted_plans', 'office365ProfileWhitelist', None, None)
-mapping.register('blacklisted_plans', 'office365ProfileBlacklist', None, None)
+mapping.register('name', 'cn', None, univention.admin.mapping.ListToString)
+mapping.register('description', 'description', None, None)
 
 
 class object(univention.admin.handlers.simpleLdap):
@@ -103,7 +88,7 @@ except AttributeError:
 	# UCS < 4.2-2 errata206
 	def lookup(co, lo, filter_s, base='', superordinate=None, scope='sub', unique=0, required=0, timeout=-1, sizelimit=0):
 		searchfilter = univention.admin.filter.conjunction('&', [
-			univention.admin.filter.expression('objectClass', 'univentionOffice365Profile'),
+			univention.admin.filter.expression('objectClass', 'univentionOffice365ADConnection'),
 		])
 
 		if filter_s:
@@ -111,10 +96,7 @@ except AttributeError:
 			univention.admin.filter.walk(filter_p, univention.admin.mapping.mapRewrite, arg=mapping)
 			searchfilter.expressions.append(filter_p)
 
-		res = []
-		for dn in lo.searchDn(unicode(searchfilter), base, scope, unique, required, timeout, sizelimit):
-			res.append(object(co, lo, None, dn))
-		return res
+		return [object(co, lo, None, dn, attr) for dn, attr in lo.search(unicode(searchfilter), base, scope, unique, required, timeout, sizelimit)]
 
 
 try:
@@ -122,4 +104,4 @@ try:
 except AttributeError:
 	# UCS < 4.4-0-errata102
 	def identify(distinguished_name, attributes, canonical=False):
-		return 'univentionOffice365Profile' in attributes.get('objectClass', [])
+		return 'univentionOffice365ADConnection' in attributes.get('objectClass', [])
