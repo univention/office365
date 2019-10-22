@@ -30,7 +30,7 @@
 import univention.admin.localization
 from univention.admin.syntax import UDM_Objects
 
-translation = univention.admin.localization.translation('univentionOffice365')
+translation = univention.admin.localization.translation('univention-admin-handlers-office356')
 _ = translation.translate
 
 
@@ -40,5 +40,15 @@ class univentionOffice365ProfileSyntax(UDM_Objects):
 	key = 'dn'
 	label = '%(name)s'
 	udm_filter = '(objectClass=univentionOffice365Profile)'
+	simple = True
+	regex = None
+
+
+class univentionOffice365ADConnection(UDM_Objects):
+	empty_value = True
+	udm_modules = ('office365/ad-connection', )
+	key = 'dn'
+	label = '%(name)s'
+	udm_filter = '(objectClass=univentionOffice365ADConnection)'
 	simple = True
 	regex = None

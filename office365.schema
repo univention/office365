@@ -92,3 +92,10 @@ objectclass ( 1.3.6.1.4.1.10176.4000.200
 	SUP top STRUCTURAL
 	MAY ( office365ProfileName $ office365ProfileSubscription $
 	      office365ProfileWhitelist $ office365ProfileBlacklist ) )
+
+objectclass ( 1.3.6.1.4.1.10176.4000.300
+	NAME 'univentionOffice365ADConnection'
+	DESC ''
+	SUP top STRUCTURAL
+	MUST ( cn )
+	MAY ( description ) )

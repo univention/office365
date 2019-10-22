@@ -77,12 +77,16 @@ if ! joinscript_check_any_version_executed || [ -n "$FORCE_NEW_CERT" ]; then
     chmod 0400 key.pem cert.pem cert.fp
 fi
 
+if joinscript_check_version_in_range_executed 1 5; then
+	ucs_unregisterLDAPExtension --udm_syntax univentionOffice365ProfileSyntax
+fi
 ucs_addServiceToLocalhost "univention-office365" "$@" || die
 
 ucs_registerLDAPExtension "$@" --schema /usr/share/univention-office365/office365.schema || die
-ucs_registerLDAPExtension "$@" --udm_syntax /usr/share/univention-office365/syntax.d/univentionOffice365ProfileSyntax.py || die
+ucs_registerLDAPExtension "$@" --udm_syntax /usr/share/univention-office365/syntax.d/office356.py || die
 ucs_registerLDAPExtension "$@" --udm_module /usr/share/univention-office365/handler.d/office365profile.py \
 	--messagecatalog /usr/share/univention-office365/handler.d/de.mo || die
+ucs_registerLDAPExtension "$@" --udm_module /usr/share/univention-office365/handler.d/ad-connection.py || die
 
 udm container/cn create "$@" --ignore_exists \
 	--position="$ldap_base" \
@@ -93,6 +97,11 @@ udm container/cn create "$@" --ignore_exists \
 	--position="cn=office365,$ldap_base" \
 	--set name="profiles" \
 	--set description="Container for Office 365 profiles" || die
+
+udm container/cn create "$@" --ignore_exists \
+	--position="cn=office365,$ldap_base" \
+	--set name="ad-connections" \
+	--set description="Container for Office 365 connections" || die
 
 # Create first Profile
 udm settings/office365profile create "$@" --ignore_exists \
@@ -275,7 +284,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set tabName="Office 365" \
 	--set translationTabName='"de_DE" "Office 365"' \
 	--set module="users/user" \
-	--set syntax=string_numbers_letters_dots \
+	--set syntax=univentionOffice365ADConnection \
 	--set default="" \
 	--set multivalue=0 \
 	--set valueRequired=0 \
@@ -301,7 +310,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set tabName="Office 365" \
 	--set tabPosition=2 \
 	--set translationTabName='"de_DE" "Office 365"' \
-	--set syntax=string_numbers_letters_dots \
+	--set syntax=univentionOffice365ADConnection \
 	--set default="" \
 	--set multivalue=0 \
 	--set valueRequired=0 \
