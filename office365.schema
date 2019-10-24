@@ -47,7 +47,6 @@ attributetype ( 1.3.6.1.4.1.10176.4000.107
 	NAME 'univentionOffice365ADConnectionAlias'
 	DESC 'Alias of the tenant to use for syncing this user to Azure AD'
 	EQUALITY caseExactIA5Match
-	SINGLE-VALUE
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
 
 objectclass ( 1.3.6.1.4.1.10176.4000.100
