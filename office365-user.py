@@ -300,8 +300,8 @@ def handler(dn, new, old, command):
 	elif command == 'a':
 		old = load_old(old)
 
-	tenant_alias_old = old.get('univentionOffice365TenantAlias', [None])[0]
-	tenant_alias_new = new.get('univentionOffice365TenantAlias', [None])[0]
+	tenant_alias_old = old.get('univentionOffice365ADConnectionAlias', [None])[0]
+	tenant_alias_new = new.get('univentionOffice365ADConnectionAlias', [None])[0]
 	tenant_alias = tenant_alias_new or tenant_alias_old
 	logger.info('tenant_alias_old=%r tenant_alias_new=%r', tenant_alias_old, tenant_alias_new)
 

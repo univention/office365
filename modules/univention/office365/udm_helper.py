@@ -169,7 +169,7 @@ class UDMHelper(object):
 		else:
 			raise ValueError("Argument 'enabled' must have value '', '0' or '1'.")
 		if tenant_alias:
-			tenant_filter = filter_format('(univentionOffice365TenantAlias=%s)', (tenant_alias,))
+			tenant_filter = filter_format('(univentionOffice365ADConnectionAlias=%s)', (tenant_alias,))
 		else:
 			tenant_filter = ''
 
@@ -188,7 +188,7 @@ class UDMHelper(object):
 		:return: dict: dn(str) -> attributes(dict)
 		"""
 		if tenant_alias:
-			tenant_filter = filter_format('(univentionOffice365TenantAlias=%s)', (tenant_alias,))
+			tenant_filter = filter_format('(univentionOffice365ADConnectionAlias=%s)', (tenant_alias,))
 		else:
 			tenant_filter = ''
 		filter_s = '(&(objectClass=posixGroup)(objectClass=univentionOffice365)(cn=*)(univentionOffice365ObjectID=*){}{})'.format(tenant_filter, additional_filter)

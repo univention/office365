@@ -56,7 +56,7 @@ $ systemctl restart univention-directory-listener.service
 
 
 If office365/tenant/filter were set to "tenant1 tenant2", the log file would have a line:
-LISTENER    ( PROCESS ) : o365: office 365 user listener active with filter='(&(objectClass=posixAccount)(objectClass=univentionOffice365)(uid=*)(|(univentionOffice365TenantAlias=tenant1)(univentionOffice365TenantAlias=tenant2)))'
+LISTENER    ( PROCESS ) : o365: office 365 user listener active with filter='(&(objectClass=posixAccount)(objectClass=univentionOffice365)(uid=*)(|(univentionOffice365ADConnectionAlias=tenant1)(univentionOffice365ADConnectionAlias=tenant2)))'
 
 Limitations
 -----------

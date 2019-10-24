@@ -102,7 +102,7 @@ if __name__ == '__main__':
 	users = UDMHelper.get_lo_o365_users(
 		attributes=['uid', 'univentionOffice365Enabled', 'univentionOffice365ObjectID', 'ucsschoolSchool'],
 		enabled='',
-		additional_filter='(!(univentionOffice365TenantAlias=*))'
+		additional_filter='(!(univentionOffice365ADConnectionAlias=*))'
 	)
 	print('Found the following users:\n')
 	print('       username      | enabled |  schools   | Azure object ID')
@@ -122,14 +122,14 @@ if __name__ == '__main__':
 			attr = users[dn]
 			print('Changing {} ({})...'.format(attr['uid'][0], dn))
 			if not args.dryrun:
-				lo.modify(dn, [('univentionOffice365TenantAlias', None, args.tenant_alias)])
+				lo.modify(dn, [('univentionOffice365ADConnectionAlias', None, args.tenant_alias)])
 	else:
 		print('No users found.')
 	print('Finished migrating users.\n')
 
 	groups = UDMHelper.get_lo_o365_groups(
 		attributes=['cn', 'univentionOffice365ObjectID'],
-		additional_filter='(!(univentionOffice365TenantAlias=*))'
+		additional_filter='(!(univentionOffice365ADConnectionAlias=*))'
 	)
 	print('Found the following groups:\n')
 	print('           group name          | Azure object ID')
@@ -147,7 +147,7 @@ if __name__ == '__main__':
 			attr = groups[dn]
 			print('Changing {} ({})...'.format(attr['cn'][0], dn))
 			if not args.dryrun:
-				lo.modify(dn, [('univentionOffice365TenantAlias', None, args.tenant_alias)])
+				lo.modify(dn, [('univentionOffice365ADConnectionAlias', None, args.tenant_alias)])
 	else:
 		print('No groups found.')
 	print('Finished migrating groups.\n')

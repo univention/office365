@@ -44,7 +44,7 @@ attributetype ( 1.3.6.1.4.1.10176.4000.106
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )
 
 attributetype ( 1.3.6.1.4.1.10176.4000.107
-	NAME 'univentionOffice365TenantAlias'
+	NAME 'univentionOffice365ADConnectionAlias'
 	DESC 'Alias of the tenant to use for syncing this user to Azure AD'
 	EQUALITY caseExactIA5Match
 	SINGLE-VALUE
@@ -57,7 +57,7 @@ objectclass ( 1.3.6.1.4.1.10176.4000.100
 	MAY ( univentionOffice365Enabled $ univentionOffice365ObjectID $
 	    univentionOffice365Data $ univentionOffice365userPrincipalName $
 	    univentionOffice365ProfileLink $ univentionOffice365TokenResetDate $
-	    univentionOffice365TenantAlias
+	    univentionOffice365ADConnectionAlias
 	) )
 
 attributetype ( 1.3.6.1.4.1.10176.4000.201

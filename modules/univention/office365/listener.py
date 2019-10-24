@@ -52,7 +52,7 @@ attributes_system = set((
 	"shadowLastChange",
 	"shadowMax",
 	"univentionOffice365Enabled",
-	"univentionOffice365TenantAlias",
+	"univentionOffice365ADConnectionAlias",
 	"userexpiry",
 	"userPassword",
 ))  # set literals unknown in python 2.6
@@ -70,7 +70,7 @@ def get_tenant_filter(ucr, tenant_aliases):
 			raise Exception('Tenant alias {!r} from UCR {!r} not listed in UCR {!r}. Exiting.'.format(alias, tenant_filter_ucrv, tenant_alias_ucrv))
 		if not AzureAuth.is_initialized(alias):
 			raise Exception('Tenant alias {!r} from UCR {!r} is not initialized. Exiting.'.format(alias, tenant_filter_ucrv))
-		res += filter_format('(univentionOffice365TenantAlias=%s)', (alias,))
+		res += filter_format('(univentionOffice365ADConnectionAlias=%s)', (alias,))
 	if len(res.split('=')) > 2:
 		res = '(|{})'.format(res)
 	return res
@@ -349,7 +349,7 @@ class Office365Listener(object):
 			modification_attributes = dict()
 			udm_group = self.udm.get_udm_group(self.dn)
 			udm_group["UniventionOffice365ObjectID"] = group_id
-			udm_group["UniventionOffice365TenantAlias"] = self.tenant_alias
+			udm_group["UniventionOffice365ADConnectionAlias"] = self.tenant_alias
 			udm_group.modify()
 
 		try:
@@ -394,7 +394,7 @@ class Office365Listener(object):
 						udm_user["UniventionOffice365ObjectID"] and
 						(
 							not self.tenant_alias or
-							udm_user["UniventionOffice365TenantAlias"] == self.tenant_alias
+							udm_user["UniventionOffice365ADConnectionAlias"] == self.tenant_alias
 						)
 					):
 						users_and_groups_to_add.append(udm_user["UniventionOffice365ObjectID"])
@@ -407,7 +407,7 @@ class Office365Listener(object):
 						if not udm_group_with_azure_users.get("UniventionOffice365ObjectID"):
 							new_group = self.create_group_from_ldap(group_with_azure_users)
 							udm_group_with_azure_users["UniventionOffice365ObjectID"] = new_group["objectId"]
-							udm_group_with_azure_users["UniventionOffice365TenantAlias"] = self.tenant_alias
+							udm_group_with_azure_users["UniventionOffice365ADConnectionAlias"] = self.tenant_alias
 							udm_group_with_azure_users.modify()
 						if group_with_azure_users in udm_group["nestedGroup"]:  # only add direct members to group
 							users_and_groups_to_add.append(udm_group_with_azure_users["UniventionOffice365ObjectID"])
@@ -501,7 +501,7 @@ class Office365Listener(object):
 				if not udm_group.get("UniventionOffice365ObjectID"):
 					new_group = self.create_group_from_ldap(group_with_azure_users_dn, add_members=False)
 					udm_group["UniventionOffice365ObjectID"] = new_group["objectId"]
-					udm_group["UniventionOffice365TenantAlias"] = self.tenant_alias
+					udm_group["UniventionOffice365ADConnectionAlias"] = self.tenant_alias
 					udm_group.modify()
 				if group_with_azure_users_dn in udm_target_group["nestedGroup"]:
 					users_and_groups_to_add.append(udm_group["UniventionOffice365ObjectID"])
@@ -517,7 +517,7 @@ class Office365Listener(object):
 				if not udm_member.get("UniventionOffice365ObjectID"):
 					new_group = self.create_group_from_ldap(member_dn, add_members=False)
 					udm_member["UniventionOffice365ObjectID"] = new_group["objectId"]
-					udm_member["UniventionOffice365TenantAlias"] = self.tenant_alias
+					udm_member["UniventionOffice365ADConnectionAlias"] = self.tenant_alias
 					udm_member.modify()
 				_groups_up_the_tree(udm_member)
 

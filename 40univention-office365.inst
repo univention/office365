@@ -282,10 +282,10 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 
 udm settings/extended_attribute create "$@" --ignore_exists \
 	--position "cn=custom attributes,cn=univention,$ldap_base" \
-	--set name="UniventionOffice365TenantAlias" \
-	--set CLIName="UniventionOffice365TenantAlias" \
-	--set shortDescription="Tenant alias" \
-	--set translationShortDescription='"de_DE" "Mandanten (tenant) alias"' \
+	--set name="UniventionOffice365ADConnectionAlias" \
+	--set CLIName="UniventionOffice365ADConnectionAlias" \
+	--set shortDescription="Active Directory connection alias" \
+	--set translationShortDescription='"de_DE" "Active Directory Verbindungs-Alias"' \
 	--set longDescription="Alias of the tenant to use for syncing this user to Azure AD" \
 	--set translationLongDescription='"de_DE" "Alias des zu nutzenden Mandanten (tenant) zum Synchronisieren dieses Benutzers zum Azure AD."' \
 	--set tabAdvanced=0 \
@@ -299,7 +299,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set mayChange=1 \
 	--set doNotSearch=1 \
 	--set objectClass=univentionOffice365 \
-	--set ldapMapping=univentionOffice365TenantAlias \
+	--set ldapMapping=univentionOffice365ADConnectionAlias \
 	--set deleteObjectClass=0 \
 	--set overwriteTab=0 \
 	--set disableUDMWeb=0 \
@@ -307,10 +307,10 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 
 udm settings/extended_attribute create "$@" --ignore_exists \
 	--position "cn=custom attributes,cn=univention,$ldap_base" \
-	--set name="UniventionOffice365GroupTenantAlias" \
-	--set CLIName="UniventionOffice365TenantAlias" \
-	--set shortDescription="Tenant alias" \
-	--set translationShortDescription='"de_DE" "Mandanten (tenant) alias"' \
+	--set name="UniventionOffice365GroupADConnectionAlias" \
+	--set CLIName="UniventionOffice365ADConnectionAlias" \
+	--set shortDescription="Active Directory connection alias" \
+	--set translationShortDescription='"de_DE" "Active Directory Verbindungs-Alias"' \
 	--set longDescription="Alias of the tenant to use for syncing this group to Azure AD" \
 	--set translationLongDescription='"de_DE" "Alias des zu nutzenden Mandanten (tenant) zum Synchronisieren dieser Gruppe zum Azure AD."' \
 	--set module="groups/group" \
@@ -325,7 +325,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set mayChange=1 \
 	--set doNotSearch=1 \
 	--set objectClass=univentionOffice365 \
-	--set ldapMapping=univentionOffice365TenantAlias \
+	--set ldapMapping=univentionOffice365ADConnectionAlias \
 	--set deleteObjectClass=0 \
 	--set overwriteTab=0 \
 	--set disableUDMWeb=0 || die
