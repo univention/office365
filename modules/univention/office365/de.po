@@ -1,87 +1,71 @@
+#
 msgid ""
 msgstr ""
-"Content-Type: text/plain; charset=UTF-8\n"
-"MIME-Version: 1.0\n"
+"Project-Id-Version: univention-office365\n"
+"Report-Msgid-Bugs-To: packages@univention.de\n"
+"POT-Creation-Date: 2019-10-24 18:41+0200\n"
+"PO-Revision-Date: 2019-10-24 18:35+0200\n"
+"Last-Translator: Univention GmbH <packages@univention.de>\n"
+"Language-Team: Univention GmbH <packages@univention.de>\n"
 "Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
 
-msgid ""
-"Could not read certificate. Please make sure the joinscript 40univention-"
-"office365.inst is executed successfully or execute it again."
-msgstr ""
-"Konnte Zertifikat nicht lesen. Bitte stellen Sie sicher, dass das Joinskript "
-"40univention-office365.inst erfolgreich ausgeführt wurde oder führen Sie es "
-"erneut aus."
-
+#: modules/univention/office365/azure_auth.py:714
 msgid "Error converting identity provider certificate."
 msgstr "Fehler beim Umwandeln des Identity Provider Zertifikates."
 
+#: modules/univention/office365/azure_auth.py:534
 #, python-brace-format
 msgid ""
-"Error downloading certificates from Azure for tenant {tenant}. Please run the "
-"wizard again."
+"Error downloading certificates from Azure for tenant {tenant}. Please run "
+"the wizard again."
 msgstr ""
 "Fehler beim Herunterladen der Zertifikate von Azure für Mandant {tenant}. "
 "Bitte führen Sie den Einrichtungsassistent erneut aus."
 
-msgid "Error downloading certificates from Azure. Please run the wizard again."
-msgstr ""
-"Fehler beim herunterladen der Zertifikate nicht von Azure. Bitte führen Sie "
-"den Einrichtungsassistent erneut aus."
-
-msgid "Error reading certificates from Azure. Please run the wizard again."
-msgstr ""
-"Fehler beim lesen von Azures Zertifikaten. Bitte führen Sie den "
-"Einrichtungsassistent erneut aus."
-
+#: modules/univention/office365/azure_auth.py:553
 #, python-brace-format
 msgid ""
 "Error reading certificates of tenant {tenant} from Azure. Please run the "
 "wizard again."
 msgstr ""
-"Fehler beim Lesen von Azures Zertifikaten für Mandant {tenant}. Bitte führen "
-"Sie den Einrichtungsassistent erneut aus."
+"Fehler beim Lesen von Azures Zertifikaten für Mandant {tenant}. Bitte führen"
+" Sie den Einrichtungsassistent erneut aus."
 
+#: modules/univention/office365/azure_auth.py:708
 msgid "Error reading identity provider certificate."
 msgstr "Fehler beim Lesen des Identity Provider Zertifikates"
 
+#: modules/univention/office365/azure_auth.py:520
 #, python-brace-format
 msgid ""
 "Error reading token of tenant {tenant} received from Azure. Please run the "
 "wizard again."
 msgstr ""
-"Fehler beim lesen von Azures Token für Mandant {tenant}. Bitte führen Sie den "
-"Einrichtungsassistent erneut aus."
+"Fehler beim lesen von Azures Token für Mandant {tenant}. Bitte führen Sie "
+"den Einrichtungsassistent erneut aus."
 
-msgid "Error reading token received from Azure. Please run the wizard again."
-msgstr ""
-"Fehler beim lesen von Azures Token. Bitte führen Sie den "
-"Einrichtungsassistent erneut aus."
-
+#: modules/univention/office365/azure_auth.py:623
+#: modules/univention/office365/azure_auth.py:635
 #, python-brace-format
 msgid "Error retrieving authentication token from Azure for tenant {tenant}."
 msgstr ""
 "Fehler beim Abrufen eines Authentifizierungs-Tokens von Azure für Mandant "
 "{tenant}."
 
-msgid "Error retrieving authentication token from Azure."
-msgstr "Fehler beim Abrufen eines Authentifizierungs-Tokens von Azure."
-
+#: modules/univention/office365/azure_auth.py:733
 msgid "Error writing SAML setup script."
 msgstr "Fehler beim Schreiben des SAML Installations-Skriptes."
 
-msgid "Office 365 users must have a primary e-mail address specified."
-msgstr "Office 365 Benutzer müssen eine primäre E-Mail-Adresse besitzen."
-
+#: modules/univention/office365/azure_auth.py:404
 msgid "Tenant-ID '{}' has wrong format."
 msgstr "Tenant-ID '{}' hat ein ungültiges Format."
 
-msgid ""
-"The configuration is incomplete and misses some data. Please run the wizard "
-"again."
-msgstr ""
-"Die Konfiguration ist unvollständig, da einige Daten fehlen. Bitte führen Sie "
-"den Einrichtungsassistent erneut aus."
-
+#: modules/univention/office365/azure_auth.py:358
+#: modules/univention/office365/azure_auth.py:479
+#: modules/univention/office365/azure_auth.py:594
 #, python-brace-format
 msgid ""
 "The configuration of tenant {tenant} is incomplete and misses some data. "
@@ -90,18 +74,58 @@ msgstr ""
 "Die Konfiguration von Mandant {tenant} ist unvollständig, da einige Daten "
 "fehlen. Bitte führen Sie den Einrichtungsassistent erneut aus."
 
+#: modules/univention/office365/azure_auth.py:280
 msgid "The manifest is invalid: Invalid JSON document."
 msgstr "Das Manifest ist ungültig: ungültiges JSON Dokument."
 
+#: modules/univention/office365/azure_auth.py:583
+#: modules/univention/office365/azure_auth.py:599
 #, python-brace-format
 msgid ""
 "The received token for tenant {tenant} is not valid. Please run the wizard "
 "again."
 msgstr ""
-"Der empfangene Token für Mandant {tenant} ist ungültig. Bitte führen Sie den "
-"Einrichtungsassistent erneut aus."
+"Der empfangene Token für Mandant {tenant} ist ungültig. Bitte führen Sie den"
+" Einrichtungsassistent erneut aus."
 
-msgid "The received token is not valid. Please run the wizard again."
-msgstr ""
-"Der erhaltene Token ist ungültig. Bitte führen Sie den Einrichtungsassistent "
-"erneut aus."
+#~ msgid ""
+#~ "Could not read certificate. Please make sure the joinscript 40univention-"
+#~ "office365.inst is executed successfully or execute it again."
+#~ msgstr ""
+#~ "Konnte Zertifikat nicht lesen. Bitte stellen Sie sicher, dass das Joinskript"
+#~ " 40univention-office365.inst erfolgreich ausgeführt wurde oder führen Sie es"
+#~ " erneut aus."
+
+#~ msgid ""
+#~ "Error downloading certificates from Azure. Please run the wizard again."
+#~ msgstr ""
+#~ "Fehler beim herunterladen der Zertifikate nicht von Azure. Bitte führen Sie "
+#~ "den Einrichtungsassistent erneut aus."
+
+#~ msgid "Error reading certificates from Azure. Please run the wizard again."
+#~ msgstr ""
+#~ "Fehler beim lesen von Azures Zertifikaten. Bitte führen Sie den "
+#~ "Einrichtungsassistent erneut aus."
+
+#~ msgid "Error reading token received from Azure. Please run the wizard again."
+#~ msgstr ""
+#~ "Fehler beim lesen von Azures Token. Bitte führen Sie den "
+#~ "Einrichtungsassistent erneut aus."
+
+#~ msgid "Error retrieving authentication token from Azure."
+#~ msgstr "Fehler beim Abrufen eines Authentifizierungs-Tokens von Azure."
+
+#~ msgid "Office 365 users must have a primary e-mail address specified."
+#~ msgstr "Office 365 Benutzer müssen eine primäre E-Mail-Adresse besitzen."
+
+#~ msgid ""
+#~ "The configuration is incomplete and misses some data. Please run the wizard "
+#~ "again."
+#~ msgstr ""
+#~ "Die Konfiguration ist unvollständig, da einige Daten fehlen. Bitte führen "
+#~ "Sie den Einrichtungsassistent erneut aus."
+
+#~ msgid "The received token is not valid. Please run the wizard again."
+#~ msgstr ""
+#~ "Der erhaltene Token ist ungültig. Bitte führen Sie den Einrichtungsassistent"
+#~ " erneut aus."

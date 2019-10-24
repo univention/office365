@@ -11,9 +11,9 @@
 	},
 	{
 		"input_files": [
-			"modules/univention/office365/*.py"
+			"modules/univention/office365/.*.py"
 		],
-		"po_subdir": "modules/univention/office356",
+		"po_subdir": "modules/univention/office365/",
 		"target_type": "mo",
 		"destination": "usr/share/locale/de/LC_MESSAGES/univention-office365.mo"
 	}

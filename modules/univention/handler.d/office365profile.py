@@ -33,7 +33,7 @@ import univention.admin.filter
 import univention.admin.handlers
 import univention.admin.syntax
 
-translation = univention.admin.localization.translation('univention-admin-handlers-office356')
+translation = univention.admin.localization.translation('univention-admin-handlers-office365')
 _ = translation.translate
 
 module = 'settings/office365profile'
