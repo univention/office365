@@ -294,7 +294,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set module="users/user" \
 	--set syntax=univentionOffice365ADConnection \
 	--set default="" \
-	--set multivalue=0 \
+	--set multivalue=1 \
 	--set valueRequired=0 \
 	--set mayChange=1 \
 	--set doNotSearch=1 \
@@ -320,7 +320,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set translationTabName='"de_DE" "Office 365"' \
 	--set syntax=univentionOffice365ADConnection \
 	--set default="" \
-	--set multivalue=0 \
+	--set multivalue=1 \
 	--set valueRequired=0 \
 	--set mayChange=1 \
 	--set doNotSearch=1 \
