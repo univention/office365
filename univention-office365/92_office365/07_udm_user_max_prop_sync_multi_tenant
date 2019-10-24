@@ -64,7 +64,7 @@ with utils.AutomaticListenerRestart():
 
 				user_args = udm_user_args(ucr, minimal=False)
 				user_args["set"]["UniventionOffice365Enabled"] = 1
-				user_args["set"]["UniventionOffice365TenantAlias"] = tenant_alias
+				user_args["set"]["UniventionOffice365ADConnectionAlias"] = tenant_alias
 
 				print("*** Creating user with all possible properties...")
 				user_dn, username = udm.create_user(check_for_drs_replication=True, **user_args)
@@ -80,7 +80,7 @@ with utils.AutomaticListenerRestart():
 				fake_listener_new = dict(
 					entryUUID=[udm_user.dn],
 					univentionOffice365ObjectID=[user_id],
-					univentionOffice365TenantAlias=[tenant_alias],
+					univentionOffice365ADConnectionAlias=[tenant_alias],
 				)
 				azure_user = ol.get_user(fake_listener_new)
 				success, errors = check_udm2azure_user(user_args, azure_user, complete=True)

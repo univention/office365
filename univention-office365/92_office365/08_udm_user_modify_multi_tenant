@@ -75,7 +75,7 @@ with utils.AutomaticListenerRestart():
 
 				user_args = udm_user_args(ucr, minimal=False)
 				user_args["set"]["UniventionOffice365Enabled"] = 1
-				user_args["set"]["UniventionOffice365TenantAlias"] = tenant_alias
+				user_args["set"]["UniventionOffice365ADConnectionAlias"] = tenant_alias
 				user_args1 = copy.deepcopy(user_args)
 
 				user_args2 = dict(set=dict(), append=dict())
