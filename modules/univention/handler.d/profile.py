@@ -36,7 +36,7 @@ import univention.admin.syntax
 translation = univention.admin.localization.translation('univention-admin-handlers-office365')
 _ = translation.translate
 
-module = 'settings/office365profile'
+module = 'office365/profile'
 childs = False
 short_description = _(u'Office 365 Profile')
 long_description = _(u'Management of office 365 profiles')

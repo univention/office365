@@ -135,7 +135,7 @@ with utils.AutomaticListenerRestart():
 			]
 			for profile_kwargs in profile_kwargs_list:
 				print("*** Creating license and setting it on group %r..." % group_name)
-				profile_dn = udm.create_object('settings/office365profile', **profile_kwargs)
+				profile_dn = udm.create_object('office365/profile', **profile_kwargs)
 				udm.modify_object(
 					"groups/group",
 					dn=group_dn,
