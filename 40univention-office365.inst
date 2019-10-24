@@ -79,12 +79,20 @@ fi
 
 if joinscript_check_version_in_range_executed 1 5; then
 	ucs_unregisterLDAPExtension --udm_syntax univentionOffice365ProfileSyntax
+	ucs_unregisterLDAPExtension --udm_module settings/office365profile
+	python - <<EOF || die "Migrating univentionObjectType failed"
+import univention.admin.uldap
+lo, po = univention.admin.uldap.getAdminConnection()
+for dn in lo.searchDn('univentionObjectType=settings/office365profile'):
+	print('Changing univentionObjectType of', dn)
+	lo.modify(dn, [('univentionObjectType', 'settings/office365profile', 'office365/profile')])
+EOF
 fi
 ucs_addServiceToLocalhost "univention-office365" "$@" || die
 
 ucs_registerLDAPExtension "$@" --schema /usr/share/univention-office365/office365.schema || die
 ucs_registerLDAPExtension "$@" --udm_syntax /usr/share/univention-office365/syntax.d/office365.py || die
-ucs_registerLDAPExtension "$@" --udm_module /usr/share/univention-office365/handler.d/office365profile.py \
+ucs_registerLDAPExtension "$@" --udm_module /usr/share/univention-office365/handler.d/profile.py \
 	--messagecatalog /usr/share/univention-office365/handler.d/de.mo || die
 ucs_registerLDAPExtension "$@" --udm_module /usr/share/univention-office365/handler.d/ad-connection.py || die
 
@@ -104,7 +112,7 @@ udm container/cn create "$@" --ignore_exists \
 	--set description="Container for Office 365 connections" || die
 
 # Create first Profile
-udm settings/office365profile create "$@" --ignore_exists \
+udm office365/profile create "$@" --ignore_exists \
 	--position="cn=profiles,cn=office365,$ldap_base" \
 	--set name="Default Office 365 Subscription" \
 	--set subscription="ENTERPRISEPACK" || die

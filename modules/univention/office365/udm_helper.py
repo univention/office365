@@ -107,12 +107,12 @@ class UDMHelper(object):
 
 	@classmethod
 	def list_udm_officeprofiles(cls, filter_s=''):
-		lo, po, mod = cls.init_udm("settings/office365profile")
+		lo, po, mod = cls.init_udm("office365/profile")
 		return mod.lookup(None, lo, filter_s)
 
 	@classmethod
 	def get_udm_officeprofile(cls, profiledn, attributes=None):
-		return cls.get_udm_obj("settings/office365profile", profiledn, attributes)
+		return cls.get_udm_obj("office365/profile", profiledn, attributes)
 
 	@classmethod
 	def udm_groups_with_azure_users(cls, groupdn):
