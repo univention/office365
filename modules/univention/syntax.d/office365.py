@@ -47,7 +47,7 @@ class univentionOffice365ProfileSyntax(UDM_Objects):
 class univentionOffice365ADConnection(UDM_Objects):
 	empty_value = True
 	udm_modules = ('office365/ad-connection', )
-	key = 'dn'
+	key = '%(name)s'
 	label = '%(name)s'
 	udm_filter = '(objectClass=univentionOffice365ADConnection)'
 	simple = True
