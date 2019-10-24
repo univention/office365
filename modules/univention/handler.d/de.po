@@ -26,9 +26,9 @@
 # <http://www.gnu.org/licenses/>.
 msgid ""
 msgstr ""
-"Project-Id-Version: univention-admin-handlers-office356\n"
+"Project-Id-Version: univention-admin-handlers-office365\n"
 "Report-Msgid-Bugs-To: packages@univention.de\n"
-"POT-Creation-Date: 2019-10-22 20:05+0200\n"
+"POT-Creation-Date: 2019-10-24 18:41+0200\n"
 "PO-Revision-Date: 2016-12-12 12:29+0100\n"
 "Last-Translator: packages@univention.de\n"
 "Language-Team: German\n"
@@ -45,25 +45,25 @@ msgstr "Alias Name der Verbindung."
 msgid "Description"
 msgstr "Beschreibung"
 
-#: modules/univention/handler.d/office365profile.py:51
+#: modules/univention/handler.d/profile.py:56
 msgid "Displayed profile name when selecting a profile"
 msgstr "Angezeigter Profilname, wenn ein Profil ausgewählt wird"
 
-#: modules/univention/handler.d/office365profile.py:88
-#: modules/univention/handler.d/ad-connection.py:71
+#: modules/univention/handler.d/ad-connection.py:70
+#: modules/univention/handler.d/profile.py:82
 msgid "General"
 msgstr "Allgemein"
 
-#: modules/univention/handler.d/office365profile.py:69
+#: modules/univention/handler.d/profile.py:69
 msgid "Identifiers of service plans, which will be activated for the profile"
 msgstr "Bezeichner der Servicepläne, die in dem Profil aktiviert werden"
 
-#: modules/univention/handler.d/office365profile.py:78
+#: modules/univention/handler.d/profile.py:75
 msgid ""
 "Identifiers of service plans, which will be deactivated for the profile"
 msgstr "Bezeichner der Servicepläne, die in dem Profil deaktiviert werden"
 
-#: modules/univention/handler.d/office365profile.py:60
+#: modules/univention/handler.d/profile.py:63
 msgid "Internal Name of the subscription, as shown by cli tool"
 msgstr "Interner Name der Subskription, wie vom cli Programm angezeigt"
 
@@ -71,7 +71,7 @@ msgstr "Interner Name der Subskription, wie vom cli Programm angezeigt"
 msgid "Management of Office 365 Azure AD connections"
 msgstr "Verwaltung von Office 365 Azure AD Verbindungen"
 
-#: modules/univention/handler.d/office365profile.py:42
+#: modules/univention/handler.d/profile.py:42
 msgid "Management of office 365 profiles"
 msgstr "Verwaltung von Office 365 Profilen"
 
@@ -79,7 +79,7 @@ msgstr "Verwaltung von Office 365 Profilen"
 msgid "Name"
 msgstr "Name"
 
-#: modules/univention/handler.d/ad-connection.py:71
+#: modules/univention/handler.d/ad-connection.py:70
 msgid "Office 365 Azure AD Alias"
 msgstr "Office 365 Azure AD Alias"
 
@@ -87,23 +87,28 @@ msgstr "Office 365 Azure AD Alias"
 msgid "Office 365 Azure AD Connection"
 msgstr "Office 365 Azure AD Verbindung"
 
-#: modules/univention/handler.d/office365profile.py:41
-#: modules/univention/handler.d/office365profile.py:88
+#: modules/univention/handler.d/profile.py:41
+#: modules/univention/handler.d/profile.py:82
 msgid "Office 365 Profile"
 msgstr "Office 365 Profil"
 
-#: modules/univention/handler.d/office365profile.py:50
+#: office365_userPrincipalName_hook.py:43
+msgid "Office 365 users must have a primary e-mail address specified."
+msgstr ""
+"Office 365 Benutzer müssen eine Primäre E-Mailadresse angegeben haben."
+
+#: modules/univention/handler.d/profile.py:55
 msgid "Profile name"
 msgstr "Profilname"
 
-#: modules/univention/handler.d/office365profile.py:77
+#: modules/univention/handler.d/profile.py:74
 msgid "Service plan blacklist"
 msgstr "Blacklist der Servicepläne"
 
-#: modules/univention/handler.d/office365profile.py:68
+#: modules/univention/handler.d/profile.py:68
 msgid "Service plan whitelist"
 msgstr "Whitelist der Servicepläne"
 
-#: modules/univention/handler.d/office365profile.py:59
+#: modules/univention/handler.d/profile.py:62
 msgid "Subscription identifier"
 msgstr "Bezeichner der Subskription"

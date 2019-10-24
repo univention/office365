@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: univention-management-console-module-office365\n"
 "Report-Msgid-Bugs-To: packages@univention.de\n"
-"POT-Creation-Date: 2018-03-05 19:43+0100\n"
+"POT-Creation-Date: 2019-10-24 18:26+0200\n"
 "PO-Revision-Date: 2016-01-14 11:26+0100\n"
 "Last-Translator: Univention GmbH <packages@univention.de>\n"
 "Language-Team: Univention GmbH <packages@univention.de>\n"
@@ -12,7 +12,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: umc/python/office365/__init__.py:117
+#: umc/python/office365/__init__.py:120
 msgid ""
 "Invalid federation metadata document address (e.g. https://login."
 "microsoftonline.com/3e7d9eb4-c4a1-4cfd-893e-a8ec29e46b77/"
@@ -22,7 +22,7 @@ msgstr ""
 "microsoftonline.com/3e7d9eb4-c4a1-4cfd-893e-a8ec29e46b77/"
 "federationmetadata/2007-06/federationmetadata.xml)."
 
-#: umc/python/office365/__init__.py:193
+#: umc/python/office365/__init__.py:209
 #, python-brace-format
 msgid ""
 "Microsoft reported an error condition during authorization. It might help to "
@@ -31,23 +31,23 @@ msgstr ""
 "Microsoft hat beim Autorisieren einen Fehler gemeldet. Es könnte helfen noch "
 "einmal zu autorisieren. Fehlermeldung: {error}: {error_description}"
 
-#: umc/python/office365/__init__.py:211
+#: umc/python/office365/__init__.py:227
 msgid "Not yet initialized."
 msgstr "Noch nicht initialisiert."
 
-#: umc/python/office365/__init__.py:167
+#: umc/python/office365/__init__.py:175
 msgid "Office 365 Configuration finished"
 msgstr "Office 365 Konfiguration beendet"
 
-#: umc/python/office365/__init__.py:190
+#: umc/python/office365/__init__.py:206
 msgid "Successfully authorized. Starting synchronization."
 msgstr "Erfolgreich autorisiert. Synchronisation startet."
 
-#: umc/python/office365/__init__.py:210
+#: umc/python/office365/__init__.py:226
 msgid "Successfully initialized"
 msgstr "Erfolgreich initialisiert"
 
-#: umc/python/office365/__init__.py:168
+#: umc/python/office365/__init__.py:176
 msgid ""
 "The configuration has finished! You can now close this page and continue the "
 "configuration wizard."
@@ -55,10 +55,10 @@ msgstr ""
 "Die Konfiguration wurde beendet! Sie können die Seite schließen und mit dem "
 "Konfigurationswizard fortfahren."
 
-#: umc/python/office365/__init__.py:128
+#: umc/python/office365/__init__.py:131
 msgid "The manifest has been successfully uploaded."
 msgstr "Das Manifest wurde erfolgreich hochgeladen."
 
-#: umc/python/office365/__init__.py:176
+#: umc/python/office365/__init__.py:184
 msgid "Waiting for authorization to be completed."
 msgstr "Warten auf das Beenden der Autorisierung."

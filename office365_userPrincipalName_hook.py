@@ -39,7 +39,7 @@ from univention.admin.hook import simpleHook
 import univention.admin.uexceptions
 from univention.lib.i18n import Translation
 
-_ = Translation('univention-admin-handlers-office356').translate
+_ = Translation('univention-admin-handlers-office365').translate
 msg_require_mail = _("Office 365 users must have a primary e-mail address specified.")
 
 
