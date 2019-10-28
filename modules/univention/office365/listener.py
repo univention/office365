@@ -61,15 +61,15 @@ tenant_filter_ucrv = 'office365/tenant/filter'
 logger = get_logger("office365", "o365")
 
 
-def get_tenant_filter(ucr, tenant_aliases):
-	ucr_value = ucr[tenant_filter_ucrv] or ''
+def get_adconnection_filter(ucr, adconnection_aliases):
+	ucr_value = ucr[adconnection_filter_ucrv] or ''
 	aliases = ucr_value.strip().split()
 	res = ''
 	for alias in aliases:
-		if alias not in tenant_aliases.keys():
-			raise Exception('Tenant alias {!r} from UCR {!r} not listed in UCR {!r}. Exiting.'.format(alias, tenant_filter_ucrv, tenant_alias_ucrv))
+		if alias not in adconnection_aliases.keys():
+			raise Exception('Alias {!r} from UCR {!r} not listed in UCR {!r}. Exiting.'.format(alias, tenant_filter_ucrv, tenant_alias_ucrv))
 		if not AzureAuth.is_initialized(alias):
-			raise Exception('Tenant alias {!r} from UCR {!r} is not initialized. Exiting.'.format(alias, tenant_filter_ucrv))
+			raise Exception('Alias {!r} from UCR {!r} is not initialized. Exiting.'.format(alias, tenant_filter_ucrv))
 		res += filter_format('(univentionOffice365ADConnectionAlias=%s)', (alias,))
 	if len(res.split('=')) > 2:
 		res = '(|{})'.format(res)
@@ -77,14 +77,14 @@ def get_tenant_filter(ucr, tenant_aliases):
 
 
 class NoAllocatableSubscriptions(Exception):
-	def __init__(self, user, tenant_alias=None, *args, **kwargs):
+	def __init__(self, user, adconnection_alias=None, *args, **kwargs):
 		self.user = user
-		self.tenant_alias = tenant_alias
+		self.adconnection_alias = adconnection_alias
 		super(NoAllocatableSubscriptions, self).__init__(*args, **kwargs)
 
 
 class Office365Listener(object):
-	def __init__(self, listener, name, attrs, ldap_cred, dn, tenant_alias=None):
+	def __init__(self, listener, name, attrs, ldap_cred, dn, adconnection_alias=None):
 		"""
 		:param listener: listener object or None
 		:param name: str, prepend to log messages
@@ -97,8 +97,8 @@ class Office365Listener(object):
 		self.udm = UDMHelper(ldap_cred)
 		# self.ldap_cred = ldap_cred
 		self.dn = dn
-		self.tenant_alias = tenant_alias
-		logger.debug('tenant_alias=%r', tenant_alias)
+		self.adconnection_alias = adconnection_alias
+		logger.debug('tenant_alias=%r', adconnection_alias)
 
 		if self.listener:
 			self.ucr = self.listener.configRegistry
@@ -108,7 +108,7 @@ class Office365Listener(object):
 			self.ucr = ConfigRegistry()
 		self.ucr.load()
 
-		self.ah = AzureHandler(self.ucr, name, self.tenant_alias)
+		self.ah = AzureHandler(self.ucr, name, self.adconnection_alias)
 
 	@property
 	def verified_domains(self):
@@ -117,7 +117,7 @@ class Office365Listener(object):
 
 	def create_user(self, new):
 		udm_attrs = self._get_sync_values(self.attrs["listener"], new)
-		logger.debug("udm_attrs=%r tenant_alias=%r", udm_attrs, self.tenant_alias)
+		logger.debug("udm_attrs=%r tenant_alias=%r", udm_attrs, self.adconnection_alias)
 
 		attributes = dict()
 		for k, v in udm_attrs.items():
@@ -165,7 +165,7 @@ class Office365Listener(object):
 		else:
 			raise RuntimeError(
 				"Office365Listener.create_user() created user {!r} cannot be retrieved ({!r}).".format(
-					attributes["userPrincipalName"], self.tenant_alias)
+					attributes["userPrincipalName"], self.adconnection_alias)
 			)
 		try:
 			self.assign_subscription(new, new_user)
@@ -181,12 +181,12 @@ class Office365Listener(object):
 		except KeyError:
 			object_id = self.find_aad_user_by_entryUUID(old["entryUUID"][0])
 		if not object_id:
-			logger.error("Couldn't find object_id for user %r (%s), cannot delete.", old["uid"][0], self.tenant_alias)
+			logger.error("Couldn't find object_id for user %r (%s), cannot delete.", old["uid"][0], self.adconnection_alias)
 			return
 		try:
 			return self.ah.delete_user(object_id)
 		except ResourceNotFoundError as exc:
-			logger.error("User %r didn't exist in Azure (%s): %r.", old["uid"][0], self.tenant_alias, exc)
+			logger.error("User %r didn't exist in Azure (%s): %r.", old["uid"][0], self.adconnection_alias, exc)
 			return
 
 	def deactivate_user(self, old_or_new):
@@ -266,7 +266,7 @@ class Office365Listener(object):
 
 		new_group = self.find_aad_group_by_name(name)
 		if not new_group:
-			raise RuntimeError("Office365Listener.create_group() created group {!r} cannot be retrieved ({!r}).".format(name, self.tenant_alias))
+			raise RuntimeError("Office365Listener.create_group() created group {!r} cannot be retrieved ({!r}).".format(name, self.adconnection_alias))
 		if add_members:
 			self.add_ldap_members_to_azure_group(group_dn, new_group["objectId"])
 		return new_group
@@ -295,7 +295,7 @@ class Office365Listener(object):
 		:param group_id: str: object id of group (and its parents) to check
 		:return: bool: if the group was deleted
 		"""
-		logger.debug("group_id=%r (%s)", group_id, self.tenant_alias)
+		logger.debug("group_id=%r (%s)", group_id, self.adconnection_alias)
 
 		# get IDs of groups this group is a member of before deleting it
 		nested_parent_group_ids = self.ah.member_of_groups(group_id, "groups")["value"]
@@ -316,13 +316,13 @@ class Office365Listener(object):
 						# ignore
 						logger.error("Office365Listener.delete_empty_group() found unexpected object in group: %r, ignoring.", member_id)
 			if all(azure_obj["mailNickname"].startswith("ZZZ_deleted_") for azure_obj in azure_objs):
-				logger.info("All members of group %r (%s) are deactivated, deleting it.", group_id, self.tenant_alias)
+				logger.info("All members of group %r (%s) are deactivated, deleting it.", group_id, self.adconnection_alias)
 				self.ah.delete_group(group_id)
 			else:
 				logger.debug("Group has active members, not deleting it.")
 				return False
 		else:
-			logger.info("Removing empty group %r (%s)...", group_id, self.tenant_alias)
+			logger.info("Removing empty group %r (%s)...", group_id, self.adconnection_alias)
 			self.ah.delete_group(group_id)
 
 		# check parent groups
@@ -333,7 +333,7 @@ class Office365Listener(object):
 
 	def modify_group(self, old, new):
 		modification_attributes = self._diff_old_new(self.attrs["listener"], old, new)
-		logger.debug("dn=%r modification_attributes=%r (%s)", self.dn, modification_attributes, self.tenant_alias)
+		logger.debug("dn=%r modification_attributes=%r (%s)", self.dn, modification_attributes, self.adconnection_alias)
 
 		if not modification_attributes:
 			logger.debug("No modifications found, ignoring.")
@@ -349,7 +349,7 @@ class Office365Listener(object):
 			modification_attributes = dict()
 			udm_group = self.udm.get_udm_group(self.dn)
 			udm_group["UniventionOffice365ObjectID"] = group_id
-			udm_group["UniventionOffice365ADConnectionAlias"] = self.tenant_alias
+			udm_group["UniventionOffice365ADConnectionAlias"] = self.adconnection_alias
 			udm_group.modify()
 
 		try:
@@ -393,8 +393,8 @@ class Office365Listener(object):
 						bool(int(udm_user.get("UniventionOffice365Enabled", "0"))) and
 						udm_user["UniventionOffice365ObjectID"] and
 						(
-							not self.tenant_alias or
-							udm_user["UniventionOffice365ADConnectionAlias"] == self.tenant_alias
+								not self.adconnection_alias or
+								udm_user["UniventionOffice365ADConnectionAlias"] == self.adconnection_alias
 						)
 					):
 						users_and_groups_to_add.append(udm_user["UniventionOffice365ObjectID"])
@@ -407,14 +407,14 @@ class Office365Listener(object):
 						if not udm_group_with_azure_users.get("UniventionOffice365ObjectID"):
 							new_group = self.create_group_from_ldap(group_with_azure_users)
 							udm_group_with_azure_users["UniventionOffice365ObjectID"] = new_group["objectId"]
-							udm_group_with_azure_users["UniventionOffice365ADConnectionAlias"] = self.tenant_alias
+							udm_group_with_azure_users["UniventionOffice365ADConnectionAlias"] = self.adconnection_alias
 							udm_group_with_azure_users.modify()
 						if group_with_azure_users in udm_group["nestedGroup"]:  # only add direct members to group
 							users_and_groups_to_add.append(udm_group_with_azure_users["UniventionOffice365ObjectID"])
 				else:
 					raise RuntimeError(
 						"Office365Listener.modify_group() {!r} from new[uniqueMember] not in "
-						"'nestedGroup' or 'users' ({!r}).".format(added_member, self.tenant_alias)
+						"'nestedGroup' or 'users' ({!r}).".format(added_member, self.adconnection_alias)
 					)
 
 			if users_and_groups_to_add:
@@ -482,13 +482,13 @@ class Office365Listener(object):
 		:param object_id: Azure object ID of group to add users/groups to
 		:return: None
 		"""
-		logger.debug("group_dn=%r object_id=%r tenant_alias=%r", group_dn, object_id, self.tenant_alias)
+		logger.debug("group_dn=%r object_id=%r tenant_alias=%r", group_dn, object_id, self.adconnection_alias)
 		udm_target_group = self.udm.get_udm_group(group_dn)
 
 		# get all users for the tenant (ignoring group membership) and compare
 		# with group members to get azure IDs, because it's faster than
 		# iterating (and opening!) lots of UDM objects
-		all_users_lo = self.udm.get_lo_o365_users(attributes=['univentionOffice365ObjectID'], tenant_alias=self.tenant_alias)
+		all_users_lo = self.udm.get_lo_o365_users(attributes=['univentionOffice365ObjectID'], tenant_alias=self.adconnection_alias)
 		all_user_dns = set(all_users_lo.keys())
 		member_dns = all_user_dns.intersection(set(udm_target_group["users"]))
 		users_and_groups_to_add = [attr['univentionOffice365ObjectID'][0] for dn, attr in all_users_lo.items() if dn in member_dns]
@@ -501,7 +501,7 @@ class Office365Listener(object):
 				if not udm_group.get("UniventionOffice365ObjectID"):
 					new_group = self.create_group_from_ldap(group_with_azure_users_dn, add_members=False)
 					udm_group["UniventionOffice365ObjectID"] = new_group["objectId"]
-					udm_group["UniventionOffice365ADConnectionAlias"] = self.tenant_alias
+					udm_group["UniventionOffice365ADConnectionAlias"] = self.adconnection_alias
 					udm_group.modify()
 				if group_with_azure_users_dn in udm_target_group["nestedGroup"]:
 					users_and_groups_to_add.append(udm_group["UniventionOffice365ObjectID"])
@@ -517,7 +517,7 @@ class Office365Listener(object):
 				if not udm_member.get("UniventionOffice365ObjectID"):
 					new_group = self.create_group_from_ldap(member_dn, add_members=False)
 					udm_member["UniventionOffice365ObjectID"] = new_group["objectId"]
-					udm_member["UniventionOffice365ADConnectionAlias"] = self.tenant_alias
+					udm_member["UniventionOffice365ADConnectionAlias"] = self.adconnection_alias
 					udm_member.modify()
 				_groups_up_the_tree(udm_member)
 
@@ -525,20 +525,20 @@ class Office365Listener(object):
 
 	def assign_subscription(self, new, azure_user):
 		msg_no_allocatable_subscriptions = 'User {}/{} created in Azure AD ({}), but no allocatable subscriptions' \
-			' found.'.format(new['uid'][0], azure_user['objectId'], self.tenant_alias)
+			' found.'.format(new['uid'][0], azure_user['objectId'], self.adconnection_alias)
 		msg_multiple_subscriptions = 'More than one usable Office 365 subscription found.'
 
 		# check subscription availability in azure
 		subscriptions_online = self.ah.get_enabled_subscriptions()
 		if len(subscriptions_online) < 1:
-			raise NoAllocatableSubscriptions(azure_user, msg_no_allocatable_subscriptions, self.tenant_alias)
+			raise NoAllocatableSubscriptions(azure_user, msg_no_allocatable_subscriptions, self.adconnection_alias)
 
 		# get SubscriptionProfiles for users groups
 		users_group_dns = self.udm.get_udm_user(new['entryDN'][0])['groups']
 		users_subscription_profiles = SubscriptionProfile.get_profiles_for_groups(users_group_dns)
-		logger.info('SubscriptionProfiles found for %r (%s): %r', new['uid'][0], self.tenant_alias, users_subscription_profiles)
+		logger.info('SubscriptionProfiles found for %r (%s): %r', new['uid'][0], self.adconnection_alias, users_subscription_profiles)
 		if not users_subscription_profiles:
-			logger.warn('No SubscriptionProfiles: using all available subscriptions (%s).', self.tenant_alias)
+			logger.warn('No SubscriptionProfiles: using all available subscriptions (%s).', self.adconnection_alias)
 			if len(subscriptions_online) > 1:
 				logger.warn(msg_multiple_subscriptions)
 			self.ah.add_license(azure_user['objectId'], subscriptions_online[0]['skuId'])
@@ -553,7 +553,7 @@ class Office365Listener(object):
 			if skuPartNumber not in seats:
 				logger.warn(
 					'Subscription from profile %r (%s) could not be found in the enabled subscriptions in Azure.',
-					subscription_profile, self.tenant_alias)
+					subscription_profile, self.adconnection_alias)
 				continue
 
 			if seats[skuPartNumber][0] > seats[skuPartNumber][1]:
@@ -562,7 +562,7 @@ class Office365Listener(object):
 				break
 
 		if not subscription_profile_to_use:
-			raise NoAllocatableSubscriptions(azure_user, msg_no_allocatable_subscriptions, self.tenant_alias)
+			raise NoAllocatableSubscriptions(azure_user, msg_no_allocatable_subscriptions, self.adconnection_alias)
 
 		logger.info(
 			'Using subscription profile %r (skuId: %r).',
@@ -582,7 +582,7 @@ class Office365Listener(object):
 		else:
 			deactivate_plans = set()
 		deactivate_plans.update(subscription_profile_to_use.blacklisted_plans)
-		logger.info('Deactivating plans %s (%s).', ', '.join(deactivate_plans, self.tenant_alias))
+		logger.info('Deactivating plans %s (%s).', ', '.join(deactivate_plans, self.adconnection_alias))
 		deactivate_plan_ids = [plan_names_to_ids[plan] for plan in deactivate_plans]
 		self.ah.add_license(azure_user['objectId'], subscription_profile_to_use.skuId, deactivate_plan_ids)
 
@@ -591,7 +591,7 @@ class Office365Listener(object):
 		if user["value"]:
 			return user["value"][0]["objectId"]
 		else:
-			logger.error("Could not find user with entryUUID=%r (%s).", entryUUID, self.tenant_alias)
+			logger.error("Could not find user with entryUUID=%r (%s).", entryUUID, self.adconnection_alias)
 			return None
 
 	def find_aad_group_by_name(self, name):
@@ -599,7 +599,7 @@ class Office365Listener(object):
 		if group["value"]:
 			return group["value"][0]
 		else:
-			logger.warn("Could not find group with name=%r (%s), ignore this if it is a user.", name, self.tenant_alias)
+			logger.warn("Could not find group with name=%r (%s), ignore this if it is a user.", name, self.adconnection_alias)
 			return None
 
 	@staticmethod
