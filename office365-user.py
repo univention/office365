@@ -41,7 +41,7 @@ from stat import S_IRUSR, S_IWUSR
 
 import listener
 from univention.office365.azure_auth import AzureAuth, AzureTenantHandler, NoIDsStored
-from univention.office365.listener import Office365Listener, NoAllocatableSubscriptions, attributes_system, get_tenant_filter
+from univention.office365.listener import Office365Listener, NoAllocatableSubscriptions, attributes_system, get_adconnection_filter
 from univention.office365.udm_helper import UDMHelper
 from univention.office365.logging2udebug import get_logger
 
@@ -52,8 +52,8 @@ attributes_never = list()
 attributes_static = dict()
 attributes_sync = list()
 attributes_multiple_azure2ldap = dict()
-tenant_aliases = AzureTenantHandler.get_tenant_aliases()
-initialized_tenants = [_ta for _ta in tenant_aliases if AzureAuth.is_initialized(_ta)]
+adconnection_aliases = AzureTenantHandler.get_tenant_aliases()
+initialized_adconnection = [_ta for _ta in adconnection_aliases if AzureAuth.is_initialized(_ta)]
 
 logger = get_logger("office365", "o365")
 
@@ -136,19 +136,19 @@ def get_listener_attributes():
 	return attrs
 
 
-logger.info('Found tenants in UCR: %r', tenant_aliases)
-logger.info('Found initialized tenants: %r', initialized_tenants)
+logger.info('Found AD connections in UCR: %r', adconnection_aliases)
+logger.info('Found initialized AD connections: %r', initialized_adconnection)
 
 
 name = 'office365-user'
 description = 'sync users to office 365'
-if initialized_tenants:
-	filter = '(&(objectClass=posixAccount)(objectClass=univentionOffice365)(uid=*){})'.format(get_tenant_filter(listener.configRegistry, tenant_aliases))
+if initialized_adconnection:
+	filter = '(&(objectClass=posixAccount)(objectClass=univentionOffice365)(uid=*){})'.format(get_adconnection_filter(listener.configRegistry, adconnection_aliases))
 	logger.info("office 365 user listener active with filter=%r", filter)
 else:
 	filter = '(objectClass=deactivatedOffice365UserListener)'  # "objectClass" is indexed
 	# filter = '(foo=bar)'  # TODO: remove me, probably the filter above should be the correct one
-	logger.warn("office 365 user listener deactivated (no initialized tenants)")
+	logger.warn("office 365 user listener deactivated (no initialized AD connection)")
 attributes = get_listener_attributes()
 modrdn = "1"
 
@@ -228,9 +228,9 @@ def setdata(key, value):
 
 def initialize():
 	logger.info("office 365 user listener active with filter=%r", filter)
-	logger.info('tenant aliases: %r', tenant_aliases)
-	if not initialized_tenants:
-		raise RuntimeError("Office 365 App ({}) not initialized for any tenant yet, please run wizard.".format(name))
+	logger.info('AD connection aliases: %r', adconnection_aliases)
+	if not initialized_adconnection:
+		raise RuntimeError("Office 365 App ({}) not initialized for any AD connection yet, please run wizard.".format(name))
 
 
 def clean():
@@ -238,16 +238,16 @@ def clean():
 	Remove  univentionOffice365ObjectID and univentionOffice365Data from all
 	user objects.
 	"""
-	tenant_filter = get_tenant_filter(listener.configRegistry, tenant_aliases)
-	logger.info("Removing Office 365 ObjectID and Data from all users (tenant_filter=%r)...", tenant_filter)
-	UDMHelper.clean_udm_objects("users/user", listener.configRegistry["ldap/base"], ldap_cred, tenant_filter)
+	adconnection_filter = get_adconnection_filter(listener.configRegistry, adconnection_aliases)
+	logger.info("Removing Office 365 ObjectID and Data from all users (adconnection_filter=%r)...", adconnection_filter)
+	UDMHelper.clean_udm_objects("users/user", listener.configRegistry["ldap/base"], ldap_cred, adconnection_filter)
 
 
 def new_or_reactivate_user(ol, dn, new, old):
 	try:
 		new_user = ol.create_user(new)
 	except NoAllocatableSubscriptions as exc:
-		logger.error('{} ({})'.format(exc, exc.tenant_alias))
+		logger.error('{} ({})'.format(exc, exc.adconnection_alias))
 		new_user = exc.user
 	# save/update Azure objectId and object data in UDM object
 	udm_user = ol.udm.get_udm_user(dn)
@@ -255,14 +255,14 @@ def new_or_reactivate_user(ol, dn, new, old):
 	udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(new_user))).rstrip()
 	udm_user.modify()
 	logger.info(
-		"User creation success. userPrincipalName: %r objectId: %r dn: %s tenant: %s",
-		new_user["userPrincipalName"], new_user["objectId"], dn, ol.tenant_alias
+		"User creation success. userPrincipalName: %r objectId: %r dn: %s adconnection: %s",
+		new_user["userPrincipalName"], new_user["objectId"], dn, ol.adconnection_alias
 	)
 
 
 def delete_user(ol, dn, new, old):
 	ol.delete_user(old)
-	logger.info("Deleted user %r tenant: %s.", old["uid"][0], ol.tenant_alias)
+	logger.info("Deleted user %r adconnection: %s.", old["uid"][0], ol.adconnection_alias)
 
 
 def deactivate_user(ol, dn, new, old):
@@ -274,7 +274,7 @@ def deactivate_user(ol, dn, new, old):
 	# Explanation: http://gcolpart.evolix.net/blog21/delete-facsimiletelephonenumber-attribute/
 	udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(None))).rstrip()
 	udm_user.modify()
-	logger.info("Deactivated user %r tenant: %s.", old["uid"][0], ol.tenant_alias)
+	logger.info("Deactivated user %r adconnection: %s.", old["uid"][0], ol.adconnection_alias)
 
 
 def modify_user(ol, dn, new, old):
@@ -284,13 +284,13 @@ def modify_user(ol, dn, new, old):
 	azure_user = ol.get_user(old)
 	udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(azure_user))).rstrip()
 	udm_user.modify()
-	logger.info("Modified user %r tenant: %s.", old["uid"][0], ol.tenant_alias)
+	logger.info("Modified user %r adconnection: %s.", old["uid"][0], ol.adconnection_alias)
 
 
 def handler(dn, new, old, command):
 	logger.debug("%s.handler() command: %r dn: %r", name, command, dn)
-	if not initialized_tenants:
-		raise RuntimeError("{}.handler() Office 365 App not initialized for any tenant yet, please run wizard.".format(name))
+	if not initialized_adconnection:
+		raise RuntimeError("{}.handler() Office 365 App not initialized for any AD connection yet, please run wizard.".format(name))
 	else:
 		pass
 
@@ -300,10 +300,10 @@ def handler(dn, new, old, command):
 	elif command == 'a':
 		old = load_old(old)
 
-	tenant_alias_old = old.get('univentionOffice365ADConnectionAlias', [None])[0]
-	tenant_alias_new = new.get('univentionOffice365ADConnectionAlias', [None])[0]
-	tenant_alias = tenant_alias_new or tenant_alias_old
-	logger.info('tenant_alias_old=%r tenant_alias_new=%r', tenant_alias_old, tenant_alias_new)
+	adconnection_alias_old = old.get('univentionOffice365ADConnectionAlias', [None])[0]
+	adconnection_alias_new = new.get('univentionOffice365ADConnectionAlias', [None])[0]
+	adconnection_alias = adconnection_alias_new or adconnection_alias_old
+	logger.info('adconnection_alias_old=%r adconnection_alias_new=%r', adconnection_alias_old, adconnection_alias_new)
 
 	udm_helper = UDMHelper(ldap_cred)
 
@@ -313,38 +313,38 @@ def handler(dn, new, old, command):
 		enabled = not is_deactived_locked_or_expired(udm_user)
 		logger.debug("old was %s.", "enabled" if enabled else "deactivated, locked or expired")
 		old_enabled &= enabled
-		old_tenant_enabled = tenant_alias_old in initialized_tenants
-		logger.debug("old tenand is %s.", "enabled" if old_tenant_enabled else "not initialized")
-		old_enabled &= old_tenant_enabled
+		old_adconnection_enabled = adconnection_alias_old in initialized_adconnection
+		logger.debug("old adconnection is %s.", "enabled" if old_adconnection_enabled else "not initialized")
+		old_enabled &= old_adconnection_enabled
 	new_enabled = bool(int(new.get("univentionOffice365Enabled", ["0"])[0]))
 	if new_enabled:
 		udm_user = udm_helper.get_udm_user(dn, new)
 		enabled = not is_deactived_locked_or_expired(udm_user)
 		logger.debug("new is %s.", "enabled" if enabled else "deactivated, locked or expired")
 		new_enabled &= enabled
-		new_tenant_enabled = tenant_alias_new in initialized_tenants
-		logger.debug("new tenand is %s.", "enabled" if new_tenant_enabled else "not initialized")
-		new_enabled &= new_tenant_enabled
+		new_adconnection_enabled = adconnection_alias_new in initialized_adconnection
+		logger.debug("new adconnection is %s.", "enabled" if new_adconnection_enabled else "not initialized")
+		new_enabled &= new_adconnection_enabled
 
 	logger.debug("new_enabled=%r old_enabled=%r", new_enabled, old_enabled)
 
 	#
-	# MOVE between tenants -> delete and create
+	# MOVE between AD connections -> delete and create
 	#
-	if new_enabled and tenant_alias_new and tenant_alias_old and tenant_alias_new != tenant_alias_old:
-		logger.info("new_enabled and tenant_alias_old=%r and tenant_alias_new=%r -> MOVE (DELETE old, CREATE new) (%s)", tenant_alias_old, tenant_alias_new, dn)
-		logger.info("DELETE (%s | %s)", tenant_alias_old, dn)
+	if new_enabled and adconnection_alias_new and adconnection_alias_old and adconnection_alias_new != adconnection_alias_old:
+		logger.info("new_enabled and adconnection_alias_old=%r and adconnection_alias_new=%r -> MOVE (DELETE old, CREATE new) (%s)", adconnection_alias_old, adconnection_alias_new, dn)
+		logger.info("DELETE (%s | %s)", adconnection_alias_old, dn)
 		try:
-			ol = Office365Listener(listener, name, _attrs, ldap_cred, dn, tenant_alias_old)
+			ol = Office365Listener(listener, name, _attrs, ldap_cred, dn, adconnection_alias_old)
 			delete_user(ol, dn, new, old)
 		except NoIDsStored:
-			logger.warn('Tenant %r is not initialized, when trying to delete user %r. Ignoring.', tenant_alias_old, dn)
-		ol = Office365Listener(listener, name, _attrs, ldap_cred, dn, tenant_alias_new)
-		logger.info("CREATE (%s | %s)", tenant_alias_new, dn)
+			logger.warn('Tenant %r is not initialized, when trying to delete user %r. Ignoring.', adconnection_alias_old, dn)
+		ol = Office365Listener(listener, name, _attrs, ldap_cred, dn, adconnection_alias_new)
+		logger.info("CREATE (%s | %s)", adconnection_alias_new, dn)
 		new_or_reactivate_user(ol, dn, new, old)
 		return
 
-	ol = Office365Listener(listener, name, _attrs, ldap_cred, dn, tenant_alias)
+	ol = Office365Listener(listener, name, _attrs, ldap_cred, dn, adconnection_alias)
 
 	logger.debug("new_enabled=%r old_enabled=%r", new_enabled, old_enabled)
 
@@ -352,7 +352,7 @@ def handler(dn, new, old, command):
 	# NEW or REACTIVATED account
 	#
 	if new_enabled and not old_enabled:
-		logger.info("new_enabled and not old_enabled -> NEW or REACTIVATED (%s | %s)", tenant_alias, dn)
+		logger.info("new_enabled and not old_enabled -> NEW or REACTIVATED (%s | %s)", adconnection_alias, dn)
 		new_or_reactivate_user(ol, dn, new, old)
 		return
 
@@ -360,7 +360,7 @@ def handler(dn, new, old, command):
 	# DELETE account
 	#
 	if old and not new:
-		logger.info("old and not new -> DELETE (%s | %s)", tenant_alias, dn)
+		logger.info("old and not new -> DELETE (%s | %s)", adconnection_alias, dn)
 		delete_user(ol, dn, new, old)
 		return
 
@@ -368,7 +368,7 @@ def handler(dn, new, old, command):
 	# DEACTIVATE account
 	#
 	if new and not new_enabled:
-		logger.info("new and not new_enabled -> DEACTIVATE (%s | %s)", tenant_alias, dn)
+		logger.info("new and not new_enabled -> DEACTIVATE (%s | %s)", adconnection_alias, dn)
 		deactivate_user(ol, dn, new, old)
 		return
 
@@ -376,6 +376,6 @@ def handler(dn, new, old, command):
 	# MODIFY account
 	#
 	if old_enabled and new_enabled:
-		logger.info("old_enabled and new_enabled -> MODIFY (%s | %s)", tenant_alias, dn)
+		logger.info("old_enabled and new_enabled -> MODIFY (%s | %s)", adconnection_alias, dn)
 		modify_user(ol, dn, new, old)
 		return
