@@ -53,7 +53,7 @@ attributes_static = dict()
 attributes_sync = list()
 attributes_multiple_azure2ldap = dict()
 adconnection_aliases = AzureTenantHandler.get_tenant_aliases()
-initialized_adconnection = [_ta for _ta in adconnection_aliases if AzureAuth.is_initialized(_ta)]
+initialized_adconnection = set([_ta for _ta in adconnection_aliases if AzureAuth.is_initialized(_ta)])
 
 logger = get_logger("office365", "o365")
 
@@ -300,10 +300,10 @@ def handler(dn, new, old, command):
 	elif command == 'a':
 		old = load_old(old)
 
-	adconnection_alias_old = old.get('univentionOffice365ADConnectionAlias', [None])[0]
-	adconnection_alias_new = new.get('univentionOffice365ADConnectionAlias', [None])[0]
-	adconnection_alias = adconnection_alias_new or adconnection_alias_old
-	logger.info('adconnection_alias_old=%r adconnection_alias_new=%r', adconnection_alias_old, adconnection_alias_new)
+	adconnection_aliases_old = set(old.get('univentionOffice365ADConnectionAlias', [None]))
+	adconnection_aliases_new = set(new.get('univentionOffice365ADConnectionAlias', [None]))
+	adconnection_alias = adconnection_aliases_new or adconnection_aliases_old
+	logger.info('adconnection_alias_old=%r adconnection_alias_new=%r', adconnection_aliases_old, adconnection_aliases_new)
 
 	udm_helper = UDMHelper(ldap_cred)
 
@@ -313,7 +313,7 @@ def handler(dn, new, old, command):
 		enabled = not is_deactived_locked_or_expired(udm_user)
 		logger.debug("old was %s.", "enabled" if enabled else "deactivated, locked or expired")
 		old_enabled &= enabled
-		old_adconnection_enabled = adconnection_alias_old in initialized_adconnection
+		old_adconnection_enabled = adconnection_aliases_old.issubset(initialized_adconnection)
 		logger.debug("old adconnection is %s.", "enabled" if old_adconnection_enabled else "not initialized")
 		old_enabled &= old_adconnection_enabled
 	new_enabled = bool(int(new.get("univentionOffice365Enabled", ["0"])[0]))
@@ -322,26 +322,34 @@ def handler(dn, new, old, command):
 		enabled = not is_deactived_locked_or_expired(udm_user)
 		logger.debug("new is %s.", "enabled" if enabled else "deactivated, locked or expired")
 		new_enabled &= enabled
-		new_adconnection_enabled = adconnection_alias_new in initialized_adconnection
+		new_adconnection_enabled = adconnection_aliases_new.issubset(initialized_adconnection)
 		logger.debug("new adconnection is %s.", "enabled" if new_adconnection_enabled else "not initialized")
 		new_enabled &= new_adconnection_enabled
 
 	logger.debug("new_enabled=%r old_enabled=%r", new_enabled, old_enabled)
 
 	#
-	# MOVE between AD connections -> delete and create
+	# Add or remove user from AD connections -> delete and create
 	#
-	if new_enabled and adconnection_alias_new and adconnection_alias_old and adconnection_alias_new != adconnection_alias_old:
-		logger.info("new_enabled and adconnection_alias_old=%r and adconnection_alias_new=%r -> MOVE (DELETE old, CREATE new) (%s)", adconnection_alias_old, adconnection_alias_new, dn)
-		logger.info("DELETE (%s | %s)", adconnection_alias_old, dn)
-		try:
-			ol = Office365Listener(listener, name, _attrs, ldap_cred, dn, adconnection_alias_old)
-			delete_user(ol, dn, new, old)
-		except NoIDsStored:
-			logger.warn('Tenant %r is not initialized, when trying to delete user %r. Ignoring.', adconnection_alias_old, dn)
-		ol = Office365Listener(listener, name, _attrs, ldap_cred, dn, adconnection_alias_new)
-		logger.info("CREATE (%s | %s)", adconnection_alias_new, dn)
-		new_or_reactivate_user(ol, dn, new, old)
+	if new_enabled and old_enabled:
+		logger.info("new_enabled and adconnection_alias_old=%r and adconnection_alias_new=%r -> MODIFY (DELETE old, CREATE new) (%s)", adconnection_aliases_old, adconnection_aliases_new, dn)
+		connections_to_be_deleted = adconnection_aliases_old - adconnection_aliases_new
+		logger.info("DELETE (%s | %s)", connections_to_be_deleted, dn)
+		for conn in connections_to_be_deleted:
+			try:
+				ol = Office365Listener(listener, name, _attrs, ldap_cred, dn, conn)
+				delete_user(ol, dn, new, old)
+			except NoIDsStored:
+				logger.warn('Connection %r is not initialized, when trying to delete user %r. Ignoring.', conn, dn)
+
+		connections_to_be_created = adconnection_aliases_new - adconnection_aliases_old
+		logger.info("CREATE (%s | %s)", connections_to_be_created, dn)
+		for conn in connections_to_be_created:
+			try:
+				ol = Office365Listener(listener, name, _attrs, ldap_cred, dn, conn)
+				new_or_reactivate_user(ol, dn, new, old)
+			except NoIDsStored:
+				logger.warn('Connection %r is not initialized, when trying to create user %r. Ignoring.', conn, dn)
 		return
 
 	ol = Office365Listener(listener, name, _attrs, ldap_cred, dn, adconnection_alias)
@@ -352,6 +360,9 @@ def handler(dn, new, old, command):
 	# NEW or REACTIVATED account
 	#
 	if new_enabled and not old_enabled:
+		if not adconnection_aliases_new:
+			logger.info("No ad connection defined, using default (%s | %s)", connections_to_be_created, dn)
+			# TODO: write get_default_connection()
 		logger.info("new_enabled and not old_enabled -> NEW or REACTIVATED (%s | %s)", adconnection_alias, dn)
 		new_or_reactivate_user(ol, dn, new, old)
 		return
