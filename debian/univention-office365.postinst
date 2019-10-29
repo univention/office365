@@ -48,12 +48,4 @@ if dpkg --compare-versions "2.0.0-8" gt-nl "$2"; then
 	ucr commit /etc/simplesamlphp/metadata/saml20-sp-remote.php
 fi
 
-eval "$(ucr get office365/migrate/adconnectionalias)"
-
-if dpkg --compare-versions "2.0.2-12" gt-nl "$2"; then
-	if ! is_ucr_false office365/migrate/adconnectionalias; then
-		/usr/sbin/univention-office365-migrate-adconnectionalias
-	fi
-fi
-
 exit 0
