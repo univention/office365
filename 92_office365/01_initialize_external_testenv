@@ -1,0 +1,17 @@
+#!/usr/share/ucs-test/runner python
+## -*- coding: utf-8 -*-
+## desc: configure external connections for this connector instance
+## tags: [apptest]
+## exposure: dangerous
+## packages:
+##   - univention-office365
+
+from helpers.office365_test_helpers import setup_logging, setup_externally_configured_tenants
+import univention.testing.utils as utils
+
+logger = setup_logging()
+
+if not setup_externally_configured_tenants():
+	utils.fail("Preparation of externally configured ad connections failed!")
+
+print("*** All went well.")
