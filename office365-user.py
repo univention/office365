@@ -40,7 +40,7 @@ import datetime
 from stat import S_IRUSR, S_IWUSR
 
 import listener
-from univention.office365.azure_auth import AzureAuth, AzureTenantHandler, NoIDsStored
+from univention.office365.azure_auth import AzureAuth, AzureTenantHandler, NoIDsStored, default_adconnection_alias_ucrv
 from univention.office365.listener import Office365Listener, NoAllocatableSubscriptions, attributes_system, get_adconnection_filter
 from univention.office365.udm_helper import UDMHelper
 from univention.office365.logging2udebug import get_logger
@@ -300,8 +300,8 @@ def handler(dn, new, old, command):
 	elif command == 'a':
 		old = load_old(old)
 
-	adconnection_aliases_old = set(old.get('univentionOffice365ADConnectionAlias', [None]))
-	adconnection_aliases_new = set(new.get('univentionOffice365ADConnectionAlias', [None]))
+	adconnection_aliases_old = set(old.get('univentionOffice365ADConnectionAlias', []))
+	adconnection_aliases_new = set(new.get('univentionOffice365ADConnectionAlias', []))
 	adconnection_alias = adconnection_aliases_new or adconnection_aliases_old
 	logger.info('adconnection_alias_old=%r adconnection_alias_new=%r', adconnection_aliases_old, adconnection_aliases_new)
 
@@ -361,8 +361,13 @@ def handler(dn, new, old, command):
 	#
 	if new_enabled and not old_enabled:
 		if not adconnection_aliases_new:
-			logger.info("No ad connection defined, using default (%s | %s)", connections_to_be_created, dn)
-			# TODO: write get_default_connection()
+			logger.info("No ad connection defined, using default (%s | %s)", listener.configRegistry.get(default_adconnection_alias_ucrv), dn)
+			adconnection_alias.add(listener.configRegistry.get(default_adconnection_alias_ucrv))
+			if not listener.configRegistry.is_false('office365/migrate/adconnectionalias'):
+				# Migration script to App version 3 has run - put user in default ad connection
+				# TODO: write default alias to user object
+
+		ol = Office365Listener(listener, name, _attrs, ldap_cred, dn, adconnection_aliases_new)
 		logger.info("new_enabled and not old_enabled -> NEW or REACTIVATED (%s | %s)", adconnection_alias, dn)
 		new_or_reactivate_user(ol, dn, new, old)
 		return
