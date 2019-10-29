@@ -87,6 +87,9 @@ for dn in lo.searchDn('univentionObjectType=settings/office365profile'):
 	print('Changing univentionObjectType of', dn)
 	lo.modify(dn, [('univentionObjectType', 'settings/office365profile', 'office365/profile')])
 EOF
+	if ! is_ucr_false office365/migrate/adconnectionalias; then
+		/usr/sbin/univention-office365-migrate-adconnectionalias "$@" || die
+	fi
 fi
 ucs_addServiceToLocalhost "univention-office365" "$@" || die
 
