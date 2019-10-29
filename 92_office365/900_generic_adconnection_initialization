@@ -22,9 +22,10 @@ tenant2 = uts.random_username()
 tenant3 = uts.random_username()
 
 for tenant in (tenant1, tenant2, tenant3):
+	AzureTenantHandler.create_new_tenant(tenant)
 	CONFDIR = AzureTenantHandler.get_conf_path("CONFDIR", tenant)
 	print('*** tenant={!r} CONFDIR={!r}'.format(tenant, CONFDIR))
-	os.mkdir(CONFDIR)
+	# os.mkdir(CONFDIR)
 
 	DATETIME_FORMAT = "%Y-%m-%d_%H:%M:%S"
 	IDS_FILE = AzureTenantHandler.get_conf_path("IDS_FILE", tenant)
@@ -69,6 +70,7 @@ for tenant in (tenant1, tenant2, tenant3):
 	if not loaded_ids == test_ids:
 		utils.fail("Stored and loaded data differ.")
 
-	shutil.rmtree(CONFDIR)
+	AzureTenantHandler.remove_tenant(tenant)
+
 
 print("*** All went well.")
