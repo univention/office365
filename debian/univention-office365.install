@@ -17,3 +17,4 @@ simplesamlSPconfig.php usr/share/univention-office365/
 create_new_tenant usr/share/univention-office365/scripts/
 migrate_to_multi_tenant usr/share/univention-office365/scripts/
 manage_tenants usr/share/univention-office365/scripts/
+univention-office365-migrate-adconnectionalias usr/share/univention-office365/scripts/
