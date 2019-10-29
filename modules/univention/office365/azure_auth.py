@@ -77,6 +77,7 @@ resource_url = "https://graph.windows.net"
 
 tenant_alias_ucrv = 'office365/tenant/alias/'
 tenant_wizard_ucrv = 'office365/tenant/wizard'
+default_adconnection_alias_ucrv = 'office365/adconnection/defaultalias'
 
 ucr = ConfigRegistry()
 ucr.load()
