@@ -136,7 +136,7 @@ if __name__ == "__main__":
 	if args.verbosity is None:
 		args.verbosity = 0
 
-	if args.object in ["users", "groups", "licenses", "domains", "subscriptions", "tenant"]:
+	if args.object in ["users", "groups", "licenses", "domains", "subscriptions", "adconnection"]:
 		if args.action == "examples":
 			print "ADD USERS | GROUPS"
 			print "------------------"
@@ -146,7 +146,7 @@ if __name__ == "__main__":
 			print "------------------------------"
 			print "{0} -o <objID of target group> add groups <objID of a user or group>  # adding multiple is broken".format(sys.argv[0])
 			print ""
-			print "LIST USERS | GROUPS | DOMAINS | SUBSCRIPTIONS | TENANT"
+			print "LIST USERS | GROUPS | DOMAINS | SUBSCRIPTIONS | ADCONNECTION"
 			print "------------------------------------------------------"
 			print "{0} list users".format(sys.argv[0])
 			print "{0} list users -s".format(sys.argv[0])
@@ -157,7 +157,7 @@ if __name__ == "__main__":
 			print "{0} list groups -f \"displayName eq 'testgroup01'\"".format(sys.argv[0])
 			print "{0} list domains".format(sys.argv[0])
 			print "{0} list subscriptions".format(sys.argv[0])
-			print "{0} list tenant".format(sys.argv[0])
+			print "{0} list adconnection".format(sys.argv[0])
 			print ""
 			print "MODIFY USERS | GROUPS"
 			print "---------------------"
@@ -243,9 +243,9 @@ if __name__ == "__main__":
 		elif args.object == "domains":
 			domains = ah.list_verified_domains()
 			pprint.pprint(domains)
-		elif args.object == "tenant":
-			tenant = ah.list_tenant_details()
-			pprint.pprint(tenant)
+		elif args.object == "adconnection":
+			adconnection = ah.list_adconnection_details()
+			pprint.pprint(adconnection)
 		else:
 			print "object type '{}' not yet implemented".format(args.object)
 	elif args.action == "modify":

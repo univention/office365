@@ -40,7 +40,7 @@ import argparse
 import subprocess
 import univention.admin.uldap
 from univention.config_registry import ConfigRegistry, handler_set
-from univention.office365.azure_auth import AzureAuth, get_tenant_aliases, tenant_alias_ucrv
+from univention.office365.azure_auth import AzureAuth, get_adconnection_aliases, adconnection_alias_ucrv
 from univention.office365.udm_helper import UDMHelper
 
 
@@ -49,21 +49,21 @@ ucr = ConfigRegistry()
 ucr.load()
 
 if __name__ == '__main__':
-	parser = argparse.ArgumentParser(description='Migrate a single tenant office 365 connector installation to a multi tenant setup.')
-	parser.add_argument('tenant_alias', help='Value to be written to user attribute. Must not be listed in UCR {}.'.format(tenant_alias_ucrv))
+	parser = argparse.ArgumentParser(description='Migrate a single Azure AD Office 365 connector setup to a multi-connection setup.')
+	parser.add_argument('adconnection_alias', help='Value to be written to user attribute. Must not be listed in UCR {}.'.format(adconnection_alias_ucrv))
 	parser.add_argument('--dryrun', help='Simulate the migration, but don\'t actually change anything [default off].', action='store_true')
 	args = parser.parse_args()
 
 	if not AzureAuth.is_initialized():
-		print('Error: Default tenant (in {!r}) is not initialized. Exiting.'.format(conf_path))
+		print('Error: Default Azure AD connection (in {!r}) is not initialized. Exiting.'.format(conf_path))
 		sys.exit(1)
 
-	aliases = get_tenant_aliases()
-	if args.tenant_alias in aliases:
-		print('Error: Tenant alias {!r} is already listed in UCR {!r}. Exiting.'.format(args.tenant_alias, tenant_alias_ucrv))
+	aliases = get_adconnection_aliases()
+	if args.adconnection_alias in aliases:
+		print('Error: Azure AD connection alias {!r} is already listed in UCR {!r}. Exiting.'.format(args.adconnection_alias, adconnection_alias_ucrv))
 		sys.exit(1)
 
-	target_path = os.path.join(conf_path, args.tenant_alias)
+	target_path = os.path.join(conf_path, args.adconnection_alias)
 	if os.path.exists(target_path):
 		print('Error: Path {!r} already exists. Exiting.'.format(target_path))
 		sys.exit(1)
@@ -92,10 +92,10 @@ if __name__ == '__main__':
 			os.chown(os.path.join(target_path, filename), pwd.getpwnam('listener').pw_uid, 0)
 			os.chmod(os.path.join(target_path, filename), stat.S_IRUSR | stat.S_IWUSR)
 
-	if args.dryrun or AzureAuth.is_initialized(args.tenant_alias):
-		print('OK: Tenant {!r} is now initialized.'.format(args.tenant_alias))
+	if args.dryrun or AzureAuth.is_initialized(args.adconnection_alias):
+		print('OK: Azure AD connection {!r} is now initialized.'.format(args.adconnection_alias))
 	else:
-		print('Error: Tenant {!r} is not initialized after copying. Exiting.'.format(args.tenant_alias))
+		print('Error: Azure AD connection {!r} is not initialized after copying. Exiting.'.format(args.adconnection_alias))
 		sys.exit(1)
 
 	print('Searching for users to migrate in LDAP...')
@@ -116,13 +116,13 @@ if __name__ == '__main__':
 			attr['univentionOffice365ObjectID'][0])
 		)
 	if users:
-		print('\nSetting the tenant alias of those users to {!r}...\n'.format(args.tenant_alias))
+		print('\nSetting the Azure AD connection alias of those users to {!r}...\n'.format(args.adconnection_alias))
 		lo, po = univention.admin.uldap.getAdminConnection()
 		for dn in sorted(users.keys()):
 			attr = users[dn]
 			print('Changing {} ({})...'.format(attr['uid'][0], dn))
 			if not args.dryrun:
-				lo.modify(dn, [('univentionOffice365ADConnectionAlias', None, args.tenant_alias)])
+				lo.modify(dn, [('univentionOffice365ADConnectionAlias', None, args.adconnection_alias)])
 	else:
 		print('No users found.')
 	print('Finished migrating users.\n')
@@ -141,13 +141,13 @@ if __name__ == '__main__':
 			attr['univentionOffice365ObjectID'][0])
 		)
 	if groups:
-		print('\nSetting the tenant alias of those groups to {!r}...\n'.format(args.tenant_alias))
+		print('\nSetting the Azure AD connection alias of those groups to {!r}...\n'.format(args.adconnection_alias))
 		lo, po = univention.admin.uldap.getAdminConnection()
 		for dn in sorted(groups.keys()):
 			attr = groups[dn]
 			print('Changing {} ({})...'.format(attr['cn'][0], dn))
 			if not args.dryrun:
-				lo.modify(dn, [('univentionOffice365ADConnectionAlias', None, args.tenant_alias)])
+				lo.modify(dn, [('univentionOffice365ADConnectionAlias', None, args.adconnection_alias)])
 	else:
 		print('No groups found.')
 	print('Finished migrating groups.\n')
@@ -158,9 +158,9 @@ if __name__ == '__main__':
 		ids_file = os.path.join(target_path, 'ids.json')
 	with open(ids_file, 'rb') as fp:
 		ids = json.load(fp)
-		tenant_id = ids['tenant_id']
+		adconnection_id = ids['adconnection_id']
 
-	ucrv_set = '{}{}={}'.format(tenant_alias_ucrv, args.tenant_alias, tenant_id)
+	ucrv_set = '{}{}={}'.format(adconnection_alias_ucrv, args.adconnection_alias, adconnection_id)
 	print('Setting UCR {}...'.format(ucrv_set))
 	if not args.dryrun:
 		handler_set([ucrv_set])

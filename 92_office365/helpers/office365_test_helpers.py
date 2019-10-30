@@ -41,7 +41,7 @@ import univention.testing.strings as uts
 from univention.config_registry import handler_set
 
 from univention.office365.azure_handler import ResourceNotFoundError
-from univention.office365.azure_auth import AzureAuth, AzureTenantHandler
+from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
 from univention.office365.logging2udebug import get_logger, LevelDependentFormatter
 
 
@@ -373,20 +373,20 @@ def setup_logging():
 	return logger
 
 
-def setup_externally_configured_tenants():
+def setup_externally_configured_adconnections():
 	try:
 		if not os.path.exists("/etc/univention-office365/o365domain"):
-			AzureTenantHandler.create_new_tenant("o365domain")
+			AzureADConnectionHandler.create_new_adconnection("o365domain")
 		if not AzureAuth.is_initialized("o365domain"):
-			rmdir = AzureTenantHandler.get_conf_path("CONFDIR", "o365domain")
+			rmdir = AzureADConnectionHandler.get_conf_path("CONFDIR", "o365domain")
 			shutil.rmtree(rmdir, ignore_errors=True)
 			shutil.copytree("/etc/univention-office365/o365-dev-univention-de", rmdir)
-			ucrv_set = 'office365/tenant/alias/o365domain=initialized'
+			ucrv_set = 'office365/adconnection/alias/o365domain=initialized'
 			handler_set([ucrv_set])
 		if not os.path.exists("/etc/univention-office365/azuretestdomain"):
-			AzureTenantHandler.create_new_tenant("azuretestdomain")
+			AzureADConnectionHandler.create_new_adconnection("azuretestdomain")
 		if not AzureAuth.is_initialized("azuretestdomain"):
-			rmdir = AzureTenantHandler.get_conf_path("CONFDIR", "azuretestdomain")
+			rmdir = AzureADConnectionHandler.get_conf_path("CONFDIR", "azuretestdomain")
 			shutil.rmtree(rmdir, ignore_errors=True)
 			shutil.copytree("/etc/univention-office365/u-azure-test-de", rmdir)
 			handler_set([ucrv_set])
@@ -394,12 +394,12 @@ def setup_externally_configured_tenants():
 		return False
 	return True
 
-def remove_externally_configured_tenants():
+def remove_externally_configured_adconnections():
 	try:
 		if AzureAuth.is_initialized("o365domain"):
-			AzureTenantHandler.remove_tenant("o365domain")
+			AzureADConnectionHandler.remove_adconnection("o365domain")
 		if AzureAuth.is_initialized("azuretestdomain"):
-			AzureTenantHandler.remove_tenant("azuretestdomain")
+			AzureADConnectionHandler.remove_adconnection("azuretestdomain")
 	except Exception as exc:
 		return False
 	return True

@@ -118,7 +118,7 @@ define([
 						content: this.getTextUCSIntegration()
 					}, {
 						type: TextBox,
-						name: 'tenant_id',
+						name: 'adconnection_id',
 						label: _('Federation metadata document'),
 						placeHolder: _('Please insert the federation metadata document URL here...'),
 						sizeClass: 'Two',
@@ -126,7 +126,7 @@ define([
 						value: '',
 						onChange: lang.hitch(this, function(value) {
 							this.getWidget('manifest-upload', 'upload').set('dynamicOptions', {
-								tenant_id: value,
+								adconnection_id: value,
 								domain: this.getWidget('manifest-upload', 'domain').get('value')
 							});
 						})
@@ -155,7 +155,7 @@ define([
 						placeHolder: _('domain name (e.g. univention.de)'),
 						onChange: lang.hitch(this, function(value) {
 							this.getWidget('manifest-upload', 'upload').set('dynamicOptions', {
-								tenant_id: this.getWidget('ucs-integration', 'tenant_id').get('value'),
+								adconnection_id: this.getWidget('ucs-integration', 'adconnection_id').get('value'),
 								domain: value
 							});
 						})
@@ -169,7 +169,7 @@ define([
 						buttonLabel: _('Upload manifest'),
 						command: 'office365/upload',
 						dynamicOptions: {
-							tenant_id: 'common',
+							adconnection_id: 'common',
 							domain: ''
 						},
 						onUploadStarted: lang.hitch(this, function() {
@@ -307,7 +307,7 @@ define([
 			return this.formatOrderedList([
 				_('Make sure the newly created application is selected or open it by clicking on it.'),
 				_('On the app <i>Overview</i>, click on <i>ENDPOINTS</i>.') + this.img(_('endpoints_EN.png')),
-				_('Copy the value for <i>FEDERATION METADATA DOCUMENT</i>.') + this.img(_('copy_tenant_id_EN.png')),
+				_('Copy the value for <i>FEDERATION METADATA DOCUMENT</i>.') + this.img(_('copy_adconnection_id_EN.png')),
 				_('Insert the copied value into the text box below.')
 			]);
 		},

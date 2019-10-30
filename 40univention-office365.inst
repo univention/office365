@@ -70,7 +70,7 @@ if ! joinscript_check_any_version_executed || [ -n "$FORCE_NEW_CERT" ]; then
     openssl x509 -in cert.pem -fingerprint -noout | sed 's/SHA1 Fingerprint=//g' | sed 's/://g' | xxd -r -ps | base64 > cert.fp || die
 
     # create empty id and token stores
-	# TODO: initialize new default tenant
+	# TODO: initialize new default adconnection
     # python -c 'from univention.office365.azure_auth import AzureAuth; AzureAuth.uninitialize()' || die
 
     # set paranoid permissions
@@ -88,7 +88,7 @@ for dn in lo.searchDn('univentionObjectType=settings/office365profile'):
 	lo.modify(dn, [('univentionObjectType', 'settings/office365profile', 'office365/profile')])
 EOF
 	if ! is_ucr_false office365/migrate/adconnectionalias; then
-		/usr/share/univention-office365/scripts/univention-office365-migrate-adconnectionalias "$@" || die
+		/usr/share/univention-office365/scripts/migrate_to_adconnectionalias || die
 	fi
 fi
 ucs_addServiceToLocalhost "univention-office365" "$@" || die
@@ -287,10 +287,10 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--position "cn=custom attributes,cn=univention,$ldap_base" \
 	--set name="UniventionOffice365ADConnectionAlias" \
 	--set CLIName="UniventionOffice365ADConnectionAlias" \
-	--set shortDescription="Active Directory connection alias" \
+	--set shortDescription="Azure Active Directory connection alias" \
 	--set translationShortDescription='"de_DE" "Active Directory Verbindungs-Alias"' \
-	--set longDescription="Alias of the tenant to use for syncing this user to Azure AD" \
-	--set translationLongDescription='"de_DE" "Alias des zu nutzenden Mandanten (tenant) zum Synchronisieren dieses Benutzers zum Azure AD."' \
+	--set longDescription="Alias of the Azure AD connection to use for syncing this user" \
+	--set translationLongDescription='"de_DE" "Alias der zu nutzenden Azure AD Connection zum Synchronisieren dieses Benutzers"' \
 	--set tabAdvanced=0 \
 	--set tabName="Office 365" \
 	--set translationTabName='"de_DE" "Office 365"' \
@@ -313,9 +313,9 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set name="UniventionOffice365GroupADConnectionAlias" \
 	--set CLIName="UniventionOffice365ADConnectionAlias" \
 	--set shortDescription="Active Directory connection alias" \
-	--set translationShortDescription='"de_DE" "Active Directory Verbindungs-Alias"' \
-	--set longDescription="Alias of the tenant to use for syncing this group to Azure AD" \
-	--set translationLongDescription='"de_DE" "Alias des zu nutzenden Mandanten (tenant) zum Synchronisieren dieser Gruppe zum Azure AD."' \
+	--set translationShortDescription='"de_DE" "Azure Active Directory Verbindungs-Alias"' \
+	--set longDescription="Alias of the Azure AD connection to use for syncing this group" \
+	--set translationLongDescription='"de_DE" "Alias der zu nutzenden Azure AD Connection zum Synchronisieren dieser Gruppe"' \
 	--set module="groups/group" \
 	--set tabAdvanced=0 \
 	--set tabName="Office 365" \

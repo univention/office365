@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-15) unstable; urgency=medium
+
+  * Bug #50433: Convert to new wording: Azure AD Connection
+
+ -- Arvid Requate <requate@univention.de>  Wed, 30 Oct 2019 14:37:22 +0100
+
 univention-office365 (2.0.2-14) unstable; urgency=medium
 
   * Bug #50433: Renamed migration script
@@ -18,7 +24,7 @@ univention-office365 (2.0.2-12) unstable; urgency=medium
 
 univention-office365 (2.0.2-11) unstable; urgency=medium
 
-  * Bug #50324: Move multitenant scripts to expected location in srcpkg
+  * Bug #50324: Move multi-connection scripts to expected location in srcpkg
 
  -- Erik Damrose <damrose@univention.de>  Tue, 08 Oct 2019 17:38:33 +0200
 
@@ -30,7 +36,7 @@ univention-office365 (2.0.2-10) unstable; urgency=medium
 
 univention-office365 (2.0.2-9) unstable; urgency=low
 
-  * Bug #50324: add multi tenant support
+  * Bug #50324: add multi-connection support
 
  -- Daniel Troeder <troeder@univention.de>  Mon, 23 Oct 2017 13:13:44 +0200
 

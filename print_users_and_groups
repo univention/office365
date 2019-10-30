@@ -34,7 +34,7 @@ import sys
 from operator import itemgetter
 from univention.config_registry import ConfigRegistry
 from univention.office365.azure_handler import AzureHandler, ResourceNotFoundError
-from univention.office365.azure_auth import AzureAuth, get_tenant_aliases
+from univention.office365.azure_auth import AzureAuth, get_adconnection_aliases
 
 
 def calc_column_lengths(data, data_fetchers, header_parts):
@@ -57,10 +57,10 @@ def print_table(data, data_fetchers, header_parts, line, epilog, column_lengths=
 	print(epilog)
 
 
-def print_users_and_groups(tenant_alias=None):
+def print_users_and_groups(adconnection_alias=None):
 	ucr = ConfigRegistry()
 	ucr.load()
-	ah = AzureHandler(ucr, "print_subscriptions", tenant_alias)
+	ah = AzureHandler(ucr, "print_subscriptions", adconnection_alias)
 
 	users = ah.list_users()
 	groups = ah.list_groups()
@@ -160,21 +160,21 @@ def print_users_and_groups(tenant_alias=None):
 
 if __name__ == '__main__':
 	try:
-		tenant_alias = sys.argv[1]
+		adconnection_alias = sys.argv[1]
 		print('sys.argv={!r}'.format(sys.argv))
-		tenant_aliases = get_tenant_aliases().keys()
-		initialized_tenants = [ta for ta in tenant_aliases if AzureAuth.is_initialized(ta)]
-		print('tenant_alias={!r} tenant_aliases={!r} initialized_tenants={!r}'.format(tenant_alias, tenant_aliases, initialized_tenants))
-		if tenant_alias not in tenant_aliases:
-			print('Usage: {} [tenant alias]'.format(sys.argv[0]))
-			print('Unknown tenant alias {!r}.'.format(tenant_alias))
+		adconnection_aliases = get_adconnection_aliases().keys()
+		initialized_adconnections = [ta for ta in adconnection_aliases if AzureAuth.is_initialized(ta)]
+		print('adconnection_alias={!r} adconnection_aliases={!r} initialized_adconnections={!r}'.format(adconnection_alias, adconnection_aliases, initialized_adconnections))
+		if adconnection_alias not in adconnection_aliases:
+			print('Usage: {} [Azure AD connection alias]'.format(sys.argv[0]))
+			print('Unknown Azure AD connection alias {!r}.'.format(adconnection_alias))
 			sys.exit(1)
-		elif tenant_alias not in initialized_tenants:
-			print('Usage: {} [tenant alias]'.format(sys.argv[0]))
-			print('Tenant not yet initialized: {!r}.'.format(tenant_alias))
+		elif adconnection_alias not in initialized_adconnections:
+			print('Usage: {} [Azure AD connection alias]'.format(sys.argv[0]))
+			print('Azure AD connection not yet initialized: {!r}.'.format(adconnection_alias))
 			sys.exit(1)
-		print('Using tenant alias {!r}.'.format(tenant_alias))
+		print('Using Azure AD connection alias {!r}.'.format(adconnection_alias))
 	except IndexError:
-		tenant_alias = None
+		adconnection_alias = None
 
-	print_users_and_groups(tenant_alias)
+	print_users_and_groups(adconnection_alias)

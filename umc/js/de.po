@@ -662,8 +662,8 @@ msgid "azure_upload_manifest_window_EN.png"
 msgstr "azure_upload_manifest_window_DE.png"
 
 #: umc/js/office365.js:310
-msgid "copy_tenant_id_EN.png"
-msgstr "copy_tenant_id_DE.png"
+msgid "copy_adconnection_id_EN.png"
+msgstr "copy_adconnection_id_DE.png"
 
 #: umc/js/office365.js:155
 msgid "domain name (e.g. univention.de)"
