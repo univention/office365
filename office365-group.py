@@ -138,38 +138,70 @@ def handler(dn, new, old, command):
 	elif command == 'a':
 		old = load_old(old)
 
-	adconnection_alias_old = old.get('univentionOffice365ADConnectionAlias', [None])[0]
-	adconnection_alias_new = new.get('univentionOffice365ADConnectionAlias', [None])[0]
-	adconnection_alias = adconnection_alias_new or adconnection_alias_old
-	logger.info('adconnection_alias_old=%r adconnection_alias_new=%r', adconnection_alias_old, adconnection_alias_new)
+	adconnection_aliases_old = set(old.get('univentionOffice365ADConnectionAlias', []))
+	adconnection_aliases_new = set(new.get('univentionOffice365ADConnectionAlias', []))
+	adconnection_alias = adconnection_aliases_new or adconnection_aliases_old
+	logger.info('adconnection_alias_old=%r adconnection_alias_new=%r', adconnection_aliases_old, adconnection_aliases_new)
+
+	old_enabled = bool(int(old.get("univentionOffice365Enabled", ["0"])[0]))
+	if old_enabled:
+		old_adconnection_enabled = adconnection_aliases_old.issubset(initialized_adconnections)
+		logger.debug("old Azure AD connection is %s.", "enabled" if old_adconnection_enabled else "not initialized")
+		old_enabled &= old_adconnection_enabled
+
+	new_enabled = bool(int(new.get("univentionOffice365Enabled", ["0"])[0]))
+	if new_enabled:
+		new_adconnection_enabled = adconnection_aliases_new.issubset(initialized_adconnections)
+		logger.debug("new Azure AD connection is %s.", "enabled" if new_adconnection_enabled else "not initialized")
+		new_enabled &= new_adconnection_enabled
+
+	logger.debug("new_enabled=%r old_enabled=%r", new_enabled, old_enabled)
+
+	if new_enabled and old_enabled:
+		logger.info("new_enabled and adconnection_alias_old=%r and adconnection_alias_new=%r -> MODIFY (DELETE old, CREATE new) (%s)", adconnection_aliases_old, adconnection_aliases_new, dn)
+		connections_to_be_deleted = adconnection_aliases_old - adconnection_aliases_new
+		logger.info("DELETE (%s | %s)", connections_to_be_deleted, dn)
+		for conn in connections_to_be_deleted:
+			ol = Office365Listener(listener, name, dict(listener=attributes_copy), ldap_cred, dn, conn)
+			ol.delete_group(dn)
+
+		connections_to_be_created = adconnection_aliases_new - adconnection_aliases_old
+		logger.info("CREATE (%s | %s)", connections_to_be_created, dn)
+		for conn in connections_to_be_created:
+			ol = Office365Listener(listener, name, dict(listener=attributes_copy), ldap_cred, dn, conn)
+			create_groups(ol, dn, new, connections_to_be_created)
 
 	ol = Office365Listener(listener, name, dict(listener=attributes_copy), ldap_cred, dn, adconnection_alias)
 
 	#
 	# NEW group
 	#
-	if new and not old:
+	if new and new_enabled and not old:
 		logger.debug("new and not old -> NEW (%s)", dn)
-		create_groups(ol, dn, adconnection_alias_new)
+		for conn in adconnection_aliases_new:
+			ol = Office365Listener(listener, name, dict(listener=attributes_copy), ldap_cred, dn, conn)
+			create_groups(ol, dn, conn)
 		logger.debug("done (%s)", dn)
 		return
 
 	#
 	# DELETE group
 	#
-	if old and not new:
+	if old and old_enabled and not new:
 		logger.debug("old and not new -> DELETE (%s)", dn)
-		if "univentionOffice365ObjectID" in old:
-			ol.delete_group(old)
-			logger.info("Deleted group %r (%r).", old["cn"][0], old["univentionOffice365ObjectID"][0])
+		for conn in adconnection_aliases_old:
+			ol = Office365Listener(listener, name, dict(listener=attributes_copy), ldap_cred, dn, conn)
+			ol.delete_group(dn)
+			logger.info("Deleted group %r (%r).", old["cn"][0], conn)
 		return
 
 	#
 	# MODIFY group
 	#
-	if old and new:
+	if old and new and new_enabled:
 		logger.debug("old and new -> MODIFY (%s)", dn)
-		if "univentionOffice365ObjectID" in old:
+		for conn in adconnection_aliases_new:
+			ol = Office365Listener(listener, name, dict(listener=attributes_copy), ldap_cred, dn, conn)
 			azure_group = ol.modify_group(old, new)
 			# save Azure objectId in UDM object
 			try:
@@ -182,6 +214,4 @@ def handler(dn, new, old, command):
 			udm_group.modify()
 
 			logger.info("Modified group %r (%r).", old["cn"][0], object_id)
-		else:
-			create_groups(ol, dn, adconnection_alias_new)
 		return

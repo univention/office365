@@ -350,11 +350,8 @@ def handler(dn, new, old, command):
 				new_or_reactivate_user(ol, dn, new, old)
 			except NoIDsStored:
 				logger.warn('Connection %r is not initialized, when trying to create user %r. Ignoring.', conn, dn)
-		return
 
 	ol = Office365Listener(listener, name, _attrs, ldap_cred, dn, adconnection_alias)
-
-	logger.debug("new_enabled=%r old_enabled=%r", new_enabled, old_enabled)
 
 	#
 	# NEW or REACTIVATED account
