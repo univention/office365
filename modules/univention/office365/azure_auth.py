@@ -65,18 +65,18 @@ NAME = "office365"
 SCOPE = ["Directory.ReadWrite.All"]  # https://msdn.microsoft.com/Library/Azure/Ad/Graph/howto/azure-ad-graph-api-permission-scopes#DirectoryRWDetail
 DEBUG_FORMAT = '%(asctime)s %(levelname)-8s %(module)s.%(funcName)s:%(lineno)d  %(message)s'
 LOG_DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
-SAML_SETUP_SCRIPT_CERT_PATH = "/etc/simplesamlphp/ucs-sso.{domainname}-idp-certificate{tenant_alias}.crt"
-SAML_SETUP_SCRIPT_PATH = "/var/lib/univention-office365/saml_setup{tenant_alias}.bat"
-TENANT_CONF_BASEPATH = "/etc/univention-office365"
+SAML_SETUP_SCRIPT_CERT_PATH = "/etc/simplesamlphp/ucs-sso.{domainname}-idp-certificate{adconnection_alias}.crt"
+SAML_SETUP_SCRIPT_PATH = "/var/lib/univention-office365/saml_setup{adconnection_alias}.bat"
+ADCONNECTION_CONF_BASEPATH = "/etc/univention-office365"
 
-oauth2_auth_url = "https://login.microsoftonline.com/{tenant}/oauth2/authorize?{params}"
-oauth2_token_url = "https://login.microsoftonline.com/{tenant_id}/oauth2/token"
-oauth2_token_issuer = "https://sts.windows.net/{tenant_id}/"
-federation_metadata_url = "https://login.microsoftonline.com/{tenant_id}/federationmetadata/2007-06/federationmetadata.xml"
+oauth2_auth_url = "https://login.microsoftonline.com/{adconnection}/oauth2/authorize?{params}"
+oauth2_token_url = "https://login.microsoftonline.com/{adconnection_id}/oauth2/token"
+oauth2_token_issuer = "https://sts.windows.net/{adconnection_id}/"
+federation_metadata_url = "https://login.microsoftonline.com/{adconnection_id}/federationmetadata/2007-06/federationmetadata.xml"
 resource_url = "https://graph.windows.net"
 
-tenant_alias_ucrv = 'office365/tenant/alias/'
-tenant_wizard_ucrv = 'office365/tenant/wizard'
+adconnection_alias_ucrv = 'office365/adconnection/alias/'
+adconnection_wizard_ucrv = 'office365/adconnection/wizard'
 default_adconnection_alias_ucrv = 'office365/adconnection/defaultalias'
 
 ucr = ConfigRegistry()
@@ -84,9 +84,9 @@ ucr.load()
 logger = get_logger("office365", "o365")
 
 
-class AzureTenantHandler(object):
+class AzureADConnectionHandler(object):
 	def __init__(self):
-		self.tenant = None
+		self.adconnection = None
 
 	@classmethod
 	def listener_restart(self):
@@ -94,10 +94,10 @@ class AzureTenantHandler(object):
 		subprocess.call(['systemctl', 'restart', 'univention-directory-listener'])
 
 	@classmethod
-	def get_conf_path(self, name, tenant_alias):
-		conf_dir = os.path.join(TENANT_CONF_BASEPATH, tenant_alias)
+	def get_conf_path(self, name, adconnection_alias):
+		conf_dir = os.path.join(ADCONNECTION_CONF_BASEPATH, adconnection_alias)
 		if not os.path.exists(conf_dir):
-			logger.error('Config dir for tenant %s not found (%s)', tenant_alias, conf_dir)
+			logger.error('Config directory for Azure AD connection %s not found (%s)', adconnection_alias, conf_dir)
 			return None
 		return {
 			'CONFDIR': conf_dir,
@@ -110,113 +110,113 @@ class AzureTenantHandler(object):
 		}[name]
 
 	@classmethod
-	def get_tenant_aliases(self):
+	def get_adconnection_aliases(self):
 		res = dict()
 		ucr.load()
 		for k, v in ucr.items():
-			if k.startswith(tenant_alias_ucrv):
-				res[k[len(tenant_alias_ucrv):]] = v
+			if k.startswith(adconnection_alias_ucrv):
+				res[k[len(adconnection_alias_ucrv):]] = v
 		return res
 
 	@classmethod
-	def tenant_id_to_alias(self, tenant_id):
-		for alias, t_id in self.get_tenant_aliases().items():
-			if t_id == tenant_id:
+	def adconnection_id_to_alias(self, adconnection_id):
+		for alias, t_id in self.get_adconnection_aliases().items():
+			if t_id == adconnection_id:
 				return alias
-		logger.error('Unknown tenant ID %r.', tenant_id)
+		logger.error('Unknown Azure AD connection ID %r.', adconnection_id)
 		return None
 
 	@classmethod
-	def get_tenants(self):
+	def get_adconnections(self):
 		res = []
-		aliases = self.get_tenant_aliases().items()
-		for alias, tenant_id in aliases:
+		aliases = self.get_adconnection_aliases().items()
+		for alias, adconnection_id in aliases:
 			confdir = self.get_conf_path('CONFDIR', alias)
-			res.append((alias, tenant_id, confdir))
+			res.append((alias, adconnection_id, confdir))
 		return res
 
 	@classmethod
-	def configure_wizard_for_tenant(self, tenant_alias):
-		# configure UCR to let wizard configure this tenant
+	def configure_wizard_for_adconnection(self, adconnection_alias):
+		# configure UCR to let wizard configure this adconnection
 		# TODO: Should be removed in the future, as the wizard should be able to configure
-		# tenants by itself
-		ucrv_set = '{}={}'.format(tenant_wizard_ucrv, tenant_alias)
+		# adconnections by itself
+		ucrv_set = '{}={}'.format(adconnection_wizard_ucrv, adconnection_alias)
 		handler_set([ucrv_set])
 		subprocess.call(['pkill', '-f', '/usr/sbin/univention-management-console-module -m office365'])
 
 	@classmethod
-	def create_new_tenant(self, tenant_alias):
-		aliases = self.get_tenant_aliases()
-		if tenant_alias in aliases:
-			logger.error('Tenant alias %s is already listed in UCR %s.', tenant_alias, tenant_alias_ucrv)
+	def create_new_adconnection(self, adconnection_alias):
+		aliases = self.get_adconnection_aliases()
+		if adconnection_alias in aliases:
+			logger.error('Azure AD connection alias %s is already listed in UCR %s.', adconnection_alias, adconnection_alias_ucrv)
 			return None
 
-		target_path = os.path.join(TENANT_CONF_BASEPATH, tenant_alias)
+		target_path = os.path.join(ADCONNECTION_CONF_BASEPATH, adconnection_alias)
 		if os.path.exists(target_path):
-			logger.error('Path %s already exists, but no UCR configuration for the tenant was found.', target_path)
+			logger.error('Path %s already exists, but no UCR configuration for the Azure AD connection was found.', target_path)
 			return None
 
 		os.mkdir(target_path, 0o700)
 		os.chown(target_path, pwd.getpwnam('listener').pw_uid, 0)
 		for filename in ('cert.fp', 'cert.pem', 'key.pem'):
-			src = os.path.join(TENANT_CONF_BASEPATH, filename)
+			src = os.path.join(ADCONNECTION_CONF_BASEPATH, filename)
 			shutil.copy2(src, target_path)
 			os.chown(os.path.join(target_path, filename), pwd.getpwnam('listener').pw_uid, 0)
 
-		AzureAuth.uninitialize(tenant_alias)
-		ucrv_set = '{}{}=uninitialized'.format(tenant_alias_ucrv, tenant_alias)
+		AzureAuth.uninitialize(adconnection_alias)
+		ucrv_set = '{}{}=uninitialized'.format(adconnection_alias_ucrv, adconnection_alias)
 		handler_set([ucrv_set])
-		self.configure_wizard_for_tenant(tenant_alias)
+		self.configure_wizard_for_adconnection(adconnection_alias)
 		self.listener_restart()
 
 	@classmethod
-	def rename_tenant(self, old_tenant_alias, new_tenant_alias):
-		aliases = self.get_tenant_aliases()
-		if old_tenant_alias not in aliases:
-			logger.error('Tenant alias %s is not listed in UCR %s.', old_tenant_alias, tenant_alias_ucrv)
+	def rename_adconnection(self, old_adconnection_alias, new_adconnection_alias):
+		aliases = self.get_adconnection_aliases()
+		if old_adconnection_alias not in aliases:
+			logger.error('Azure AD connection alias %s is not listed in UCR %s.', old_adconnection_alias, adconnection_alias_ucrv)
 			return None
-		if new_tenant_alias in aliases:
-			logger.error('Tenant alias %s is already configured in UCR %s, cannot rename tenant %s.', new_tenant_alias, tenant_alias_ucrv, old_tenant_alias)
-			return None
-
-		new_tenant_path = os.path.join(TENANT_CONF_BASEPATH, new_tenant_alias)
-		if os.path.exists(new_tenant_path):
-			logger.error('The path for the target tenant name %s already exists, but no UCR configuration for the tenant was found.', new_tenant_path)
-			return None
-		old_tenant_path = os.path.join(TENANT_CONF_BASEPATH, old_tenant_alias)
-		if not os.path.exists(old_tenant_path):
-			logger.error('The path for the old tenant %s does not exist.', old_tenant_path)
+		if new_adconnection_alias in aliases:
+			logger.error('Azure AD connection alias %s is already configured in UCR %s, cannot rename Azure AD connection %s.', new_adconnection_alias, adconnection_alias_ucrv, old_adconnection_alias)
 			return None
 
-		shutil.move(old_tenant_path, new_tenant_path)
-		ucrv_set = '{}={}'.format('%s%s' % (tenant_alias_ucrv, new_tenant_alias), ucr.get('%s%s' % (tenant_alias_ucrv, old_tenant_alias)))
+		new_adconnection_path = os.path.join(ADCONNECTION_CONF_BASEPATH, new_adconnection_alias)
+		if os.path.exists(new_adconnection_path):
+			logger.error('The path for the target Azure AD connection name %s already exists, but no UCR configuration for the Azure AD connection was found.', new_adconnection_path)
+			return None
+		old_adconnection_path = os.path.join(ADCONNECTION_CONF_BASEPATH, old_adconnection_alias)
+		if not os.path.exists(old_adconnection_path):
+			logger.error('The path for the old Azure AD connection %s does not exist.', old_adconnection_path)
+			return None
+
+		shutil.move(old_adconnection_path, new_adconnection_path)
+		ucrv_set = '{}={}'.format('%s%s' % (adconnection_alias_ucrv, new_adconnection_alias), ucr.get('%s%s' % (adconnection_alias_ucrv, old_adconnection_alias)))
 		handler_set([ucrv_set])
-		ucrv_unset = '%s%s' % (tenant_alias_ucrv, old_tenant_alias)
+		ucrv_unset = '%s%s' % (adconnection_alias_ucrv, old_adconnection_alias)
 		handler_unset([ucrv_unset])
 		self.listener_restart()
 
 	@classmethod
-	def remove_tenant(self, tenant_alias):
-		aliases = self.get_tenant_aliases()
+	def remove_adconnection(self, adconnection_alias):
+		aliases = self.get_adconnection_aliases()
 		# Checks
-		if tenant_alias not in aliases:
-			logger.error('Tenant alias %s is not listed in UCR %s.', tenant_alias, tenant_alias_ucrv)
+		if adconnection_alias not in aliases:
+			logger.error('Azure AD connection alias %s is not listed in UCR %s.', adconnection_alias, adconnection_alias_ucrv)
 			return None
 
-		target_path = os.path.join(TENANT_CONF_BASEPATH, tenant_alias)
+		target_path = os.path.join(ADCONNECTION_CONF_BASEPATH, adconnection_alias)
 		if not os.path.exists(target_path):
-			logger.info('Configuration files for the tenant in %s do not exist. Removing tenant anyway...', target_path)
+			logger.info('Configuration files for the Azure AD connection in %s do not exist. Removing Azure AD connection anyway...', target_path)
 
 		shutil.rmtree(target_path)
-		ucrv_unset = '%s%s' % (tenant_alias_ucrv, tenant_alias)
+		ucrv_unset = '%s%s' % (adconnection_alias_ucrv, adconnection_alias)
 		handler_unset([ucrv_unset])
 		self.listener_restart()
 
 
 class AzureError(Exception):
-	def __init__(self, msg, chained_exc=None, tenant_alias=None, *args, **kwargs):
+	def __init__(self, msg, chained_exc=None, adconnection_alias=None, *args, **kwargs):
 		self.chained_exc = chained_exc
-		self.tenant_alias = tenant_alias
+		self.adconnection_alias = adconnection_alias
 		super(AzureError, self).__init__(msg, *args, **kwargs)
 
 
@@ -251,7 +251,7 @@ class WriteScriptError(AzureError):
 	pass
 
 
-class TenantIDError(AzureError):
+class ADConnectionIDError(AzureError):
 	pass
 
 
@@ -268,11 +268,11 @@ class Manifest(object):
 		except (IndexError, KeyError):
 			pass
 
-	def __init__(self, fd, tenant_id, domain):
-		self.tenant_id = tenant_id
-		self.tenant_alias = AzureTenantHandler.tenant_id_to_alias(tenant_id)
+	def __init__(self, fd, adconnection_id, domain):
+		self.adconnection_id = adconnection_id
+		self.adconnection_alias = AzureADConnectionHandler.adconnection_id_to_alias(adconnection_id)
 		self.domain = domain
-		logger.info('Manifest() for tenant_alias=%r tenant_id=%r domain=%r', self.tenant_alias, tenant_id, domain)
+		logger.info('Manifest() for adconnection_alias=%r adconnection_id=%r domain=%r', self.adconnection_alias, adconnection_id, domain)
 		try:
 			self.manifest = json.load(fd)
 			if not all([isinstance(self.manifest, dict), self.app_id, self.reply_url]):  # TODO: do schema validation
@@ -341,78 +341,78 @@ class JsonStorage(object):
 class AzureAuth(object):
 	proxies = None
 
-	def __init__(self, name, tenant_alias=None):
+	def __init__(self, name, adconnection_alias=None):
 		global NAME
 		NAME = name
 
-		self.tenant_alias = tenant_alias
-		logger.debug('tenant_alias=%r', tenant_alias)
-		ids = self.load_azure_ids(tenant_alias)
+		self.adconnection_alias = adconnection_alias
+		logger.debug('adconnection_alias=%r', adconnection_alias)
+		ids = self.load_azure_ids(adconnection_alias)
 		try:
 			self.client_id = ids["client_id"]
-			self.tenant_id = ids["tenant_id"]
+			self.adconnection_id = ids["adconnection_id"]
 			self.reply_url = ids["reply_url"]
 			self.domain = ids["domain"]
-			if not all([self.client_id, self.tenant_id, self.reply_url, self.domain]):
+			if not all([self.client_id, self.adconnection_id, self.reply_url, self.domain]):
 				raise NoIDsStored("")
 		except (KeyError, NoIDsStored) as exc:
-			raise NoIDsStored, NoIDsStored(_("The configuration of tenant {tenant} is incomplete and misses some data. Please run the wizard again.").format(tenant=tenant_alias), chained_exc=exc), sys.exc_info()[2]
+			raise NoIDsStored, NoIDsStored(_("The configuration of Azure AD connection {adconnection} is incomplete and misses some data. Please run the wizard again.").format(adconnection=adconnection_alias), chained_exc=exc), sys.exc_info()[2]
 		self._access_token = None
 		self._access_token_exp_at = None
 		if self.proxies is None:
 			self.__class__.proxies = self.get_http_proxies()
 
 	@classmethod
-	def is_initialized(cls, tenant_alias=None):
-		logger.debug('tenant_alias=%r', tenant_alias)
+	def is_initialized(cls, adconnection_alias=None):
+		logger.debug('adconnection_alias=%r', adconnection_alias)
 		try:
-			tokens = cls.load_tokens(tenant_alias)
+			tokens = cls.load_tokens(adconnection_alias)
 			# Check if wizard was completed
 			if "consent_given" not in tokens or not tokens["consent_given"]:
 				return False
 
-			ids = cls.load_azure_ids(tenant_alias)
-			return all([ids["client_id"], ids["tenant_id"], ids["reply_url"], ids["domain"]])
+			ids = cls.load_azure_ids(adconnection_alias)
+			return all([ids["client_id"], ids["adconnection_id"], ids["reply_url"], ids["domain"]])
 		except (NoIDsStored, KeyError) as exc:
-			logger.info("AzureAuth.is_initialized(%r): %r", tenant_alias, exc)
+			logger.info("AzureAuth.is_initialized(%r): %r", adconnection_alias, exc)
 			return False
 
 	@staticmethod
-	def uninitialize(tenant_alias=None):
-		logger.debug('tenant_alias=%r', tenant_alias)
-		JsonStorage(AzureTenantHandler.get_conf_path('IDS_FILE', tenant_alias)).purge()
-		JsonStorage(AzureTenantHandler.get_conf_path('TOKEN_FILE', tenant_alias)).purge()
+	def uninitialize(adconnection_alias=None):
+		logger.debug('adconnection_alias=%r', adconnection_alias)
+		JsonStorage(AzureADConnectionHandler.get_conf_path('IDS_FILE', adconnection_alias)).purge()
+		JsonStorage(AzureADConnectionHandler.get_conf_path('TOKEN_FILE', adconnection_alias)).purge()
 
 	@staticmethod
-	def load_azure_ids(tenant_alias=None):
-		return JsonStorage(AzureTenantHandler.get_conf_path('IDS_FILE', tenant_alias)).read()
+	def load_azure_ids(adconnection_alias=None):
+		return JsonStorage(AzureADConnectionHandler.get_conf_path('IDS_FILE', adconnection_alias)).read()
 
 	@classmethod
-	def store_manifest(cls, manifest, tenant_alias=None):
-		with open(AzureTenantHandler.get_conf_path('MANIFEST_FILE', tenant_alias), 'wb') as fd:
+	def store_manifest(cls, manifest, adconnection_alias=None):
+		with open(AzureADConnectionHandler.get_conf_path('MANIFEST_FILE', adconnection_alias), 'wb') as fd:
 			json.dump(manifest.as_dict(), fd, indent=2, separators=(',', ': '), sort_keys=True)
-		os.chmod(AzureTenantHandler.get_conf_path('MANIFEST_FILE', tenant_alias), S_IRUSR | S_IWUSR)
-		cls.store_azure_ids(tenant_alias=tenant_alias, client_id=manifest.app_id, tenant_id=manifest.tenant_id, reply_url=manifest.reply_url, domain=manifest.domain)
+		os.chmod(AzureADConnectionHandler.get_conf_path('MANIFEST_FILE', adconnection_alias), S_IRUSR | S_IWUSR)
+		cls.store_azure_ids(adconnection_alias=adconnection_alias, client_id=manifest.app_id, adconnection_id=manifest.adconnection_id, reply_url=manifest.reply_url, domain=manifest.domain)
 
 	@staticmethod
-	def store_azure_ids(tenant_alias=None, **kwargs):
-		if "tenant_id" in kwargs:
-			tid = kwargs["tenant_id"]
+	def store_azure_ids(adconnection_alias=None, **kwargs):
+		if "adconnection_id" in kwargs:
+			tid = kwargs["adconnection_id"]
 			try:
 				if not (tid == "common" or uuid.UUID(tid)):
 					raise ValueError()
 			except ValueError:
-				raise TenantIDError(_("Tenant-ID '{}' has wrong format.".format(tid)))
+				raise ADConnectionIDError(_("ADConnection-ID '{}' has wrong format.".format(tid)))
 
-		JsonStorage(AzureTenantHandler.get_conf_path('IDS_FILE', tenant_alias)).write(**kwargs)
-
-	@staticmethod
-	def load_tokens(tenant_alias=None):
-		return JsonStorage(AzureTenantHandler.get_conf_path('TOKEN_FILE', tenant_alias)).read()
+		JsonStorage(AzureADConnectionHandler.get_conf_path('IDS_FILE', adconnection_alias)).write(**kwargs)
 
 	@staticmethod
-	def store_tokens(tenant_alias=None, **kwargs):
-		JsonStorage(AzureTenantHandler.get_conf_path('TOKEN_FILE', tenant_alias)).write(**kwargs)
+	def load_tokens(adconnection_alias=None):
+		return JsonStorage(AzureADConnectionHandler.get_conf_path('TOKEN_FILE', adconnection_alias)).read()
+
+	@staticmethod
+	def store_tokens(adconnection_alias=None, **kwargs):
+		JsonStorage(AzureADConnectionHandler.get_conf_path('TOKEN_FILE', adconnection_alias)).write(**kwargs)
 
 	@staticmethod
 	def get_http_proxies():
@@ -448,18 +448,18 @@ class AzureAuth(object):
 		return res
 
 	@classmethod
-	def get_domain(cls, tenant_alias=None):
+	def get_domain(cls, adconnection_alias=None):
 		"""
 		static method to access wizard supplied domain
 		:return: str: domain name verified by MS
 		"""
-		ids = cls.load_azure_ids(tenant_alias)
+		ids = cls.load_azure_ids(adconnection_alias)
 		return ids["domain"]
 
 	def get_access_token(self):
 		if not self._access_token:
 			logger.debug("Loading token from disk...")
-			tokens = self.load_tokens(self.tenant_alias)
+			tokens = self.load_tokens(self.adconnection_alias)
 			self._access_token = tokens.get("access_token")
 			self._access_token_exp_at = datetime.datetime.fromtimestamp(int(tokens.get("access_token_exp_at") or 0))
 		if not self._access_token_exp_at or datetime.datetime.now() > self._access_token_exp_at:
@@ -469,16 +469,16 @@ class AzureAuth(object):
 		return self._access_token
 
 	@classmethod
-	def get_authorization_url(cls, tenant_alias=None):
+	def get_authorization_url(cls, adconnection_alias=None):
 		nonce = str(uuid.uuid4())
-		cls.store_tokens(tenant_alias=tenant_alias, nonce=nonce)
-		ids = cls.load_azure_ids(tenant_alias)
+		cls.store_tokens(adconnection_alias=adconnection_alias, nonce=nonce)
+		ids = cls.load_azure_ids(adconnection_alias)
 		try:
 			client_id = ids["client_id"]
 			reply_url = ids["reply_url"]
 		except KeyError as exc:
-			raise NoIDsStored, NoIDsStored(_("The configuration of tenant {tenant} is incomplete and misses some data. Please run the wizard again.").format(tenant=tenant_alias), chained_exc=exc, tenant_alias=tenant_alias), sys.exc_info()[2]
-		tenant = ids.get("tenant_id") or "common"
+			raise NoIDsStored, NoIDsStored(_("The configuration of Azure AD connection {adconnection} is incomplete and misses some data. Please run the wizard again.").format(adconnection=adconnection_alias), chained_exc=exc, adconnection_alias=adconnection_alias), sys.exc_info()[2]
+		adconnection = ids.get("adconnection_id") or "common"
 		params = {
 			'client_id': client_id,
 			'redirect_uri': reply_url,
@@ -489,10 +489,10 @@ class AzureAuth(object):
 			'response_mode': 'form_post',
 			'resource': resource_url,
 		}
-		return oauth2_auth_url.format(tenant=tenant, params=urlencode(params))
+		return oauth2_auth_url.format(adconnection=adconnection, params=urlencode(params))
 
 	@classmethod
-	def parse_id_token(cls, id_token, tenant_alias=None):
+	def parse_id_token(cls, id_token, adconnection_alias=None):
 		def _decode_b64(base64data):
 			# base64 strings should have a length divisible by 4
 			# If this one doesn't, add the '=' padding to fix it
@@ -518,9 +518,9 @@ class AzureAuth(object):
 				else:
 					et = encoded_token
 				logger.exception(u"Invalid token value: %r", et)
-				raise IDTokenError, IDTokenError(_("Error reading token of tenant {tenant} received from Azure. Please run the wizard again.").format(tenant=tenant_alias), chained_exc=exc, tenant_alias=tenant_alias), sys.exc_info()[2]
+				raise IDTokenError, IDTokenError(_("Error reading token of Azure AD connection {adconnection} received from Azure. Please run the wizard again.").format(adconnection=adconnection_alias), chained_exc=exc, adconnection_alias=adconnection_alias), sys.exc_info()[2]
 
-		def _get_azure_certs(tenant_id):
+		def _get_azure_certs(adconnection_id):
 			# there's a strange non-ascii char at the beginning of the xml doc...
 			def _discard_garbage(text):
 				return ''.join(text.partition('<')[1:])
@@ -529,10 +529,10 @@ class AzureAuth(object):
 			if cls.proxies is None:
 				cls.proxies = cls.get_http_proxies()
 			try:
-				fed = requests.get(federation_metadata_url.format(tenant_id=tenant_id), proxies=cls.proxies)
+				fed = requests.get(federation_metadata_url.format(adconnection_id=adconnection_id), proxies=cls.proxies)
 			except RequestException as exc:
 				logger.exception("Error downloading federation metadata.")
-				raise TokenValidationError, TokenValidationError(_("Error downloading certificates from Azure for tenant {tenant}. Please run the wizard again.").format(tenant=tenant_alias), chained_exc=exc, tenant_alias=tenant_alias), sys.exc_info()[2]
+				raise TokenValidationError, TokenValidationError(_("Error downloading certificates from Azure for AD connection {adconnection}. Please run the wizard again.").format(adconnection=adconnection_alias), chained_exc=exc, adconnection_alias=adconnection_alias), sys.exc_info()[2]
 			# the federation metadata document is a XML file
 			dom_tree = parseString(_discard_garbage(fed.text))
 			# the certificates we want are inside:
@@ -551,13 +551,13 @@ class AzureAuth(object):
 								certs.add(cert_elem.firstChild.data)
 			if not certs:
 				logger.exception("Could not find certificate in federation metadata: %r", _discard_garbage(fed.text))
-				raise TokenValidationError(_("Error reading certificates of tenant {tenant} from Azure. Please run the wizard again.").format(tenant=tenant_alias), tenant_alias=tenant_alias)
+				raise TokenValidationError(_("Error reading certificates of Azure AD connection {adconnection} from Azure. Please run the wizard again.").format(adconnection=adconnection_alias), adconnection_alias=adconnection_alias)
 			return certs
 
-		def _new_cryptography_checks(client_id, tenant_id, id_token):
+		def _new_cryptography_checks(client_id, adconnection_id, id_token):
 			# check JWT validity, incl. signature
 			logger.debug("Running new cryptography checks incl signature verification.")
-			azure_certs = list(_get_azure_certs(tenant_id))
+			azure_certs = list(_get_azure_certs(adconnection_id))
 			verified = False
 			jwt_exceptions = list()
 			for cert_str in azure_certs:
@@ -573,7 +573,7 @@ class AzureAuth(object):
 						algorithms=["RS256"],
 						options={"verify_iss": True, "verify_aud": True},
 						audience=client_id,
-						issuer=oauth2_token_issuer.format(tenant_id=tenant_id),
+						issuer=oauth2_token_issuer.format(adconnection_id=adconnection_id),
 						leeway=120)
 					verified = True
 					break
@@ -581,27 +581,27 @@ class AzureAuth(object):
 					jwt_exceptions.append(exc)
 			if not verified:
 				logger.error("JWT verification error(s): %s\nID token: %r", " ".join(map(str, jwt_exceptions)), id_token)
-				raise TokenValidationError(_("The received token for tenant {tenant} is not valid. Please run the wizard again.").format(tenant=tenant_alias), tenant_alias=tenant_alias)
+				raise TokenValidationError(_("The received token for Azure AD connection {adconnection} is not valid. Please run the wizard again.").format(adconnection=adconnection_alias), adconnection_alias=adconnection_alias)
 			logger.debug("Verified ID token.")
 
-		# get the tenant ID from the id token
+		# get the adconnection ID from the id token
 		header_, body, signature_ = _parse_token(id_token)
-		tenant_id = body['tid']
-		ids = cls.load_azure_ids(tenant_alias)
+		adconnection_id = body['tid']
+		ids = cls.load_azure_ids(adconnection_alias)
 		try:
 			client_id = ids["client_id"]
 			reply_url = ids["reply_url"]
 		except KeyError as exc:
-			raise NoIDsStored, NoIDsStored(_("The configuration of tenant {tenant} is incomplete and misses some data. Please run the wizard again.").format(tenant=tenant_alias), chained_exc=exc, tenant_alias=tenant_alias), sys.exc_info()[2]
+			raise NoIDsStored, NoIDsStored(_("The configuration of Azure AD connection {adconnection} is incomplete and misses some data. Please run the wizard again.").format(adconnection=adconnection_alias), chained_exc=exc, adconnection_alias=adconnection_alias), sys.exc_info()[2]
 
-		nonce_old = cls.load_tokens(tenant_alias)["nonce"]
+		nonce_old = cls.load_tokens(adconnection_alias)["nonce"]
 		if not body["nonce"] == nonce_old:
 			logger.error("Stored (%r) and received (%r) nonce of token do not match. ID token: %r.", nonce_old, body["nonce"], id_token)
-			raise TokenValidationError(_("The received token for tenant {tenant} is not valid. Please run the wizard again.").format(tenant=tenant_alias), tenant_alias=tenant_alias)
+			raise TokenValidationError(_("The received token for Azure AD connection {adconnection} is not valid. Please run the wizard again.").format(adconnection=adconnection_alias), adconnection_alias=adconnection_alias)
 		# check validity of token
-		_new_cryptography_checks(client_id, tenant_id, id_token)
-		cls.store_azure_ids(tenant_alias=tenant_alias, client_id=client_id, tenant_id=tenant_id, reply_url=reply_url)
-		return tenant_id
+		_new_cryptography_checks(client_id, adconnection_id, id_token)
+		cls.store_azure_ids(adconnection_alias=adconnection_alias, client_id=client_id, adconnection_id=adconnection_id, reply_url=reply_url)
+		return adconnection_id
 
 	def retrieve_access_token(self):
 		assertion = self._get_client_assertion()
@@ -615,13 +615,13 @@ class AzureAuth(object):
 			'redirect_uri': self.reply_url,
 			'scope': SCOPE
 		}
-		url = oauth2_token_url.format(tenant_id=self.tenant_id)
+		url = oauth2_token_url.format(adconnection_id=self.adconnection_id)
 
 		logger.debug("POST to URL=%r with data=%r", url, post_form)
 		response = requests.post(url, data=post_form, verify=True, proxies=self.proxies)
 		if response.status_code != 200:
 			logger.exception("Error retrieving token (status %r), response: %r", response.status_code, response.__dict__)
-			raise TokenError(_("Error retrieving authentication token from Azure for tenant {tenant}.").format(tenant=self.tenant_alias), response=response, tenant_alias=self.tenant_alias)
+			raise TokenError(_("Error retrieving authentication token from Azure for AD connection {adconnection}.").format(adconnection=self.adconnection_alias), response=response, adconnection_alias=self.adconnection_alias)
 		at = response.json
 		if callable(at):  # requests version compatibility
 			at = at()
@@ -629,15 +629,15 @@ class AzureAuth(object):
 		if "access_token" in at and at["access_token"]:
 			self._access_token = at["access_token"]
 			self._access_token_exp_at = datetime.datetime.fromtimestamp(int(at["expires_on"]))
-			self.store_tokens(tenant_alias=self.tenant_alias, access_token=at["access_token"], access_token_exp_at=at["expires_on"])
+			self.store_tokens(adconnection_alias=self.adconnection_alias, access_token=at["access_token"], access_token_exp_at=at["expires_on"])
 			return at["access_token"]
 		else:
 			logger.exception("Response didn't contain an access_token. response: %r", response)
-			raise TokenError(_("Error retrieving authentication token from Azure for tenant {tenant}.").format(tenant=self.tenant_alias), response=response, tenant_alias=self.tenant_alias)
+			raise TokenError(_("Error retrieving authentication token from Azure for AD connection {adconnection}.").format(adconnection=self.adconnection_alias), response=response, adconnection_alias=self.adconnection_alias)
 
 	def _get_client_assertion(self):
 		def _load_certificate_fingerprint():
-			with open(AzureTenantHandler.get_conf_path('SSL_CERT_FP', self.tenant_alias), "r") as fd:
+			with open(AzureADConnectionHandler.get_conf_path('SSL_CERT_FP', self.adconnection_alias), "r") as fd:
 				fp = fd.read()
 			return fp.strip()
 
@@ -649,7 +649,7 @@ class AzureAuth(object):
 			return '{0}.{1}'.format(encoded_header, encoded_payload)  # <base64-encoded-header>.<base64-encoded-payload>
 
 		def _get_key_file_data():
-			with open(AzureTenantHandler.get_conf_path('SSL_KEY', self.tenant_alias), "rb") as pem_file:
+			with open(AzureADConnectionHandler.get_conf_path('SSL_KEY', self.adconnection_alias), "rb") as pem_file:
 				key_data = pem_file.read()
 			return key_data
 
@@ -677,7 +677,7 @@ class AzureAuth(object):
 			'jti': str(uuid.uuid4()),
 			'exp': exp_time,
 			'nbf': not_before,
-			'aud': oauth2_token_url.format(tenant_id=self.tenant_id)
+			'aud': oauth2_token_url.format(adconnection_id=self.adconnection_id)
 		}
 
 		assertion_blob = _get_assertion_blob(client_assertion_header, client_assertion_payload)
@@ -689,7 +689,7 @@ class AzureAuth(object):
 		return client_assertion
 
 	@classmethod
-	def write_saml_setup_script(cls, tenant_alias=None):
+	def write_saml_setup_script(cls, adconnection_alias=None):
 		from univention.config_registry import ConfigRegistry
 		ucr = ConfigRegistry()
 		ucr.load()
@@ -700,19 +700,19 @@ class AzureAuth(object):
 		try:
 			cert_path = SAML_SETUP_SCRIPT_CERT_PATH.format(
 				domainname=ucr.get('domainname', 'undefined'),
-				tenant_alias='_{}'.format(tenant_alias) if tenant_alias else ''
+				adconnection_alias='_{}'.format(adconnection_alias) if adconnection_alias else ''
 			)
 			with open(ucr.get('saml/idp/certificate/certificate', cert_path), 'rb') as fd:
 				raw_cert = fd.read()
 		except IOError as exc:
 			logger.exception("while reading certificate: %s", exc)
-			raise WriteScriptError(_("Error reading identity provider certificate."), tenant_alias=tenant_alias)
+			raise WriteScriptError(_("Error reading identity provider certificate."), adconnection_alias=adconnection_alias)
 
 		try:
 			cert = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, raw_cert))
 		except OpenSSL.crypto.Error as exc:
 			logger.exception("while converting certificate: %s", exc)
-			raise WriteScriptError(_("Error converting identity provider certificate."), tenant_alias=tenant_alias)
+			raise WriteScriptError(_("Error converting identity provider certificate."), adconnection_alias=adconnection_alias)
 
 		# The raw base64 encoded certificate is required
 		cert = cert.replace('-----BEGIN CERTIFICATE-----', '').replace('-----END CERTIFICATE-----', '').replace('\n', '')
@@ -722,16 +722,16 @@ ECHO Asking for Azure Administator credentials
 powershell Connect-MsolService; Set-MsolDomainAuthentication -DomainName "{domain}" -Authentication Managed; Set-MsolDomainAuthentication -DomainName "{domain}" -FederationBrandName "UCS" -Authentication Federated -ActiveLogOnUri "https://{ucs_sso_fqdn}/simplesamlphp/saml2/idp/SSOService.php" -PassiveLogOnUri "https://{ucs_sso_fqdn}/simplesamlphp/saml2/idp/SSOService.php" -SigningCertificate "{cert}" -IssuerUri "{issuer}" -LogOffUri "https://{ucs_sso_fqdn}/simplesamlphp/saml2/idp/SingleLogoutService.php?ReturnTo=/univention/" -PreferredAuthenticationProtocol SAMLP;  Get-MsolDomain
 ECHO Finished single sign-on configuration change
 pause
-'''.format(domain=cls.get_domain(tenant_alias), ucs_sso_fqdn=ucs_sso_fqdn, cert=cert, issuer=issuer)
+'''.format(domain=cls.get_domain(adconnection_alias), ucs_sso_fqdn=ucs_sso_fqdn, cert=cert, issuer=issuer)
 
 		try:
-			script_path = SAML_SETUP_SCRIPT_PATH.format(tenant_alias='_{}'.format(tenant_alias) if tenant_alias else '')
+			script_path = SAML_SETUP_SCRIPT_PATH.format(adconnection_alias='_{}'.format(adconnection_alias) if adconnection_alias else '')
 			with open(script_path, 'wb') as fd:
 				fd.write(template)
 			os.chmod(script_path, 0644)
 		except IOError as exc:
 			logger.exception("while writing powershell script: %s", exc)
-			raise WriteScriptError(_("Error writing SAML setup script."), tenant_alias=tenant_alias)
+			raise WriteScriptError(_("Error writing SAML setup script."), adconnection_alias=adconnection_alias)
 
 	@classmethod
 	def set_ucs_overview_link(cls):

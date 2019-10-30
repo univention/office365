@@ -40,7 +40,7 @@ import datetime
 from stat import S_IRUSR, S_IWUSR
 
 import listener
-from univention.office365.azure_auth import AzureAuth, AzureTenantHandler, NoIDsStored, default_adconnection_alias_ucrv
+from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler, NoIDsStored, default_adconnection_alias_ucrv
 from univention.office365.listener import Office365Listener, NoAllocatableSubscriptions, attributes_system, get_adconnection_filter
 from univention.office365.udm_helper import UDMHelper
 from univention.office365.logging2udebug import get_logger
@@ -52,7 +52,7 @@ attributes_never = list()
 attributes_static = dict()
 attributes_sync = list()
 attributes_multiple_azure2ldap = dict()
-adconnection_aliases = AzureTenantHandler.get_tenant_aliases()
+adconnection_aliases = AzureADConnectionHandler.get_adconnection_aliases()
 initialized_adconnection = set([_ta for _ta in adconnection_aliases if AzureAuth.is_initialized(_ta)])
 
 logger = get_logger("office365", "o365")
@@ -314,7 +314,7 @@ def handler(dn, new, old, command):
 		logger.debug("old was %s.", "enabled" if enabled else "deactivated, locked or expired")
 		old_enabled &= enabled
 		old_adconnection_enabled = adconnection_aliases_old.issubset(initialized_adconnection)
-		logger.debug("old adconnection is %s.", "enabled" if old_adconnection_enabled else "not initialized")
+		logger.debug("old Azure AD connection is %s.", "enabled" if old_adconnection_enabled else "not initialized")
 		old_enabled &= old_adconnection_enabled
 	new_enabled = bool(int(new.get("univentionOffice365Enabled", ["0"])[0]))
 	if new_enabled:
@@ -323,7 +323,7 @@ def handler(dn, new, old, command):
 		logger.debug("new is %s.", "enabled" if enabled else "deactivated, locked or expired")
 		new_enabled &= enabled
 		new_adconnection_enabled = adconnection_aliases_new.issubset(initialized_adconnection)
-		logger.debug("new adconnection is %s.", "enabled" if new_adconnection_enabled else "not initialized")
+		logger.debug("new Azure AD connection is %s.", "enabled" if new_adconnection_enabled else "not initialized")
 		new_enabled &= new_adconnection_enabled
 
 	logger.debug("new_enabled=%r old_enabled=%r", new_enabled, old_enabled)

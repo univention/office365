@@ -1,7 +1,7 @@
 #!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
 #
-# Univention Office 365 - new tenant script
+# Univention Office 365 - new Azure AD connection script
 #
 # Copyright 2017 Univention GmbH
 #
@@ -34,7 +34,7 @@ import sys
 import argparse
 import logging
 from univention.config_registry import ConfigRegistry
-from univention.office365.azure_auth import AzureTenantHandler
+from univention.office365.azure_auth import AzureADConnectionHandler
 from univention.office365.logging2udebug import get_logger
 
 
@@ -44,23 +44,23 @@ ucr.load()
 
 
 def list(args):
-	tenant_list = AzureTenantHandler.get_tenants()
-	if tenant_list:
+	adconnection_list = AzureADConnectionHandler.get_adconnections()
+	if adconnection_list:
 		print "{0:<25} {1:<50} {2:<20}".format("Alias", "Path", "uuid")
-		for alias, uuid, path in tenant_list:
+		for alias, uuid, path in adconnection_list:
 			print "{0:<25} {1:<50} {2:<20}".format(alias, path, uuid)
 
 
 def create(args):
-	AzureTenantHandler.create_new_tenant(args.alias)
+	AzureADConnectionHandler.create_new_adconnection(args.alias)
 
 
 def rename(args):
-	AzureTenantHandler.rename_tenant(args.oldalias, args.newalias)
+	AzureADConnectionHandler.rename_adconnection(args.oldalias, args.newalias)
 
 
 def remove(args):
-	AzureTenantHandler.remove_tenant(args.alias)
+	AzureADConnectionHandler.remove_adconnection(args.alias)
 
 
 if __name__ == '__main__':
@@ -70,7 +70,7 @@ if __name__ == '__main__':
 	logger.addHandler(_handler)
 
 	parser = argparse.ArgumentParser(
-		description='Manage tenant configuration for the office 365 connector.',
+		description='Manage Azure AD connection configuration for the Office 365 connector.',
 	)
 	subparsers = parser.add_subparsers()
 
@@ -78,15 +78,15 @@ if __name__ == '__main__':
 	list_p.set_defaults(func=list)
 
 	create_p = subparsers.add_parser('create')
-	create_p.add_argument('alias', help='The alias name for the new tenant, refer e.g. to the domainname or schoolname')
+	create_p.add_argument('alias', help='The alias name for the new adconnection, refer e.g. to the domainname or schoolname')
 	create_p.set_defaults(func=create)
 
 	remove_p = subparsers.add_parser('remove')
-	remove_p.add_argument('alias', help='The alias of the tenant to be removed')
+	remove_p.add_argument('alias', help='The alias of the Azure AD connection to be removed')
 	remove_p.set_defaults(func=remove)
 
 	rename_p = subparsers.add_parser('rename')
-	rename_p.add_argument('oldalias', help='The alias of the tenant to be renamed')
+	rename_p.add_argument('oldalias', help='The alias of the Azure AD connection to be renamed')
 	rename_p.add_argument('newalias', help='The new name for the alias')
 	rename_p.set_defaults(func=rename)
 

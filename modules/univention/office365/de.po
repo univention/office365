@@ -19,19 +19,19 @@ msgstr "Fehler beim Umwandeln des Identity Provider Zertifikates."
 #: modules/univention/office365/azure_auth.py:534
 #, python-brace-format
 msgid ""
-"Error downloading certificates from Azure for tenant {tenant}. Please run "
+"Error downloading certificates from Azure for AD connection {adconnection}. Please run "
 "the wizard again."
 msgstr ""
-"Fehler beim Herunterladen der Zertifikate von Azure für Mandant {tenant}. "
+"Fehler beim Herunterladen der Zertifikate von Azure für AD Connection {adconnection}. "
 "Bitte führen Sie den Einrichtungsassistent erneut aus."
 
 #: modules/univention/office365/azure_auth.py:553
 #, python-brace-format
 msgid ""
-"Error reading certificates of tenant {tenant} from Azure. Please run the "
+"Error reading certificates of Azure AD connection {adconnection} from Azure. Please run the "
 "wizard again."
 msgstr ""
-"Fehler beim Lesen von Azures Zertifikaten für Mandant {tenant}. Bitte führen"
+"Fehler beim Lesen von Azures Zertifikaten für AD Connection {adconnection}. Bitte führen"
 " Sie den Einrichtungsassistent erneut aus."
 
 #: modules/univention/office365/azure_auth.py:708
@@ -41,37 +41,37 @@ msgstr "Fehler beim Lesen des Identity Provider Zertifikates"
 #: modules/univention/office365/azure_auth.py:520
 #, python-brace-format
 msgid ""
-"Error reading token of tenant {tenant} received from Azure. Please run the "
+"Error reading token of Azure AD connection {adconnection} received from Azure. Please run the "
 "wizard again."
 msgstr ""
-"Fehler beim lesen von Azures Token für Mandant {tenant}. Bitte führen Sie "
+"Fehler beim lesen von Azures Token für AD Connection {adconnection}. Bitte führen Sie "
 "den Einrichtungsassistent erneut aus."
 
 #: modules/univention/office365/azure_auth.py:623
 #: modules/univention/office365/azure_auth.py:635
 #, python-brace-format
-msgid "Error retrieving authentication token from Azure for tenant {tenant}."
+msgid "Error retrieving authentication token from Azure for AD connection {adconnection}."
 msgstr ""
-"Fehler beim Abrufen eines Authentifizierungs-Tokens von Azure für Mandant "
-"{tenant}."
+"Fehler beim Abrufen eines Authentifizierungs-Tokens von Azure für AD Connection "
+"{adconnection}."
 
 #: modules/univention/office365/azure_auth.py:733
 msgid "Error writing SAML setup script."
 msgstr "Fehler beim Schreiben des SAML Installations-Skriptes."
 
 #: modules/univention/office365/azure_auth.py:404
-msgid "Tenant-ID '{}' has wrong format."
-msgstr "Tenant-ID '{}' hat ein ungültiges Format."
+msgid "ADConnection-ID '{}' has wrong format."
+msgstr "ADConnection-ID '{}' hat ein ungültiges Format."
 
 #: modules/univention/office365/azure_auth.py:358
 #: modules/univention/office365/azure_auth.py:479
 #: modules/univention/office365/azure_auth.py:594
 #, python-brace-format
 msgid ""
-"The configuration of tenant {tenant} is incomplete and misses some data. "
+"The configuration of Azure AD connection {adconnection} is incomplete and misses some data. "
 "Please run the wizard again."
 msgstr ""
-"Die Konfiguration von Mandant {tenant} ist unvollständig, da einige Daten "
+"Die Konfiguration von Azure AD Connection {adconnection} ist unvollständig, da einige Daten "
 "fehlen. Bitte führen Sie den Einrichtungsassistent erneut aus."
 
 #: modules/univention/office365/azure_auth.py:280
@@ -82,10 +82,10 @@ msgstr "Das Manifest ist ungültig: ungültiges JSON Dokument."
 #: modules/univention/office365/azure_auth.py:599
 #, python-brace-format
 msgid ""
-"The received token for tenant {tenant} is not valid. Please run the wizard "
+"The received token for Azure AD connection {adconnection} is not valid. Please run the wizard "
 "again."
 msgstr ""
-"Der empfangene Token für Mandant {tenant} ist ungültig. Bitte führen Sie den"
+"Der empfangene Token für Azure AD Connection {adconnection} ist ungültig. Bitte führen Sie den"
 " Einrichtungsassistent erneut aus."
 
 #~ msgid ""

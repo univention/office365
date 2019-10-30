@@ -1,6 +1,6 @@
 #!/usr/share/ucs-test/runner python
 ## -*- coding: utf-8 -*-
-## desc: list, create, retrieve, modify and delete group in azure with multi tenant support
+## desc: list, create, retrieve, modify and delete group in Azure AD with multi connection support
 ## tags: [apptest]
 ## exposure: dangerous
 ## packages:
@@ -13,7 +13,7 @@ import univention.testing.utils as utils
 
 from helpers.office365_test_helpers import AzureDirectoryTestGroups, azure_group_args, setup_logging
 from univention.office365.azure_handler import AzureHandler, ResourceNotFoundError
-from univention.office365.azure_auth import AzureAuth, AzureTenantHandler
+from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
 
 
 def test_grp(grp, args):
@@ -23,17 +23,17 @@ def test_grp(grp, args):
 
 
 logger = setup_logging()
-tenant_aliases = AzureTenantHandler.get_tenant_aliases()
-initialized_tenants = [tenant_alias for tenant_alias in tenant_aliases if AzureAuth.is_initialized(tenant_alias)]
+adconnection_aliases = AzureADConnectionHandler.get_adconnection_aliases()
+initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAuth.is_initialized(adconnection_alias)]
 
-print("*** tenant_aliases={!r}.".format(tenant_aliases))
-print("*** initialized_tenants={!r}.".format(initialized_tenants))
+print("*** adconnection_aliases={!r}.".format(adconnection_aliases))
+print("*** initialized_adconnections={!r}.".format(initialized_adconnections))
 
-for tenant_alias in initialized_tenants:
-	print("*** Running for tenant_alias={!r}.".format(tenant_alias))
+for adconnection_alias in initialized_adconnections:
+	print("*** Running for adconnection_alias={!r}.".format(adconnection_alias))
 
 	with ucr_test.UCSTestConfigRegistry() as ucr:
-		ah = AzureHandler(ucr, "ucs-test", tenant_alias)
+		ah = AzureHandler(ucr, "ucs-test", adconnection_alias)
 
 	groups1 = ah.list_groups()["value"]
 
@@ -83,5 +83,5 @@ for tenant_alias in initialized_tenants:
 		except ResourceNotFoundError:
 			print("OK: group was deleted (404).")
 
-	print("*** All went well for tenant alias {!r}.".format(tenant_alias))
-print("*** All went well for all in {!r}.".format(initialized_tenants))
+	print("*** All went well for Azure AD connection alias {!r}.".format(adconnection_alias))
+print("*** All went well for all in {!r}.".format(initialized_adconnections))

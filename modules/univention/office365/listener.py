@@ -36,7 +36,7 @@ import base64
 from ldap.filter import filter_format
 
 from univention.office365.azure_handler import AzureHandler, AddLicenseError, ResourceNotFoundError
-from univention.office365.azure_auth import AzureAuth, tenant_alias_ucrv
+from univention.office365.azure_auth import AzureAuth, adconnection_alias_ucrv
 from univention.office365.logging2udebug import get_logger
 from univention.office365.udm_helper import UDMHelper
 from univention.office365.subscriptions import SubscriptionProfile
@@ -56,7 +56,7 @@ attributes_system = set((
 	"userexpiry",
 	"userPassword",
 ))  # set literals unknown in python 2.6
-tenant_filter_ucrv = 'office365/tenant/filter'
+adconnection_filter_ucrv = 'office365/adconnection/filter'
 
 logger = get_logger("office365", "o365")
 
@@ -67,9 +67,9 @@ def get_adconnection_filter(ucr, adconnection_aliases):
 	res = ''
 	for alias in aliases:
 		if alias not in adconnection_aliases.keys():
-			raise Exception('Alias {!r} from UCR {!r} not listed in UCR {!r}. Exiting.'.format(alias, tenant_filter_ucrv, tenant_alias_ucrv))
+			raise Exception('Alias {!r} from UCR {!r} not listed in UCR {!r}. Exiting.'.format(alias, adconnection_filter_ucrv, adconnection_alias_ucrv))
 		if not AzureAuth.is_initialized(alias):
-			raise Exception('Alias {!r} from UCR {!r} is not initialized. Exiting.'.format(alias, tenant_filter_ucrv))
+			raise Exception('Alias {!r} from UCR {!r} is not initialized. Exiting.'.format(alias, adconnection_filter_ucrv))
 		res += filter_format('(univentionOffice365ADConnectionAlias=%s)', (alias,))
 	if len(res.split('=')) > 2:
 		res = '(|{})'.format(res)
@@ -98,7 +98,7 @@ class Office365Listener(object):
 		# self.ldap_cred = ldap_cred
 		self.dn = dn
 		self.adconnection_alias = adconnection_alias
-		logger.debug('tenant_alias=%r', adconnection_alias)
+		logger.debug('adconnection_alias=%r', adconnection_alias)
 
 		if self.listener:
 			self.ucr = self.listener.configRegistry
@@ -117,7 +117,7 @@ class Office365Listener(object):
 
 	def create_user(self, new):
 		udm_attrs = self._get_sync_values(self.attrs["listener"], new)
-		logger.debug("udm_attrs=%r tenant_alias=%r", udm_attrs, self.adconnection_alias)
+		logger.debug("udm_attrs=%r adconnection_alias=%r", udm_attrs, self.adconnection_alias)
 
 		attributes = dict()
 		for k, v in udm_attrs.items():
@@ -482,13 +482,13 @@ class Office365Listener(object):
 		:param object_id: Azure object ID of group to add users/groups to
 		:return: None
 		"""
-		logger.debug("group_dn=%r object_id=%r tenant_alias=%r", group_dn, object_id, self.adconnection_alias)
+		logger.debug("group_dn=%r object_id=%r adconnection_alias=%r", group_dn, object_id, self.adconnection_alias)
 		udm_target_group = self.udm.get_udm_group(group_dn)
 
-		# get all users for the tenant (ignoring group membership) and compare
+		# get all users for the adconnection (ignoring group membership) and compare
 		# with group members to get azure IDs, because it's faster than
 		# iterating (and opening!) lots of UDM objects
-		all_users_lo = self.udm.get_lo_o365_users(attributes=['univentionOffice365ObjectID'], tenant_alias=self.adconnection_alias)
+		all_users_lo = self.udm.get_lo_o365_users(attributes=['univentionOffice365ObjectID'], adconnection_alias=self.adconnection_alias)
 		all_user_dns = set(all_users_lo.keys())
 		member_dns = all_user_dns.intersection(set(udm_target_group["users"]))
 		users_and_groups_to_add = [attr['univentionOffice365ObjectID'][0] for dn, attr in all_users_lo.items() if dn in member_dns]

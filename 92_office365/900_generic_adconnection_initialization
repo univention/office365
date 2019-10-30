@@ -1,6 +1,6 @@
 #!/usr/share/ucs-test/runner python
 ## -*- coding: utf-8 -*-
-## desc: test uninitialize, initialize, load and store with multi tenant support
+## desc: test uninitialize, initialize, load and store with multi Azure AD connection support
 ## tags: [apptest]
 ## exposure: dangerous
 ## packages:
@@ -15,20 +15,20 @@ import atexit
 import univention.testing.strings as uts
 import univention.testing.utils as utils
 
-from univention.office365.azure_auth import AzureAuth, AzureTenantHandler
+from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
 
-tenant1 = uts.random_username()
-tenant2 = uts.random_username()
-tenant3 = uts.random_username()
+adconnection1 = uts.random_username()
+adconnection2 = uts.random_username()
+adconnection3 = uts.random_username()
 
-for tenant in (tenant1, tenant2, tenant3):
-	AzureTenantHandler.create_new_tenant(tenant)
-	CONFDIR = AzureTenantHandler.get_conf_path("CONFDIR", tenant)
-	print('*** tenant={!r} CONFDIR={!r}'.format(tenant, CONFDIR))
+for adconnection in (adconnection1, adconnection2, adconnection3):
+	AzureADConnectionHandler.create_new_adconnection(adconnection)
+	CONFDIR = AzureADConnectionHandler.get_conf_path("CONFDIR", adconnection)
+	print('*** adconnection={!r} CONFDIR={!r}'.format(adconnection, CONFDIR))
 	# os.mkdir(CONFDIR)
 
 	DATETIME_FORMAT = "%Y-%m-%d_%H:%M:%S"
-	IDS_FILE = AzureTenantHandler.get_conf_path("IDS_FILE", tenant)
+	IDS_FILE = AzureADConnectionHandler.get_conf_path("IDS_FILE", adconnection)
 	IDS_FILE_BAK = "{}.bak_{}".format(IDS_FILE, datetime.datetime.now().strftime(DATETIME_FORMAT.replace(" ", "_")))
 
 	try:
@@ -47,30 +47,30 @@ for tenant in (tenant1, tenant2, tenant3):
 			except IOError:
 				pass
 
-	AzureAuth.uninitialize(tenant)
+	AzureAuth.uninitialize(adconnection)
 
-	if AzureAuth.is_initialized(tenant):
+	if AzureAuth.is_initialized(adconnection):
 		utils.fail("App should not be initialized.")
 
 	test_ids = dict(
-		tenant_id=str(uuid.uuid1()),
+		adconnection_id=str(uuid.uuid1()),
 		client_id=uts.random_string(),
 		reply_url=uts.random_string(),
 		domain="{}.{}".format(uts.random_string(), uts.random_string())
 	)
 
-	AzureAuth.store_azure_ids(tenant_alias=tenant, **test_ids)
-	AzureAuth.store_tokens(tenant_alias=tenant, consent_given=True)
+	AzureAuth.store_azure_ids(adconnection_alias=adconnection, **test_ids)
+	AzureAuth.store_tokens(adconnection_alias=adconnection, consent_given=True)
 
-	if not AzureAuth.is_initialized(tenant):
+	if not AzureAuth.is_initialized(adconnection):
 		utils.fail("App should be initialized.")
 
-	loaded_ids = AzureAuth.load_azure_ids(tenant)
+	loaded_ids = AzureAuth.load_azure_ids(adconnection)
 
 	if not loaded_ids == test_ids:
 		utils.fail("Stored and loaded data differ.")
 
-	AzureTenantHandler.remove_tenant(tenant)
+	AzureADConnectionHandler.remove_adconnection(adconnection)
 
 
 print("*** All went well.")

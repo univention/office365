@@ -56,7 +56,7 @@ class UDMHelper(object):
 		self.__class__.ldap_cred = ldap_cred
 
 	@classmethod
-	def clean_udm_objects(cls, module_s, base, ldap_cred, tenant_filter=''):
+	def clean_udm_objects(cls, module_s, base, ldap_cred, adconnection_filter=''):
 		"""
 		Remove  univentionOffice365ObjectID and univentionOffice365Data from all
 		user/group objects, static for listener.clean().
@@ -64,10 +64,10 @@ class UDMHelper(object):
 		:param module_s: str: "users/user", "groups/group", etc
 		:param base: str: note to start search from
 		:param ldap_cred: dict: LDAP credentials collected in listeners set_data()
-		:param tenant_filter: str: optional LDAP filter to remove data only
+		:param adconnection_filter: str: optional LDAP filter to remove data only
 		from matching LDAP objects
 		"""
-		filter_s = "(&(objectClass=univentionOffice365)(|(univentionOffice365ObjectID=*)(univentionOffice365Data=*)){})".format(tenant_filter)
+		filter_s = "(&(objectClass=univentionOffice365)(|(univentionOffice365ObjectID=*)(univentionOffice365Data=*)){})".format(adconnection_filter)
 		logger.info("Cleaning %r objects with filter=%r....", module_s, filter_s)
 		udm_objs = cls.find_udm_objects(module_s, filter_s, base, ldap_cred)
 		for udm_obj in udm_objs:
@@ -148,7 +148,7 @@ class UDMHelper(object):
 		return dict(lo.search(filter_s, attr=attributes))
 
 	@classmethod
-	def get_lo_o365_users(cls, attributes=None, tenant_alias=None, enabled='1', additional_filter=''):
+	def get_lo_o365_users(cls, attributes=None, adconnection_alias=None, enabled='1', additional_filter=''):
 		"""
 		Get all LDAP user objects (not UDM users) that are enabled for office 365 sync.
 
@@ -157,7 +157,7 @@ class UDMHelper(object):
 		:param enabled: str: if the user must be enabled for office 365 use: '0': not, '1': yes, '': both
 		:param additional_filter: str: will be appended to the AND clause
 
-		:param tenant_alias: str: get only those users for this tenant
+		:param adconnection_alias: str: get only those users for this adconnection
 		:param enabled: str: if the user must be enabled for office 365 use: '0': not, '1': yes, '': both
 		:param additional_filter: str: will be appended to the AND clause
 		:return: dict: dn(str) -> attributes(dict)
@@ -168,30 +168,30 @@ class UDMHelper(object):
 			enabled_filter = '(univentionOffice365Enabled={})'.format(enabled)
 		else:
 			raise ValueError("Argument 'enabled' must have value '', '0' or '1'.")
-		if tenant_alias:
-			tenant_filter = filter_format('(univentionOffice365ADConnectionAlias=%s)', (tenant_alias,))
+		if adconnection_alias:
+			adconnection_filter = filter_format('(univentionOffice365ADConnectionAlias=%s)', (adconnection_alias,))
 		else:
-			tenant_filter = ''
+			adconnection_filter = ''
 
-		filter_s = '(&(objectClass=posixAccount)(objectClass=univentionOffice365)(uid=*)(univentionOffice365ObjectID=*){}{}{})'.format(tenant_filter, enabled_filter, additional_filter)
+		filter_s = '(&(objectClass=posixAccount)(objectClass=univentionOffice365)(uid=*)(univentionOffice365ObjectID=*){}{}{})'.format(adconnection_filter, enabled_filter, additional_filter)
 		logger.debug('filter_s=%r', filter_s)
 		return cls._get_lo_o365_objects(filter_s, attributes)
 
 	@classmethod
-	def get_lo_o365_groups(cls, attributes=None, tenant_alias=None, additional_filter=''):
+	def get_lo_o365_groups(cls, attributes=None, adconnection_alias=None, additional_filter=''):
 		"""
 		Get all LDAP user objects (not UDM users) that are enabled for office 365 sync.
 
 		:param attributes: list: get only those attributes
-		:param tenant_alias: str: get only those users for this tenant
+		:param adconnection_alias: str: get only those users for this adconnection
 		:param additional_filter: str: will be appended to the AND clause
 		:return: dict: dn(str) -> attributes(dict)
 		"""
-		if tenant_alias:
-			tenant_filter = filter_format('(univentionOffice365ADConnectionAlias=%s)', (tenant_alias,))
+		if adconnection_alias:
+			adconnection_filter = filter_format('(univentionOffice365ADConnectionAlias=%s)', (adconnection_alias,))
 		else:
-			tenant_filter = ''
-		filter_s = '(&(objectClass=posixGroup)(objectClass=univentionOffice365)(cn=*)(univentionOffice365ObjectID=*){}{})'.format(tenant_filter, additional_filter)
+			adconnection_filter = ''
+		filter_s = '(&(objectClass=posixGroup)(objectClass=univentionOffice365)(cn=*)(univentionOffice365ObjectID=*){}{})'.format(adconnection_filter, additional_filter)
 		return cls._get_lo_o365_objects(filter_s, attributes)
 
 	@classmethod
