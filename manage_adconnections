@@ -52,7 +52,7 @@ def list(args):
 
 
 def create(args):
-	AzureADConnectionHandler.create_new_adconnection(args.alias)
+	AzureADConnectionHandler.create_new_adconnection(args.alias, args.makedefault)
 
 
 def rename(args):
@@ -79,6 +79,7 @@ if __name__ == '__main__':
 
 	create_p = subparsers.add_parser('create')
 	create_p.add_argument('alias', help='The alias name for the new adconnection, refer e.g. to the domainname or schoolname')
+	create_p.add_argument('--makedefault', help='Configure the new adconnection as a default for the listener modules, also see UCR office365/defaultalias', action='store_true')
 	create_p.set_defaults(func=create)
 
 	remove_p = subparsers.add_parser('remove')
