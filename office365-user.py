@@ -357,15 +357,25 @@ def handler(dn, new, old, command):
 	# NEW or REACTIVATED account
 	#
 	if new_enabled and not old_enabled:
-		if not adconnection_aliases_new:
-			logger.info("No ad connection defined, using default (%s | %s)", listener.configRegistry.get(default_adconnection_alias_ucrv), dn)
-			adconnection_alias.add(listener.configRegistry.get(default_adconnection_alias_ucrv))
-			if not listener.configRegistry.is_false('office365/migrate/adconnectionalias'):
-				# Migration script to App version 3 has run - put user in default ad connection
-				# TODO: write default alias to user object
+		# Migration script to App version 3 has not run - put user in default ad connection
+		if listener.configRegistry.is_false('office365/migrate/adconnectionalias'):
+			adconnection_aliases_new.add(listener.configRegistry.get(default_adconnection_alias_ucrv))
 
+		# If no connection is set for a newly enabled object, and a default connection is configured via UCR,
+		# add that default to the new object
+		if not adconnection_aliases_new and listener.configRegistry.get(default_adconnection_alias_ucrv):
+			logger.info("No ad connection defined, using default (%s | %s)", listener.configRegistry.get(default_adconnection_alias_ucrv), dn)
+			adconnection_aliases_new.add(listener.configRegistry.get(default_adconnection_alias_ucrv))
+
+		if not adconnection_aliases_new:
+			logger.info("No ad connection defined for new object, do nothing")
+			return
+
+		for conn in adconnection_aliases_new:
+			ol = Office365Listener(listener, name, _attrs, ldap_cred, dn, conn)
+			new_or_reactivate_user(ol, dn, new, old)
 		ol = Office365Listener(listener, name, _attrs, ldap_cred, dn, adconnection_aliases_new)
-		logger.info("new_enabled and not old_enabled -> NEW or REACTIVATED (%s | %s)", adconnection_alias, dn)
+		logger.info("new_enabled and not old_enabled -> NEW or REACTIVATED (%s | %s)", adconnection_aliases_new, dn)
 		new_or_reactivate_user(ol, dn, new, old)
 		return
 

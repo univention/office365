@@ -77,7 +77,7 @@ resource_url = "https://graph.windows.net"
 
 adconnection_alias_ucrv = 'office365/adconnection/alias/'
 adconnection_wizard_ucrv = 'office365/adconnection/wizard'
-default_adconnection_alias_ucrv = 'office365/adconnection/defaultalias'
+default_adconnection_alias_ucrv = 'office365/defaultalias'
 
 ucr = ConfigRegistry()
 ucr.load()
@@ -145,7 +145,7 @@ class AzureADConnectionHandler(object):
 		subprocess.call(['pkill', '-f', '/usr/sbin/univention-management-console-module -m office365'])
 
 	@classmethod
-	def create_new_adconnection(self, adconnection_alias):
+	def create_new_adconnection(self, adconnection_alias, make_default=False):
 		aliases = self.get_adconnection_aliases()
 		if adconnection_alias in aliases:
 			logger.error('Azure AD connection alias %s is already listed in UCR %s.', adconnection_alias, adconnection_alias_ucrv)
@@ -164,8 +164,11 @@ class AzureADConnectionHandler(object):
 			os.chown(os.path.join(target_path, filename), pwd.getpwnam('listener').pw_uid, 0)
 
 		AzureAuth.uninitialize(adconnection_alias)
-		ucrv_set = '{}{}=uninitialized'.format(adconnection_alias_ucrv, adconnection_alias)
-		handler_set([ucrv_set])
+		ucrv = ['{}{}=uninitialized'.format(adconnection_alias_ucrv, adconnection_alias)]
+		if make_default:
+			ucrv.append('{}={}'.format(default_adconnection_alias_ucrv, adconnection_alias))
+
+		handler_set(ucrv)
 		self.configure_wizard_for_adconnection(adconnection_alias)
 		self.listener_restart()
 
