@@ -111,6 +111,16 @@ class UDMHelper(object):
 		return mod.lookup(None, lo, filter_s)
 
 	@classmethod
+	def create_udm_adconnection(cls, alias, description=""):
+		lo, po, mod = cls.init_udm("office365/ad-connection")
+		adconn = mod.object(co=None, lo=lo, position=po)
+		adconn.open()
+		adconn['name'] = alias
+		adconn['description'] = description
+		dn = adconn.create()
+		return dn
+
+	@classmethod
 	def get_udm_officeprofile(cls, profiledn, attributes=None):
 		return cls.get_udm_obj("office365/profile", profiledn, attributes)
 
