@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-16) unstable; urgency=medium
+
+  * Bug #50444: Setup default ad connection when installing
+
+ -- Erik Damrose <damrose@univention.de>  Sun, 03 Nov 2019 16:57:53 +0100
+
 univention-office365 (2.0.2-15) unstable; urgency=medium
 
   * Bug #50433: Convert to new wording: Azure AD Connection

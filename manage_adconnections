@@ -46,9 +46,9 @@ ucr.load()
 def list(args):
 	adconnection_list = AzureADConnectionHandler.get_adconnections()
 	if adconnection_list:
-		print "{0:<25} {1:<50} {2:<20}".format("Alias", "Path", "uuid")
-		for alias, uuid, path in adconnection_list:
-			print "{0:<25} {1:<50} {2:<20}".format(alias, path, uuid)
+		print "{0:<25} {1:<50} {2:<20}".format("Alias", "Path", "status")
+		for alias, status, path in adconnection_list:
+			print "{0:<25} {1:<50} {2:<20}".format(alias, path, status)
 
 
 def create(args):

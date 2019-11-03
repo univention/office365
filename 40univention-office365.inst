@@ -99,6 +99,10 @@ ucs_registerLDAPExtension "$@" --udm_module /usr/share/univention-office365/hand
 	--messagecatalog /usr/share/univention-office365/handler.d/de.mo || die
 ucs_registerLDAPExtension "$@" --udm_module /usr/share/univention-office365/handler.d/ad-connection.py || die
 
+if ! joinscript_check_any_version_executed; then
+	/usr/share/univention-office365/scripts/manage_adconnections create defaultADconnection --makedefault
+fi
+
 udm container/cn create "$@" --ignore_exists \
 	--position="$ldap_base" \
 	--set name="office365" \

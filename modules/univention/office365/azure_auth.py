@@ -44,7 +44,6 @@ import sys
 import pwd
 from xml.dom.minidom import parseString
 from stat import S_IRUSR, S_IWUSR
-import operator
 from cryptography.x509 import load_pem_x509_certificate
 from cryptography.hazmat.backends import default_backend
 import OpenSSL.crypto
@@ -55,6 +54,7 @@ import shutil
 
 from univention.lib.i18n import Translation
 from univention.office365.logging2udebug import get_logger
+from univention.office365.udm_helper import UDMHelper
 from univention.config_registry.frontend import ucr_update
 from univention.config_registry import ConfigRegistry, handler_set, handler_unset
 
@@ -145,7 +145,7 @@ class AzureADConnectionHandler(object):
 		subprocess.call(['pkill', '-f', '/usr/sbin/univention-management-console-module -m office365'])
 
 	@classmethod
-	def create_new_adconnection(self, adconnection_alias, make_default=False):
+	def create_new_adconnection(self, adconnection_alias, make_default=False, description=""):
 		aliases = self.get_adconnection_aliases()
 		if adconnection_alias in aliases:
 			logger.error('Azure AD connection alias %s is already listed in UCR %s.', adconnection_alias, adconnection_alias_ucrv)
@@ -169,6 +169,7 @@ class AzureADConnectionHandler(object):
 			ucrv.append('{}={}'.format(default_adconnection_alias_ucrv, adconnection_alias))
 
 		handler_set(ucrv)
+		UDMHelper.create_udm_adconnection(adconnection_alias, description)
 		self.configure_wizard_for_adconnection(adconnection_alias)
 		self.listener_restart()
 
