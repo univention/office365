@@ -59,7 +59,7 @@ Type=str
 Categories=service-collaboration
 
 [office365/defaultalias]
-Description[de]=Wenn der Wert auf einen initialisierten AD Verbindungsalias gesetzt ist, werden Objekte die zur Synchronisation aktiviert werden zu dieser AD Verbindung synchronisiert, sofern kein AD Verbindungsalias gesetzt ist.
-Description[en]=If the value is set to an initialized adconnection alias, objects that are activated for synchronization will be synchronized in the default ad connection, if no ad connection is configured for it.
+Description[de]=Wenn der Wert auf den adconnection Alias einer initialisierten AD Verbindung gesetzt ist und an einem Benutzer- oder Gruppenkonto bei der Aktivierung für Office365 kein AD Verbindungsalias konfiguriert ist, werden sie zu der über diese Variable definierten Azure AD synchronisiert.
+Description[en]=If the value is set to the adconnection alias of an initialized AD connection and no adconnection alias is configured on a user or group account when Office365 is enabled, they are synchronized to the Azure AD defined by this variable.
 Type=str
 Categories=service-collaboration
