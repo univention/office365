@@ -266,7 +266,7 @@ def new_or_reactivate_user(ol, dn, new, old):
 	udm_user = ol.udm.get_udm_user(dn)
 	if not_migrated_to_v3:
 		udm_user["UniventionOffice365ObjectID"] = new_user["objectId"]
-		udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(new_user))).rstrip()
+		udm_user["UniventionOffice365Data"] = base64.b64encode(zlib.compress(json.dumps(new_user))).rstrip()
 	else:
 		new_azure_data = {
 			ol.adconnection_alias: {
@@ -277,9 +277,9 @@ def new_or_reactivate_user(ol, dn, new, old):
 		old_azure_data_encoded = old.get('univentionOffice365Data', [''])[0]
 		if old_azure_data_encoded:
 			# The account already has an Azure AD connection
-			old_azure_data = json.loads(zlib.decompress(base64.decodestring(old_azure_data_encoded)))
+			old_azure_data = json.loads(zlib.decompress(base64.b64decode(old_azure_data_encoded)))
 			new_azure_data = old_azure_data.update(new_azure_data)
-		udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(new_azure_data))).rstrip()
+		udm_user["UniventionOffice365Data"] = base64.b64encode(zlib.compress(json.dumps(new_azure_data))).rstrip()
 	udm_user.modify()
 	logger.info(
 		"User creation success. userPrincipalName: %r objectId: %r dn: %s adconnection: %s",
@@ -300,7 +300,7 @@ def deactivate_user(ol, dn, new, old):
 	# ldapError: Inappropriate matching: modify/delete: univentionOffice365Data: no equality matching rule
 	# Explanation: http://gcolpart.evolix.net/blog21/delete-facsimiletelephonenumber-attribute/
 	if not_migrated_to_v3:
-		udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(None))).rstrip()
+		udm_user["UniventionOffice365Data"] = base64.b64encode(zlib.compress(json.dumps(None))).rstrip()
 		udm_user.modify()
 	logger.info("Deactivated user %r adconnection: %s.", old["uid"][0], ol.adconnection_alias)
 
@@ -311,7 +311,7 @@ def modify_user(ol, dn, new, old):
 	udm_user = ol.udm.get_udm_user(dn)
 	azure_user = ol.get_user(old)
 	if not_migrated_to_v3:
-		udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(azure_user))).rstrip()
+		udm_user["UniventionOffice365Data"] = base64.b64encode(zlib.compress(json.dumps(azure_user))).rstrip()
 	else:
 		new_azure_data = {
 			ol.adconnection_alias: {
@@ -322,9 +322,9 @@ def modify_user(ol, dn, new, old):
 		old_azure_data_encoded = old.get('univentionOffice365Data', [''])[0]
 		if old_azure_data_encoded:
 			# The account already has an Azure AD connection
-			old_azure_data = json.loads(zlib.decompress(base64.decodestring(old_azure_data_encoded)))
+			old_azure_data = json.loads(zlib.decompress(base64.b64decode(old_azure_data_encoded)))
 			new_azure_data = old_azure_data.update(new_azure_data)
-		udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(new_azure_data))).rstrip()
+		udm_user["UniventionOffice365Data"] = base64.b64encode(zlib.compress(json.dumps(new_azure_data))).rstrip()
 	udm_user.modify()
 	logger.info("Modified user %r adconnection: %s.", old["uid"][0], ol.adconnection_alias)
 
