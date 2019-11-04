@@ -41,7 +41,7 @@ import argparse
 import subprocess
 import zlib
 import univention.admin.uldap
-from univention.config_registry import ConfigRegistry, handler_set
+from univention.config_registry import ConfigRegistry, handler_set, handler_unset
 from univention.office365.azure_auth import AzureAuth, get_adconnection_aliases, adconnection_alias_ucrv
 from univention.office365.udm_helper import UDMHelper
 
@@ -124,20 +124,27 @@ if __name__ == '__main__':
 			attr = users[dn]
 			print('Changing {} ({})...'.format(attr['uid'][0], dn))
 			modlist = [('univentionOffice365ADConnectionAlias', None, args.adconnection_alias)]
-			azure_object_id = attr['univentionOffice365ObjectID'][0]
-			azure_upn = attr.get('univentionOffice365userPrincipalName', [''])[0]
+
 			azure_data_encoded = attr.get('univentionOffice365Data', [''])[0]
-			if all(azure_object_id, azure_upn, azure_data_encoded):
+			if azure_data_encoded:
 				azure_data = json.loads(zlib.decompress(base64.decodestring(azure_data_encoded)))
-				adconnection_data = {args.adconnection_alias: {
-					'OBJID': azure_object_id,
-					'UPN': azure_upn,
-					'DATA': azure_data,
-				}}
+				adconnection_data = {
+					args.adconnection_alias: {
+						'userPrincipalName': azure_data['userPrincipalName'],
+						'objectId': azure_data['objectId'],
+					}
+				}
 				new_univentionOffice365Data = base64.encodestring(zlib.compress(json.dumps(adconnection_data))).rstrip()
 				modlist.append(('univentionOffice365Data', azure_data_encoded, new_univentionOffice365Data))
+
+			azure_object_id = attr.get('univentionOffice365ObjectID', [''])[0]
+			if azure_object_id:
 				modlist.append(('univentionOffice365ObjectID', azure_object_id, None))
+
+			azure_upn = attr.get('univentionOffice365userPrincipalName', [''])[0]
+			if azure_upn:
 				modlist.append(('univentionOffice365userPrincipalName', azure_upn, None))
+
 			if not args.dryrun:
 				lo.modify(dn, modlist)
 	else:
@@ -166,9 +173,11 @@ if __name__ == '__main__':
 			modlist = [('univentionOffice365ADConnectionAlias', None, args.adconnection_alias)]
 			azure_object_id = attr['univentionOffice365ObjectID'][0]
 			if azure_object_id:
-				adconnection_data = {args.adconnection_alias: {
-					'OBJID': azure_object_id,
-				}}
+				adconnection_data = {
+					args.adconnection_alias: {
+						'objectId': azure_object_id,
+					}
+				}
 				new_univentionOffice365Data = base64.encodestring(zlib.compress(json.dumps(adconnection_data))).rstrip()
 				modlist.append(('univentionOffice365Data', None, new_univentionOffice365Data))
 				modlist.append(('univentionOffice365ObjectID', azure_object_id, None))
@@ -190,6 +199,9 @@ if __name__ == '__main__':
 	print('Setting UCR {}...'.format(ucrv_set))
 	if not args.dryrun:
 		handler_set([ucrv_set])
+
+	handler_unset(['office365/migrate/adconnectionalias'])
+
 	print('Restarting the univention-directory-listener...')
 	if args.dryrun:
 		res = 0

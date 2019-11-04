@@ -57,6 +57,7 @@ initialized_adconnection = set([_ta for _ta in adconnection_aliases if AzureAuth
 
 logger = get_logger("office365", "o365")
 
+not_migrated_to_v3 = listener.configRegistry.is_false('office365/migrate/adconnectionalias')
 
 def get_listener_attributes():
 	global attributes_anonymize, attributes_mapping, attributes_never, attributes_static, attributes_sync
@@ -244,15 +245,41 @@ def clean():
 
 
 def new_or_reactivate_user(ol, dn, new, old):
+	if not_migrated_to_v3:
+		# Sanity check
+		old_azure_object_id = old.get('univentionOffice365ObjectID', [''])[0]
+		if old_azure_object_id:
+			# Migration script to App version 3 has not run yet
+			logger.error(
+				"Cannot change univentionOffice365Data because migration script has not run yet. dn: %s adconnection: %s",
+				dn, ol.adconnection_alias
+			)
+			return
+
 	try:
 		new_user = ol.create_user(new)
 	except NoAllocatableSubscriptions as exc:
 		logger.error('{} ({})'.format(exc, exc.adconnection_alias))
 		new_user = exc.user
+
 	# save/update Azure objectId and object data in UDM object
 	udm_user = ol.udm.get_udm_user(dn)
-	udm_user["UniventionOffice365ObjectID"] = new_user["objectId"]
-	udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(new_user))).rstrip()
+	if not_migrated_to_v3:
+		udm_user["UniventionOffice365ObjectID"] = new_user["objectId"]
+		udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(new_user))).rstrip()
+	else:
+		new_azure_data = {
+			ol.adconnection_alias: {
+				'userPrincipalName': new_user['userPrincipalName'],
+				'objectId': new_user['objectId'],
+			}
+		}
+		old_azure_data_encoded = old.get('univentionOffice365Data', [''])[0]
+		if old_azure_data_encoded:
+			# The account already has an Azure AD connection
+			old_azure_data = json.loads(zlib.decompress(base64.decodestring(old_azure_data_encoded)))
+			new_azure_data = old_azure_data.update(new_azure_data)
+		udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(new_azure_data))).rstrip()
 	udm_user.modify()
 	logger.info(
 		"User creation success. userPrincipalName: %r objectId: %r dn: %s adconnection: %s",
@@ -272,8 +299,9 @@ def deactivate_user(ol, dn, new, old):
 	# Cannot delete UniventionOffice365Data, because it would result in:
 	# ldapError: Inappropriate matching: modify/delete: univentionOffice365Data: no equality matching rule
 	# Explanation: http://gcolpart.evolix.net/blog21/delete-facsimiletelephonenumber-attribute/
-	udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(None))).rstrip()
-	udm_user.modify()
+	if not_migrated_to_v3:
+		udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(None))).rstrip()
+		udm_user.modify()
 	logger.info("Deactivated user %r adconnection: %s.", old["uid"][0], ol.adconnection_alias)
 
 
@@ -282,7 +310,21 @@ def modify_user(ol, dn, new, old):
 	# update Azure object data in UDM object
 	udm_user = ol.udm.get_udm_user(dn)
 	azure_user = ol.get_user(old)
-	udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(azure_user))).rstrip()
+	if not_migrated_to_v3:
+		udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(azure_user))).rstrip()
+	else:
+		new_azure_data = {
+			ol.adconnection_alias: {
+				'userPrincipalName': azure_user['userPrincipalName'],
+				'objectId': azure_user['objectId'],
+			}
+		}
+		old_azure_data_encoded = old.get('univentionOffice365Data', [''])[0]
+		if old_azure_data_encoded:
+			# The account already has an Azure AD connection
+			old_azure_data = json.loads(zlib.decompress(base64.decodestring(old_azure_data_encoded)))
+			new_azure_data = old_azure_data.update(new_azure_data)
+		udm_user["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(new_azure_data))).rstrip()
 	udm_user.modify()
 	logger.info("Modified user %r adconnection: %s.", old["uid"][0], ol.adconnection_alias)
 
@@ -328,7 +370,7 @@ def handler(dn, new, old, command):
 	logger.debug("new_enabled=%r old_enabled=%r", new_enabled, old_enabled)
 
 	#
-	# MODIFY account
+	# MODIFY
 	# Add or remove user from AD connections -> delete and create
 	#
 	if new_enabled and old_enabled:
@@ -356,7 +398,7 @@ def handler(dn, new, old, command):
 	#
 	if new_enabled and not old_enabled:
 		# Migration script to App version 3 has not run - put user in default ad connection
-		if listener.configRegistry.is_false('office365/migrate/adconnectionalias'):
+		if not_migrated_to_v3:
 			adconnection_aliases_new.add(listener.configRegistry.get(default_adconnection_alias_ucrv))
 
 		# If no connection is set for a newly enabled object, and a default connection is configured via UCR,
