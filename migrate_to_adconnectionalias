@@ -134,7 +134,7 @@ if __name__ == '__main__':
 						'objectId': azure_data['objectId'],
 					}
 				}
-				new_univentionOffice365Data = base64.encodestring(zlib.compress(json.dumps(adconnection_data))).rstrip()
+				new_univentionOffice365Data = base64.b64encode(zlib.compress(json.dumps(adconnection_data))).rstrip()
 				modlist.append(('univentionOffice365Data', azure_data_encoded, new_univentionOffice365Data))
 
 			azure_object_id = attr.get('univentionOffice365ObjectID', [''])[0]
@@ -178,7 +178,7 @@ if __name__ == '__main__':
 						'objectId': azure_object_id,
 					}
 				}
-				new_univentionOffice365Data = base64.encodestring(zlib.compress(json.dumps(adconnection_data))).rstrip()
+				new_univentionOffice365Data = base64.b64encode(zlib.compress(json.dumps(adconnection_data))).rstrip()
 				modlist.append(('univentionOffice365Data', None, new_univentionOffice365Data))
 				modlist.append(('univentionOffice365ObjectID', azure_object_id, None))
 			if not args.dryrun:

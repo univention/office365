@@ -128,9 +128,9 @@ def create_groups(ol, dn, new, old):
 			old_azure_data_encoded = old.get('univentionOffice365Data', [''])[0]
 			if old_azure_data_encoded:
 				# The account already has an Azure AD connection
-				old_azure_data = json.loads(zlib.decompress(base64.decodestring(old_azure_data_encoded)))
+				old_azure_data = json.loads(zlib.decompress(base64.b64decode(old_azure_data_encoded)))
 				new_azure_data = old_azure_data.update(new_azure_data)
-			new_group["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(new_azure_data))).rstrip()
+			new_group["UniventionOffice365Data"] = base64.b64encode(zlib.compress(json.dumps(new_azure_data))).rstrip()
 		udm_group.modify()
 		logger.info("Created group with displayName: %r (%r) adconnection: %s", new_group["displayName"], new_group["objectId"], ol.adconnection_alias)
 
