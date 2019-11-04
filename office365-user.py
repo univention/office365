@@ -302,7 +302,6 @@ def handler(dn, new, old, command):
 
 	adconnection_aliases_old = set(old.get('univentionOffice365ADConnectionAlias', []))
 	adconnection_aliases_new = set(new.get('univentionOffice365ADConnectionAlias', []))
-	adconnection_alias = adconnection_aliases_new or adconnection_aliases_old
 	logger.info('adconnection_alias_old=%r adconnection_alias_new=%r', adconnection_aliases_old, adconnection_aliases_new)
 
 	udm_helper = UDMHelper(ldap_cred)
@@ -329,6 +328,7 @@ def handler(dn, new, old, command):
 	logger.debug("new_enabled=%r old_enabled=%r", new_enabled, old_enabled)
 
 	#
+	# MODIFY account
 	# Add or remove user from AD connections -> delete and create
 	#
 	if new_enabled and old_enabled:
@@ -350,8 +350,6 @@ def handler(dn, new, old, command):
 				new_or_reactivate_user(ol, dn, new, old)
 			except NoIDsStored:
 				logger.warn('Connection %r is not initialized, when trying to create user %r. Ignoring.', conn, dn)
-
-	ol = Office365Listener(listener, name, _attrs, ldap_cred, dn, adconnection_alias)
 
 	#
 	# NEW or REACTIVATED account
@@ -383,22 +381,18 @@ def handler(dn, new, old, command):
 	# DELETE account
 	#
 	if old and not new:
-		logger.info("old and not new -> DELETE (%s | %s)", adconnection_alias, dn)
-		delete_user(ol, dn, new, old)
+		logger.info("old and not new -> DELETE (%s | %s)", adconnection_aliases_old, dn)
+		for conn in adconnection_aliases_old:
+			ol = Office365Listener(listener, name, _attrs, ldap_cred, dn, conn)
+			delete_user(ol, dn, new, old)
 		return
 
 	#
 	# DEACTIVATE account
 	#
 	if new and not new_enabled:
-		logger.info("new and not new_enabled -> DEACTIVATE (%s | %s)", adconnection_alias, dn)
-		deactivate_user(ol, dn, new, old)
-		return
-
-	#
-	# MODIFY account
-	#
-	if old_enabled and new_enabled:
-		logger.info("old_enabled and new_enabled -> MODIFY (%s | %s)", adconnection_alias, dn)
-		modify_user(ol, dn, new, old)
+		logger.info("new and not new_enabled -> DEACTIVATE (%s | %s)", adconnection_aliases_old, dn)
+		for conn in adconnection_aliases_old:
+			ol = Office365Listener(listener, name, _attrs, ldap_cred, dn, conn)
+			deactivate_user(ol, dn, new, old)
 		return
