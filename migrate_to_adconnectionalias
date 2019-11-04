@@ -42,7 +42,7 @@ import subprocess
 import zlib
 import univention.admin.uldap
 from univention.config_registry import ConfigRegistry, handler_set, handler_unset
-from univention.office365.azure_auth import AzureAuth, get_adconnection_aliases, adconnection_alias_ucrv
+from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler, adconnection_alias_ucrv
 from univention.office365.udm_helper import UDMHelper
 
 
@@ -60,7 +60,7 @@ if __name__ == '__main__':
 		print('Error: Default Azure AD connection (in {!r}) is not initialized. Exiting.'.format(conf_path))
 		sys.exit(1)
 
-	aliases = get_adconnection_aliases()
+	aliases = AzureADConnectionHandler.get_adconnection_aliases()
 	if args.adconnection_alias in aliases:
 		print('Error: Azure AD connection alias {!r} is already listed in UCR {!r}. Exiting.'.format(args.adconnection_alias, adconnection_alias_ucrv))
 		sys.exit(1)
