@@ -33,6 +33,8 @@ from operator import itemgetter
 import uuid
 import re
 import base64
+import json
+import zlib
 from ldap.filter import filter_format
 
 from univention.office365.azure_handler import AzureHandler, AddLicenseError, ResourceNotFoundError
@@ -108,7 +110,10 @@ class Office365Listener(object):
 			self.ucr = ConfigRegistry()
 		self.ucr.load()
 
+		self.not_migrated_to_v3 = self.ucr.is_false('office365/migrate/adconnectionalias')
+
 		self.ah = AzureHandler(self.ucr, name, self.adconnection_alias)
+
 
 	@property
 	def verified_domains(self):
@@ -253,8 +258,10 @@ class Office365Listener(object):
 		:param user: listener old or new
 		:return: dict
 		"""
-		if "univentionOffice365ObjectID" in user and user["univentionOffice365ObjectID"][0]:
-			object_id = user["univentionOffice365ObjectID"][0]
+		azure_data_encoded = user.get('univentionOffice365Data', [''])[0]
+		if azure_data_encoded:
+			azure_data = json.loads(zlib.decompress(base64.decodestring(azure_data_encoded)))
+			object_id = azure_data["objectId"]
 		else:
 			object_id = self.find_aad_user_by_entryUUID(user["entryUUID"][0])
 			if not object_id:
@@ -488,23 +495,59 @@ class Office365Listener(object):
 		# get all users for the adconnection (ignoring group membership) and compare
 		# with group members to get azure IDs, because it's faster than
 		# iterating (and opening!) lots of UDM objects
-		all_users_lo = self.udm.get_lo_o365_users(attributes=['univentionOffice365ObjectID'], adconnection_alias=self.adconnection_alias)
+		all_users_lo = self.udm.get_lo_o365_users(attributes=['univentionOffice365Data'], adconnection_alias=self.adconnection_alias)
 		all_user_dns = set(all_users_lo.keys())
 		member_dns = all_user_dns.intersection(set(udm_target_group["users"]))
-		users_and_groups_to_add = [attr['univentionOffice365ObjectID'][0] for dn, attr in all_users_lo.items() if dn in member_dns]
+
+		if self.not_migrated_to_v3:
+			users_and_groups_to_add = [attr['univentionOffice365ObjectID'][0] for dn, attr in all_users_lo.items() if dn in member_dns]
+		else:
+			users_and_groups_to_add = []
+			for dn, attr in all_users_lo.items():
+				if not dn in member_dns:
+					continue
+				azure_data_encoded = attr['univentionOffice365Data'][0]
+				azure_data = json.loads(zlib.decompress(base64.decodestring(azure_data_encoded)))
+				if azure_data:  # TODO: Probably always present for enabled accounts
+					try:
+						azure_connection_data = azure_data[self.adconnection_alias]
+					except KeyError:
+						# Object is not synchronized to this Azure AD
+						continue
+					users_and_groups_to_add.append(azure_connection_data["objectId"])
 
 		# search tree downwards, create groups as we go, add users to them later
 		for groupdn in udm_target_group["nestedGroup"]:
 			# check if this group or any of its nested groups has azure_users
 			for group_with_azure_users_dn in self.udm.udm_groups_with_azure_users(groupdn):
 				udm_group = self.udm.get_udm_group(group_with_azure_users_dn)
-				if not udm_group.get("UniventionOffice365ObjectID"):
-					new_group = self.create_group_from_ldap(group_with_azure_users_dn, add_members=False)
-					udm_group["UniventionOffice365ObjectID"] = new_group["objectId"]
-					udm_group["UniventionOffice365ADConnectionAlias"] = self.adconnection_alias
-					udm_group.modify()
-				if group_with_azure_users_dn in udm_target_group["nestedGroup"]:
-					users_and_groups_to_add.append(udm_group["UniventionOffice365ObjectID"])
+				if self.not_migrated_to_v3:
+					if not udm_group.get("UniventionOffice365ObjectID"):
+						new_group = self.create_group_from_ldap(group_with_azure_users_dn, add_members=False)
+						udm_group["UniventionOffice365ObjectID"] = new_group["objectId"]
+						udm_group["UniventionOffice365ADConnectionAlias"] = self.adconnection_alias
+						udm_group.modify()
+					if group_with_azure_users_dn in udm_target_group["nestedGroup"]:
+						users_and_groups_to_add.append(udm_group["UniventionOffice365ObjectID"])
+				else:
+					azure_data_encoded = udm_group.get("UniventionOffice365Data")
+					azure_data = json.loads(zlib.decompress(base64.decodestring(azure_data_encoded)))
+					if not (azure_data and self.adconnection_alias in azure_data):
+						new_group = self.create_group_from_ldap(group_with_azure_users_dn, add_members=False)
+						new_azure_data = {self.adconnection_alias: new_group}
+						if azure_data:
+							new_azure_data = azure_data.update(new_azure_data)
+							new_azure_data_encoded = base64.encodestring(zlib.compress(json.dumps(new_azure_data))).rstrip()
+						udm_group["UniventionOffice365Data"] = new_azure_data_encoded
+						udm_group["UniventionOffice365ADConnectionAlias"] = self.adconnection_alias
+						udm_group.modify()
+					if group_with_azure_users_dn in udm_target_group["nestedGroup"]:
+						azure_data = udm_group["UniventionOffice365Data"]
+						try:
+							azure_connection_data = azure_data[self.adconnection_alias]
+						except KeyError:
+							# Object is not synchronized to this Azure AD yet
+							users_and_groups_to_add.append(azure_connection_data["objectId"])
 
 		# add users to groups
 		if users_and_groups_to_add:

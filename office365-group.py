@@ -32,10 +32,11 @@
 
 from __future__ import absolute_import
 
-import os
-import json
 import base64
 import copy
+import json
+import os
+import zlib
 from stat import S_IRUSR, S_IWUSR
 
 import listener
@@ -115,14 +116,23 @@ def clean():
 	UDMHelper.clean_udm_objects("groups/group", listener.configRegistry["ldap/base"], ldap_cred, adconnection_filter)
 
 
-def create_groups(ol, dn, adconnection_alias_new):
+def create_groups(ol, dn, new, old):
 	for groupdn in ol.udm.udm_groups_with_azure_users(dn):
 		new_group = ol.create_group_from_ldap(groupdn)
 		# save Azure objectId in UDM object
 		udm_group = ol.udm.get_udm_group(dn)
-		udm_group["UniventionOffice365ObjectID"] = new_group["objectId"]
+		if listener.configRegistry.is_false('office365/migrate/adconnectionalias'):
+			udm_group["UniventionOffice365ObjectID"] = new_group["objectId"]
+		else:
+			new_azure_data = {ol.adconnection_alias: new_group}
+			old_azure_data_encoded = old.get('univentionOffice365Data', [''])[0]
+			if old_azure_data_encoded:
+				# The account already has an Azure AD connection
+				old_azure_data = json.loads(zlib.decompress(base64.decodestring(old_azure_data_encoded)))
+				new_azure_data = old_azure_data.update(new_azure_data)
+			new_group["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(new_azure_data))).rstrip()
 		udm_group.modify()
-		logger.info("Created group with displayName: %r (%r) adconnection: %s", new_group["displayName"], new_group["objectId"], adconnection_alias_new)
+		logger.info("Created group with displayName: %r (%r) adconnection: %s", new_group["displayName"], new_group["objectId"], ol.adconnection_alias)
 
 
 def handler(dn, new, old, command):
@@ -168,7 +178,7 @@ def handler(dn, new, old, command):
 		logger.info("CREATE (%s | %s)", connections_to_be_created, dn)
 		for conn in connections_to_be_created:
 			ol = Office365Listener(listener, name, dict(listener=attributes_copy), ldap_cred, dn, conn)
-			create_groups(ol, dn, new, connections_to_be_created)
+			create_groups(ol, dn, new, old)
 
 	#
 	# NEW group
@@ -177,7 +187,7 @@ def handler(dn, new, old, command):
 		logger.debug("new and not old -> NEW (%s)", dn)
 		for conn in adconnection_aliases_new:
 			ol = Office365Listener(listener, name, dict(listener=attributes_copy), ldap_cred, dn, conn)
-			create_groups(ol, dn, conn)
+			create_groups(ol, dn, new, old)
 		logger.debug("done (%s)", dn)
 		return
 

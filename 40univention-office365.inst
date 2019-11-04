@@ -215,6 +215,26 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set disableUDMWeb=1 || die
 
 udm settings/extended_attribute create "$@" --ignore_exists \
+	--position "cn=custom attributes,cn=univention,$ldap_base" \
+	--set name="UniventionOffice365GroupData" \
+	--set CLIName="UniventionOffice365Data" \
+	--set shortDescription="Data of group in Azure AD" \
+	--set translationShortDescription='"de_DE" "Daten der Gruppe im Azure AD"' \
+	--set longDescription="Data of user in Azure AD" \
+	--set translationLongDescription='"de_DE" "Daten der Gruppe im Azure AD"' \
+	--set module="groups/group" \
+	--set syntax=Base64GzipText \
+	--set default="" \
+	--set multivalue=0 \
+	--set valueRequired=0 \
+	--set mayChange=1 \
+	--set doNotSearch=1 \
+	--set objectClass=univentionOffice365 \
+	--set ldapMapping=univentionOffice365Data \
+	--set deleteObjectClass=0 \
+	--set disableUDMWeb=1 || die
+
+udm settings/extended_attribute create "$@" --ignore_exists \
     --position "cn=custom attributes,cn=univention,$ldap_base" \
     --set name="UniventionOffice365userPrincipalName" \
     --set CLIName="UniventionOffice365userPrincipalName" \
