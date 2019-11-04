@@ -140,7 +140,6 @@ def handler(dn, new, old, command):
 
 	adconnection_aliases_old = set(old.get('univentionOffice365ADConnectionAlias', []))
 	adconnection_aliases_new = set(new.get('univentionOffice365ADConnectionAlias', []))
-	adconnection_alias = adconnection_aliases_new or adconnection_aliases_old
 	logger.info('adconnection_alias_old=%r adconnection_alias_new=%r', adconnection_aliases_old, adconnection_aliases_new)
 
 	old_enabled = bool(int(old.get("univentionOffice365Enabled", ["0"])[0]))
@@ -170,8 +169,6 @@ def handler(dn, new, old, command):
 		for conn in connections_to_be_created:
 			ol = Office365Listener(listener, name, dict(listener=attributes_copy), ldap_cred, dn, conn)
 			create_groups(ol, dn, new, connections_to_be_created)
-
-	ol = Office365Listener(listener, name, dict(listener=attributes_copy), ldap_cred, dn, adconnection_alias)
 
 	#
 	# NEW group
