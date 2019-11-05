@@ -180,10 +180,31 @@ class Office365Listener(object):
 		self.ah.invalidate_all_tokens_for_user(new_user["objectId"])
 		return new_user
 
+	def object_id_from_user_attrs(self, old_or_new):
+		"""
+		Lookup objectId for adconnection_alias from from univentionOffice365Data
+		:param old_or_new: list: attributes of user object
+		:raises: KeyError
+		:return: string: object_id
+		"""
+		try:
+			azure_data_encoded = old_or_new['univentionOffice365Data'][0]
+			try:
+				azure_data = json.loads(zlib.decompress(base64.b64decode(azure_data_encoded)))
+			except Exception:
+				azure_data = {}
+		except KeyError:
+			azure_data = {}
+		# May throw KeyError:
+		azure_connection_data = azure_data[self.adconnection_alias]
+		object_id = azure_connection_data["objectId"]
+		return object_id
+
 	def delete_user(self, old):
 		try:
-			object_id = old["univentionOffice365ObjectID"][0]
+			object_id = self.object_id_from_user_attrs(old)
 		except KeyError:
+			# Fallback to lookup by entryUUID
 			object_id = self.find_aad_user_by_entryUUID(old["entryUUID"][0])
 		if not object_id:
 			logger.error("Couldn't find object_id for user %r (%s), cannot delete.", old["uid"][0], self.adconnection_alias)
@@ -195,12 +216,13 @@ class Office365Listener(object):
 			return
 
 	def deactivate_user(self, old_or_new):
-		if "univentionOffice365ObjectID" in old_or_new and old_or_new["univentionOffice365ObjectID"][0]:
-			object_id = old_or_new["univentionOffice365ObjectID"][0]
-		else:
+		try:
+			object_id = self.object_id_from_user_attrs(old_or_new)
+		except KeyError:
+			# Fallback to lookup by entryUUID
 			object_id = self.find_aad_user_by_entryUUID(old_or_new["entryUUID"][0])
-			if not object_id:
-				return
+		if not object_id:
+			return
 		return self.ah.deactivate_user(object_id)
 
 	def modify_user(self, old, new):
@@ -246,7 +268,14 @@ class Office365Listener(object):
 			if "usageLocation" in attributes:
 				attributes["usageLocation"] = self._get_usage_location(new)
 
-			object_id = new["univentionOffice365ObjectID"][0]
+			try:
+				object_id = self.object_id_from_user_attrs(new)
+			except KeyError:
+				object_id = self.find_aad_user_by_entryUUID(new["entryUUID"][0])
+			if not object_id:
+				logger.error("Couldn't find object_id for user %r (%s), cannot modify.", new["uid"][0], self.adconnection_alias)
+				return
+
 			return self.ah.modify_user(object_id=object_id, modifications=attributes)
 		else:
 			logger.debug("No modifications - nothing to do.")
@@ -258,14 +287,12 @@ class Office365Listener(object):
 		:param user: listener old or new
 		:return: dict
 		"""
-		azure_data_encoded = user.get('univentionOffice365Data', [''])[0]
-		if azure_data_encoded:
-			azure_data = json.loads(zlib.decompress(base64.b64decode(azure_data_encoded)))
-			object_id = azure_data["objectId"]
-		else:
+		try:
+			object_id = self.object_id_from_user_attrs(user)
+		except KeyError:
 			object_id = self.find_aad_user_by_entryUUID(user["entryUUID"][0])
-			if not object_id:
-				return list()
+		if not object_id:
+			return list()
 		return self.ah.list_users(objectid=object_id)
 
 	def create_group(self, name, description, group_dn, add_members=True):
@@ -289,9 +316,40 @@ class Office365Listener(object):
 		name = udm_group["name"]
 		return self.create_group(name, desc, groupdn, add_members)
 
+	def object_id_from_group_attrs(self, old_or_new):
+		"""
+		Lookup objectId for adconnection_alias from either univentionOffice365ObjectID (pre v3) or univentionOffice365Data (v3)
+		:param old_or_new: list: attributes of group object
+		:raises: KeyError
+		:return: string: object_id
+		"""
+		try:
+			azure_data = {
+				"defaultADconnection": {
+					"objectId": old_or_new["univentionOffice365ObjectID"][0],
+				}
+			}
+		except KeyError:
+			azure_data_encoded = old_or_new.get("univentionOffice365Data", [''])[0]
+			try:
+				azure_data = json.loads(zlib.decompress(base64.b64decode(azure_data_encoded)))
+			except Exception:
+				azure_data = {}
+		# May throw KeyError:
+		azure_connection_data = azure_data[self.adconnection_alias]
+		object_id = azure_connection_data["objectId"]
+		return object_id
+
 	def delete_group(self, old):
 		try:
-			return self.ah.delete_group(old["univentionOffice365ObjectID"][0])
+			object_id = self.object_id_from_group_attrs(old)
+		except KeyError:
+			object_id = self.find_aad_user_by_entryUUID(old["entryUUID"][0])
+		if not object_id:
+			logger.error("Couldn't find object_id for group %r (%s), cannot delete.", old["cn"][0], self.adconnection_alias)
+			return
+		try:
+			return self.ah.delete_group(object_id)
 		except ResourceNotFoundError as exc:
 			logger.error("Group %r didn't exist in Azure: %r.", old["cn"][0], exc)
 			return
@@ -342,25 +400,45 @@ class Office365Listener(object):
 		modification_attributes = self._diff_old_new(self.attrs["listener"], old, new)
 		logger.debug("dn=%r modification_attributes=%r (%s)", self.dn, modification_attributes, self.adconnection_alias)
 
+		try:
+			object_id = self.object_id_from_group_attrs(old)
+		except KeyError:
+			object_id = None
+
 		if not modification_attributes:
 			logger.debug("No modifications found, ignoring.")
-			return dict(objectId=old["univentionOffice365ObjectID"][0])
+			return dict(objectId=object_id)
 
-		try:
-			group_id = old["univentionOffice365ObjectID"][0]
-		except KeyError:
+		if not object_id:
 			# just create a new group
 			logger.info("No objectID for group %r found, creating a new azure group...", self.dn)
 			azure_group = self.create_group_from_new(new)
-			group_id = azure_group["objectId"]
+			object_id = azure_group["objectId"]
 			modification_attributes = dict()
 			udm_group = self.udm.get_udm_group(self.dn)
-			udm_group["UniventionOffice365ObjectID"] = group_id
-			udm_group["UniventionOffice365ADConnectionAlias"] = self.adconnection_alias
-			udm_group.modify()
+
+			if self.not_migrated_to_v3:
+				udm_group["UniventionOffice365ObjectID"] = object_id
+				udm_group["UniventionOffice365ADConnectionAlias"] = self.adconnection_alias
+				udm_group.modify()
+			else:
+				azure_data_encoded = udm_group.get("UniventionOffice365Data")
+				azure_data = json.loads(zlib.decompress(base64.b64decode(azure_data_encoded)))
+				if not (azure_data and self.adconnection_alias in azure_data):
+					new_azure_data = {
+						self.adconnection_alias: {
+							'objectId': object_id
+						}
+					}
+					if azure_data:
+						new_azure_data = azure_data.update(new_azure_data)
+					new_azure_data_encoded = base64.b64encode(zlib.compress(json.dumps(new_azure_data)))
+					udm_group["UniventionOffice365Data"] = new_azure_data_encoded
+					udm_group["UniventionOffice365ADConnectionAlias"] = self.adconnection_alias
+					udm_group.modify()
 
 		try:
-			azure_group = self.ah.list_groups(objectid=group_id)
+			azure_group = self.ah.list_groups(objectid=object_id)
 			if azure_group["mailNickname"].startswith("ZZZ_deleted_"):
 				logger.info("Reactivating azure group %r...", azure_group["displayName"])
 				name = new["cn"][0]
@@ -371,12 +449,12 @@ class Office365Listener(object):
 					mailNickname=name.replace(" ", "_-_"),
 					securityEnabled=True
 				)
-				azure_group = self.ah.modify_group(group_id, attributes)
+				azure_group = self.ah.modify_group(object_id, attributes)
 		except ResourceNotFoundError:
 			logger.warn("Office365Listener.modify_group() azure group doesn't exist (anymore), creating it instead.")
 			azure_group = self.create_group_from_new(new)
 			modification_attributes = dict()
-		group_id = azure_group["objectId"]
+		object_id = azure_group["objectId"]
 
 		if "uniqueMember" in modification_attributes:
 			# In uniqueMember users and groups are both listed. There is no
@@ -425,7 +503,7 @@ class Office365Listener(object):
 					)
 
 			if users_and_groups_to_add:
-				self.ah.add_objects_to_azure_group(group_id, users_and_groups_to_add)
+				self.ah.add_objects_to_azure_group(object_id, users_and_groups_to_add)
 
 			# remove members
 			for removed_member in removed_members:
@@ -467,19 +545,19 @@ class Office365Listener(object):
 						)
 						continue
 
-				self.ah.delete_group_member(group_id=group_id, member_id=member_id)
+				self.ah.delete_group_member(group_id=object_id, member_id=member_id)
 
 		# remove group if it became empty
-		deleted = self.delete_empty_group(group_id)
+		deleted = self.delete_empty_group(object_id)
 		if deleted:
 			return None
 
 		# modify other attributes
 		modifications = dict([(mod_attr, new[mod_attr]) for mod_attr in modification_attributes])
 		if modification_attributes:
-			return self.ah.modify_group(object_id=group_id, modifications=modifications)
+			return self.ah.modify_group(object_id=object_id, modifications=modifications)
 
-		return dict(objectId=group_id)  # for listener to store in UDM object
+		return dict(objectId=object_id)  # for listener to store in UDM object
 
 	def add_ldap_members_to_azure_group(self, group_dn, object_id):
 		"""
@@ -499,22 +577,21 @@ class Office365Listener(object):
 		all_user_dns = set(all_users_lo.keys())
 		member_dns = all_user_dns.intersection(set(udm_target_group["users"]))
 
-		if self.not_migrated_to_v3:
-			users_and_groups_to_add = [attr['univentionOffice365ObjectID'][0] for dn, attr in all_users_lo.items() if dn in member_dns]
-		else:
-			users_and_groups_to_add = []
-			for dn, attr in all_users_lo.items():
-				if not dn in member_dns:
-					continue
-				azure_data_encoded = attr['univentionOffice365Data'][0]
-				azure_data = json.loads(zlib.decompress(base64.b64decode(azure_data_encoded)))
-				if azure_data:  # TODO: Probably always present for enabled accounts
-					try:
-						azure_connection_data = azure_data[self.adconnection_alias]
-					except KeyError:
-						# Object is not synchronized to this Azure AD
-						continue
-					users_and_groups_to_add.append(azure_connection_data["objectId"])
+		def get_object_id(attr):
+			try:
+				return self.object_id_from_group_attrs(attr)
+			except KeyError:
+				# Object is not synchronized to this Azure AD
+				pass
+
+		users_and_groups_to_add = [
+			oid for oid in [
+				get_object_id(attr)
+				for dn, attr in all_users_lo.items()
+				if dn in member_dns
+			]
+			if oid is not None
+		]
 
 		# search tree downwards, create groups as we go, add users to them later
 		for groupdn in udm_target_group["nestedGroup"]:
