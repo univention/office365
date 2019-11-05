@@ -370,7 +370,6 @@ def handler(dn, new, old, command):
 	logger.debug("new_enabled=%r old_enabled=%r", new_enabled, old_enabled)
 
 	#
-	# MODIFY
 	# Add or remove user from AD connections -> delete and create
 	#
 	if new_enabled and old_enabled:
@@ -437,4 +436,14 @@ def handler(dn, new, old, command):
 		for conn in adconnection_aliases_old:
 			ol = Office365Listener(listener, name, _attrs, ldap_cred, dn, conn)
 			deactivate_user(ol, dn, new, old)
+		return
+
+	#
+	# MODIFY account
+	#
+	if old_enabled and new_enabled:
+		logger.info("old_enabled and new_enabled -> MODIFY (%s | %s)", tenant_alias, dn)
+		for conn in adconnection_aliases_new:
+			ol = Office365Listener(listener, name, _attrs, ldap_cred, dn, conn)
+			modify_user(ol, dn, new, old)
 		return
