@@ -104,7 +104,7 @@ for dn in lo.searchDn('univentionObjectType=settings/office365profile'):
 EOF
 	if ! is_ucr_false office365/migrate/adconnectionalias; then
 		/usr/share/univention-office365/scripts/manage_adconnections create defaultADconnection --makedefault
-		/usr/share/univention-office365/scripts/migrate_to_adconnectionalias || die
+		/usr/share/univention-office365/scripts/migrate_to_adconnectionalias defaultADconnection || die
 	fi
 fi
 
