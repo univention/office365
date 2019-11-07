@@ -31,16 +31,17 @@
 # <http://www.gnu.org/licenses/>.
 
 import sys
-from univention.office365.azure_auth import AzureAuth, get_adconnection_aliases
+from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
 
-try:
-	adconnection_alias = sys.argv[1]
-	if adconnection_alias not in get_adconnection_aliases().keys():
-		print('Usage: {} [Azure AD connection alias]'.format(sys.argv[0]))
-		print('Unknown Azure AD connection alias {!r}.'.format(adconnection_alias))
-		sys.exit(1)
-	print('Using Azure AD connection alias {!r}.'.format(adconnection_alias))
-except IndexError:
-	adconnection_alias = None
+if len(sys.argv) < 2 or not sys.argv[1]:
+	print('Usage: {} [Azure AD connection alias]'.format(sys.argv[0]))
+	exit(1)
+
+adconnection_alias = sys.argv[1]
+if adconnection_alias not in AzureADConnectionHandler.get_adconnection_aliases().keys():
+	print('Unknown Azure AD connection alias {!r}.'.format(adconnection_alias))
+	sys.exit(1)
+
+print('Using Azure AD connection alias {!r}.'.format(adconnection_alias))
 
 AzureAuth.write_saml_setup_script(adconnection_alias)
