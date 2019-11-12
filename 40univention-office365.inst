@@ -201,6 +201,31 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 
 udm settings/extended_attribute create "$@" --ignore_exists \
 	--position "cn=custom attributes,cn=univention,$ldap_base" \
+	--set name="UniventionOffice365ADConnections" \
+	--set CLIName="UniventionOffice365ADConnections" \
+	--set shortDescription="Azure AD connections for a user" \
+	--set translationShortDescription='"de_DE" "Verbindungsdaten des Benutzers im Azure AD"' \
+	--set longDescription="Azure AD connections for a user" \
+	--set translationLongDescription='"de_DE" "Verbindungsdaten des Benutzers im Azure AD"' \
+	--set tabAdvanced=0 \
+	--set tabName="Office 365" \
+	--set translationTabName='"de_DE" "Office 365"' \
+	--set tabPosition=2 \
+	--set module="users/user" \
+	--set syntax=univentionOffice365ADConnections \
+	--set hook="Office365ADConnectionsHook" \
+	--set default="" \
+	--set multivalue=1 \
+	--set valueRequired=0 \
+	--set mayChange=1 \
+	--set doNotSearch=1 \
+	--set objectClass=univentionOffice365 \
+	--set ldapMapping=dummy \
+	--set deleteObjectClass=0 \
+	--set disableUDMWeb=0 || die
+
+udm settings/extended_attribute create "$@" --ignore_exists \
+	--position "cn=custom attributes,cn=univention,$ldap_base" \
 	--set name="UniventionOffice365GroupObjectID" \
 	--set CLIName="UniventionOffice365ObjectID" \
 	--set shortDescription="Object ID of group in Azure AD" \
@@ -263,6 +288,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
     --set overwriteTab=0 \
     --set notEditable=1 \
     --set hook="OfficeUserPrincipalNameHook" \
+    --set disableUDMWeb=1 \
     --set fullWidth=1 || die
 
 udm settings/extended_attribute create "$@" --ignore_exists \
@@ -361,6 +387,24 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set deleteObjectClass=0 \
 	--set overwriteTab=0 \
 	--set disableUDMWeb=0 || die
+
+# Update from previous app/package version:
+if joinscript_check_version_in_range_executed 1 5; then
+	# Don't show UniventionOffice365userPrincipalName any longer in UMC
+	udm settings/extended_attribute modify "$@" \
+		--dn "cn=UniventionOffice365userPrincipalName,cn=custom attributes,cn=univention,$ldap_base" \
+		--set disableUDMWeb=1 || die
+	if is_ucr_false office365/migrate/adconnectionalias; then
+		# Turn UniventionOffice365ADConnections into singlevalue until
+		# migration has completed
+		udm settings/extended_attribute modify "$@" \
+			--dn "cn=UniventionOffice365ADConnections,cn=custom attributes,cn=univention,$ldap_base" \
+			--set default="defaultADconnection " \
+			--set multivalue=0 \
+			--set mayChange=0 \
+			--set notEditable=1 || die
+	fi
+fi
 
 # Add required attributes to saml/idp/ldap/get_attributes
 LDAP_OBJ="$saml_idp_configobject"

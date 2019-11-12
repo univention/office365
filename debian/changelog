@@ -1,3 +1,10 @@
+univention-office365 (2.0.2-21) unstable; urgency=medium
+
+  * Bug #50460: Add univentionOffice365ADConnections syntax and
+    Office365ADConnectionsHook
+
+ -- Arvid Requate <requate@univention.de>  Tue, 12 Nov 2019 13:03:15 +0100
+
 univention-office365 (2.0.2-20) unstable; urgency=medium
 
   * Bug #50460: Fix command order in joinscript
