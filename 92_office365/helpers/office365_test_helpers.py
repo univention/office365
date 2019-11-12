@@ -389,6 +389,7 @@ def setup_externally_configured_adconnections():
 			rmdir = AzureADConnectionHandler.get_conf_path("CONFDIR", "azuretestdomain")
 			shutil.rmtree(rmdir, ignore_errors=True)
 			shutil.copytree("/etc/univention-office365/u-azure-test-de", rmdir)
+			ucrv_set = 'office365/adconnection/alias/azuretestdomain=initialized'
 			handler_set([ucrv_set])
 	except Exception as exc:
 		return False
