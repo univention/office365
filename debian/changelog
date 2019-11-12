@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-23) unstable; urgency=medium
+
+  * Bug #50460: Add translation file
+
+ -- Arvid Requate <requate@univention.de>  Tue, 12 Nov 2019 18:24:28 +0100
+
 univention-office365 (2.0.2-22) unstable; urgency=medium
 
   * Bug #50460: Add translation file

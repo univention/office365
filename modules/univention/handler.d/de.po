@@ -112,3 +112,11 @@ msgstr "Whitelist der Servicepläne"
 #: modules/univention/handler.d/profile.py:62
 msgid "Subscription identifier"
 msgstr "Bezeichner der Subskription"
+
+#: modules/univention/syntax.d/office365.py:67
+msgid "Azure AD connection"
+msgstr "Azure AD Verbindung"
+
+#: modules/univention/syntax.d/office365.py:68
+msgid "User Principal Name"
+msgstr "User Principal Name"
