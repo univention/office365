@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-24) unstable; urgency=medium
+
+  * Bug #50468: Adapt test setup, implement udm ad-connection removal
+
+ -- Erik Damrose <damrose@univention.de>  Fri, 15 Nov 2019 17:35:42 +0100
+
 univention-office365 (2.0.2-23) unstable; urgency=medium
 
   * Bug #50460: Add translation file
