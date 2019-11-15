@@ -56,7 +56,8 @@ def create(args):
 
 
 def rename(args):
-	AzureADConnectionHandler.rename_adconnection(args.oldalias, args.newalias)
+	#AzureADConnectionHandler.rename_adconnection(args.oldalias, args.newalias)
+	print "Not implemented"
 
 
 def remove(args):
