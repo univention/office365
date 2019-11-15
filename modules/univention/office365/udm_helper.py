@@ -33,7 +33,7 @@
 import json
 import base64
 import zlib
-from ldap.filter import filter_format
+from ldap.filter import filter_format, escape_filter_chars
 import univention.admin.uldap
 import univention.admin.objects
 from univention.config_registry import ConfigRegistry
@@ -112,13 +112,27 @@ class UDMHelper(object):
 
 	@classmethod
 	def create_udm_adconnection(cls, alias, description=""):
+		ucr = ConfigRegistry()
+		ucr.load()
+
 		lo, po, mod = cls.init_udm("office365/ad-connection")
+		po = univention.admin.uldap.position("cn=ad-connections,cn=office365,%s" % ucr["ldap/base"])
 		adconn = mod.object(co=None, lo=lo, position=po)
 		adconn.open()
 		adconn['name'] = alias
 		adconn['description'] = description
 		dn = adconn.create()
 		return dn
+
+	@classmethod
+	def remove_udm_adconnection(cls, alias):
+		lo, po, mod = cls.init_udm("office365/ad-connection")
+		udm_objs = mod.lookup(None, lo, filter_s="cn=%s" % escape_filter_chars(alias))
+		if len(udm_objs) == 1:
+			udm_objs[0].remove()
+			return udm_objs[0].dn
+		else:
+			return False
 
 	@classmethod
 	def get_udm_officeprofile(cls, profiledn, attributes=None):

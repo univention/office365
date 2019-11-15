@@ -35,6 +35,8 @@ import base64
 import logging
 import os
 import shutil
+import pwd
+import subprocess
 
 import univention.admin.syntax as udm_syntax
 import univention.testing.strings as uts
@@ -378,22 +380,35 @@ def setup_externally_configured_adconnections():
 		if not os.path.exists("/etc/univention-office365/o365domain"):
 			AzureADConnectionHandler.create_new_adconnection("o365domain")
 		if not AzureAuth.is_initialized("o365domain"):
-			rmdir = AzureADConnectionHandler.get_conf_path("CONFDIR", "o365domain")
-			shutil.rmtree(rmdir, ignore_errors=True)
-			shutil.copytree("/etc/univention-office365/o365-dev-univention-de", rmdir)
+			newconf_dir = AzureADConnectionHandler.get_conf_path("CONFDIR", "o365domain")
+			srcpath = "/etc/univention-office365/o365-dev-univention-de"
+			shutil.rmtree(newconf_dir, ignore_errors=True)
+			shutil.copytree(srcpath, newconf_dir)
 			ucrv_set = 'office365/adconnection/alias/o365domain=initialized'
 			handler_set([ucrv_set])
 		if not os.path.exists("/etc/univention-office365/azuretestdomain"):
 			AzureADConnectionHandler.create_new_adconnection("azuretestdomain")
 		if not AzureAuth.is_initialized("azuretestdomain"):
-			rmdir = AzureADConnectionHandler.get_conf_path("CONFDIR", "azuretestdomain")
-			shutil.rmtree(rmdir, ignore_errors=True)
-			shutil.copytree("/etc/univention-office365/u-azure-test-de", rmdir)
+			newconf_dir = AzureADConnectionHandler.get_conf_path("CONFDIR", "azuretestdomain")
+			srcpath = "/etc/univention-office365/u-azure-test-de"
+			shutil.rmtree(newconf_dir, ignore_errors=True)
+			shutil.copytree(srcpath, newconf_dir)
 			ucrv_set = 'office365/adconnection/alias/azuretestdomain=initialized'
 			handler_set([ucrv_set])
-	except Exception as exc:
+
+		for root, dirs, files in os.walk("/etc/univention-office365"):
+			for d in dirs:
+				os.chown(os.path.join(root, d), pwd.getpwnam('listener').pw_uid, 0)
+			for f in files:
+				os.chown(os.path.join(root, f), pwd.getpwnam('listener').pw_uid, 0)
+		subprocess.call(["service", "univention-directory-listener", "restart"])
+	except Exception:
+		import traceback
+		print traceback.format_exc()
 		return False
+
 	return True
+
 
 def remove_externally_configured_adconnections():
 	try:
@@ -401,6 +416,6 @@ def remove_externally_configured_adconnections():
 			AzureADConnectionHandler.remove_adconnection("o365domain")
 		if AzureAuth.is_initialized("azuretestdomain"):
 			AzureADConnectionHandler.remove_adconnection("azuretestdomain")
-	except Exception as exc:
+	except Exception:
 		return False
 	return True

@@ -211,6 +211,7 @@ class AzureADConnectionHandler(object):
 		if not os.path.exists(target_path):
 			logger.info('Configuration files for the Azure AD connection in %s do not exist. Removing Azure AD connection anyway...', target_path)
 
+		UDMHelper.remove_udm_adconnection(adconnection_alias)
 		shutil.rmtree(target_path)
 		ucrv_unset = '%s%s' % (adconnection_alias_ucrv, adconnection_alias)
 		handler_unset([ucrv_unset])
