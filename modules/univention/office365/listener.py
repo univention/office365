@@ -782,3 +782,17 @@ class Office365Listener(object):
 		if not res or len(res) != 2:
 			raise RuntimeError("Invalid usageLocation '{}' - user cannot be created.".format(res))
 		return res
+
+	@classmethod
+	def decode_o365data(self, data):
+		"""
+		Decode ldap UniventionOffice365Data
+		"""
+		return json.loads(zlib.decompress(base64.b64decode(data)))
+
+	@classmethod
+	def encode_o365data(self, data):
+		"""
+		Encode ldap UniventionOffice365Data
+		"""
+		return base64.b64encode(zlib.compress(json.dumps(data)))
