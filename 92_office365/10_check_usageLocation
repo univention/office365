@@ -18,7 +18,10 @@ import univention.admin.syntax as udm_syntax
 
 from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user
 from univention.office365.listener import Office365Listener
+from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
 
+adconnection_aliases = AzureADConnectionHandler.get_adconnection_aliases()
+initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAuth.is_initialized(adconnection_alias)]
 
 blacklisted_ul = ["CU", "KP"]  # some usageLocations seem to be invalid, collecting them here
 usage_locations = set(udm_syntax.Country.choices) - set(blacklisted_ul)
@@ -37,13 +40,18 @@ with utils.AutomaticListenerRestart():
 			ucr.load()
 			class _listener(object):
 				configRegistry = ucr
-			ol = Office365Listener(_listener(), "ucs-test", listener_attributes_data, {}, "dn")
+
+			# Only test one connection, not all...
+			adconnection_alias = random.choice(initialized_adconnections)
+
+			ol = Office365Listener(_listener(), "ucs-test", listener_attributes_data, {}, "dn", adconnection_alias)
 
 			ucr_usageLocation = random.choice(map(itemgetter(0), usage_locations))
 			ucr_ssl_country = ucr["ssl/country"]
 			user_args = udm_user_args(ucr, minimal=False)
 			udm_country = user_args["set"]["country"]
 			user_args["set"]["UniventionOffice365Enabled"] = 1
+			user_args["set"]["UniventionOffice365ADConnectionAlias"] = adconnection_alias
 
 			print("*** Setting UCRs for maximum property sync...")
 			to_unset = ["office365/attributes/anonymize", "office365/attributes/never",
@@ -81,17 +89,12 @@ with utils.AutomaticListenerRestart():
 
 			print("*** Checking that user was created (UniventionOffice365ObjectID in UDM object)...")
 			udm_user = ol.udm.get_udm_user(user_dn)
-			user_id = udm_user.get("UniventionOffice365ObjectID")
+			user_id = Office365Listener.decode_o365data(udm_user.get("UniventionOffice365Data"))[adconnection_alias]['objectId']
 			if not user_id:
 				utils.fail("User was not created properly (no UniventionOffice365ObjectID).")
 
-			fake_listener_new = dict(
-				entryUUID=[udm_user.dn],
-				univentionOffice365ObjectID=[user_id]
-			)
-
 			print("*** Checking sync of all properties...")
-			azure_user = ol.get_user(fake_listener_new)
+			azure_user = ol.ah.list_users(objectid=user_id)
 			_test(user_args, azure_user, check_complete=True)
 
 			print("*** Checking value of usageLocation (should be user[set][country] now)...")
@@ -108,7 +111,7 @@ with utils.AutomaticListenerRestart():
 			time.sleep(5)
 
 			print("*** Checking value of usageLocation (should be UCR[office365/attributes/usageLocation] now)...")
-			azure_user = ol.get_user(fake_listener_new)
+			azure_user = ol.ah.list_users(objectid=user_id)
 			if not azure_user["usageLocation"] == ucr_usageLocation:
 				utils.fail("'usageLocation' was not set to UCRV (is: {}, should be: {}).".format(
 					azure_user["usageLocation"], ucr_usageLocation))
@@ -125,7 +128,7 @@ with utils.AutomaticListenerRestart():
 			time.sleep(5)
 
 			print("*** Checking value of usageLocation (should be user[set][country] now)...")
-			azure_user = ol.get_user(fake_listener_new)
+			azure_user = ol.ah.list_users(objectid=user_id)
 			if not azure_user["usageLocation"] == udm_country:
 				utils.fail("'usageLocation' was not set as instructed (is: {}, should be: {}).".format(
 					azure_user["usageLocation"], udm_country))
@@ -139,7 +142,7 @@ with utils.AutomaticListenerRestart():
 			time.sleep(5)
 
 			print("*** Checking value of usageLocation (should be UCR[ssl/country] now)...")
-			azure_user = ol.get_user(fake_listener_new)
+			azure_user = ol.ah.list_users(objectid=user_id)
 			if not azure_user["usageLocation"] == ucr_ssl_country:
 				utils.fail("'usageLocation' was not set to UCRV of 'ssl/country' (is: {}, should be: {}).".format(
 					azure_user["usageLocation"], ucr_ssl_country))

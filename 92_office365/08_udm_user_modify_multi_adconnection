@@ -95,16 +95,12 @@ with utils.AutomaticListenerRestart():
 
 				print("*** Checking that user was created (UniventionOffice365ObjectID in UDM object)...")
 				udm_user = ol.udm.get_udm_user(user_dn)
-				user_id = udm_user.get("UniventionOffice365ObjectID")
+				user_id = Office365Listener.decode_o365data(udm_user.get("UniventionOffice365Data"))[adconnection_alias]['objectId']
 				if not user_id:
 					utils.fail("User was not created properly (no UniventionOffice365ObjectID).")
 
 				print("*** Checking sync of properties #0...")
-				fake_listener_new = dict(
-					entryUUID=[udm_user.dn],
-					univentionOffice365ObjectID=[user_id]
-				)
-				azure_user = ol.get_user(fake_listener_new)
+				azure_user = ol.ah.list_users(objectid=user_id)
 				_test(user_args1, azure_user, check_complete=False)
 
 				print("*** Adding more properties to user #1...")
@@ -112,7 +108,7 @@ with utils.AutomaticListenerRestart():
 				time.sleep(5)
 
 				print("*** Checking sync of properties #1...")
-				azure_user = ol.get_user(fake_listener_new)
+				azure_user = ol.ah.list_users(objectid=user_id)
 				_test(user_args2, azure_user, check_complete=False)
 
 				print("*** Adding more properties to user #2...")
@@ -120,11 +116,11 @@ with utils.AutomaticListenerRestart():
 				time.sleep(5)
 
 				print("*** Checking sync of properties #2...")
-				azure_user = ol.get_user(fake_listener_new)
+				azure_user = ol.ah.list_users(objectid=user_id)
 				_test(user_args3, azure_user, check_complete=False)
 
 				print("*** Checking sync of all properties...")
-				azure_user = ol.get_user(fake_listener_new)
+				azure_user = ol.ah.list_users(objectid=user_id)
 				_test(user_args, azure_user, check_complete=True)
 
 				print("*** All went well for Azure AD connection {!r}.".format(adconnection_alias))
