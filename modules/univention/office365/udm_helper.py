@@ -52,8 +52,9 @@ class UDMHelper(object):
 	po = None
 	modules = dict()
 
-	def __init__(self, ldap_cred):
+	def __init__(self, ldap_cred, adconnection_alias=None):
 		self.__class__.ldap_cred = ldap_cred
+		self.adconnection_alias = adconnection_alias
 
 	@classmethod
 	def clean_udm_objects(cls, module_s, base, ldap_cred, adconnection_filter=''):
@@ -138,24 +139,24 @@ class UDMHelper(object):
 	def get_udm_officeprofile(cls, profiledn, attributes=None):
 		return cls.get_udm_obj("office365/profile", profiledn, attributes)
 
-	@classmethod
-	def udm_groups_with_azure_users(cls, groupdn):
+	def udm_groups_with_azure_users(self, groupdn):
 		"""
 		Recursively search for groups with azure users.
 
 		:param groupdn: group to start with
-		:return: list of DNs of groups that have at least one user with UniventionOffice365Enabled=1
+		:return: list of DNs of groups that have at least one user that is enabled for self.adconnection_alias (and has UniventionOffice365Enabled=1)
 		"""
-		udm_group = cls.get_udm_group(groupdn)
+		udm_group = self.get_udm_group(groupdn)
 
 		groups = list()
 		for nested_groupdn in udm_group.get("nestedGroup", []):
-			groups.extend(cls.udm_groups_with_azure_users(nested_groupdn))
+			groups.extend(self.udm_groups_with_azure_users(nested_groupdn))
 		for userdn in udm_group.get("users", []):
-			udm_user = cls.get_udm_user(userdn)
+			udm_user = self.get_udm_user(userdn)
 			if bool(int(udm_user.get("UniventionOffice365Enabled", "0"))):
-				groups.append(groupdn)
-				break
+				if self.adconnection_alias in udm_user.get("UniventionOffice365ADConnectionAlias ", []):
+					groups.append(groupdn)
+					break
 		return groups
 
 	@classmethod
