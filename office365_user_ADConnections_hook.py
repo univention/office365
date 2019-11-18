@@ -35,20 +35,13 @@ import zlib
 
 from univention.admin.hook import simpleHook
 from univention.lib.i18n import Translation
+from univention.office365.listener import Office365Listener
 
 _ = Translation('univention-admin-handlers-office365').translate
 
 
 class Office365ADConnectionsHook(simpleHook):
 	type = "Office365ADConnectionsHook"
-
-	@staticmethod
-	def encode_adconnection_data(value):
-		return base64.b64encode(zlib.compress(json.dumps(value)))
-
-	@staticmethod
-	def decode_adconnection_data(value):
-		return json.loads(zlib.decompress(base64.b64decode(value)))
 
 	def hook_open(self, module):
 		if module.get("UniventionOffice365ObjectID"):
@@ -60,7 +53,7 @@ class Office365ADConnectionsHook(simpleHook):
 		if not adconnection_data_encoded:
 			return
 		adconnection_data_encoded = module.get("UniventionOffice365Data")
-		self.adconnection_data = self.decode_adconnection_data(adconnection_data_encoded)
+		self.adconnection_data = Office365Listener.decode_office365data(adconnection_data_encoded)
 		module["UniventionOffice365ADConnections"] = []
 		if isinstance(self.adconnection_data, dict):
 			for adconnection, data in self.adconnection_data.iteritems():
@@ -86,6 +79,6 @@ class Office365ADConnectionsHook(simpleHook):
 				new_adconnection_data[adconnection] = {}
 		if new_adconnection_data != self.adconnection_data:
 			old = module.get("UniventionOffice365Data")
-			new = self.encode_adconnection_data(new_adconnection_data)
+			new = Office365Listener.encode_office365data(new_adconnection_data)
 			ml.append(("univentionOffice365Data", old, new))
 		return ml

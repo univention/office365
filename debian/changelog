@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-25) unstable; urgency=medium
+
+  * Bug #50460: Adjust migration script
+
+ -- Arvid Requate <requate@univention.de>  Mon, 18 Nov 2019 15:22:17 +0100
+
 univention-office365 (2.0.2-24) unstable; urgency=medium
 
   * Bug #50468: Adapt test setup, implement udm ad-connection removal

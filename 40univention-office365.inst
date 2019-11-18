@@ -102,10 +102,10 @@ for dn in lo.searchDn('univentionObjectType=settings/office365profile'):
 	print('Changing univentionObjectType of', dn)
 	lo.modify(dn, [('univentionObjectType', 'settings/office365profile', 'office365/profile')])
 EOF
-	#if ! is_ucr_false office365/migrate/adconnectionalias; then
-	#	/usr/share/univention-office365/scripts/manage_adconnections create defaultADconnection --makedefault
-	#	/usr/share/univention-office365/scripts/migrate_to_adconnectionalias defaultADconnection || die
-	#fi
+	if ! is_ucr_false office365/migrate/adconnectionalias; then
+		/usr/share/univention-office365/scripts/manage_adconnections create defaultADconnection --makedefault
+		/usr/share/univention-office365/scripts/migrate_to_adconnectionalias defaultADconnection || die
+	fi
 fi
 
 udm container/cn create "$@" --ignore_exists \
@@ -360,7 +360,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set ldapMapping=univentionOffice365ADConnectionAlias \
 	--set deleteObjectClass=0 \
 	--set overwriteTab=0 \
-	--set disableUDMWeb=0 \
+	--set disableUDMWeb=1 \
 	--set tabPosition=4 || die
 
 udm settings/extended_attribute create "$@" --ignore_exists \
@@ -390,20 +390,12 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 
 # Update from previous app/package version:
 if joinscript_check_version_in_range_executed 1 5; then
-	# Don't show UniventionOffice365userPrincipalName any longer in UMC
 	udm settings/extended_attribute modify "$@" \
 		--dn "cn=UniventionOffice365userPrincipalName,cn=custom attributes,cn=univention,$ldap_base" \
 		--set disableUDMWeb=1 || die
-	if is_ucr_false office365/migrate/adconnectionalias; then
-		# Turn UniventionOffice365ADConnections into singlevalue until
-		# migration has completed
-		udm settings/extended_attribute modify "$@" \
-			--dn "cn=UniventionOffice365ADConnections,cn=custom attributes,cn=univention,$ldap_base" \
-			--set default="defaultADconnection " \
-			--set multivalue=0 \
-			--set mayChange=0 \
-			--set notEditable=1 || die
-	fi
+	udm settings/extended_attribute modify "$@" \
+		--dn "cn=UniventionOffice365ADConnectionAlias,cn=custom attributes,cn=univention,$ldap_base" \
+		--set disableUDMWeb=1 || die
 fi
 
 # Add required attributes to saml/idp/ldap/get_attributes
