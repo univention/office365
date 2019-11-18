@@ -66,8 +66,11 @@ with utils.AutomaticListenerRestart():
 				configRegistry = ucr
 
 			# Only test one connection, not all...
-			# adconnection_alias = random.choice(initialized_adconnections)
-			adconnection_alias = "o365domain"
+			if "o365domain in initialized_adconnections:
+				# univention internal testdomain with subscriptions
+				adconnection_alias = "o365domain"
+			else
+				adconnection_alias = random.choice(initialized_adconnections)
 
 			ol = Office365Listener(_listener(), "ucs-test", listener_attributes_data, {}, "dn", adconnection_alias)
 
