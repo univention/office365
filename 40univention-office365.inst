@@ -86,6 +86,8 @@ ucs_registerLDAPExtension "$@" --udm_module /usr/share/univention-office365/hand
 ucs_registerLDAPExtension "$@" --udm_module /usr/share/univention-office365/handler.d/ad-connection.py || die
 
 
+ea_base="cn=custom attributes,cn=univention,$ldap_base"
+
 udm container/cn create "$@" --ignore_exists \
 	--position="$ldap_base" \
 	--set name="office365" \
@@ -108,7 +110,7 @@ udm office365/profile create "$@" --ignore_exists \
 	--set subscription="ENTERPRISEPACK" || die
 
 udm settings/extended_attribute create "$@" --ignore_exists \
-	--position "cn=custom attributes,cn=univention,$ldap_base" \
+	--position "$ea_base" \
 	--set name="UniventionOffice365ObjectID" \
 	--set CLIName="UniventionOffice365ObjectID" \
 	--set shortDescription="Object ID of user in Azure AD" \
@@ -132,7 +134,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set disableUDMWeb=1 || die
 
 udm settings/extended_attribute create "$@" --ignore_exists \
-	--position "cn=custom attributes,cn=univention,$ldap_base" \
+	--position "$ea_base" \
 	--set name="UniventionOffice365Enabled" \
 	--set CLIName="UniventionOffice365Enabled" \
 	--set shortDescription="Enable user for Office 365" \
@@ -158,7 +160,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set fullWidth=1 || die
 
 udm settings/extended_attribute create "$@" --ignore_exists \
-	--position "cn=custom attributes,cn=univention,$ldap_base" \
+	--position "$ea_base" \
 	--set name="UniventionOffice365Data" \
 	--set CLIName="UniventionOffice365Data" \
 	--set shortDescription="Data of user in Azure AD" \
@@ -178,7 +180,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set disableUDMWeb=1 || die
 
 udm settings/extended_attribute create "$@" --ignore_exists \
-	--position "cn=custom attributes,cn=univention,$ldap_base" \
+	--position "$ea_base" \
 	--set name="UniventionOffice365ADConnections" \
 	--set CLIName="UniventionOffice365ADConnections" \
 	--set shortDescription="Azure AD connections for a user" \
@@ -203,7 +205,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set disableUDMWeb=0 || die
 
 udm settings/extended_attribute create "$@" --ignore_exists \
-	--position "cn=custom attributes,cn=univention,$ldap_base" \
+	--position "$ea_base" \
 	--set name="UniventionOffice365GroupObjectID" \
 	--set CLIName="UniventionOffice365ObjectID" \
 	--set shortDescription="Object ID of group in Azure AD" \
@@ -223,7 +225,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set disableUDMWeb=1 || die
 
 udm settings/extended_attribute create "$@" --ignore_exists \
-	--position "cn=custom attributes,cn=univention,$ldap_base" \
+	--position "$ea_base" \
 	--set name="UniventionOffice365GroupData" \
 	--set CLIName="UniventionOffice365Data" \
 	--set shortDescription="Data of group in Azure AD" \
@@ -243,7 +245,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set disableUDMWeb=1 || die
 
 udm settings/extended_attribute create "$@" --ignore_exists \
-	--position "cn=custom attributes,cn=univention,$ldap_base" \
+	--position "$ea_base" \
 	--set name="UniventionOffice365userPrincipalName" \
 	--set CLIName="UniventionOffice365userPrincipalName" \
 	--set shortDescription="Username in Office 365, login at <a href=https://portal.office.com target=_blank>https://portal.office.com</a>" \
@@ -270,7 +272,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set fullWidth=1 || die
 
 udm settings/extended_attribute create "$@" --ignore_exists \
-	--position "cn=custom attributes,cn=univention,$ldap_base" \
+	--position "$ea_base" \
 	--set name="UniventionOffice365GroupProfile" \
 	--set CLIName="UniventionOffice365Profile" \
 	--set shortDescription="Profile that members of this group get assigned in Azure AD" \
@@ -293,7 +295,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set deleteObjectClass=0 || die
 
 udm settings/extended_attribute create "$@" --ignore_exists \
-	--position "cn=custom attributes,cn=univention,$ldap_base" \
+	--position "$ea_base" \
 	--set name="UniventionOffice365TokenResetDate" \
 	--set CLIName="UniventionOffice365TokenResetDate" \
 	--set shortDescription="Date when App Tokens should be invalidated in Azure AD" \
@@ -317,7 +319,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set disableUDMWeb=1 || die
 
 udm settings/extended_attribute create "$@" --ignore_exists \
-	--position "cn=custom attributes,cn=univention,$ldap_base" \
+	--position "$ea_base" \
 	--set name="UniventionOffice365ADConnectionAlias" \
 	--set CLIName="UniventionOffice365ADConnectionAlias" \
 	--set shortDescription="Azure Active Directory connection alias" \
@@ -342,7 +344,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set tabPosition=4 || die
 
 udm settings/extended_attribute create "$@" --ignore_exists \
-	--position "cn=custom attributes,cn=univention,$ldap_base" \
+	--position "$ea_base" \
 	--set name="UniventionOffice365GroupADConnectionAlias" \
 	--set CLIName="UniventionOffice365ADConnectionAlias" \
 	--set shortDescription="Active Directory connection alias" \
@@ -385,13 +387,22 @@ EOF
 	if ! is_ucr_false office365/migrate/adconnectionalias; then
 		/usr/share/univention-office365/scripts/manage_adconnections create defaultADconnection --makedefault
 		/usr/share/univention-office365/scripts/migrate_to_adconnectionalias defaultADconnection || die
+
+		# Remove extended attributes that are not required any longer
+		udm settings/extended_attribute delete "$@" \
+			--dn "cn=UniventionOffice365userPrincipalName,$ea_base" || die
+		udm settings/extended_attribute delete "$@" \
+			--dn "cn=UniventionOffice365ObjectID,$ea_base" || die
+		udm settings/extended_attribute delete "$@" \
+			--dn "cn=UniventionOffice365GroupObjectID,$ea_base" || die
+	else
+		udm settings/extended_attribute modify "$@" \
+			--dn "cn=UniventionOffice365userPrincipalName,$ea_base" \
+			--set disableUDMWeb=1 || die
 	fi
 
 	udm settings/extended_attribute modify "$@" \
-		--dn "cn=UniventionOffice365userPrincipalName,cn=custom attributes,cn=univention,$ldap_base" \
-		--set disableUDMWeb=1 || die
-	udm settings/extended_attribute modify "$@" \
-		--dn "cn=UniventionOffice365ADConnectionAlias,cn=custom attributes,cn=univention,$ldap_base" \
+		--dn "cn=UniventionOffice365ADConnectionAlias,$ea_base" \
 		--set disableUDMWeb=1 || die
 fi
 
