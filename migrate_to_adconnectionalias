@@ -30,20 +30,21 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-import base64
+import argparse
+import json
+import logging
 import os
 import pwd
-import sys
-import stat
-import json
 import shutil
-import argparse
+import stat
 import subprocess
-import zlib
+import sys
 import univention.admin.uldap
 from univention.config_registry import ConfigRegistry, handler_set, handler_unset
 from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler, adconnection_alias_ucrv
 from univention.office365.udm_helper import UDMHelper
+from univention.office365.logging2udebug import get_logger
+from univention.office365.listener import Office365Listener
 
 
 conf_path = '/etc/univention-office365'
@@ -56,26 +57,30 @@ if __name__ == '__main__':
 	parser.add_argument('--dryrun', help='Simulate the migration, but don\'t actually change anything [default off].', action='store_true')
 	args = parser.parse_args()
 
-	if not AzureAuth.is_initialized():
-		print('Error: Default Azure AD connection (in {!r}) is not initialized. Exiting.'.format(conf_path))
+	logger = get_logger("office365", "o365")
+	_handler = logging.StreamHandler(sys.stdout)
+	_handler.setLevel(logging.INFO)
+	logger.addHandler(_handler)
+
+	if AzureAuth.is_initialized(args.adconnection_alias):
+		print('Error: Default Azure AD connection (in {!r}) already initialized. Exiting.'.format(conf_path))
 		sys.exit(1)
 
 	aliases = AzureADConnectionHandler.get_adconnection_aliases()
 	if args.adconnection_alias in aliases:
-		print('Error: Azure AD connection alias {!r} is already listed in UCR {!r}. Exiting.'.format(args.adconnection_alias, adconnection_alias_ucrv))
-		sys.exit(1)
-
-	target_path = os.path.join(conf_path, args.adconnection_alias)
-	if os.path.exists(target_path):
-		print('Error: Path {!r} already exists. Exiting.'.format(target_path))
-		sys.exit(1)
+		state = ucr.get('{}{}'.format(adconnection_alias_ucrv, args.adconnection_alias))
+		if not state == 'uninitialized':
+			print('Error: Azure AD connection alias {!r} is already listed in UCR {!r}. Exiting.'.format(args.adconnection_alias, adconnection_alias_ucrv))
+			sys.exit(1)
 
 	if args.dryrun:
 		print('Dry run - no changes will be applied.')
 
-	print('Creating directory {!r}...'.format(target_path))
-	if not args.dryrun:
-		os.mkdir(target_path, 0o700)
+	target_path = os.path.join(conf_path, args.adconnection_alias)
+	if not os.path.exists(target_path):
+		print('Creating directory {!r}...'.format(target_path))
+		if not args.dryrun:
+			os.mkdir(target_path, 0o700)
 	print('Setting permissions on {!r}...'.format(target_path))
 	if not args.dryrun:
 		os.chown(target_path, pwd.getpwnam('listener').pw_uid, 0)
@@ -88,11 +93,19 @@ if __name__ == '__main__':
 			os.chmod(os.path.join(target_path, filename), stat.S_IRUSR)
 	for filename in ('ids.json', 'manifest.json', 'token.json'):
 		src = os.path.join(conf_path, filename)
+		dst = os.path.join(target_path, filename)
 		print('Moving {!r} to {!r}...'.format(src, target_path))
 		if not args.dryrun:
-			shutil.move(src, target_path)
-			os.chown(os.path.join(target_path, filename), pwd.getpwnam('listener').pw_uid, 0)
-			os.chmod(os.path.join(target_path, filename), stat.S_IRUSR | stat.S_IWUSR)
+			shutil.move(src, dst)
+			os.chown(dst, pwd.getpwnam('listener').pw_uid, 0)
+			os.chmod(dst, stat.S_IRUSR | stat.S_IWUSR)
+
+	if not args.dryrun:
+		ids = AzureAuth.load_azure_ids(args.adconnection_alias)
+		if not "adconnection_id" in ids:
+			ids["adconnection_id"] = ids["tenant_id"]
+			del ids["tenant_id"]
+			AzureAuth.store_azure_ids(args.adconnection_alias, **ids)
 
 	if args.dryrun or AzureAuth.is_initialized(args.adconnection_alias):
 		print('OK: Azure AD connection {!r} is now initialized.'.format(args.adconnection_alias))
@@ -127,14 +140,14 @@ if __name__ == '__main__':
 
 			azure_data_encoded = attr.get('univentionOffice365Data', [''])[0]
 			if azure_data_encoded:
-				azure_data = json.loads(zlib.decompress(base64.decodestring(azure_data_encoded)))
+				azure_data = Office365Listener.decode_office365data(azure_data_encoded)
 				adconnection_data = {
 					args.adconnection_alias: {
 						'userPrincipalName': azure_data['userPrincipalName'],
 						'objectId': azure_data['objectId'],
 					}
 				}
-				new_univentionOffice365Data = base64.b64encode(zlib.compress(json.dumps(adconnection_data))).rstrip()
+				new_univentionOffice365Data = Office365Listener.encode_office365data(adconnection_data)
 				modlist.append(('univentionOffice365Data', azure_data_encoded, new_univentionOffice365Data))
 
 			azure_object_id = attr.get('univentionOffice365ObjectID', [''])[0]
@@ -178,7 +191,7 @@ if __name__ == '__main__':
 						'objectId': azure_object_id,
 					}
 				}
-				new_univentionOffice365Data = base64.b64encode(zlib.compress(json.dumps(adconnection_data))).rstrip()
+				new_univentionOffice365Data = Office365Listener.encode_office365data(adconnection_data)
 				modlist.append(('univentionOffice365Data', None, new_univentionOffice365Data))
 				modlist.append(('univentionOffice365ObjectID', azure_object_id, None))
 			if not args.dryrun:
