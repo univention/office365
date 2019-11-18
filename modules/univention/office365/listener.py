@@ -96,7 +96,7 @@ class Office365Listener(object):
 		"""
 		self.listener = listener
 		self.attrs = attrs
-		self.udm = UDMHelper(ldap_cred)
+		self.udm = UDMHelper(ldap_cred, adconnection_alias)
 		# self.ldap_cred = ldap_cred
 		self.dn = dn
 		self.adconnection_alias = adconnection_alias

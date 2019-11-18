@@ -1,3 +1,10 @@
+univention-office365 (2.0.2-28) unstable; urgency=medium
+
+  * Bug #50460: only sync groups with users in matching AAD
+  * Call manage_connections after creating the containers in joinscript
+
+ -- Arvid Requate <requate@univention.de>  Mon, 18 Nov 2019 20:16:47 +0100
+
 univention-office365 (2.0.2-27) unstable; urgency=medium
 
   * Bug #50468: Adapt all tests to new data format
