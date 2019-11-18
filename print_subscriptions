@@ -34,7 +34,7 @@ import sys
 from operator import itemgetter
 from univention.config_registry import ConfigRegistry
 from univention.office365.azure_handler import AzureHandler
-from univention.office365.azure_auth import AzureAuth, get_adconnection_aliases
+from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
 
 
 def calc_column_lengths(data, data_fetchers, header_parts):
@@ -104,9 +104,12 @@ def print_subscriptions(adconnection_alias=None):
 
 
 if __name__ == '__main__':
+	if not len(sys.argv) == 2:
+		print('Usage: {} [Azure AD connection alias]'.format(sys.argv[0]))
+		sys.exit(1)
 	try:
 		adconnection_alias = sys.argv[1]
-		adconnection_aliases = get_adconnection_aliases().keys()
+		adconnection_aliases = AzureADConnectionHandler.get_adconnection_aliases().keys()
 		initialized_adconnections = [ta for ta in adconnection_aliases if AzureAuth.is_initialized(ta)]
 		if adconnection_alias not in adconnection_aliases:
 			print('Usage: {} [Azure AD connection alias]'.format(sys.argv[0]))
