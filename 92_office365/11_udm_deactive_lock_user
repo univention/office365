@@ -8,6 +8,7 @@
 
 import time
 import datetime
+import random
 
 import univention.testing.ucr as ucr_test
 import univention.testing.udm as udm_test
@@ -15,6 +16,10 @@ import univention.testing.utils as utils
 
 from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user, print_users
 from univention.office365.listener import Office365Listener
+from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
+
+adconnection_aliases = AzureADConnectionHandler.get_adconnection_aliases()
+initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAuth.is_initialized(adconnection_alias)]
 
 
 def _test(udm_args, a_user, check_complete):
@@ -30,10 +35,15 @@ with utils.AutomaticListenerRestart():
 			ucr.load()
 			class _listener(object):
 				configRegistry = ucr
-			ol = Office365Listener(_listener(), "ucs-test", listener_attributes_data, {}, "dn")
+			#
+			# Only test one connection, not all...
+			adconnection_alias = random.choice(initialized_adconnections)
+
+			ol = Office365Listener(_listener(), "ucs-test", listener_attributes_data, {}, "dn", adconnection_alias)
 
 			user_args = udm_user_args(ucr, minimal=True)
 			user_args["set"]["UniventionOffice365Enabled"] = 1
+			user_args["set"]["UniventionOffice365ADConnectionAlias"] = adconnection_alias
 
 			print("*** Creating user...")
 			user_dn, username = udm.create_user(check_for_drs_replication=True, **user_args)
@@ -41,22 +51,18 @@ with utils.AutomaticListenerRestart():
 
 			print("*** Checking that user was created (UniventionOffice365ObjectID in UDM object)...")
 			udm_user = ol.udm.get_udm_user(user_dn)
-			user_id = udm_user.get("UniventionOffice365ObjectID")
+			user_id = Office365Listener.decode_o365data(udm_user.get("UniventionOffice365Data"))[adconnection_alias]['objectId']
 			if not user_id:
 				utils.fail("User was not created properly (no UniventionOffice365ObjectID).")
 
 			print("*** Checking sync of properties...")
-			fake_listener_new = dict(
-				entryUUID=[udm_user.dn],
-				univentionOffice365ObjectID=[user_id]
-			)
-			azure_user = ol.get_user(fake_listener_new)
+			azure_user = ol.ah.list_users(objectid=user_id)
 			_test(user_args, azure_user, check_complete=False)
 
 			print("*** Deactivating office365-option (should deactivate azure-user)...")
 			udm.modify_object(modulename="users/user", dn=user_dn, set={"UniventionOffice365Enabled": 0})
 			time.sleep(5)
-			azure_user = ol.get_user(fake_listener_new)
+			azure_user = ol.ah.list_users(objectid=user_id)
 			print_users(azure_user, short=True)
 			if azure_user["accountEnabled"]:
 				utils.fail("Account was not deactivated.")
@@ -64,7 +70,7 @@ with utils.AutomaticListenerRestart():
 			print("*** Activating office365-option (should activate azure-user)...")
 			udm.modify_object(modulename="users/user", dn=user_dn, set={"UniventionOffice365Enabled": 1})
 			time.sleep(5)
-			azure_user = ol.get_user(fake_listener_new)
+			azure_user = ol.ah.list_users(objectid=user_id)
 			print_users(azure_user, short=True)
 			if not azure_user["accountEnabled"]:
 				utils.fail("Account was not activated.")
@@ -72,7 +78,7 @@ with utils.AutomaticListenerRestart():
 			print("*** Setting account expired for user (should deactivate azure-user)...")
 			udm.modify_object(modulename="users/user", dn=user_dn, set={"userexpiry": datetime.datetime.now().strftime("%Y-%m-%d")})
 			time.sleep(5)
-			azure_user = ol.get_user(fake_listener_new)
+			azure_user = ol.ah.list_users(objectid=user_id)
 			print_users(azure_user, short=True)
 			if azure_user["accountEnabled"]:
 				utils.fail("Account was not deactivated.")
@@ -80,7 +86,7 @@ with utils.AutomaticListenerRestart():
 			print("*** Unsetting account expired for user (should activate azure-user)...")
 			udm.modify_object(modulename="users/user", dn=user_dn, set={"userexpiry": ""})
 			time.sleep(5)
-			azure_user = ol.get_user(fake_listener_new)
+			azure_user = ol.ah.list_users(objectid=user_id)
 			print_users(azure_user, short=True)
 			if not azure_user["accountEnabled"]:
 				utils.fail("Account was not activated.")
@@ -89,14 +95,14 @@ with utils.AutomaticListenerRestart():
 				print("*** Deactivating UDM-user (method %s) (should deactivate azure-user)..." % account_state)
 				udm.modify_object(modulename="users/user", dn=user_dn, set={"disabled": account_state})
 				time.sleep(5)
-				azure_user = ol.get_user(fake_listener_new)
+				azure_user = ol.ah.list_users(objectid=user_id)
 				print_users(azure_user, short=True)
 				if azure_user["accountEnabled"]:
 					utils.fail("Account was not deactivated.")
 				print("*** Reactivating UDM-user (should activate azure-user)...")
 				udm.modify_object(modulename="users/user", dn=user_dn, set={"disabled": "none"})
 				time.sleep(5)
-				azure_user = ol.get_user(fake_listener_new)
+				azure_user = ol.ah.list_users(objectid=user_id)
 				print_users(azure_user, short=True)
 				if not azure_user["accountEnabled"]:
 					utils.fail("Account was not activated.")
@@ -105,14 +111,14 @@ with utils.AutomaticListenerRestart():
 				print("*** Locking UDM-user (method %s) (should deactivate azure-user)..." % lock_state)
 				udm.modify_object(modulename="users/user", dn=user_dn, set={"locked": lock_state})
 				time.sleep(5)
-				azure_user = ol.get_user(fake_listener_new)
+				azure_user = ol.ah.list_users(objectid=user_id)
 				print_users(azure_user, short=True)
 				if azure_user["accountEnabled"]:
 					utils.fail("Account was not deactivated.")
 				print("*** Unlocking UDM-user (should activate azure-user)...")
 				udm.modify_object(modulename="users/user", dn=user_dn, set={"locked": "none"})
 				time.sleep(5)
-				azure_user = ol.get_user(fake_listener_new)
+				azure_user = ol.ah.list_users(objectid=user_id)
 				print_users(azure_user, short=True)
 				if not azure_user["accountEnabled"]:
 					utils.fail("Account was not activated.")

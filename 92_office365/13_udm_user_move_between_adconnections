@@ -58,17 +58,12 @@ with udm_test.UCSTestUDM() as udm:
 
 		print("*** Checking that user was created (UniventionOffice365ObjectID in UDM object)...")
 		udm_user = ol.udm.get_udm_user(user_dn)
-		azure_user_id1 = udm_user.get("UniventionOffice365ObjectID")
+		azure_user_id1 = Office365Listener.decode_o365data(udm_user.get("UniventionOffice365Data"))[adconnection_alias1]['objectId']
 		if not azure_user_id1:
 			utils.fail("User was not created properly (no UniventionOffice365ObjectID).")
 
 		print("*** Checking sync of user properties...")
-		fake_listener_new = dict(
-			entryUUID=[udm_user.dn],
-			univentionOffice365ObjectID=[azure_user_id1],
-			univentionOffice365ADConnectionAlias=[adconnection_alias1],
-		)
-		azure_user = ol.get_user(fake_listener_new)
+		azure_user = ol.ah.list_users(objectid=azure_user_id1)
 		success, errors = check_udm2azure_user(user_args, azure_user, complete=False)
 		if success:
 			print("*** attributes were synced correctly for adconnection_alias={!r}".format(adconnection_alias1))
@@ -95,19 +90,14 @@ with udm_test.UCSTestUDM() as udm:
 		print("*** Checking that user was created in new Azure AD connection (2) (UniventionOffice365ObjectID must differ)...")
 		ol = Office365Listener(_listener(), "ucs-test", listener_attributes_data, {}, "dn", adconnection_alias2)
 		udm_user = ol.udm.get_udm_user(user_dn)
-		azure_user_id2 = udm_user.get("UniventionOffice365ObjectID")
+		azure_user_id2 = Office365Listener.decode_o365data(udm_user.get("UniventionOffice365Data"))[adconnection_alias2]['objectId']
 		if not azure_user_id2:
 			utils.fail("User was not created properly (no UniventionOffice365ObjectID).")
 		if azure_user_id1 == azure_user_id2:
 			utils.fail("UniventionOffice365ObjectID did not change.")
 
 		print("*** Checking sync of user properties (to adconnection_alias2)...")
-		fake_listener_new2 = dict(
-			entryUUID=[udm_user.dn],
-			univentionOffice365ObjectID=[azure_user_id2],
-			univentionOffice365ADConnectionAlias=[adconnection_alias2],
-		)
-		azure_user2 = ol.get_user(fake_listener_new2)
+		azure_user2 = ol.ah.list_users(objectid=azure_user_id2)
 		user_args2 = copy.deepcopy(user_args)
 		user_args2["set"]["UniventionOffice365ADConnectionAlias"] = adconnection_alias2
 		success, errors = check_udm2azure_user(user_args2, azure_user2, complete=False)
@@ -115,44 +105,3 @@ with udm_test.UCSTestUDM() as udm:
 			print("*** attributes were synced correctly for adconnection_alias2={!r}".format(adconnection_alias2))
 		else:
 			utils.fail("One or more properties were not synced correctly for adconnection_alias2={!r}:\n{}".format("\n".join(map(str, errors)), adconnection_alias2))
-
-		# 2 -> 3
-
-		print("*** Changing UniventionOffice365ADConnectionAlias property from adconnection_alias2 ({!r}) to adconnection_alias3 ({!r})...".format(adconnection_alias2, adconnection_alias3))
-		user_args3 = dict(set=dict(UniventionOffice365ADConnectionAlias=adconnection_alias3), append=dict())
-		udm.modify_object(modulename="users/user", dn=user_dn, **user_args3)
-		time.sleep(5)
-
-		print("*** Checking that user was deleted in old adconnection...")
-		try:
-			deleted_user = ol.ah.list_users(objectid=azure_user["objectId"])
-			if deleted_user["accountEnabled"]:
-				utils.fail("User was not deleted.")
-			else:
-				print("OK: user was deleted.")
-		except ResourceNotFoundError:
-			print("OK: user was deleted.")
-
-		print("*** Checking that user was created in new Azure AD connection (3) (UniventionOffice365ObjectID must differ)...")
-		ol = Office365Listener(_listener(), "ucs-test", listener_attributes_data, {}, "dn", adconnection_alias3)
-		udm_user = ol.udm.get_udm_user(user_dn)
-		azure_user_id3 = udm_user.get("UniventionOffice365ObjectID")
-		if not azure_user_id3:
-			utils.fail("User was not created properly (no UniventionOffice365ObjectID).")
-		if azure_user_id2 == azure_user_id3:
-			utils.fail("UniventionOffice365ObjectID did not change.")
-
-		print("*** Checking sync of user properties (to adconnection_alias3)...")
-		fake_listener_new3 = dict(
-			entryUUID=[udm_user.dn],
-			univentionOffice365ObjectID=[azure_user_id3],
-			univentionOffice365ADConnectionAlias=[adconnection_alias3],
-		)
-		azure_user3 = ol.get_user(fake_listener_new3)
-		user_args3 = copy.deepcopy(user_args2)
-		user_args3["set"]["UniventionOffice365ADConnectionAlias"] = adconnection_alias3
-		success, errors = check_udm2azure_user(user_args3, azure_user3, complete=False)
-		if success:
-			print("*** attributes were synced correctly for adconnection_alias3={!r}".format(adconnection_alias3))
-		else:
-			utils.fail("One or more properties were not synced correctly for adconnection_alias3={!r}:\n{}".format("\n".join(map(str, errors)), adconnection_alias3))

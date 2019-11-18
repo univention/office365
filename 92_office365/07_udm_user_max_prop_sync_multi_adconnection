@@ -72,17 +72,14 @@ with utils.AutomaticListenerRestart():
 
 				print("*** Checking that user was created (UniventionOffice365ObjectID in UDM object)...")
 				udm_user = ol.udm.get_udm_user(user_dn)
-				user_id = udm_user.get("UniventionOffice365ObjectID")
+				data_decoded = Office365Listener.decode_o365data(udm_user.get("UniventionOffice365Data"))
+				user_id = data_decoded[adconnection_alias]['objectId']
+				user_upn = data_decoded[adconnection_alias]['userPrincipalName']
 				if not user_id:
-					utils.fail("User was not created properly (no UniventionOffice365ObjectID).")
+					utils.fail("User was not created properly (no O365Data->adconnection_alias->UniventionOffice365ObjectID).")
 
 				print("*** Checking sync of all properties...")
-				fake_listener_new = dict(
-					entryUUID=[udm_user.dn],
-					univentionOffice365ObjectID=[user_id],
-					univentionOffice365ADConnectionAlias=[adconnection_alias],
-				)
-				azure_user = ol.get_user(fake_listener_new)
+				azure_user = ol.ah.list_users(objectid=user_id)
 				success, errors = check_udm2azure_user(user_args, azure_user, complete=True)
 				if success:
 					print("*** all attributes were synced correctly for adconnection_alias={!r}".format(adconnection_alias))
