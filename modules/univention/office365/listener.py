@@ -190,7 +190,7 @@ class Office365Listener(object):
 		try:
 			azure_data_encoded = old_or_new['univentionOffice365Data'][0]
 			try:
-				azure_data = json.loads(zlib.decompress(base64.b64decode(azure_data_encoded)))
+				azure_data = self.decode_o365data(azure_data_encoded)
 			except Exception:
 				azure_data = {}
 		except KeyError:
@@ -333,7 +333,7 @@ class Office365Listener(object):
 		except KeyError:
 			azure_data_encoded = old_or_new.get("univentionOffice365Data", [''])[0]
 			try:
-				azure_data = json.loads(zlib.decompress(base64.b64decode(azure_data_encoded)))
+				azure_data = self.decode_o365data(azure_data_encoded)
 			except Exception:
 				azure_data = {}
 		# May throw KeyError:
@@ -366,7 +366,7 @@ class Office365Listener(object):
 					post_action(object_id)
 		else:
 			azure_data_encoded = udm_group.get("UniventionOffice365Data")
-			azure_data = json.loads(zlib.decompress(base64.b64decode(azure_data_encoded)))
+			azure_data = self.decode_o365data(azure_data_encoded)
 			try:
 				azure_connection_data = azure_data[self.adconnection_alias]
 			except (KeyError, TypeError):
@@ -376,7 +376,7 @@ class Office365Listener(object):
 				if azure_data:
 					azure_data.update(new_azure_data)
 					new_azure_data = azure_data
-				new_azure_data_encoded = base64.b64encode(zlib.compress(json.dumps(new_azure_data)))
+				new_azure_data_encoded = self.encode_o365data(new_azure_data)
 				udm_group["UniventionOffice365Data"] = new_azure_data_encoded
 				udm_group["UniventionOffice365ADConnectionAlias"] = self.adconnection_alias
 				udm_group.modify()
@@ -784,14 +784,14 @@ class Office365Listener(object):
 		return res
 
 	@classmethod
-	def decode_o365data(self, data):
+	def decode_o365data(cls, data):
 		"""
 		Decode ldap UniventionOffice365Data
 		"""
 		return json.loads(zlib.decompress(base64.b64decode(data)))
 
 	@classmethod
-	def encode_o365data(self, data):
+	def encode_o365data(cls, data):
 		"""
 		Encode ldap UniventionOffice365Data
 		"""

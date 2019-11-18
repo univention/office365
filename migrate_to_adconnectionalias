@@ -140,14 +140,14 @@ if __name__ == '__main__':
 
 			azure_data_encoded = attr.get('univentionOffice365Data', [''])[0]
 			if azure_data_encoded:
-				azure_data = Office365Listener.decode_office365data(azure_data_encoded)
+				azure_data = Office365Listener.decode_o365data(azure_data_encoded)
 				adconnection_data = {
 					args.adconnection_alias: {
 						'userPrincipalName': azure_data['userPrincipalName'],
 						'objectId': azure_data['objectId'],
 					}
 				}
-				new_univentionOffice365Data = Office365Listener.encode_office365data(adconnection_data)
+				new_univentionOffice365Data = Office365Listener.encode_o365data(adconnection_data)
 				modlist.append(('univentionOffice365Data', azure_data_encoded, new_univentionOffice365Data))
 
 			azure_object_id = attr.get('univentionOffice365ObjectID', [''])[0]
@@ -191,7 +191,7 @@ if __name__ == '__main__':
 						'objectId': azure_object_id,
 					}
 				}
-				new_univentionOffice365Data = Office365Listener.encode_office365data(adconnection_data)
+				new_univentionOffice365Data = Office365Listener.encode_o365data(adconnection_data)
 				modlist.append(('univentionOffice365Data', None, new_univentionOffice365Data))
 				modlist.append(('univentionOffice365ObjectID', azure_object_id, None))
 			if not args.dryrun:

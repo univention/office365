@@ -29,10 +29,6 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-import json
-import base64
-import zlib
-
 from univention.admin.hook import simpleHook
 from univention.lib.i18n import Translation
 from univention.office365.listener import Office365Listener
@@ -53,7 +49,7 @@ class Office365ADConnectionsHook(simpleHook):
 		if not adconnection_data_encoded:
 			return
 		adconnection_data_encoded = module.get("UniventionOffice365Data")
-		self.adconnection_data = Office365Listener.decode_office365data(adconnection_data_encoded)
+		self.adconnection_data = Office365Listener.decode_o365data(adconnection_data_encoded)
 		module["UniventionOffice365ADConnections"] = []
 		if isinstance(self.adconnection_data, dict):
 			for adconnection, data in self.adconnection_data.iteritems():
@@ -79,6 +75,6 @@ class Office365ADConnectionsHook(simpleHook):
 				new_adconnection_data[adconnection] = {}
 		if new_adconnection_data != self.adconnection_data:
 			old = module.get("UniventionOffice365Data")
-			new = Office365Listener.encode_office365data(new_adconnection_data)
+			new = Office365Listener.encode_o365data(new_adconnection_data)
 			ml.append(("univentionOffice365Data", old, new))
 		return ml
