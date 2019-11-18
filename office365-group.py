@@ -36,7 +36,6 @@ import base64
 import copy
 import json
 import os
-import zlib
 from stat import S_IRUSR, S_IWUSR
 
 import listener
@@ -128,9 +127,9 @@ def create_groups(ol, dn, new, old):
 			old_azure_data_encoded = old.get('univentionOffice365Data', [''])[0]
 			if old_azure_data_encoded:
 				# The account already has an Azure AD connection
-				old_azure_data = json.loads(zlib.decompress(base64.b64decode(old_azure_data_encoded)))
+				old_azure_data = Office365Listener.decode_o365data(old_azure_data_encoded)
 				new_azure_data = old_azure_data.update(new_azure_data)
-			new_group["UniventionOffice365Data"] = base64.b64encode(zlib.compress(json.dumps(new_azure_data)))
+			new_group["UniventionOffice365Data"] = Office365Listener.encode_o365data(new_azure_data)
 		udm_group.modify()
 		logger.info("Created group with displayName: %r (%r) adconnection: %s", new_group["displayName"], new_group["objectId"], ol.adconnection_alias)
 
