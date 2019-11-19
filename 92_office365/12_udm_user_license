@@ -44,7 +44,7 @@ def create_azure_user():
 	user_args["set"]["UniventionOffice365ADConnectionAlias"] = adconnection_alias
 	user_args["set"]["primaryGroup"] = group_dn
 	user_dn, username = udm.create_user(**user_args)
-	time.sleep(5)
+	time.sleep(10)
 
 	print("*** Checking that user was created (UniventionOffice365ObjectID in UDM object)...")
 	udm_user = ol.udm.get_udm_user(user_dn)
@@ -66,10 +66,10 @@ with utils.AutomaticListenerRestart():
 				configRegistry = ucr
 
 			# Only test one connection, not all...
-			if "o365domain in initialized_adconnections:
+			if "o365domain" in initialized_adconnections:
 				# univention internal testdomain with subscriptions
 				adconnection_alias = "o365domain"
-			else
+			else:
 				adconnection_alias = random.choice(initialized_adconnections)
 
 			ol = Office365Listener(_listener(), "ucs-test", listener_attributes_data, {}, "dn", adconnection_alias)

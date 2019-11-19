@@ -47,7 +47,7 @@ with utils.AutomaticListenerRestart():
 
 			print("*** Creating user...")
 			user_dn, username = udm.create_user(check_for_drs_replication=True, **user_args)
-			time.sleep(5)
+			time.sleep(10)
 
 			print("*** Checking that user was created (UniventionOffice365ObjectID in UDM object)...")
 			udm_user = ol.udm.get_udm_user(user_dn)
@@ -61,7 +61,7 @@ with utils.AutomaticListenerRestart():
 
 			print("*** Deactivating office365-option (should deactivate azure-user)...")
 			udm.modify_object(modulename="users/user", dn=user_dn, set={"UniventionOffice365Enabled": 0})
-			time.sleep(5)
+			time.sleep(10)
 			azure_user = ol.ah.list_users(objectid=user_id)
 			print_users(azure_user, short=True)
 			if azure_user["accountEnabled"]:
@@ -69,7 +69,7 @@ with utils.AutomaticListenerRestart():
 
 			print("*** Activating office365-option (should activate azure-user)...")
 			udm.modify_object(modulename="users/user", dn=user_dn, set={"UniventionOffice365Enabled": 1})
-			time.sleep(5)
+			time.sleep(10)
 			azure_user = ol.ah.list_users(objectid=user_id)
 			print_users(azure_user, short=True)
 			if not azure_user["accountEnabled"]:
@@ -77,7 +77,7 @@ with utils.AutomaticListenerRestart():
 
 			print("*** Setting account expired for user (should deactivate azure-user)...")
 			udm.modify_object(modulename="users/user", dn=user_dn, set={"userexpiry": datetime.datetime.now().strftime("%Y-%m-%d")})
-			time.sleep(5)
+			time.sleep(10)
 			azure_user = ol.ah.list_users(objectid=user_id)
 			print_users(azure_user, short=True)
 			if azure_user["accountEnabled"]:
@@ -85,7 +85,7 @@ with utils.AutomaticListenerRestart():
 
 			print("*** Unsetting account expired for user (should activate azure-user)...")
 			udm.modify_object(modulename="users/user", dn=user_dn, set={"userexpiry": ""})
-			time.sleep(5)
+			time.sleep(10)
 			azure_user = ol.ah.list_users(objectid=user_id)
 			print_users(azure_user, short=True)
 			if not azure_user["accountEnabled"]:
@@ -94,14 +94,14 @@ with utils.AutomaticListenerRestart():
 			for account_state in ["all", "kerberos", "posix", "posix_kerberos", "windows", "windows_kerberos", "windows_posix"]:
 				print("*** Deactivating UDM-user (method %s) (should deactivate azure-user)..." % account_state)
 				udm.modify_object(modulename="users/user", dn=user_dn, set={"disabled": account_state})
-				time.sleep(5)
+				time.sleep(10)
 				azure_user = ol.ah.list_users(objectid=user_id)
 				print_users(azure_user, short=True)
 				if azure_user["accountEnabled"]:
 					utils.fail("Account was not deactivated.")
 				print("*** Reactivating UDM-user (should activate azure-user)...")
 				udm.modify_object(modulename="users/user", dn=user_dn, set={"disabled": "none"})
-				time.sleep(5)
+				time.sleep(10)
 				azure_user = ol.ah.list_users(objectid=user_id)
 				print_users(azure_user, short=True)
 				if not azure_user["accountEnabled"]:
@@ -110,14 +110,14 @@ with utils.AutomaticListenerRestart():
 			for lock_state in ["all", "posix", "windows"]:
 				print("*** Locking UDM-user (method %s) (should deactivate azure-user)..." % lock_state)
 				udm.modify_object(modulename="users/user", dn=user_dn, set={"locked": lock_state})
-				time.sleep(5)
+				time.sleep(10)
 				azure_user = ol.ah.list_users(objectid=user_id)
 				print_users(azure_user, short=True)
 				if azure_user["accountEnabled"]:
 					utils.fail("Account was not deactivated.")
 				print("*** Unlocking UDM-user (should activate azure-user)...")
 				udm.modify_object(modulename="users/user", dn=user_dn, set={"locked": "none"})
-				time.sleep(5)
+				time.sleep(10)
 				azure_user = ol.ah.list_users(objectid=user_id)
 				print_users(azure_user, short=True)
 				if not azure_user["accountEnabled"]:

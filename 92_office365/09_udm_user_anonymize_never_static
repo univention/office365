@@ -74,7 +74,7 @@ with utils.AutomaticListenerRestart():
 
 				print("*** Creating user...")
 				user_dn, username = udm.create_user(check_for_drs_replication=True, **user_args)
-				time.sleep(5)
+				time.sleep(10)
 
 				udm_user = ol.udm.get_udm_user(user_dn)
 				user_id = Office365Listener.decode_o365data(udm_user.get("UniventionOffice365Data"))[adconnection_alias]['objectId']
