@@ -1,8 +1,8 @@
-univention-office365 (2.0.2-30) unstable; urgency=medium
+univention-office365 (2.0.2-31) unstable; urgency=medium
 
   * Bug #50468: Increase test timeout
 
- -- Erik Damrose <damrose@univention.de>  Tue, 19 Nov 2019 13:46:23 +0100
+ -- Erik Damrose <damrose@univention.de>  Tue, 19 Nov 2019 14:20:20 +0100
 
 univention-office365 (2.0.2-29) unstable; urgency=medium
 
