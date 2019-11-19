@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-30) unstable; urgency=medium
+
+  * Bug #50468: Increase test timeout
+
+ -- Erik Damrose <damrose@univention.de>  Tue, 19 Nov 2019 13:46:23 +0100
+
 univention-office365 (2.0.2-29) unstable; urgency=medium
 
   * Bug #50460: After automatic migration remove the legacy extended
