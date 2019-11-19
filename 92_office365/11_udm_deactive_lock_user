@@ -110,14 +110,14 @@ with utils.AutomaticListenerRestart():
 			for lock_state in ["all", "posix", "windows"]:
 				print("*** Locking UDM-user (method %s) (should deactivate azure-user)..." % lock_state)
 				udm.modify_object(modulename="users/user", dn=user_dn, set={"locked": lock_state})
-				time.sleep(10)
+				time.sleep(15)
 				azure_user = ol.ah.list_users(objectid=user_id)
 				print_users(azure_user, short=True)
 				if azure_user["accountEnabled"]:
 					utils.fail("Account was not deactivated.")
 				print("*** Unlocking UDM-user (should activate azure-user)...")
 				udm.modify_object(modulename="users/user", dn=user_dn, set={"locked": "none"})
-				time.sleep(10)
+				time.sleep(15)
 				azure_user = ol.ah.list_users(objectid=user_id)
 				print_users(azure_user, short=True)
 				if not azure_user["accountEnabled"]:
