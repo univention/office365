@@ -40,15 +40,24 @@ class Office365ADConnectionsHook(simpleHook):
 	type = "Office365ADConnectionsHook"
 
 	def hook_open(self, module):
-		if module.get("UniventionOffice365ObjectID"):
+		object_id = module.get("UniventionOffice365ObjectID")
+		if object_id:
 			upn = module.get("UniventionOffice365userPrincipalName", "")
-			value = ["defaultADconnection", upn]
+			value = ("defaultADconnection", upn)
 			module["UniventionOffice365ADConnections"] = [value]
+			self.adconnection_data = {
+				"defaultADconnection": {
+					"userPrincipalName": upn,
+					"objectId": object_id,
+				}
+			}
 			return
+
 		adconnection_data_encoded = module.get("UniventionOffice365Data")
 		if not adconnection_data_encoded:
+			self.adconnection_data = {}
 			return
-		adconnection_data_encoded = module.get("UniventionOffice365Data")
+
 		self.adconnection_data = Office365Listener.decode_o365data(adconnection_data_encoded)
 		module["UniventionOffice365ADConnections"] = []
 		if isinstance(self.adconnection_data, dict):
@@ -57,24 +66,50 @@ class Office365ADConnectionsHook(simpleHook):
 					upn = data["userPrincipalName"]
 				except KeyError:
 					upn = ""
-				value = [adconnection, upn]
+				value = (adconnection, upn)
 				module["UniventionOffice365ADConnections"].append(value)
+		else:
+			self.adconnection_data = {}
 
 	def hook_ldap_modlist(self, module, ml=[]):
-		# remove virtual attribute "dummy" from modlist
-		ml = [m for m in ml if m[0] != "dummy"]
+		# remove virtual dummy attribute from modlist
+		ml = [m for m in ml if m[0] != "dummyUniventionOffice365ADConnections"]
+
 		if module.get("UniventionOffice365ObjectID"):
 			return ml
 		if not module.hasChanged("UniventionOffice365ADConnections"):
 			return ml
+
+		adconnection_aliases_new = set([x for x, _ in module["UniventionOffice365ADConnections"]])
+		adconnections_old = module.oldinfo.get("UniventionOffice365ADConnections", [])
+		adconnection_aliases_old = set([x for x, _ in adconnections_old])
+		if adconnection_aliases_new == adconnection_aliases_old:
+			return ml
+
+		## Update the UniventionOffice365ADConnectionAlias list
+		old = module.get("UniventionOffice365ADConnectionAlias")
+		new = list(adconnection_aliases_new)
+		ml.append(("univentionOffice365ADConnectionAlias", old, new))
+
+		## Update the UniventionOffice365Data
 		new_adconnection_data = {}
-		for adconnection, _ in module["UniventionOffice365ADConnections"]:
+		for adconnection in adconnection_aliases_new:
 			try:
 				new_adconnection_data[adconnection] = self.adconnection_data[adconnection]
 			except KeyError:
 				new_adconnection_data[adconnection] = {}
+
+		## keep objectId for removed connections but remove userPrincipalName:
+		connections_to_be_deleted = adconnection_aliases_old - adconnection_aliases_new
+		for adconnection in connections_to_be_deleted:
+			new_adconnection_data[adconnection] = self.adconnection_data[adconnection]
+			try:
+				del new_adconnection_data[adconnection]["userPrincipalName"]
+			except KeyError:
+				pass
+
 		if new_adconnection_data != self.adconnection_data:
-			old = module.get("UniventionOffice365Data")
+			old = module.oldinfo.get("UniventionOffice365Data")
 			new = Office365Listener.encode_o365data(new_adconnection_data)
 			ml.append(("univentionOffice365Data", old, new))
 		return ml
