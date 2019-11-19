@@ -54,7 +54,7 @@ with udm_test.UCSTestUDM() as udm:
 
 		print("*** Creating user with adconnection_alias1 ({!r})...".format(adconnection_alias1))
 		user_dn, username = udm.create_user(check_for_drs_replication=True, **user_args)
-		time.sleep(5)
+		time.sleep(10)
 
 		print("*** Checking that user was created (UniventionOffice365ObjectID in UDM object)...")
 		udm_user = ol.udm.get_udm_user(user_dn)
@@ -75,7 +75,7 @@ with udm_test.UCSTestUDM() as udm:
 		print("*** Changing UniventionOffice365ADConnectionAlias property from adconnection_alias1 ({!r}) to adconnection_alias2 ({!r})...".format(adconnection_alias1, adconnection_alias2))
 		user_args2 = dict(set=dict(UniventionOffice365ADConnectionAlias=adconnection_alias2), append=dict())
 		udm.modify_object(modulename="users/user", dn=user_dn, **user_args2)
-		time.sleep(5)
+		time.sleep(10)
 
 		print("*** Checking that user was deleted in old adconnection...")
 		try:

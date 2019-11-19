@@ -44,7 +44,7 @@ for adconnection_alias in initialized_adconnections:
 	args = azure_group_args()
 	print("*** create_group(), args={}".format(args))
 	new_group1 = ah.create_group(name=args["displayName"], description=args["description"])
-	time.sleep(2)
+	time.sleep(10)
 
 	with AzureDirectoryTestGroups(ah, [new_group1["objectId"]]):
 		new_group2 = ah.list_groups(objectid=new_group1["objectId"])
@@ -53,7 +53,7 @@ for adconnection_alias in initialized_adconnections:
 		args = azure_group_args()
 		print("*** modify_group(), args={}".format(args))
 		ah.modify_group(new_group2["objectId"], args)
-		time.sleep(2)
+		time.sleep(10)
 		new_group3 = ah.list_groups(objectid=new_group2["objectId"])
 		test_grp(new_group3, args)
 
@@ -68,7 +68,7 @@ for adconnection_alias in initialized_adconnections:
 
 		print("*** delete_group({})".format(new_group3["objectId"]))
 		ah.delete_group(new_group3["objectId"])
-		time.sleep(2)
+		time.sleep(10)
 
 		print("*** list_groups(objectid={})".format(new_group3["objectId"]))
 		try:

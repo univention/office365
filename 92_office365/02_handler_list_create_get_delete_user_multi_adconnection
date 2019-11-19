@@ -43,7 +43,7 @@ for adconnection_alias in initialized_adconnections:
 
 	print("*** create_user(), args={}".format(args))
 	new_user1 = ah.create_user(args)
-	time.sleep(2)
+	time.sleep(10)
 	print("create_user() returned:")
 	print_users(new_user1, complete=False, short=True)
 
@@ -67,7 +67,7 @@ for adconnection_alias in initialized_adconnections:
 
 		print("*** delete_user({})".format(new_user1["objectId"]))
 		ah.delete_user(new_user1["objectId"])
-		time.sleep(2)
+		time.sleep(10)
 
 		try:
 			deleted_user = ah.list_users(objectid=new_user1["objectId"])

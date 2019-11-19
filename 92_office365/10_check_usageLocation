@@ -85,7 +85,7 @@ with utils.AutomaticListenerRestart():
 
 			print("*** Creating user with some properties...")
 			user_dn, username = udm.create_user(check_for_drs_replication=True, **user_args)
-			time.sleep(5)
+			time.sleep(10)
 
 			print("*** Checking that user was created (UniventionOffice365ObjectID in UDM object)...")
 			udm_user = ol.udm.get_udm_user(user_dn)
@@ -108,7 +108,7 @@ with utils.AutomaticListenerRestart():
 				dn=user_dn,
 				set=dict(country=''),
 			)
-			time.sleep(5)
+			time.sleep(10)
 
 			print("*** Checking value of usageLocation (should be UCR[office365/attributes/usageLocation] now)...")
 			azure_user = ol.ah.list_users(objectid=user_id)
@@ -125,7 +125,7 @@ with utils.AutomaticListenerRestart():
 				dn=user_dn,
 				set=dict(country=udm_country),
 			)
-			time.sleep(5)
+			time.sleep(10)
 
 			print("*** Checking value of usageLocation (should be user[set][country] now)...")
 			azure_user = ol.ah.list_users(objectid=user_id)
@@ -139,7 +139,7 @@ with utils.AutomaticListenerRestart():
 				dn=user_dn,
 				set=dict(country=''),
 			)
-			time.sleep(5)
+			time.sleep(10)
 
 			print("*** Checking value of usageLocation (should be UCR[ssl/country] now)...")
 			azure_user = ol.ah.list_users(objectid=user_id)
