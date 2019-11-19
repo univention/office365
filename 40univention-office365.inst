@@ -200,7 +200,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set mayChange=1 \
 	--set doNotSearch=1 \
 	--set objectClass=univentionOffice365 \
-	--set ldapMapping=dummyUniventionOffice365ADConnections \
+	--set ldapMapping=dummy\
 	--set deleteObjectClass=0 \
 	--set disableUDMWeb=0 || die
 

@@ -28,7 +28,7 @@
 # <http://www.gnu.org/licenses/>.
 
 import univention.admin.localization
-from univention.admin.syntax import HalfString, complex, UDM_Objects
+from univention.admin.syntax import string, complex, UDM_Objects
 import univention.admin.uexceptions
 
 
@@ -65,12 +65,10 @@ class univentionOffice365ADConnections(complex):
 	"""
 	subsyntaxes = (
 		(_('Azure AD connection'), univentionOffice365ADConnection),
-		(_('User Principal Name'), HalfString),
+		(_('User Principal Name'), string),
 	)
 	subsyntax_names = ('AADConnection', 'userPrincipalName')
-	# subsyntax_key_value = True
 	all_required = True
-	# size = ('Half', 'Half')
 
 	@classmethod
 	def parse(self, texts):
