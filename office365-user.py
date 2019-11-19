@@ -280,6 +280,20 @@ def new_or_reactivate_user(ol, dn, new, old):
 
 def delete_user(ol, dn, new, old):
 	ol.delete_user(old)
+	udm_user = ol.udm.get_udm_user(dn)
+	if not_migrated_to_v3:
+		udm_user["UniventionOffice365Data"] = Office365Listener.encode_o365data(None)
+		udm_user.modify()
+	else:
+		old_azure_data_encoded = old.get('univentionOffice365Data', [''])[0]
+		if old_azure_data_encoded:
+			old_azure_data = Office365Listener.decode_o365data(old_azure_data_encoded)
+			try:
+				del old_azure_data[ol.adconnection_alias]['userPrincipalName']
+			except KeyError:
+				pass
+			udm_user["UniventionOffice365Data"] = Office365Listener.encode_o365data(old_azure_data)
+			udm_user.modify()
 	logger.info("Deleted user %r adconnection: %s.", old["uid"][0], ol.adconnection_alias)
 
 
@@ -298,11 +312,10 @@ def deactivate_user(ol, dn, new, old):
 		if old_azure_data_encoded:
 			# The account already has an Azure AD connection
 			old_azure_data = Office365Listener.decode_o365data(old_azure_data_encoded)
-			for adconnection_alias in old_azure_data.keys():
-				try:
-					del old_azure_data[adconnection_alias]['userPrincipalName']
-				except KeyError:
-					pass
+			try:
+				del old_azure_data[ol.adconnection_alias]['userPrincipalName']
+			except KeyError:
+				pass
 			udm_user["UniventionOffice365Data"] = Office365Listener.encode_o365data(old_azure_data)
 			udm_user.modify()
 	logger.info("Deactivated user %r adconnection: %s.", old["uid"][0], ol.adconnection_alias)
