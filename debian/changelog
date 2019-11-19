@@ -1,3 +1,10 @@
+univention-office365 (2.0.2-32) unstable; urgency=medium
+
+  * Bug #50423: Check if default connection is initialized before trying to
+    sync users
+
+ -- Erik Damrose <damrose@univention.de>  Tue, 19 Nov 2019 19:50:56 +0100
+
 univention-office365 (2.0.2-31) unstable; urgency=medium
 
   * Bug #50468: Increase test timeout
