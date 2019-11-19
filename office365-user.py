@@ -398,15 +398,20 @@ def handler(dn, new, old, command):
 	# NEW or REACTIVATED account
 	#
 	if new_enabled and not old_enabled:
-		# Migration script to App version 3 has not run - put user in default ad connection
-		if not_migrated_to_v3:
-			adconnection_aliases_new.add(listener.configRegistry.get(default_adconnection_alias_ucrv))
+		if listener.configRegistry.get(default_adconnection_alias_ucrv) in initialized_adconnection:
+			# Migration script to App version 3 has not run - put user in default ad connection
+			if not_migrated_to_v3:
+				adconnection_aliases_new.add(listener.configRegistry.get(default_adconnection_alias_ucrv))
 
-		# If no connection is set for a newly enabled object, and a default connection is configured via UCR,
-		# add that default to the new object
-		if not adconnection_aliases_new and listener.configRegistry.get(default_adconnection_alias_ucrv):
-			logger.info("No ad connection defined, using default (%s | %s)", listener.configRegistry.get(default_adconnection_alias_ucrv), dn)
-			adconnection_aliases_new.add(listener.configRegistry.get(default_adconnection_alias_ucrv))
+			# If no connection is set for a newly enabled object, and a default connection is configured via UCR,
+			# add that default to the new object
+			if not adconnection_aliases_new and listener.configRegistry.get(default_adconnection_alias_ucrv):
+				logger.info("No ad connection defined, using default (%s | %s)", listener.configRegistry.get(default_adconnection_alias_ucrv), dn)
+				adconnection_aliases_new.add(listener.configRegistry.get(default_adconnection_alias_ucrv))
+		else:
+			if not_migrated_to_v3 or (not adconnection_aliases_new and listener.configRegistry.get(default_adconnection_alias_ucrv)):
+				logger.info("Cannot put user in default connection (%s), because it is not initialized", listener.configRegistry.get(default_adconnection_alias_ucrv))
+				return
 
 		if not adconnection_aliases_new:
 			logger.info("No ad connection defined for new object, do nothing")
