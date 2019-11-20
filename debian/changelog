@@ -1,3 +1,10 @@
+univention-office365 (2.0.2-36) unstable; urgency=medium
+
+  * Bug #50460: Fix inheritance issue in univentionOffice365ADConnections
+    syntax parser.
+
+ -- Arvid Requate <requate@univention.de>  Wed, 20 Nov 2019 22:51:26 +0100
+
 univention-office365 (2.0.2-35) unstable; urgency=medium
 
   * Bug #50468: Increase test timeout

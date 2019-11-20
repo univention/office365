@@ -71,7 +71,7 @@ class univentionOffice365ADConnections(complex):
 	all_required = True
 
 	@classmethod
-	def parse(self, texts):
-		p = super(univentionOffice365ADConnections, self).parse(texts)
+	def parse(cls, texts):
+		p = super(cls, cls).parse(texts)
 		objectID, userPrincipalName = p
 		return p
