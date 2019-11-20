@@ -74,7 +74,7 @@ class Office365ADConnectionsHook(simpleHook):
 
 	def hook_ldap_modlist(self, module, ml=[]):
 		# remove virtual dummy attribute from modlist
-		ml = [m for m in ml if m[0] != "dummy"]
+		ml = [m for m in ml if m[0] != "dummyUniventionOffice365ADConnections"]
 
 		if module.get("UniventionOffice365ObjectID"):
 			# unmigrated object
