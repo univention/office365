@@ -115,19 +115,18 @@ if __name__ == '__main__':
 
 	print('Searching for users to migrate in LDAP...')
 	users = UDMHelper.get_lo_o365_users(
-		attributes=['uid', 'univentionOffice365Enabled', 'univentionOffice365ObjectID', 'ucsschoolSchool', 'univentionOffice365userPrincipalName', 'univentionOffice365Data', ],
+		attributes=['uid', 'univentionOffice365Enabled', 'univentionOffice365ObjectID', 'univentionOffice365userPrincipalName', 'univentionOffice365Data', ],
 		enabled='',
 		additional_filter='(!(univentionOffice365ADConnectionAlias=*))'
 	)
 	print('Found the following users:\n')
-	print('       username      | enabled |  schools   | Azure object ID')
+	print('       username      | enabled |  Azure object ID')
 	print('-' * 82)
 	for dn in sorted(users.keys()):
 		attr = users[dn]
-		print('{: <20} |    {}    | {: <10} | {}'.format(
+		print('{: <20} |    {}    | {}'.format(
 			attr['uid'][0],
 			'x' if attr['univentionOffice365Enabled'][0] == '1' and attr['uid'][0] != 'test3abx' else ' ',
-			attr.get('ucsschoolSchool', [''])[0],
 			attr['univentionOffice365ObjectID'][0])
 		)
 	if users:
