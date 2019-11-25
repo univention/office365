@@ -278,6 +278,8 @@ def new_or_reactivate_user(ol, dn, new, old):
 			old_azure_data.update(new_azure_data)
 			new_azure_data = old_azure_data
 		udm_user["UniventionOffice365Data"] = Office365Listener.encode_o365data(new_azure_data)
+		if not new.get('univentionOffice365ADConnectionAlias', []):
+			udm_user["UniventionOffice365ADConnectionAlias"] = [ol.adconnection_alias]
 	udm_user.modify()
 	logger.info(
 		"User creation success. userPrincipalName: %r objectId: %r dn: %s adconnection: %s",
