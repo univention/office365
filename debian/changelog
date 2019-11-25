@@ -1,3 +1,11 @@
+univention-office365 (2.0.2-37) unstable; urgency=medium
+
+  * Bug #50460: Set default connection if user just got activated
+  * Don't print ucsschoolSchool
+  * Disgard legacy content of UniventionOffice365Data after migration
+
+ -- Arvid Requate <requate@univention.de>  Mon, 25 Nov 2019 23:07:13 +0100
+
 univention-office365 (2.0.2-36) unstable; urgency=medium
 
   * Bug #50460: Fix inheritance issue in univentionOffice365ADConnections
