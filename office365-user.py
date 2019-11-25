@@ -268,6 +268,13 @@ def new_or_reactivate_user(ol, dn, new, old):
 		if old_azure_data_encoded:
 			# The account already has an Azure AD connection
 			old_azure_data = Office365Listener.decode_o365data(old_azure_data_encoded)
+			if 'objectId' in old_azure_data and not isinstance(old_azure_data['objectId'], dict):
+				# Migration case
+				old_azure_data = {
+					k: v
+					for k, v in old_azure_data.items()
+					if isinstance(v, dict)
+				}
 			old_azure_data.update(new_azure_data)
 			new_azure_data = old_azure_data
 		udm_user["UniventionOffice365Data"] = Office365Listener.encode_o365data(new_azure_data)
@@ -339,6 +346,13 @@ def modify_user(ol, dn, new, old):
 		if old_azure_data_encoded:
 			# The account already has an Azure AD connection
 			old_azure_data = Office365Listener.decode_o365data(old_azure_data_encoded)
+			if 'objectId' in old_azure_data and not isinstance(old_azure_data['objectId'], dict):
+				# Migration case
+				old_azure_data = {
+					k: v
+					for k, v in old_azure_data.items()
+					if isinstance(v, dict)
+				}
 			old_azure_data.update(new_azure_data)
 			new_azure_data = old_azure_data
 		udm_user["UniventionOffice365Data"] = Office365Listener.encode_o365data(new_azure_data)
