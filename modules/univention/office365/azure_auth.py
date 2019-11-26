@@ -132,7 +132,9 @@ class AzureADConnectionHandler(object):
 		aliases = self.get_adconnection_aliases().items()
 		for alias, adconnection_id in aliases:
 			confdir = self.get_conf_path('CONFDIR', alias)
-			res.append((alias, adconnection_id, confdir))
+			initialized = AzureAuth.is_initialized(alias)
+			status = 'initialized' if initialized else 'uninitialized'
+			res.append((alias, status, confdir))
 		return res
 
 	@classmethod
