@@ -322,6 +322,10 @@ EOF
 		fi
 	done
 
+	if [ -f "$defaultADconnectionDir/ids.json" ]; then
+		sed -i 's/"tenant_id": /"adconnection_id": /' "$defaultADconnectionDir/ids.json"
+	fi
+
 	if ! is_ucr_false office365/migrate/adconnectionalias; then
 		/usr/share/univention-office365/scripts/migrate_to_adconnectionalias defaultADconnection || die
 
