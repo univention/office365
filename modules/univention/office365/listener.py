@@ -149,7 +149,7 @@ class Office365Listener(object):
 		# mandatory attributes, not to be overwritten by user
 		local_part_of_email_address = new["mailPrimaryAddress"][0].rpartition("@")[0]
 		mandatory_attributes = dict(
-			immutableId=base64.encodestring(new["entryUUID"][0]).rstrip(),
+			immutableId=base64.b64encode(new["entryUUID"][0]),
 			accountEnabled=True,
 			passwordProfile=dict(
 				password=self.ah.create_random_pw(),
@@ -703,7 +703,7 @@ class Office365Listener(object):
 		self.ah.add_license(azure_user['objectId'], subscription_profile_to_use.skuId, deactivate_plan_ids)
 
 	def find_aad_user_by_entryUUID(self, entryUUID):
-		user = self.ah.list_users(ofilter="immutableId eq '{}'".format(base64.encodestring(entryUUID).rstrip()))
+		user = self.ah.list_users(ofilter="immutableId eq '{}'".format(base64.b64encode(entryUUID)))
 		if user["value"]:
 			return user["value"][0]["objectId"]
 		else:

@@ -76,7 +76,7 @@ class UDMHelper(object):
 			logger.info("%r...", udm_obj["username"] if "username" in udm_obj else udm_obj["name"])
 			udm_obj["UniventionOffice365ObjectID"] = None
 			if "UniventionOffice365Data" in udm_obj:
-				udm_obj["UniventionOffice365Data"] = base64.encodestring(zlib.compress(json.dumps(None))).rstrip()
+				udm_obj["UniventionOffice365Data"] = base64.b64encode(zlib.compress(json.dumps(None)))
 			udm_obj.modify()
 		logger.info("Cleaning done.")
 

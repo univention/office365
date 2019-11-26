@@ -34,9 +34,6 @@ import argparse
 import json
 import logging
 import os
-import pwd
-import shutil
-import stat
 import subprocess
 import sys
 import univention.admin.uldap
@@ -50,38 +47,6 @@ from univention.office365.listener import Office365Listener
 conf_path = '/etc/univention-office365'
 ucr = ConfigRegistry()
 ucr.load()
-
-def migrate_defaultADConnection_files(args, target_path):
-	if not os.path.exists(target_path):
-		print('Creating directory {!r}...'.format(target_path))
-		if not args.dryrun:
-			os.mkdir(target_path, 0o700)
-	print('Setting permissions on {!r}...'.format(target_path))
-	if not args.dryrun:
-		os.chown(target_path, pwd.getpwnam('listener').pw_uid, 0)
-	for filename in ('cert.fp', 'cert.pem', 'key.pem'):
-		src = os.path.join(conf_path, filename)
-		print('Copying {!r} to {!r}...'.format(src, target_path))
-		if not args.dryrun:
-			shutil.copy2(src, target_path)
-			os.chown(os.path.join(target_path, filename), pwd.getpwnam('listener').pw_uid, 0)
-			os.chmod(os.path.join(target_path, filename), stat.S_IRUSR)
-	for filename in ('ids.json', 'manifest.json', 'token.json'):
-		src = os.path.join(conf_path, filename)
-		dst = os.path.join(target_path, filename)
-		print('Moving {!r} to {!r}...'.format(src, target_path))
-		if not args.dryrun:
-			shutil.move(src, dst)
-			os.chown(dst, pwd.getpwnam('listener').pw_uid, 0)
-			os.chmod(dst, stat.S_IRUSR | stat.S_IWUSR)
-
-	if not args.dryrun:
-		ids = AzureAuth.load_azure_ids(args.adconnection_alias)
-		if not "adconnection_id" in ids:
-			ids["adconnection_id"] = ids["tenant_id"]
-			del ids["tenant_id"]
-			AzureAuth.store_azure_ids(args.adconnection_alias, **ids)
-
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='Migrate a single Azure AD Office 365 connector setup to a multi-connection setup.')
@@ -107,10 +72,6 @@ if __name__ == '__main__':
 
 	if args.dryrun:
 		print('Dry run - no changes will be applied.')
-
-	target_path = os.path.join(conf_path, args.adconnection_alias)
-	if not os.path.exists(os.path.join(conf_path, 'token.json')):
-		migrate_defaultADConnection_files(args, target_path)
 
 	if args.dryrun or AzureAuth.is_initialized(args.adconnection_alias):
 		print('OK: Azure AD connection {!r} is now initialized.'.format(args.adconnection_alias))
@@ -207,6 +168,7 @@ if __name__ == '__main__':
 	if args.dryrun:
 		ids_file = os.path.join(conf_path, 'ids.json')
 	else:
+		target_path = os.path.join(conf_path, args.adconnection_alias)
 		ids_file = os.path.join(target_path, 'ids.json')
 	with open(ids_file, 'rb') as fp:
 		ids = json.load(fp)

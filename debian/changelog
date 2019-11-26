@@ -1,3 +1,14 @@
+univention-office365 (2.0.2-43) unstable; urgency=medium
+
+  * Bug #50460: Code cleanup:
+  * Remove migrate_defaultADConnection_files from migrate_to_adconnectionalias
+    This is done in the joinscript now.
+  * replace base64.encodestring by base64.b64encode everywhere
+  * remove unnecessary parse method from complex syntax
+    univentionOffice365ADConnections
+
+ -- Arvid Requate <requate@univention.de>  Tue, 26 Nov 2019 21:13:55 +0100
+
 univention-office365 (2.0.2-42) unstable; urgency=medium
 
   * Bug #50460: Fix adconnection_id in ids.json on package update

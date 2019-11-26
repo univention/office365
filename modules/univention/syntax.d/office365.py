@@ -69,9 +69,3 @@ class univentionOffice365ADConnections(complex):
 	)
 	subsyntax_names = ('AADConnection', 'userPrincipalName')
 	all_required = True
-
-	@classmethod
-	def parse(cls, texts):
-		p = super(cls, cls).parse(texts)
-		objectID, userPrincipalName = p
-		return p
