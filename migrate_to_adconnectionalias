@@ -87,18 +87,12 @@ if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='Migrate a single Azure AD Office 365 connector setup to a multi-connection setup.')
 	parser.add_argument('adconnection_alias', help='Value to be written to user attribute. Must not be listed in UCR {}.'.format(adconnection_alias_ucrv))
 	parser.add_argument('--dryrun', help='Simulate the migration, but don\'t actually change anything [default off].', action='store_true')
-	parser.add_argument('--migrate-dir', help='Only move files to new location.', action='store_true')
 	args = parser.parse_args()
 
 	logger = get_logger("office365", "o365")
 	_handler = logging.StreamHandler(sys.stdout)
 	_handler.setLevel(logging.INFO)
 	logger.addHandler(_handler)
-
-	target_path = os.path.join(conf_path, args.adconnection_alias)
-	if args.migrate_dir:
-		migrate_defaultADConnection_files(args, target_path)
-		sys.exit(0)
 
 	if AzureAuth.is_initialized(args.adconnection_alias):
 		print('Error: Default Azure AD connection (in {!r}) already initialized. Exiting.'.format(conf_path))
@@ -114,6 +108,7 @@ if __name__ == '__main__':
 	if args.dryrun:
 		print('Dry run - no changes will be applied.')
 
+	target_path = os.path.join(conf_path, args.adconnection_alias)
 	if not os.path.exists(os.path.join(conf_path, 'token.json')):
 		migrate_defaultADConnection_files(args, target_path)
 

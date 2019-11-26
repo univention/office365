@@ -319,10 +319,14 @@ for dn in lo.searchDn('univentionObjectType=settings/office365profile'):
 	lo.modify(dn, [('univentionObjectType', 'settings/office365profile', 'office365/profile')])
 EOF
 
-	/usr/share/univention-office365/scripts/migrate_to_adconnectionalias --migrate-dir defaultADconnection || die
+	/usr/share/univention-office365/scripts/manage_adconnections create defaultADconnection --makedefault
+	for FILE in ids.json manifest.json token.json; do
+		if [ -f "$CONFDIR/$FILE" ]; then
+			mv -v "$CONFDIR/$FILE" "$defaultADconnectionDir"
+		fi
+	done
 
 	if ! is_ucr_false office365/migrate/adconnectionalias; then
-		/usr/share/univention-office365/scripts/manage_adconnections create defaultADconnection --makedefault
 		/usr/share/univention-office365/scripts/migrate_to_adconnectionalias defaultADconnection || die
 
 		# Remove extended attributes that are not required any longer

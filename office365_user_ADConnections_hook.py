@@ -41,6 +41,14 @@ msg_require_mail = _("Office 365 users must have a primary e-mail address specif
 class Office365ADConnectionsHook(simpleHook):
 	type = "Office365ADConnectionsHook"
 
+	@staticmethod
+	def str2bool(val):
+		try:
+			return bool(int(val))
+		except TypeError:
+			# None
+			return False
+
 	def hook_open(self, module):
 		object_id = module.get("UniventionOffice365ObjectID")
 		if object_id:
