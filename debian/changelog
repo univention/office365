@@ -1,3 +1,13 @@
+univention-office365 (2.0.2-38) unstable; urgency=medium
+
+  * Bug #50460: Move mailPrimaryAddress check to
+    office365_user_ADConnections_hook.py
+  * Remove office365_userPrincipalName_hook.py
+  * Remove legacy extended attributes UniventionOffice365userPrincipalName,
+    UniventionOffice365ObjectID and UniventionOffice365GroupObjectID on update
+
+ -- Arvid Requate <requate@univention.de>  Tue, 26 Nov 2019 12:20:01 +0100
+
 univention-office365 (2.0.2-37) unstable; urgency=medium
 
   * Bug #50460: Set default connection if user just got activated
