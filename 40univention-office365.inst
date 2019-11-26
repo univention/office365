@@ -43,38 +43,43 @@ joinscript_init
 eval "$(ucr shell)"
 
 CONFDIR=/etc/univention-office365
+defaultADconnectionDir="$CONFDIR/defaultADconnection"
 VARDIR=/var/lib/univention-office365
 
 if ! joinscript_check_any_version_executed || [ -n "$FORCE_NEW_CERT" ]; then
-    cd $CONFDIR
+	for cfgdir in "$CONFDIR" "$defaultADconnectionDir"; do
+		if ! [ -d "$cfgdir" ]; then
+			mkdir "$cfgdir"
+		fi
 
-    # make backup
-    DATE=$(date +%Y-%m-%d-%H.%M.%S)
-    for FILE in _key.pem key.pem cert.pem cert.fp openssl.cnf ids.json token.json; do
-        if [ -f "$FILE" ]; then
-            mv -v "$FILE" "${FILE}_${DATE}.bak"
-        fi
-    done
+		# backup files
+		DATE=$(date +%Y-%m-%d-%H.%M.%S)
+		for FILE in _key.pem key.pem cert.pem cert.fp openssl.cnf ids.json token.json; do
+			if [ -f "$FILE" ]; then
+				mv -v "$FILE" "${FILE}_${DATE}.bak"
+			fi
+		done
 
-    # set permissions
-    touch key.pem cert.pem cert.fp ids.json token.json
-    chown -R listener:root "$CONFDIR" "$VARDIR"
-    chmod 0700 "$CONFDIR" "$VARDIR"
-    chmod 0600 key.pem cert.pem cert.fp ids.json token.json
+		# set permissions
+		touch key.pem cert.pem cert.fp ids.json token.json
+		chown -R listener:root "$cfgdir" "$VARDIR"
+		chmod 0700 "$cfgdir" "$VARDIR"
+		chmod 0600 key.pem cert.pem cert.fp ids.json token.json
 
-    # use key, cert and fp from machine certificate
-    SSL_DIR="/etc/univention/ssl/$hostname.$domainname"
-    cat "$SSL_DIR/cert.pem" > cert.pem
-    cat "$SSL_DIR/private.key" > key.pem
+		# use key, cert and fp from machine certificate
+		SSL_DIR="/etc/univention/ssl/$hostname.$domainname"
+		cat "$SSL_DIR/cert.pem" > cert.pem
+		cat "$SSL_DIR/private.key" > key.pem
 
-    openssl x509 -in cert.pem -fingerprint -noout | sed 's/SHA1 Fingerprint=//g' | sed 's/://g' | xxd -r -ps | base64 > cert.fp || die
+		openssl x509 -in cert.pem -fingerprint -noout | sed 's/SHA1 Fingerprint=//g' | sed 's/://g' | xxd -r -ps | base64 > cert.fp || die
 
-    # create empty id and token stores
-    # TODO: initialize new default adconnection
-    # python -c 'from univention.office365.azure_auth import AzureAuth; AzureAuth.uninitialize()' || die
+		# create empty id and token stores
+		# TODO: initialize new default adconnection
+		# python -c 'from univention.office365.azure_auth import AzureAuth; AzureAuth.uninitialize()' || die
 
-    # set paranoid permissions
-    chmod 0400 key.pem cert.pem cert.fp
+		# set defensive permissions
+		chmod 0400 key.pem cert.pem cert.fp
+	done
 fi
 
 ucs_addServiceToLocalhost "univention-office365" "$@" || die
@@ -313,6 +318,9 @@ for dn in lo.searchDn('univentionObjectType=settings/office365profile'):
 	print('Changing univentionObjectType of', dn)
 	lo.modify(dn, [('univentionObjectType', 'settings/office365profile', 'office365/profile')])
 EOF
+
+	/usr/share/univention-office365/scripts/migrate_to_adconnectionalias --migrate-dir defaultADconnection || die
+
 	if ! is_ucr_false office365/migrate/adconnectionalias; then
 		/usr/share/univention-office365/scripts/manage_adconnections create defaultADconnection --makedefault
 		/usr/share/univention-office365/scripts/migrate_to_adconnectionalias defaultADconnection || die
