@@ -51,32 +51,7 @@ conf_path = '/etc/univention-office365'
 ucr = ConfigRegistry()
 ucr.load()
 
-if __name__ == '__main__':
-	parser = argparse.ArgumentParser(description='Migrate a single Azure AD Office 365 connector setup to a multi-connection setup.')
-	parser.add_argument('adconnection_alias', help='Value to be written to user attribute. Must not be listed in UCR {}.'.format(adconnection_alias_ucrv))
-	parser.add_argument('--dryrun', help='Simulate the migration, but don\'t actually change anything [default off].', action='store_true')
-	args = parser.parse_args()
-
-	logger = get_logger("office365", "o365")
-	_handler = logging.StreamHandler(sys.stdout)
-	_handler.setLevel(logging.INFO)
-	logger.addHandler(_handler)
-
-	if AzureAuth.is_initialized(args.adconnection_alias):
-		print('Error: Default Azure AD connection (in {!r}) already initialized. Exiting.'.format(conf_path))
-		sys.exit(1)
-
-	aliases = AzureADConnectionHandler.get_adconnection_aliases()
-	if args.adconnection_alias in aliases:
-		state = ucr.get('{}{}'.format(adconnection_alias_ucrv, args.adconnection_alias))
-		if not state == 'uninitialized':
-			print('Error: Azure AD connection alias {!r} is already listed in UCR {!r}. Exiting.'.format(args.adconnection_alias, adconnection_alias_ucrv))
-			sys.exit(1)
-
-	if args.dryrun:
-		print('Dry run - no changes will be applied.')
-
-	target_path = os.path.join(conf_path, args.adconnection_alias)
+def migrate_defaultADConnection_files(args, target_path):
 	if not os.path.exists(target_path):
 		print('Creating directory {!r}...'.format(target_path))
 		if not args.dryrun:
@@ -106,6 +81,41 @@ if __name__ == '__main__':
 			ids["adconnection_id"] = ids["tenant_id"]
 			del ids["tenant_id"]
 			AzureAuth.store_azure_ids(args.adconnection_alias, **ids)
+
+
+if __name__ == '__main__':
+	parser = argparse.ArgumentParser(description='Migrate a single Azure AD Office 365 connector setup to a multi-connection setup.')
+	parser.add_argument('adconnection_alias', help='Value to be written to user attribute. Must not be listed in UCR {}.'.format(adconnection_alias_ucrv))
+	parser.add_argument('--dryrun', help='Simulate the migration, but don\'t actually change anything [default off].', action='store_true')
+	parser.add_argument('--migrate-dir', help='Only move files to new location.', action='store_true')
+	args = parser.parse_args()
+
+	logger = get_logger("office365", "o365")
+	_handler = logging.StreamHandler(sys.stdout)
+	_handler.setLevel(logging.INFO)
+	logger.addHandler(_handler)
+
+	target_path = os.path.join(conf_path, args.adconnection_alias)
+	if args.migrate_dir:
+		migrate_defaultADConnection_files(args, target_path)
+		sys.exit(0)
+
+	if AzureAuth.is_initialized(args.adconnection_alias):
+		print('Error: Default Azure AD connection (in {!r}) already initialized. Exiting.'.format(conf_path))
+		sys.exit(1)
+
+	aliases = AzureADConnectionHandler.get_adconnection_aliases()
+	if args.adconnection_alias in aliases:
+		state = ucr.get('{}{}'.format(adconnection_alias_ucrv, args.adconnection_alias))
+		if not state == 'uninitialized':
+			print('Error: Azure AD connection alias {!r} is already listed in UCR {!r}. Exiting.'.format(args.adconnection_alias, adconnection_alias_ucrv))
+			sys.exit(1)
+
+	if args.dryrun:
+		print('Dry run - no changes will be applied.')
+
+	if not os.path.exists(os.path.join(conf_path, 'token.json')):
+		migrate_defaultADConnection_files(args, target_path)
 
 	if args.dryrun or AzureAuth.is_initialized(args.adconnection_alias):
 		print('OK: Azure AD connection {!r} is now initialized.'.format(args.adconnection_alias))

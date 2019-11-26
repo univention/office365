@@ -1,3 +1,10 @@
+univention-office365 (2.0.2-39) unstable; urgency=medium
+
+  * Bug #50460: Migrate config files to new directory regardless of the
+    value of UCRV office365/migrate/adconnectionalias.
+
+ -- Arvid Requate <requate@univention.de>  Tue, 26 Nov 2019 14:02:19 +0100
+
 univention-office365 (2.0.2-38) unstable; urgency=medium
 
   * Bug #50460: Move mailPrimaryAddress check to
