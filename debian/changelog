@@ -1,3 +1,10 @@
+univention-office365 (2.0.2-41) unstable; urgency=medium
+
+  * Bug #50460: Don't initialize defaultADConnection directory during
+    (re-)join
+
+ -- Arvid Requate <requate@univention.de>  Tue, 26 Nov 2019 15:39:07 +0100
+
 univention-office365 (2.0.2-40) unstable; urgency=medium
 
   * Bug #50460: Create defaultADConnection during update and migrate
