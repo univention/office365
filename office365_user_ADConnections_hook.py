@@ -30,10 +30,12 @@
 # <http://www.gnu.org/licenses/>.
 
 from univention.admin.hook import simpleHook
+import univention.admin.uexceptions
 from univention.lib.i18n import Translation
 from univention.office365.listener import Office365Listener
 
 _ = Translation('univention-admin-handlers-office365').translate
+msg_require_mail = _("Office 365 users must have a primary e-mail address specified.")
 
 
 class Office365ADConnectionsHook(simpleHook):
@@ -95,3 +97,11 @@ class Office365ADConnectionsHook(simpleHook):
 			ml.append(("univentionOffice365ADConnectionAlias", old, new))
 
 		return ml
+
+	def hook_ldap_pre_create(self, module):
+		if self.str2bool(module.get("UniventionOffice365Enabled")) and not module.get("mailPrimaryAddress"):
+			raise univention.admin.uexceptions.valueError(msg_require_mail)
+
+	def hook_ldap_pre_modify(self, module):
+		if self.str2bool(module.get("UniventionOffice365Enabled")) and not module.get("mailPrimaryAddress"):
+			raise univention.admin.uexceptions.valueError(msg_require_mail)
