@@ -47,39 +47,35 @@ defaultADconnectionDir="$CONFDIR/defaultADconnection"
 VARDIR=/var/lib/univention-office365
 
 if ! joinscript_check_any_version_executed || [ -n "$FORCE_NEW_CERT" ]; then
-	for cfgdir in "$CONFDIR" "$defaultADconnectionDir"; do
-		if ! [ -d "$cfgdir" ]; then
-			mkdir "$cfgdir"
+	cd "$CONFDIR"
+
+	# backup files
+	DATE=$(date +%Y-%m-%d-%H.%M.%S)
+	for FILE in _key.pem key.pem cert.pem cert.fp openssl.cnf ids.json token.json; do
+		if [ -f "$FILE" ]; then
+			mv -v "$FILE" "${FILE}_${DATE}.bak"
 		fi
-
-		# backup files
-		DATE=$(date +%Y-%m-%d-%H.%M.%S)
-		for FILE in _key.pem key.pem cert.pem cert.fp openssl.cnf ids.json token.json; do
-			if [ -f "$FILE" ]; then
-				mv -v "$FILE" "${FILE}_${DATE}.bak"
-			fi
-		done
-
-		# set permissions
-		touch key.pem cert.pem cert.fp ids.json token.json
-		chown -R listener:root "$cfgdir" "$VARDIR"
-		chmod 0700 "$cfgdir" "$VARDIR"
-		chmod 0600 key.pem cert.pem cert.fp ids.json token.json
-
-		# use key, cert and fp from machine certificate
-		SSL_DIR="/etc/univention/ssl/$hostname.$domainname"
-		cat "$SSL_DIR/cert.pem" > cert.pem
-		cat "$SSL_DIR/private.key" > key.pem
-
-		openssl x509 -in cert.pem -fingerprint -noout | sed 's/SHA1 Fingerprint=//g' | sed 's/://g' | xxd -r -ps | base64 > cert.fp || die
-
-		# create empty id and token stores
-		# TODO: initialize new default adconnection
-		# python -c 'from univention.office365.azure_auth import AzureAuth; AzureAuth.uninitialize()' || die
-
-		# set defensive permissions
-		chmod 0400 key.pem cert.pem cert.fp
 	done
+
+	# set permissions
+	touch key.pem cert.pem cert.fp ids.json token.json
+	chown -R listener:root "$cfgdir" "$VARDIR"
+	chmod 0700 "$cfgdir" "$VARDIR"
+	chmod 0600 key.pem cert.pem cert.fp ids.json token.json
+
+	# use key, cert and fp from machine certificate
+	SSL_DIR="/etc/univention/ssl/$hostname.$domainname"
+	cat "$SSL_DIR/cert.pem" > cert.pem
+	cat "$SSL_DIR/private.key" > key.pem
+
+	openssl x509 -in cert.pem -fingerprint -noout | sed 's/SHA1 Fingerprint=//g' | sed 's/://g' | xxd -r -ps | base64 > cert.fp || die
+
+	# create empty id and token stores
+	# TODO: initialize new default adconnection
+	# python -c 'from univention.office365.azure_auth import AzureAuth; AzureAuth.uninitialize()' || die
+
+	# set defensive permissions
+	chmod 0400 key.pem cert.pem cert.fp
 fi
 
 ucs_addServiceToLocalhost "univention-office365" "$@" || die
