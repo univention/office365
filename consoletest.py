@@ -202,7 +202,7 @@ if __name__ == "__main__":
 					"accountEnabled": True,
 					"displayName": name,
 					"mailNickname": name,
-					"immutableId": base64.encodestring(str(random.randint(100000000, 999999999))).rstrip(),
+					"immutableId": base64.b64encode(str(random.randint(100000000, 999999999))),
 					"passwordProfile": {
 						"password": "univention.99",
 						"forceChangePasswordNextLogin": False},
