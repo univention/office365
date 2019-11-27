@@ -59,10 +59,6 @@ if __name__ == '__main__':
 	_handler.setLevel(logging.INFO)
 	logger.addHandler(_handler)
 
-	if AzureAuth.is_initialized(args.adconnection_alias):
-		print('Error: Default Azure AD connection (in {!r}) already initialized. Exiting.'.format(conf_path))
-		sys.exit(1)
-
 	aliases = AzureADConnectionHandler.get_adconnection_aliases()
 	if args.adconnection_alias in aliases:
 		state = ucr.get('{}{}'.format(adconnection_alias_ucrv, args.adconnection_alias))
