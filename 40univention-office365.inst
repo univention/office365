@@ -70,10 +70,6 @@ if ! joinscript_check_any_version_executed || [ -n "$FORCE_NEW_CERT" ]; then
 
 	openssl x509 -in cert.pem -fingerprint -noout | sed 's/SHA1 Fingerprint=//g' | sed 's/://g' | xxd -r -ps | base64 > cert.fp || die
 
-	# create empty id and token stores
-	# TODO: initialize new default adconnection
-	# python -c 'from univention.office365.azure_auth import AzureAuth; AzureAuth.uninitialize()' || die
-
 	# set defensive permissions
 	chmod 0400 key.pem cert.pem cert.fp
 fi
