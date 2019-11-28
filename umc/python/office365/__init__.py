@@ -142,7 +142,7 @@ class Instance(Base):
 
 	@allow_get_request
 	def public_signing_cert(self, request):
-		with open(AzureADConnectionHandler.get_conf_path('SSL_CERT'), 'rb') as fd:
+		with open(AzureADConnectionHandler.get_conf_path('SSL_CERT', self.adconnection_alias), 'rb') as fd:
 			self.finished(request.id, fd.read(), mimetype='application/octet-stream')
 
 	@allow_get_request

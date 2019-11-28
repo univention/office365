@@ -701,7 +701,6 @@ class AzureAuth(object):
 		ucr = ConfigRegistry()
 		ucr.load()
 
-		issuer = ucr.get('umc/saml/idp-server', 'https://ucs-sso.ucs.local/simplesamlphp/saml2/idp/metadata.php')
 		ucs_sso_fqdn = ucr.get('ucs/server/sso/fqdn', "%s.%s" % (ucr.get('hostname', 'undefined'), ucr.get('domainname', 'undefined')))
 		cert = ""
 		try:
@@ -721,15 +720,21 @@ class AzureAuth(object):
 			logger.exception("while converting certificate: %s", exc)
 			raise WriteScriptError(_("Error converting identity provider certificate."), adconnection_alias=adconnection_alias)
 
+		saml_uri_supplement = ""
+		if adconnection_alias != "defaultADconnection":
+			saml_uri_supplement = '/%s' % adconnection_alias
+
+		issuer = 'https://{ssohost}/simplesamlphp{supplement}/saml2/idp/metadata.php'.format(ssohost=ucr.get('ucs/server/sso/fqdn', 'ucs-sso.{domain}'.format(domain=ucr.get('domainname'))), supplement=saml_uri_supplement)
+
 		# The raw base64 encoded certificate is required
 		cert = cert.replace('-----BEGIN CERTIFICATE-----', '').replace('-----END CERTIFICATE-----', '').replace('\n', '')
 		template = '''
 @ECHO OFF
 ECHO Asking for Azure Administator credentials
-powershell Connect-MsolService; Set-MsolDomainAuthentication -DomainName "{domain}" -Authentication Managed; Set-MsolDomainAuthentication -DomainName "{domain}" -FederationBrandName "UCS" -Authentication Federated -ActiveLogOnUri "https://{ucs_sso_fqdn}/simplesamlphp/saml2/idp/SSOService.php" -PassiveLogOnUri "https://{ucs_sso_fqdn}/simplesamlphp/saml2/idp/SSOService.php" -SigningCertificate "{cert}" -IssuerUri "{issuer}" -LogOffUri "https://{ucs_sso_fqdn}/simplesamlphp/saml2/idp/SingleLogoutService.php?ReturnTo=/univention/" -PreferredAuthenticationProtocol SAMLP;  Get-MsolDomain
+powershell Connect-MsolService; Set-MsolDomainAuthentication -DomainName "{domain}" -Authentication Managed; Set-MsolDomainAuthentication -DomainName "{domain}" -FederationBrandName "UCS" -Authentication Federated -ActiveLogOnUri "https://{ucs_sso_fqdn}/simplesamlphp{supplement}/saml2/idp/SSOService.php" -PassiveLogOnUri "https://{ucs_sso_fqdn}/simplesamlphp{supplement}/saml2/idp/SSOService.php" -SigningCertificate "{cert}" -IssuerUri "{issuer}" -LogOffUri "https://{ucs_sso_fqdn}/simplesamlphp{supplement}/saml2/idp/SingleLogoutService.php?ReturnTo=/univention/" -PreferredAuthenticationProtocol SAMLP;  Get-MsolDomain
 ECHO Finished single sign-on configuration change
 pause
-'''.format(domain=cls.get_domain(adconnection_alias), ucs_sso_fqdn=ucs_sso_fqdn, cert=cert, issuer=issuer)
+'''.format(domain=cls.get_domain(adconnection_alias), ucs_sso_fqdn=ucs_sso_fqdn, cert=cert, issuer=issuer, supplement=saml_uri_supplement)
 
 		try:
 			script_path = SAML_SETUP_SCRIPT_PATH.format(adconnection_alias='_{}'.format(adconnection_alias) if adconnection_alias else '')
