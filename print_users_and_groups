@@ -34,7 +34,7 @@ import sys
 from operator import itemgetter
 from univention.config_registry import ConfigRegistry
 from univention.office365.azure_handler import AzureHandler, ResourceNotFoundError
-from univention.office365.azure_auth import AzureAuth, get_adconnection_aliases
+from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
 
 
 def calc_column_lengths(data, data_fetchers, header_parts):
@@ -162,7 +162,7 @@ if __name__ == '__main__':
 	try:
 		adconnection_alias = sys.argv[1]
 		print('sys.argv={!r}'.format(sys.argv))
-		adconnection_aliases = get_adconnection_aliases().keys()
+		adconnection_aliases = AzureADConnectionHandler.get_adconnection_aliases().keys()
 		initialized_adconnections = [ta for ta in adconnection_aliases if AzureAuth.is_initialized(ta)]
 		print('adconnection_alias={!r} adconnection_aliases={!r} initialized_adconnections={!r}'.format(adconnection_alias, adconnection_aliases, initialized_adconnections))
 		if adconnection_alias not in adconnection_aliases:

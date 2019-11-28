@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-46) unstable; urgency=medium
+
+  * Bug #50573: Fix print_users_and_groups
+
+ -- Erik Damrose <damrose@univention.de>  Thu, 28 Nov 2019 14:05:08 +0100
+
 univention-office365 (2.0.2-45) unstable; urgency=medium
 
   * Bug #50573: Fix issues in wizard with certificate download and saml setup
