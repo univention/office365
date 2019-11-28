@@ -35,6 +35,7 @@ Univention Office 365 reset tokens
 from univention.config_registry import ConfigRegistry
 from univention.office365.azure_handler import AzureHandler
 from univention.office365.logging2udebug import get_logger
+from univention.office365.listener import Office365Listener
 import univention.admin.objects
 from optparse import OptionParser
 import traceback
@@ -82,7 +83,6 @@ if __name__ == '__main__':
 
 	base = ucr["ldap/base"]
 	try:
-		ah = AzureHandler(ucr, "tokens")
 		lo, po = univention.admin.uldap.getAdminConnection()
 		univention.admin.modules.update()
 		usermod = univention.admin.modules.get('users/user')
@@ -94,7 +94,7 @@ if __name__ == '__main__':
 
 	today = datetime.today()
 	today_as_string = today.strftime("%Y%m%d")
-	lookup_attributes = ["univentionOffice365TokenResetDate", "univentionOffice365ObjectID", "uid"]
+	lookup_attributes = ["univentionOffice365TokenResetDate", "univentionOffice365Data", "uid"]
 
 	lookup_result = []
 	if options.oneuser:
@@ -109,10 +109,13 @@ if __name__ == '__main__':
 					logger.info("Modified %s users, exiting", modified_users)
 					exit(0)
 
-				if options.newpassword:
-					ah.reset_user_password(user_id=ldap_user[1]["univentionOffice365ObjectID"][0])
-				if options.invalidatetokens:
-					ah.invalidate_all_tokens_for_user(user_id=ldap_user[1]["univentionOffice365ObjectID"][0])
+				adconnection_objects = Office365Listener.decode_o365data(ldap_user[1]["univentionOffice365Data"][0])
+				for alias, values in adconnection_objects.items():
+					ah = AzureHandler(ucr, name = "tokens", adconnection_alias = alias)
+					if options.newpassword:
+						ah.reset_user_password(user_id=values['objectId'])
+					if options.invalidatetokens:
+						ah.invalidate_all_tokens_for_user(user_id=values['objectId'])
 
 				# modify the ldap user, set the next modification date: base_reset_period + up to period_modifier days
 				next_mod_date = today + timedelta(days=base_reset_period + randrange(reset_period_modifier + 1))
