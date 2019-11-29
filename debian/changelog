@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-48) unstable; urgency=medium
+
+  * Bug #50573: Adapt user and group listener with QA feedback, fix hook
+
+ -- Erik Damrose <damrose@univention.de>  Fri, 29 Nov 2019 10:02:32 +0100
+
 univention-office365 (2.0.2-47) unstable; urgency=medium
 
   * Bug #50573: Fix o365_usertokens

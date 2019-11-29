@@ -264,7 +264,7 @@ def new_or_reactivate_user(ol, dn, new, old):
 				'userPrincipalName': new_user['userPrincipalName'],
 			}
 		}
-		old_azure_data_encoded = old.get('univentionOffice365Data', [''])[0]
+		old_azure_data_encoded = udm_user["UniventionOffice365Data"]
 		if old_azure_data_encoded:
 			# The account already has an Azure AD connection
 			old_azure_data = Office365Listener.decode_o365data(old_azure_data_encoded)
@@ -294,7 +294,7 @@ def delete_user(ol, dn, new, old):
 		udm_user["UniventionOffice365Data"] = Office365Listener.encode_o365data(None)
 		udm_user.modify()
 	else:
-		old_azure_data_encoded = old.get('univentionOffice365Data', [''])[0]
+		old_azure_data_encoded = udm_user["UniventionOffice365Data"]
 		if old_azure_data_encoded:
 			old_azure_data = Office365Listener.decode_o365data(old_azure_data_encoded)
 			try:
@@ -317,7 +317,7 @@ def deactivate_user(ol, dn, new, old):
 		udm_user["UniventionOffice365Data"] = Office365Listener.encode_o365data(None)
 		udm_user.modify()
 	else:
-		old_azure_data_encoded = old.get('univentionOffice365Data', [''])[0]
+		old_azure_data_encoded = udm_user["UniventionOffice365Data"]
 		if old_azure_data_encoded:
 			# The account already has an Azure AD connection
 			old_azure_data = Office365Listener.decode_o365data(old_azure_data_encoded)
@@ -344,7 +344,7 @@ def modify_user(ol, dn, new, old):
 				'userPrincipalName': azure_user['userPrincipalName'],
 			}
 		}
-		old_azure_data_encoded = old.get('univentionOffice365Data', [''])[0]
+		old_azure_data_encoded = udm_user["UniventionOffice365Data"]
 		if old_azure_data_encoded:
 			# The account already has an Azure AD connection
 			old_azure_data = Office365Listener.decode_o365data(old_azure_data_encoded)
