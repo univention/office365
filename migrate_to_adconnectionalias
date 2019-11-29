@@ -75,6 +75,32 @@ if __name__ == '__main__':
 		print('Error: Azure AD connection {!r} is not initialized after copying. Exiting.'.format(args.adconnection_alias))
 		sys.exit(1)
 
+	if args.dryrun:
+		ids_file = os.path.join(conf_path, 'ids.json')
+	else:
+		target_path = os.path.join(conf_path, args.adconnection_alias)
+		ids_file = os.path.join(target_path, 'ids.json')
+	with open(ids_file, 'rb') as fp:
+		ids = json.load(fp)
+		adconnection_id = ids['adconnection_id']
+
+	ucrv_set = '{}{}={}'.format(adconnection_alias_ucrv, args.adconnection_alias, adconnection_id)
+	print('Setting UCR {}...'.format(ucrv_set))
+	if not args.dryrun:
+		handler_set([ucrv_set])
+
+	handler_unset(['office365/migrate/adconnectionalias'])
+
+	print('Restarting the univention-directory-listener...')
+	if args.dryrun:
+		res = 0
+	else:
+		res = subprocess.call('systemctl restart univention-directory-listener.service'.split())
+	print('{}: Return value {!r} for "systemctl restart univention-directory-listener.service".'.format(
+		'OK' if res == 0 else 'Error',
+		res)
+	)
+
 	print('Searching for users to migrate in LDAP...')
 	users = UDMHelper.get_lo_o365_users(
 		attributes=['uid', 'univentionOffice365Enabled', 'univentionOffice365ObjectID', 'univentionOffice365userPrincipalName', 'univentionOffice365Data', ],
@@ -161,29 +187,5 @@ if __name__ == '__main__':
 		print('No groups found.')
 	print('Finished migrating groups.\n')
 
-	if args.dryrun:
-		ids_file = os.path.join(conf_path, 'ids.json')
-	else:
-		target_path = os.path.join(conf_path, args.adconnection_alias)
-		ids_file = os.path.join(target_path, 'ids.json')
-	with open(ids_file, 'rb') as fp:
-		ids = json.load(fp)
-		adconnection_id = ids['adconnection_id']
 
-	ucrv_set = '{}{}={}'.format(adconnection_alias_ucrv, args.adconnection_alias, adconnection_id)
-	print('Setting UCR {}...'.format(ucrv_set))
-	if not args.dryrun:
-		handler_set([ucrv_set])
-
-	handler_unset(['office365/migrate/adconnectionalias'])
-
-	print('Restarting the univention-directory-listener...')
-	if args.dryrun:
-		res = 0
-	else:
-		res = subprocess.call('systemctl restart univention-directory-listener.service'.split())
-	print('{}: Return value {!r} for "systemctl restart univention-directory-listener.service".'.format(
-		'OK' if res == 0 else 'Error',
-		res)
-	)
 	print('\nEnd of migration.\n')
