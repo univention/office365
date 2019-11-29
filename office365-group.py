@@ -124,7 +124,7 @@ def create_groups(ol, dn, new, old):
 			udm_group["UniventionOffice365ObjectID"] = new_group["objectId"]
 		else:
 			new_azure_data = {ol.adconnection_alias: new_group}
-			old_azure_data_encoded = old.get('univentionOffice365Data', [''])[0]
+			old_azure_data_encoded = udm_group["UniventionOffice365Data"]
 			if old_azure_data_encoded:
 				# The account already has an Azure AD connection
 				old_azure_data = Office365Listener.decode_o365data(old_azure_data_encoded)

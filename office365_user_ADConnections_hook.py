@@ -76,11 +76,15 @@ class Office365ADConnectionsHook(simpleHook):
 		adconnection_aliases = module.get("UniventionOffice365ADConnectionAlias", [])
 		for adconnection in adconnection_aliases:
 			try:
-				upn =  self.adconnection_data[adconnection]["userPrincipalName"]
+				upn = self.adconnection_data[adconnection]["userPrincipalName"]
 			except KeyError:
 				upn = ""
 			value = (adconnection, upn)
 			module["UniventionOffice365ADConnections"].append(value)
+
+	def hook_ldap_addlist(self, module, al=[]):
+		al = [a for a in al if a[0] != "dummyUniventionOffice365ADConnections"]
+		return al
 
 	def hook_ldap_modlist(self, module, ml=[]):
 		# remove virtual dummy attribute from modlist
@@ -98,7 +102,7 @@ class Office365ADConnectionsHook(simpleHook):
 		if adconnection_aliases_new == adconnection_aliases_old:
 			return ml
 
-		## Update the UniventionOffice365ADConnectionAlias list
+		# Update the UniventionOffice365ADConnectionAlias list
 		old = module.get("UniventionOffice365ADConnectionAlias")
 		new = list(adconnection_aliases_new)
 		if new != old:
