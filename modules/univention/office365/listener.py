@@ -114,7 +114,6 @@ class Office365Listener(object):
 
 		self.ah = AzureHandler(self.ucr, name, self.adconnection_alias)
 
-
 	@property
 	def verified_domains(self):
 		# Use handler.get_verified_domain_from_disk() for user creation.
@@ -698,7 +697,7 @@ class Office365Listener(object):
 		else:
 			deactivate_plans = set()
 		deactivate_plans.update(subscription_profile_to_use.blacklisted_plans)
-		logger.info('Deactivating plans %s (%s).', ', '.join(deactivate_plans, self.adconnection_alias))
+		logger.info('Deactivating plans %s (%s).' % (deactivate_plans, self.adconnection_alias))
 		deactivate_plan_ids = [plan_names_to_ids[plan] for plan in deactivate_plans]
 		self.ah.add_license(azure_user['objectId'], subscription_profile_to_use.skuId, deactivate_plan_ids)
 

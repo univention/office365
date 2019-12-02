@@ -159,12 +159,13 @@ def print_users_and_groups(adconnection_alias=None):
 
 
 if __name__ == '__main__':
+	if not len(sys.argv) == 2:
+		print('Usage: {} [Azure AD connection alias]'.format(sys.argv[0]))
+		sys.exit(1)
 	try:
 		adconnection_alias = sys.argv[1]
-		print('sys.argv={!r}'.format(sys.argv))
 		adconnection_aliases = AzureADConnectionHandler.get_adconnection_aliases().keys()
 		initialized_adconnections = [ta for ta in adconnection_aliases if AzureAuth.is_initialized(ta)]
-		print('adconnection_alias={!r} adconnection_aliases={!r} initialized_adconnections={!r}'.format(adconnection_alias, adconnection_aliases, initialized_adconnections))
 		if adconnection_alias not in adconnection_aliases:
 			print('Usage: {} [Azure AD connection alias]'.format(sys.argv[0]))
 			print('Unknown Azure AD connection alias {!r}.'.format(adconnection_alias))

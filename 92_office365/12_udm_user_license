@@ -106,6 +106,7 @@ with utils.AutomaticListenerRestart():
 				for plan in subscription['servicePlans']:
 					ids_to_plan_names[plan['servicePlanId']] = plan['servicePlanName']
 
+			time.sleep(10)
 			azure_user = ol.ah.list_users(objectid=user_id)
 
 			# deleting as early as possible to free license, and because cleanup fails sometimes
@@ -180,6 +181,7 @@ with utils.AutomaticListenerRestart():
 						'Subscription loaded from LDAP for user %r differs to expectation:\nexpected: %r\nfound: %r' %
 						(udm_user['username'], profile_kwargs, subscription))
 
+				time.sleep(10)
 				azure_user = ol.ah.list_users(objectid=user_id)
 
 				# deleting as early as possible to free license, and because cleanup fails sometimes
@@ -194,22 +196,22 @@ with utils.AutomaticListenerRestart():
 						(azure_user['assignedLicenses'], subscription.subscription))
 
 				enabled_plans = set()
-				disabled_plans = set()
 				for plan in azure_user['assignedPlans']:
 					if plan['capabilityStatus'] == 'Enabled':
 						enabled_plans.add(ids_to_plan_names[plan['servicePlanId']])
-					else:
-						disabled_plans.add(ids_to_plan_names[plan['servicePlanId']])
 				whitelisted_plans = set(profile_kwargs['whitelisted_plans'])
 				blacklisted_plans = set(profile_kwargs['blacklisted_plans'])
 
-				debug_msg = 'whitelisted_plans=%r\nblacklisted_plans=%r\nenabled_plans=%r\ndisabled_plans=%r' % (
-					whitelisted_plans, blacklisted_plans, enabled_plans, disabled_plans)
+				debug_msg = 'whitelisted_plans=%r\nblacklisted_plans=%r\nenabled_plans=%r' % (
+					whitelisted_plans, blacklisted_plans, enabled_plans)
 
-				if blacklisted_plans - disabled_plans:
+				# Only enabled plans are noted on the azure object representation,
+				# we have to check if any blacklisted plan that is also whitelisted is
+				# not in the list of enabled plans
+				if blacklisted_plans.intersection(enabled_plans):
 					utils.fail(
 						'Blacklisted plans were not disabled: %r\n%s' %
-						(blacklisted_plans - disabled_plans, debug_msg))
+						(blacklisted_plans - enabled_plans, debug_msg))
 				if whitelisted_plans - blacklisted_plans - enabled_plans:
 					utils.fail(
 						'Whitelisted plans were not enabled: %r\n%s' %

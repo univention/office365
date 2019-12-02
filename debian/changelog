@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-50) unstable; urgency=medium
+
+  * Bug #50573: Fix delete user in user listener, fix subscription test
+
+ -- Erik Damrose <damrose@univention.de>  Mon, 02 Dec 2019 15:17:36 +0100
+
 univention-office365 (2.0.2-49) unstable; urgency=medium
 
   * Bug #50573: Change command order in migration script, restart listener at
