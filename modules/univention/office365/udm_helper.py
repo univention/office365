@@ -59,7 +59,7 @@ class UDMHelper(object):
 	@classmethod
 	def clean_udm_objects(cls, module_s, base, ldap_cred, adconnection_filter=''):
 		"""
-		Remove  univentionOffice365ObjectID and univentionOffice365Data from all
+		Remove  univentionOffice365Data from all
 		user/group objects, static for listener.clean().
 
 		:param module_s: str: "users/user", "groups/group", etc
@@ -68,13 +68,12 @@ class UDMHelper(object):
 		:param adconnection_filter: str: optional LDAP filter to remove data only
 		from matching LDAP objects
 		"""
-		filter_s = "(&(objectClass=univentionOffice365)(|(univentionOffice365ObjectID=*)(univentionOffice365Data=*)){})".format(adconnection_filter)
+		filter_s = "(&(objectClass=univentionOffice365)(univentionOffice365Data=*){})".format(adconnection_filter)
 		logger.info("Cleaning %r objects with filter=%r....", module_s, filter_s)
 		udm_objs = cls.find_udm_objects(module_s, filter_s, base, ldap_cred)
 		for udm_obj in udm_objs:
 			udm_obj.open()
 			logger.info("%r...", udm_obj["username"] if "username" in udm_obj else udm_obj["name"])
-			udm_obj["UniventionOffice365ObjectID"] = None
 			if "UniventionOffice365Data" in udm_obj:
 				udm_obj["UniventionOffice365Data"] = base64.b64encode(zlib.compress(json.dumps(None)))
 			udm_obj.modify()
@@ -198,7 +197,7 @@ class UDMHelper(object):
 		else:
 			adconnection_filter = ''
 
-		filter_s = '(&(objectClass=posixAccount)(objectClass=univentionOffice365)(uid=*)(univentionOffice365ObjectID=*){}{}{})'.format(adconnection_filter, enabled_filter, additional_filter)
+		filter_s = '(&(objectClass=posixAccount)(objectClass=univentionOffice365)(uid=*)(univentionOffice365ADConnectionAlias=*){}{}{})'.format(adconnection_filter, enabled_filter, additional_filter)
 		logger.debug('filter_s=%r', filter_s)
 		return cls._get_lo_o365_objects(filter_s, attributes)
 
@@ -216,7 +215,7 @@ class UDMHelper(object):
 			adconnection_filter = filter_format('(univentionOffice365ADConnectionAlias=%s)', (adconnection_alias,))
 		else:
 			adconnection_filter = ''
-		filter_s = '(&(objectClass=posixGroup)(objectClass=univentionOffice365)(cn=*)(univentionOffice365ObjectID=*){}{})'.format(adconnection_filter, additional_filter)
+		filter_s = '(&(objectClass=posixGroup)(objectClass=univentionOffice365)(cn=*)(univentionOffice365ADConnectionAlias=*){}{})'.format(adconnection_filter, additional_filter)
 		return cls._get_lo_o365_objects(filter_s, attributes)
 
 	@classmethod
