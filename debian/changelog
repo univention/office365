@@ -1,3 +1,10 @@
+univention-office365 (2.0.2-51) unstable; urgency=medium
+
+  * Bug #50579: Adjust group listener code to new multi-connection data
+    model
+
+ -- Arvid Requate <requate@univention.de>  Mon, 02 Dec 2019 18:11:31 +0100
+
 univention-office365 (2.0.2-50) unstable; urgency=medium
 
   * Bug #50573: Fix delete user in user listener, fix subscription test

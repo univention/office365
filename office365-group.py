@@ -47,6 +47,7 @@ from univention.office365.logging2udebug import get_logger
 
 logger = get_logger("office365", "o365")
 listener.configRegistry.load()
+
 adconnection_aliases = AzureADConnectionHandler.get_adconnection_aliases()
 initialized_adconnections = [_ta for _ta in adconnection_aliases if AzureAuth.is_initialized(_ta)]
 
@@ -57,7 +58,7 @@ logger.info('Found initialized adconnections: %r', initialized_adconnections)
 name = 'office365-group'
 description = 'sync groups to office 365'
 if not listener.configRegistry.is_true("office365/groups/sync", False):
-	filter = '(objectClass=deactivatedOffice365GroupListener)'  # "objectClass" is indexed
+	filter = '(entryCSN=)'  # not matching anything, evaluated by UDL filter implementation
 	logger.warn("office 365 group listener deactivated by UCR office365/groups/sync")
 elif initialized_adconnections:
 	filter = '(&(objectClass=posixGroup)(objectClass=univentionOffice365){})'.format(get_adconnection_filter(listener.configRegistry, adconnection_aliases))
@@ -114,23 +115,12 @@ def clean():
 	logger.info("Removing Office 365 ObjectID and Data from all users (adconnection_filter=%r)...", adconnection_filter)
 	UDMHelper.clean_udm_objects("groups/group", listener.configRegistry["ldap/base"], ldap_cred, adconnection_filter)
 
-
 def create_groups(ol, dn, new, old):
-	for groupdn in ol.udm.udm_groups_with_azure_users(dn):
-		new_group = ol.create_group_from_ldap(groupdn)
+	if ol.udm.udm_groups_with_azure_users(dn):
+		new_group = ol.create_group_from_new(new)
 		# save Azure objectId in UDM object
 		udm_group = ol.udm.get_udm_group(dn)
-		if listener.configRegistry.is_false('office365/migrate/adconnectionalias'):
-			udm_group["UniventionOffice365ObjectID"] = new_group["objectId"]
-		else:
-			new_azure_data = {ol.adconnection_alias: new_group}
-			old_azure_data_encoded = udm_group["UniventionOffice365Data"]
-			if old_azure_data_encoded:
-				# The account already has an Azure AD connection
-				old_azure_data = Office365Listener.decode_o365data(old_azure_data_encoded)
-				new_azure_data = old_azure_data.update(new_azure_data)
-			new_group["UniventionOffice365Data"] = Office365Listener.encode_o365data(new_azure_data)
-		udm_group.modify()
+		ol.set_adconection_object_id(udm_group, new_group["objectId"])
 		logger.info("Created group with displayName: %r (%r) adconnection: %s", new_group["displayName"], new_group["objectId"], ol.adconnection_alias)
 
 
@@ -151,40 +141,12 @@ def handler(dn, new, old, command):
 	adconnection_aliases_new = set(new.get('univentionOffice365ADConnectionAlias', []))
 	logger.info('adconnection_alias_old=%r adconnection_alias_new=%r', adconnection_aliases_old, adconnection_aliases_new)
 
-	old_enabled = bool(int(old.get("univentionOffice365Enabled", ["0"])[0]))
-	if old_enabled:
-		old_adconnection_enabled = adconnection_aliases_old.issubset(initialized_adconnections)
-		logger.debug("old Azure AD connection is %s.", "enabled" if old_adconnection_enabled else "not initialized")
-		old_enabled &= old_adconnection_enabled
-
-	new_enabled = bool(int(new.get("univentionOffice365Enabled", ["0"])[0]))
-	if new_enabled:
-		new_adconnection_enabled = adconnection_aliases_new.issubset(initialized_adconnections)
-		logger.debug("new Azure AD connection is %s.", "enabled" if new_adconnection_enabled else "not initialized")
-		new_enabled &= new_adconnection_enabled
-
-	logger.debug("new_enabled=%r old_enabled=%r", new_enabled, old_enabled)
-
-	if new_enabled and old_enabled:
-		logger.info("new_enabled and adconnection_alias_old=%r and adconnection_alias_new=%r -> MODIFY (DELETE old, CREATE new) (%s)", adconnection_aliases_old, adconnection_aliases_new, dn)
-		connections_to_be_deleted = adconnection_aliases_old - adconnection_aliases_new
-		logger.info("DELETE (%s | %s)", connections_to_be_deleted, dn)
-		for conn in connections_to_be_deleted:
-			ol = Office365Listener(listener, name, dict(listener=attributes_copy), ldap_cred, dn, conn)
-			ol.delete_group(dn)
-
-		connections_to_be_created = adconnection_aliases_new - adconnection_aliases_old
-		logger.info("CREATE (%s | %s)", connections_to_be_created, dn)
-		for conn in connections_to_be_created:
-			ol = Office365Listener(listener, name, dict(listener=attributes_copy), ldap_cred, dn, conn)
-			create_groups(ol, dn, new, old)
-
 	#
 	# NEW group
 	#
-	if new and new_enabled and not old:
+	if new and not old:
 		logger.debug("new and not old -> NEW (%s)", dn)
-		for conn in adconnection_aliases_new:
+		for conn in initialized_adconnections:
 			ol = Office365Listener(listener, name, dict(listener=attributes_copy), ldap_cred, dn, conn)
 			create_groups(ol, dn, new, old)
 		logger.debug("done (%s)", dn)
@@ -193,20 +155,19 @@ def handler(dn, new, old, command):
 	#
 	# DELETE group
 	#
-	if old and old_enabled and not new:
+	if old and not new:
 		logger.debug("old and not new -> DELETE (%s)", dn)
-		for conn in adconnection_aliases_old:
+		for conn in initialized_adconnections:
 			ol = Office365Listener(listener, name, dict(listener=attributes_copy), ldap_cred, dn, conn)
-			ol.delete_group(dn)
-			logger.info("Deleted group %r (%r).", old["cn"][0], conn)
+			ol.delete_group(old)
 		return
 
 	#
 	# MODIFY group
 	#
-	if old and new and new_enabled:
+	if old and new:
 		logger.debug("old and new -> MODIFY (%s)", dn)
-		for conn in adconnection_aliases_new:
+		for conn in initialized_adconnections:
 			ol = Office365Listener(listener, name, dict(listener=attributes_copy), ldap_cred, dn, conn)
 			azure_group = ol.modify_group(old, new)
 			# save Azure objectId in UDM object
@@ -216,8 +177,6 @@ def handler(dn, new, old, command):
 				# None -> group was deleted
 				object_id = None
 			udm_group = ol.udm.get_udm_group(dn)
-			udm_group["UniventionOffice365ObjectID"] = object_id
-			udm_group.modify()
-
-			logger.info("Modified group %r (%r).", old["cn"][0], object_id)
+			ol.set_adconection_object_id(udm_group, object_id)
+			logger.info("Modified group %r (%r).", old["cn"][0], conn)
 		return
