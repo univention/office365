@@ -61,7 +61,7 @@ if not listener.configRegistry.is_true("office365/groups/sync", False):
 	filter = '(entryCSN=)'  # not matching anything, evaluated by UDL filter implementation
 	logger.warn("office 365 group listener deactivated by UCR office365/groups/sync")
 elif initialized_adconnections:
-	filter = '(&(objectClass=posixGroup)(objectClass=univentionOffice365){})'.format(get_adconnection_filter(listener.configRegistry, adconnection_aliases))
+	filter = '(&(objectClass=posixGroup){})'.format(get_adconnection_filter(listener.configRegistry, adconnection_aliases))
 	logger.info("office 365 group listener active with filter=%r", filter)
 else:
 	filter = '(objectClass=deactivatedOffice365GroupListener)'
@@ -120,7 +120,7 @@ def create_groups(ol, dn, new, old):
 		new_group = ol.create_group_from_new(new)
 		# save Azure objectId in UDM object
 		udm_group = ol.udm.get_udm_group(dn)
-		ol.set_adconection_object_id(udm_group, new_group["objectId"])
+		ol.set_adconnection_object_id(udm_group, new_group["objectId"])
 		logger.info("Created group with displayName: %r (%r) adconnection: %s", new_group["displayName"], new_group["objectId"], ol.adconnection_alias)
 
 
@@ -169,14 +169,34 @@ def handler(dn, new, old, command):
 		logger.debug("old and new -> MODIFY (%s)", dn)
 		for conn in initialized_adconnections:
 			ol = Office365Listener(listener, name, dict(listener=attributes_copy), ldap_cred, dn, conn)
-			azure_group = ol.modify_group(old, new)
-			# save Azure objectId in UDM object
-			try:
-				object_id = azure_group["objectId"]
-			except TypeError:
-				# None -> group was deleted
-				object_id = None
-			udm_group = ol.udm.get_udm_group(dn)
-			ol.set_adconection_object_id(udm_group, object_id)
-			logger.info("Modified group %r (%r).", old["cn"][0], conn)
+			if ol.udm.udm_groups_with_azure_users(dn):
+				azure_group = ol.modify_group(old, new)
+				# save Azure objectId in UDM object
+				try:
+					object_id = azure_group["objectId"]
+				except TypeError:
+					# None -> group was deleted
+					object_id = None
+				udm_group = ol.udm.get_udm_group(dn)
+				ol.set_adconnection_object_id(udm_group, object_id)
+				logger.info("Modified group %r (%r).", old["cn"][0], conn)
+			else:
+				logger.debug("Modified group %r has no members in %r.", new["cn"][0], conn)
+				## Handle case where no active user is left in the group and any nested group
+				if (
+					conn in new.get("univentionOffice365ADConnectionAlias", []) or
+					conn in old.get("univentionOffice365ADConnectionAlias", [])
+				):
+					azure_group = ol.modify_group(old, new)
+					# save Azure objectId in UDM object
+					try:
+						object_id = azure_group["objectId"]
+					except TypeError:
+						# None -> group was deleted
+						object_id = None
+					udm_group = ol.udm.get_udm_group(dn)
+					ol.set_adconnection_object_id(udm_group, object_id)
+					logger.info("Modified group %r (%r).", old["cn"][0], conn)
+
+				continue
 		return

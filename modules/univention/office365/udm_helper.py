@@ -237,6 +237,13 @@ class UDMHelper(object):
 		return cls.lo, cls.po
 
 	@classmethod
+	def lookup_udm_group(cls, name):
+		lo, po, mod = cls.init_udm("groups/group")
+		udm_objs = mod.lookup(None, lo, filter_s="cn=%s" % escape_filter_chars(name), unique=True)
+		if udm_objs:
+			return udm_objs[0].open()
+
+	@classmethod
 	def get_udm_obj(cls, module_name, dn, attributes=None):
 		lo, po, mod = cls.init_udm(module_name)
 		obj = mod.object(None, lo, po, dn, attributes=attributes)

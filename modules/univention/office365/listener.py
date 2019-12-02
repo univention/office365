@@ -197,7 +197,7 @@ class Office365Listener(object):
 			try:
 				azure_data_encoded = old_or_new['univentionOffice365Data'][0]
 				try:
-					azure_data = self.decode_o365data(azure_data_encoded)
+					azure_data = self.decode_o365data(azure_data_encoded) or {}
 				except Exception:
 					azure_data = {}
 			except (KeyError, IndexError):
@@ -233,7 +233,7 @@ class Office365Listener(object):
 			try:
 				azure_data_encoded = udm_obj['UniventionOffice365Data']
 				try:
-					azure_data = self.decode_o365data(azure_data_encoded)
+					azure_data = self.decode_o365data(azure_data_encoded) or {}
 				except Exception:
 					azure_data = {}
 			except KeyError:
@@ -360,19 +360,15 @@ class Office365Listener(object):
 			return
 		try:
 			azure_group = self.ah.delete_group(object_id)
-			logger.info("Deleted group %r (%r).", old["cn"][0], self.adconnection_alias)
+			logger.info("Deleted group %r from Azure AD '%r'", old["cn"][0], self.adconnection_alias)
 			return azure_group
 		except ResourceNotFoundError as exc:
 			logger.error("Group %r didn't exist in Azure: %r.", old["cn"][0], exc)
 			return
 
-	def set_adconection_object_id(self, udm_group, object_id):
+	def set_adconnection_object_id(self, udm_group, object_id):
 		if self.not_migrated_to_v3:
 			udm_group["UniventionOffice365ObjectID"] = object_id
-			if object_id:
-				udm_group["UniventionOffice365ADConnectionAlias"] = self.adconnection_alias
-			else:
-				udm_group["UniventionOffice365ADConnectionAlias"] = None
 		else:
 			azure_data_encoded = udm_group.get("UniventionOffice365Data")
 			try:
@@ -404,7 +400,7 @@ class Office365Listener(object):
 				udm_group["UniventionOffice365ADConnectionAlias"] = [x for x in udm_group["UniventionOffice365ADConnectionAlias"] if x != self.adconnection_alias]
 		udm_group.modify()
 
-	def delete_empty_group(self, group_id):
+	def delete_empty_group(self, group_id, udm_group=None):
 		"""
 		Recursively look if a group or any of it parent groups is empty and remove it.
 		:param group_id: str: object id of group (and its parents) to check
@@ -433,12 +429,34 @@ class Office365Listener(object):
 			if all(azure_obj["mailNickname"].startswith("ZZZ_deleted_") for azure_obj in azure_objs):
 				logger.info("All members of group %r (%s) are deactivated, deleting it.", group_id, self.adconnection_alias)
 				self.ah.delete_group(group_id)
+				if not udm_group:
+					try:
+						azure_group = self.ah.list_groups(objectid=group_id)
+					except ResourceNotFoundError:
+						# ignore
+						azure_group = None
+						logger.error("Office365Listener.delete_empty_group() failed to find own group: %r, ignoring.", group_id)
+					if azure_group:
+						udm_group = self.udm.lookup_udm_group(azure_group["displayName"])
+				if udm_group:  # TODO: lookup group in UDM if not given
+					self.set_adconnection_object_id(udm_group, None)
 			else:
 				logger.debug("Group has active members, not deleting it.")
 				return False
 		else:
 			logger.info("Removing empty group %r (%s)...", group_id, self.adconnection_alias)
 			self.ah.delete_group(group_id)
+			if not udm_group:
+				try:
+					azure_group = self.ah.list_groups(objectid=group_id)
+				except ResourceNotFoundError:
+					# ignore
+					azure_group = None
+					logger.error("Office365Listener.delete_empty_group() failed to find own group: %r, ignoring.", group_id)
+				if azure_group:
+					udm_group = self.udm.lookup_udm_group(azure_group["displayName"])
+			if udm_group:  # TODO: lookup group in UDM if not given
+				self.set_adconnection_object_id(udm_group, None)
 
 		# check parent groups
 		for nested_parent_group_id in nested_parent_group_ids:
@@ -459,14 +477,15 @@ class Office365Listener(object):
 			logger.debug("No modifications found, ignoring.")
 			return dict(objectId=object_id)
 
+		udm_group = self.udm.get_udm_group(self.dn)
+
 		if not object_id:
 			# just create a new group
 			logger.info("No objectID for group %r found, creating a new azure group...", self.dn)
 			azure_group = self.create_group_from_new(new)
 			object_id = azure_group["objectId"]
 			modification_attributes = dict()
-			udm_group = self.udm.get_udm_group(self.dn)
-			self.set_adconection_object_id(udm_group, object_id)
+			self.set_adconnection_object_id(udm_group, object_id)
 
 		try:
 			azure_group = self.ah.list_groups(objectid=object_id)
@@ -497,7 +516,6 @@ class Office365Listener(object):
 			removed_members = set_old - set_new
 			added_members = set_new - set_old
 			logger.debug("dn=%r added_members=%r removed_members=%r", self.dn, added_members, removed_members)
-			udm_group = self.udm.get_udm_group(self.dn)
 
 			# add new members to Azure
 			users_and_groups_to_add = list()
@@ -522,7 +540,7 @@ class Office365Listener(object):
 						except KeyError:
 							new_group = self.create_group_from_udm(udm_group_with_azure_users)
 							member_object_id = new_group["objectId"]
-							self.set_adconection_object_id(udm_group_with_azure_users, member_object_id)
+							self.set_adconnection_object_id(udm_group_with_azure_users, member_object_id)
 						if group_with_azure_users in udm_group["nestedGroup"]:  # only add direct members to group
 							users_and_groups_to_add.append(member_object_id)
 				else:
@@ -577,7 +595,7 @@ class Office365Listener(object):
 				self.ah.delete_group_member(group_id=object_id, member_id=member_id)
 
 		# remove group if it became empty
-		deleted = self.delete_empty_group(object_id)
+		deleted = self.delete_empty_group(object_id, udm_group)
 		if deleted:
 			return None
 
@@ -632,7 +650,7 @@ class Office365Listener(object):
 				except KeyError:
 					new_group = self.create_group_from_udm(udm_group, add_members=False)
 					member_object_id = new_group["objectId"]
-					self.set_adconection_object_id(udm_group, member_object_id)
+					self.set_adconnection_object_id(udm_group, member_object_id)
 				if group_with_azure_users_dn in udm_target_group["nestedGroup"]:
 					users_and_groups_to_add.append(member_object_id)
 
@@ -649,7 +667,7 @@ class Office365Listener(object):
 				except KeyError:
 					new_group = self.create_group_from_udm(udm_member, add_members=False)
 					member_object_id = new_group["objectId"]
-					self.set_adconection_object_id(udm_member, member_object_id)
+					self.set_adconnection_object_id(udm_member, member_object_id)
 
 				_groups_up_the_tree(udm_member)
 

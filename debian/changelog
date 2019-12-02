@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-53) unstable; urgency=medium
+
+  * Bug #50579: Fixes from udm-test results
+
+ -- Arvid Requate <requate@univention.de>  Mon, 02 Dec 2019 22:05:04 +0100
+
 univention-office365 (2.0.2-52) unstable; urgency=medium
 
   * Bug #50579: replace _assign_adconection_object_id function
