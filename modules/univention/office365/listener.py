@@ -241,6 +241,8 @@ class Office365Listener(object):
 		# May throw KeyError:
 		azure_connection_data = azure_data[self.adconnection_alias]
 		object_id = azure_connection_data["objectId"]
+		if not object_id:
+			raise KeyError
 		return object_id
 
 	def delete_user(self, old):
@@ -402,41 +404,6 @@ class Office365Listener(object):
 				udm_group["UniventionOffice365ADConnectionAlias"] = [x for x in udm_group["UniventionOffice365ADConnectionAlias"] if x != self.adconnection_alias]
 		udm_group.modify()
 
-	def _assign_adconection_object_id(self, udm_group, object_id_generator, post_action=None):
-		if self.not_migrated_to_v3:
-			if not udm_group.get("UniventionOffice365ObjectID"):
-				object_id = object_id_generator()
-				udm_group["UniventionOffice365ObjectID"] = object_id
-				udm_group["UniventionOffice365ADConnectionAlias"] = self.adconnection_alias
-				udm_group.modify()
-				if post_action:
-					post_action(object_id)
-		else:
-			azure_data_encoded = udm_group.get("UniventionOffice365Data")
-			try:
-				azure_data = self.decode_o365data(azure_data_encoded)
-			except TypeError:
-				azure_data = {}
-			try:
-				azure_connection_data = azure_data[self.adconnection_alias]
-			except KeyError:
-				object_id = object_id_generator()
-				azure_connection_data = {
-					'objectId': object_id
-				}
-				new_azure_data = {
-					self.adconnection_alias: azure_connection_data
-				}
-				if azure_data:
-					azure_data.update(new_azure_data)
-					new_azure_data = azure_data
-				new_azure_data_encoded = self.encode_o365data(new_azure_data)
-				udm_group["UniventionOffice365Data"] = new_azure_data_encoded
-				udm_group["UniventionOffice365ADConnectionAlias"].append(self.adconnection_alias)
-				udm_group.modify()
-				if post_action:
-					post_action(object_id)
-
 	def delete_empty_group(self, group_id):
 		"""
 		Recursively look if a group or any of it parent groups is empty and remove it.
@@ -499,7 +466,7 @@ class Office365Listener(object):
 			object_id = azure_group["objectId"]
 			modification_attributes = dict()
 			udm_group = self.udm.get_udm_group(self.dn)
-			self._assign_adconection_object_id(udm_group, lambda: object_id)
+			self.set_adconection_object_id(udm_group, object_id)
 
 		try:
 			azure_group = self.ah.list_groups(objectid=object_id)
@@ -540,8 +507,8 @@ class Office365Listener(object):
 					udm_user = self.udm.get_udm_user(added_member)
 					if int(udm_user.get("UniventionOffice365Enabled", "0")):
 						try:
-							object_id = self._object_id_from_udm_object(udm_user)
-							users_and_groups_to_add.append(object_id)
+							member_object_id = self._object_id_from_udm_object(udm_user)
+							users_and_groups_to_add.append(member_object_id)
 						except KeyError:
 							pass
 				elif added_member in udm_group["nestedGroup"]:
@@ -550,16 +517,14 @@ class Office365Listener(object):
 					for group_with_azure_users in self.udm.udm_groups_with_azure_users(added_member):
 						logger.debug("Found nested group %r with azure users...", group_with_azure_users)
 						udm_group_with_azure_users = self.udm.get_udm_group(group_with_azure_users)
-
-						def create_aad_group_from_ldap():
+						try:
+							member_object_id = self._object_id_from_udm_object(udm_group_with_azure_users)
+						except KeyError:
 							new_group = self.create_group_from_udm(udm_group_with_azure_users)
-							return new_group["objectId"]
-
-						def append_to_users_and_groups_to_add(object_id):
-							if group_with_azure_users in udm_group["nestedGroup"]:  # only add direct members to group
-								users_and_groups_to_add.append(object_id)
-
-						self._assign_adconection_object_id(udm_group_with_azure_users, create_aad_group_from_ldap, append_to_users_and_groups_to_add)
+							member_object_id = new_group["objectId"]
+							self.set_adconection_object_id(udm_group_with_azure_users, member_object_id)
+						if group_with_azure_users in udm_group["nestedGroup"]:  # only add direct members to group
+							users_and_groups_to_add.append(member_object_id)
 				else:
 					raise RuntimeError(
 						"Office365Listener.modify_group() {!r} from new[uniqueMember] not in "
@@ -662,16 +627,14 @@ class Office365Listener(object):
 			# check if this group or any of its nested groups has azure_users
 			for group_with_azure_users_dn in self.udm.udm_groups_with_azure_users(groupdn):
 				udm_group = self.udm.get_udm_group(group_with_azure_users_dn)
-
-				def create_aad_group_from_ldap():
+				try:
+					member_object_id = self._object_id_from_udm_object(udm_group)
+				except KeyError:
 					new_group = self.create_group_from_udm(udm_group, add_members=False)
-					return new_group["objectId"]
-
-				def append_to_users_and_groups_to_add(object_id):
-					if group_with_azure_users_dn in udm_target_group["nestedGroup"]:
-						users_and_groups_to_add.append(object_id)
-
-				self._assign_adconection_object_id(udm_group, create_aad_group_from_ldap, append_to_users_and_groups_to_add)
+					member_object_id = new_group["objectId"]
+					self.set_adconection_object_id(udm_group, member_object_id)
+				if group_with_azure_users_dn in udm_target_group["nestedGroup"]:
+					users_and_groups_to_add.append(member_object_id)
 
 		# add users to groups
 		if users_and_groups_to_add:
@@ -681,12 +644,12 @@ class Office365Listener(object):
 		def _groups_up_the_tree(group):
 			for member_dn in group["memberOf"]:
 				udm_member = self.udm.get_udm_group(member_dn)
-
-				def create_aad_group_from_ldap():
+				try:
+					member_object_id = self._object_id_from_udm_object(udm_member)
+				except KeyError:
 					new_group = self.create_group_from_udm(udm_member, add_members=False)
-					return new_group["objectId"]
-
-				self._assign_adconection_object_id(udm_member, create_aad_group_from_ldap)
+					member_object_id = new_group["objectId"]
+					self.set_adconection_object_id(udm_member, member_object_id)
 
 				_groups_up_the_tree(udm_member)
 

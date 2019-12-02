@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-52) unstable; urgency=medium
+
+  * Bug #50579: replace _assign_adconection_object_id function
+
+ -- Arvid Requate <requate@univention.de>  Mon, 02 Dec 2019 18:38:22 +0100
+
 univention-office365 (2.0.2-51) unstable; urgency=medium
 
   * Bug #50579: Adjust group listener code to new multi-connection data
