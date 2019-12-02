@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-54) unstable; urgency=medium
+
+  * Bug #50579: Fix LDAP equality matching for UniventionOffice365Data
+
+ -- Arvid Requate <requate@univention.de>  Tue, 03 Dec 2019 00:25:58 +0100
+
 univention-office365 (2.0.2-53) unstable; urgency=medium
 
   * Bug #50579: Fixes from udm-test results
