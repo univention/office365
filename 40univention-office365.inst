@@ -292,7 +292,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set ldapMapping=univentionOffice365ADConnectionAlias \
 	--set deleteObjectClass=0 \
 	--set overwriteTab=0 \
-	--set disableUDMWeb=0 || die
+	--set disableUDMWeb=1 || die
 
 # New installation - no joinscript has ever run
 if ! joinscript_check_any_version_executed; then
