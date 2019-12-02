@@ -30,9 +30,6 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-import json
-import base64
-import zlib
 from ldap.filter import filter_format, escape_filter_chars
 import univention.admin.uldap
 import univention.admin.objects
@@ -75,7 +72,7 @@ class UDMHelper(object):
 			udm_obj.open()
 			logger.info("%r...", udm_obj["username"] if "username" in udm_obj else udm_obj["name"])
 			if "UniventionOffice365Data" in udm_obj:
-				udm_obj["UniventionOffice365Data"] = base64.b64encode(zlib.compress(json.dumps(None)))
+				udm_obj["UniventionOffice365Data"] = None
 			udm_obj.modify()
 		logger.info("Cleaning done.")
 
@@ -195,9 +192,9 @@ class UDMHelper(object):
 		if adconnection_alias:
 			adconnection_filter = filter_format('(univentionOffice365ADConnectionAlias=%s)', (adconnection_alias,))
 		else:
-			adconnection_filter = ''
+			adconnection_filter = '(univentionOffice365ADConnectionAlias=*)'
 
-		filter_s = '(&(objectClass=posixAccount)(objectClass=univentionOffice365)(uid=*)(univentionOffice365ADConnectionAlias=*){}{}{})'.format(adconnection_filter, enabled_filter, additional_filter)
+		filter_s = '(&(objectClass=posixAccount)(objectClass=univentionOffice365)(uid=*){}{}{})'.format(adconnection_filter, enabled_filter, additional_filter)
 		logger.debug('filter_s=%r', filter_s)
 		return cls._get_lo_o365_objects(filter_s, attributes)
 
@@ -214,8 +211,8 @@ class UDMHelper(object):
 		if adconnection_alias:
 			adconnection_filter = filter_format('(univentionOffice365ADConnectionAlias=%s)', (adconnection_alias,))
 		else:
-			adconnection_filter = ''
-		filter_s = '(&(objectClass=posixGroup)(objectClass=univentionOffice365)(cn=*)(univentionOffice365ADConnectionAlias=*){}{})'.format(adconnection_filter, additional_filter)
+			adconnection_filter = '(univentionOffice365ADConnectionAlias=*)'
+		filter_s = '(&(objectClass=posixGroup)(objectClass=univentionOffice365)(cn=*){}{})'.format(adconnection_filter, additional_filter)
 		return cls._get_lo_o365_objects(filter_s, attributes)
 
 	@classmethod
