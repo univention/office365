@@ -1,3 +1,10 @@
+univention-office365 (2.0.2-55) unstable; urgency=medium
+
+  * Bug #50579: Add LDAP indices for univentionOffice365ADConnectionAlias
+    and univentionOffice365Enabled
+
+ -- Arvid Requate <requate@univention.de>  Tue, 03 Dec 2019 10:24:28 +0100
+
 univention-office365 (2.0.2-54) unstable; urgency=medium
 
   * Bug #50579: Fix LDAP equality matching for UniventionOffice365Data
