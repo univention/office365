@@ -150,7 +150,7 @@ class UDMHelper(object):
 		for userdn in udm_group.get("users", []):
 			udm_user = self.get_udm_user(userdn)
 			if bool(int(udm_user.get("UniventionOffice365Enabled", "0"))):
-				if self.adconnection_alias in udm_user.get("UniventionOffice365ADConnectionAlias ", []):
+				if self.adconnection_alias in udm_user.get("UniventionOffice365ADConnectionAlias", []):
 					groups.append(groupdn)
 					break
 		return groups
