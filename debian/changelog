@@ -1,3 +1,10 @@
+univention-office365 (2.0.2-57) unstable; urgency=medium
+
+  * Bug #50579: Revert change of LDAP equality matching rule for
+    UniventionOffice365Data
+
+ -- Arvid Requate <requate@univention.de>  Tue, 03 Dec 2019 18:37:16 +0100
+
 univention-office365 (2.0.2-56) unstable; urgency=medium
 
   * Bug #50579: Fix typo in udmhelper, add tests for group listener
