@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-56) unstable; urgency=medium
+
+  * Bug #50579: Fix typo in udmhelper, add tests for group listener
+
+ -- Erik Damrose <damrose@univention.de>  Tue, 03 Dec 2019 17:50:41 +0100
+
 univention-office365 (2.0.2-55) unstable; urgency=medium
 
   * Bug #50579: Add LDAP indices for univentionOffice365ADConnectionAlias
