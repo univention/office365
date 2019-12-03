@@ -392,7 +392,10 @@ class Office365Listener(object):
 			else:
 				if self.adconnection_alias in azure_data:
 					del azure_data[self.adconnection_alias]
-					new_azure_data_encoded = self.encode_o365data(azure_data) if azure_data else None
+					if not azure_data:
+						# normalize empty dict
+						azure_data = None
+					new_azure_data_encoded = self.encode_o365data(azure_data)
 					udm_group["UniventionOffice365Data"] = new_azure_data_encoded
 				udm_group["UniventionOffice365ADConnectionAlias"] = [x for x in udm_group["UniventionOffice365ADConnectionAlias"] if x != self.adconnection_alias]
 		udm_group.modify()
