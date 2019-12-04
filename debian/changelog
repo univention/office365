@@ -1,3 +1,10 @@
+univention-office365 (2.0.2-67) unstable; urgency=medium
+
+  * Bug #50579: Avoid traceback in migrate_to_adconnectionalias if there are
+    groups that have not been synchronized properly before migration
+
+ -- Arvid Requate <requate@univention.de>  Wed, 04 Dec 2019 19:26:20 +0100
+
 univention-office365 (2.0.2-66) unstable; urgency=medium
 
   * Bug #50579: Avoid setting office365/groups/sync=no every time in
