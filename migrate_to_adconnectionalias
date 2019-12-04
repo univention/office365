@@ -115,7 +115,7 @@ if __name__ == '__main__':
 		print('{: <20} |    {}    | {}'.format(
 			attr['uid'][0],
 			'x' if attr['univentionOffice365Enabled'][0] == '1' and attr['uid'][0] != 'test3abx' else ' ',
-			attr['univentionOffice365ObjectID'][0])
+			attr.get('univentionOffice365ObjectID', [''])[0])
 		)
 	if users:
 		print('\nSetting the Azure AD connection alias of those users to {!r}...\n'.format(args.adconnection_alias))
@@ -162,7 +162,7 @@ if __name__ == '__main__':
 		attr = groups[dn]
 		print('{: <30} | {}'.format(
 			attr['cn'][0],
-			attr['univentionOffice365ObjectID'][0])
+			attr.get('univentionOffice365ObjectID', [''])[0])
 		)
 	if groups:
 		print('\nSetting the Azure AD connection alias of those groups to {!r}...\n'.format(args.adconnection_alias))

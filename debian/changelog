@@ -1,3 +1,10 @@
+univention-office365 (2.0.2-65) unstable; urgency=medium
+
+  * Bug #50579: Avoid traceback in migrate_to_adconnectionalias if there are
+    objects that have not been synchronized properly before migration
+
+ -- Arvid Requate <requate@univention.de>  Wed, 04 Dec 2019 18:40:23 +0100
+
 univention-office365 (2.0.2-64) unstable; urgency=medium
 
   * Bug #50579: Fix LDAP filter construction for migration
