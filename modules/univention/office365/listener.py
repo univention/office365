@@ -551,13 +551,18 @@ class Office365Listener(object):
 
 			# remove members
 			for removed_member in removed_members:
+				member_id = None
 				# try with UDM user
 				udm_obj = self.udm.get_udm_user(removed_member)
-				member_id = udm_obj.get("UniventionOffice365ObjectID")
-				if not member_id:
+				try:
+					member_id = self._object_id_from_udm_object(udm_obj)
+				except (KeyError, TypeError):
 					# try with UDM group
 					udm_obj = self.udm.get_udm_group(removed_member)
-					member_id = udm_obj.get("UniventionOffice365ObjectID")
+					try:
+						member_id = self._object_id_from_udm_object(udm_obj)
+					except (KeyError, TypeError):
+						pass
 				if not member_id:
 					# group may have been deleted or group may not be an Azure group
 					# let's try to remove it from Azure anyway
