@@ -296,11 +296,8 @@ def deactivate_user(ol, dn, new, old):
 	ol.deactivate_user(old or new)
 	# remove userPrincipalName (or full Azure object data) from UDM object but keep objectId
 	udm_user = ol.udm.get_udm_user(dn)
-	# Cannot delete UniventionOffice365Data, because it would result in:
-	# ldapError: Inappropriate matching: modify/delete: univentionOffice365Data: no equality matching rule
-	# Explanation: http://gcolpart.evolix.net/blog21/delete-facsimiletelephonenumber-attribute/
 	if not_migrated_to_v3:
-		udm_user["UniventionOffice365Data"] = Office365Listener.encode_o365data(None)
+		udm_user["UniventionOffice365Data"] = None
 		udm_user.modify()
 	else:
 		old_azure_data_encoded = udm_user["UniventionOffice365Data"]

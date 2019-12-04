@@ -30,9 +30,6 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-import json
-import base64
-import zlib
 from ldap.filter import filter_format, escape_filter_chars
 import univention.admin.uldap
 import univention.admin.objects
@@ -75,7 +72,7 @@ class UDMHelper(object):
 			udm_obj.open()
 			logger.info("%r...", udm_obj["username"] if "username" in udm_obj else udm_obj["name"])
 			if "UniventionOffice365Data" in udm_obj:
-				udm_obj["UniventionOffice365Data"] = base64.b64encode(zlib.compress(json.dumps(None)))
+				udm_obj["UniventionOffice365Data"] = None
 			udm_obj.modify()
 		logger.info("Cleaning done.")
 
