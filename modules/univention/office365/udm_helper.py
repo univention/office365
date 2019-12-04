@@ -153,6 +153,12 @@ class UDMHelper(object):
 				if self.adconnection_alias in udm_user.get("UniventionOffice365ADConnectionAlias", []):
 					groups.append(groupdn)
 					break
+				elif not udm_user.get("UniventionOffice365ADConnectionAlias") and udm_user.get("univentionOffice365ObjectID", [''])[0]:
+					# In the unmigrated phase this is the state of users.
+					# This special elif can be removed later iff we have ensured that all customers have actually migrated
+					groups.append(groupdn)
+					break
+
 		return groups
 
 	@classmethod

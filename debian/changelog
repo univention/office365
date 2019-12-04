@@ -1,3 +1,10 @@
+univention-office365 (2.0.2-68) unstable; urgency=medium
+
+  * Bug #50579: Make udm_groups_with_azure_users find users that are
+    not migrated yet.
+
+ -- Arvid Requate <requate@univention.de>  Wed, 04 Dec 2019 19:43:08 +0100
+
 univention-office365 (2.0.2-67) unstable; urgency=medium
 
   * Bug #50579: Avoid traceback in migrate_to_adconnectionalias if there are
