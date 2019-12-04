@@ -1,3 +1,10 @@
+univention-office365 (2.0.2-63) unstable; urgency=medium
+
+  * Bug #50579: Skip adding LDAP indices, abort joinscript unless
+    slapd gets stopped.
+
+ -- Arvid Requate <requate@univention.de>  Wed, 04 Dec 2019 17:37:31 +0100
+
 univention-office365 (2.0.2-62) unstable; urgency=medium
 
   * Bug #50579: Fix removal of group members in modify_group
