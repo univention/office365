@@ -23,7 +23,7 @@ which can only be installed on UCS Systems with role Master or Backup.
   of the Azure AD Connection that it will configure.
 * AD Connections are represented as UDM "office365/ad-connection" objects and
   also visible in UCR as office365/adconnection/alias/*.
-* Multi-Connection support has been added in App-Version 4.0. Migration from
+* Multi-Connection support has been added in App-Version 3.0. Migration from
   earlier App-Versions is automatic but can optionally be disabled via the UCR
   variable "office365/migrate/adconnectionalias". The automatic migration
   migrates the existing initialized AD Connection to "defaultADconnection",
