@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-64) unstable; urgency=medium
+
+  * Bug #50579: Fix LDAP filter construction for migration
+
+ -- Arvid Requate <requate@univention.de>  Wed, 04 Dec 2019 18:22:06 +0100
+
 univention-office365 (2.0.2-63) unstable; urgency=medium
 
   * Bug #50579: Skip adding LDAP indices, abort joinscript unless

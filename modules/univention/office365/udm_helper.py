@@ -191,8 +191,10 @@ class UDMHelper(object):
 			raise ValueError("Argument 'enabled' must have value '', '0' or '1'.")
 		if adconnection_alias:
 			adconnection_filter = filter_format('(univentionOffice365ADConnectionAlias=%s)', (adconnection_alias,))
-		else:
+		elif additional_filter != '(!(univentionOffice365ADConnectionAlias=*))':
 			adconnection_filter = '(univentionOffice365ADConnectionAlias=*)'
+		else:
+			adconnection_filter = ''
 
 		filter_s = '(&(objectClass=posixAccount)(objectClass=univentionOffice365)(uid=*){}{}{})'.format(adconnection_filter, enabled_filter, additional_filter)
 		logger.debug('filter_s=%r', filter_s)
@@ -210,8 +212,10 @@ class UDMHelper(object):
 		"""
 		if adconnection_alias:
 			adconnection_filter = filter_format('(univentionOffice365ADConnectionAlias=%s)', (adconnection_alias,))
-		else:
+		elif additional_filter != '(!(univentionOffice365ADConnectionAlias=*))':
 			adconnection_filter = '(univentionOffice365ADConnectionAlias=*)'
+		else:
+			adconnection_filter = ''
 		filter_s = '(&(objectClass=posixGroup)(objectClass=univentionOffice365)(cn=*){}{})'.format(adconnection_filter, additional_filter)
 		return cls._get_lo_o365_objects(filter_s, attributes)
 
