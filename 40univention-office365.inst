@@ -398,7 +398,7 @@ univention-config-registry set \
 	office365/attributes/mapping/sn?surname \
 	office365/attributes/mapping/telephoneNumber?telephoneNumber \
 	office365/attributes/sync?displayName,employeeType,givenName,l,mailPrimaryAddress,mobile,mailAlternativeAddress,mail,postalCode,roomNumber,st,street,sn,telephoneNumber \
-	office365/groups/sync=no || die
+	office365/groups/sync?no || die
 
 udm saml/serviceprovider create "$@" \
 	--ignore_exists \
