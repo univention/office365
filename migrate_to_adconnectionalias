@@ -171,7 +171,7 @@ if __name__ == '__main__':
 			attr = groups[dn]
 			print('Changing {} ({})...'.format(attr['cn'][0], dn))
 			modlist = [('univentionOffice365ADConnectionAlias', None, args.adconnection_alias)]
-			azure_object_id = attr['univentionOffice365ObjectID'][0]
+			azure_object_id = attr.get('univentionOffice365ObjectID', [''])[0]
 			if azure_object_id:
 				adconnection_data = {
 					args.adconnection_alias: {
