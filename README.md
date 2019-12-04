@@ -51,7 +51,14 @@ which can only be installed on UCS Systems with role Master or Backup.
   which are visible in the UMC users/user tab "Office 365". Their presence
   in the UMC provides a possiblity to quickly check, if the initial
   synchronization of an account has been successful.
-* 
+
+# Documentation
+
+* http://docs.software-univention.de/manual-4.4.html#idmcloud:o365
+
+# Tools
+
+* /usr/share/univention-office365/scripts/manage_adconnections list
 
 # Design
 
