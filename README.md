@@ -1,6 +1,52 @@
 # Office 365 connector
 
-This package contains UMC code and a listener module to enable UCS users to provision MS Office 365 accounts to their domain users, and ucs-tests.
+This package provides functionality to synchronize UCS user and group accounts
+to Azure AD to provision MS Office 365 accounts for them.
+The accounts can be configured for synchonization to multiple Azure AD domains.
+
+This package contains a UMC wizard, extended attributes and hooks for user and
+group accounts and listener modules to do the actual synchronization.
+
+The package is the basis for the Office365 App available in the UCS App Center.
+
+# User Story
+
+* After installation of this App UCS user accounts have a new Tab "Office 365"
+  in UMC, which offers a checkbox to Enable the Syncronization of the account
+  to an Azure Active Directory. Below that checkbox, the "alias" name of a
+  target Azure AD can be selected. If none is selected, then a default
+  specified via UCR variable "office365/defaultalias" will be selected.
+* Before syncronization can start to work, an App-specific wizard needs to be
+  run to configure ("initialize") the Azure AD Connection.
+  The UCR variable "office365/adconnection/wizard" specifies the alias name
+  of the Azure AD Connection that it will configure.
+* AD Connections are represented as UDM "office365/ad-connection" objects and
+  also visible in UCR as office365/adconnection/alias/*.
+* Multi-Connection support has been added in App-Version 4.0. Migration from
+  earlier App-Versions is automatic but can optionally be disabled via the UCR
+  variable "office365/migrate/adconnectionalias". The automatic migration
+  migrates the existing initialized AD Connection to "defaultADconnection",
+  by creating an udm object of type "office365/ad-connection" and setting the
+  UCR variable: "office365/adconnection/alias/defaultADconnection".
+* Group Synchonization doesn't happen by default. The UCR variable
+  "office365/groups/sync" needs to activated for this. After changing that
+  UCR variable the Univention Directory Listener Needs to be restarted.
+  Group synchronization may put some load on the server, because the selection
+  of which goups to synchronize happens automatically, by checking nested group
+  memberships of user accounts that are enabled for synchronization.
+* In LDAP, enabled user accounts are marked by and attribute
+  "univentionOffice365Enabled". The target Azure ADs can be seen in the
+  multialue LDAP attribute "univentionOffice365ADConnectionAlias".
+  After successfull synchronization, the Listener modules store the
+  Azure AD object IDs at the corresponding UCS user and group objects.
+  These object IDs are specific for each target Azure AD instance.
+  This information is used for internal book-keeping and not easily accessible
+  via LDAP search, because it is stored as encoded as base64(zipped(json(dict)))
+  in an LDAP attribute "univentionOffice365Data". For user objects this
+  encoded dictionary additionally includes the Azure AD specific userPrincipalNames,
+  which are visible in the UMC users/user tab "Office 365". Their presence
+  in the UMC provides a possiblity to quickly check, if the initial
+  synchronization of an account has been successful.
 
 # Design
 
@@ -42,7 +88,7 @@ Now that we can authenticate, we can synchronize the selected users and groups w
 
 # Implementation
 
-## State
+## Implementation State
 
 Currently there is
 
@@ -71,7 +117,12 @@ listener.py, azure_handler.py and azure_auth.py are written so that they can be 
 When modifying code, please keep the separation of where which objects are used.
 
 
-# Installation
+# Test coverage
+
+* Test cases for ucs-test: 92_office365/*
+* Jenkins Job UCS-4.4-2>Product Tests>product-test-component-office365
+
+# Manual Installation (Legacy Warning: UCS 4.1)
 
 * install ucs-4.1/component/univention-office365
 * to write debug messages at error level set office365/debug/werror=yes and restart listener
@@ -84,6 +135,4 @@ When modifying code, please keep the separation of where which objects are used.
 
 # TODO
 
-* Move this section to bugzilla once this thing leaves the simulation phase.
-* actual UMC code
 * update this document
