@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-61) unstable; urgency=medium
+
+  * Bug #50579: Fix adding LDAP indices
+
+ -- Arvid Requate <requate@univention.de>  Wed, 04 Dec 2019 11:28:57 +0100
+
 univention-office365 (2.0.2-60) unstable; urgency=medium
 
   * Bug #50579: Try adding LDAP indices again after the test work again
