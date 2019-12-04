@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-60) unstable; urgency=medium
+
+  * Bug #50579: Try adding LDAP indices again after the test work again
+
+ -- Arvid Requate <requate@univention.de>  Wed, 04 Dec 2019 10:25:36 +0100
+
 univention-office365 (2.0.2-59) unstable; urgency=medium
 
   * Bug #50579: Re-apply the change of LDAP equality matching rule now that
