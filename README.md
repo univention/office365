@@ -7,7 +7,8 @@ The accounts can be configured for synchonization to multiple Azure AD domains.
 This package contains a UMC wizard, extended attributes and hooks for user and
 group accounts and listener modules to do the actual synchronization.
 
-The package is the basis for the Office365 App available in the UCS App Center.
+The package is the basis for the Office365 App available in the UCS App Center,
+which can only be installed on UCS Systems with role Master or Backup.
 
 # User Story
 
@@ -28,6 +29,9 @@ The package is the basis for the Office365 App available in the UCS App Center.
   migrates the existing initialized AD Connection to "defaultADconnection",
   by creating an udm object of type "office365/ad-connection" and setting the
   UCR variable: "office365/adconnection/alias/defaultADconnection".
+  Optionally the migration can be started manually at a later stange by running
+  the command
+  /usr/share/univention-office365/scripts/migrate_to_adconnectionalias
 * Group Synchonization doesn't happen by default. The UCR variable
   "office365/groups/sync" needs to activated for this. After changing that
   UCR variable the Univention Directory Listener Needs to be restarted.
@@ -47,6 +51,7 @@ The package is the basis for the Office365 App available in the UCS App Center.
   which are visible in the UMC users/user tab "Office 365". Their presence
   in the UMC provides a possiblity to quickly check, if the initial
   synchronization of an account has been successful.
+* 
 
 # Design
 
