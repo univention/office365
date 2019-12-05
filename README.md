@@ -22,7 +22,7 @@ which can only be installed on UCS Systems with role Master or Backup.
   The UCR variable "office365/adconnection/wizard" specifies the alias name
   of the Azure AD Connection that it will configure.
 * AD Connections are represented as UDM "office365/ad-connection" objects and
-  also visible in UCR as office365/adconnection/alias/*.
+  also visible in UCR below office365/adconnection/alias/.
 * Multi-Connection support has been added in App-Version 3.0. Migration from
   earlier App-Versions is automatic but can optionally be disabled via the UCR
   variable "office365/migrate/adconnectionalias". The automatic migration
@@ -38,9 +38,9 @@ which can only be installed on UCS Systems with role Master or Backup.
   Group synchronization may put some load on the server, because the selection
   of which goups to synchronize happens automatically, by checking nested group
   memberships of user accounts that are enabled for synchronization.
-* In LDAP, enabled user accounts are marked by and attribute
+* In LDAP, enabled user accounts are marked by the attribute
   "univentionOffice365Enabled". The target Azure ADs can be seen in the
-  multialue LDAP attribute "univentionOffice365ADConnectionAlias".
+  multivalue LDAP attribute "univentionOffice365ADConnectionAlias".
   After successfull synchronization, the Listener modules store the
   Azure AD object IDs at the corresponding UCS user and group objects.
   These object IDs are specific for each target Azure AD instance.
@@ -51,6 +51,30 @@ which can only be installed on UCS Systems with role Master or Backup.
   which are visible in the UMC users/user tab "Office 365". Their presence
   in the UMC provides a possiblity to quickly check, if the initial
   synchronization of an account has been successful.
+* The connector is able to configure O365 subscriptions at user objects. Subscriptions are
+  only assigned when a user is enabled for Azure synchronisation, reenabling a user also 
+  configures subscriptions. By default it is it is tried to enable a subscription with the
+  following Azure-internal identifiers:
+  'SHAREPOINTWAC, SHAREPOINTWAC_DEVELOPER, OFFICESUBSCRIPTION'.
+  The default can be overruled by UCR office365/subscriptions/service_plan_names. To see
+  available subscriptions use the tool print_subscriptions.
+  Fine grained subscription policies can be set with UDM objects of the type
+  office365/profile. Here, a subscription name and individualy white- or blacklisted
+  service plans can be configured. These profiles can be set at udm groups/group objects.
+  When a member of such a group is enabled for synchronisation, the user listener will
+  search for the first group where a office365/profile is set, and configure the azure
+  user object accordingly.
+* It is possible to use external Office clients with the Connector, like mobile apps
+  or Office Desktop products. A respective subscription / service plan is required in Azure.
+  These external programs need their activation tokens reset in a 90 day period, or will
+  require frequent (mulitple per hour) logins with Azure credentials to continue working.
+  A cronjob exists which calls o365_usertokens, to reset these tokens in a configureable
+  interval. After the tokens for a user are reset, the user has to re-authenticate once.
+* The connector never syncs the user password (hash). A SAML service provider is configured
+  to handle login against the UCS SAML Identity Provider. When configuring mulitple AD
+  connections, additional SAML SPs have to be configured as per documentation. To
+  configure the SAML connection, the wizard offers a powershell script that has to be
+  executed on a MS Windows OS.
 
 # Documentation
 
@@ -59,6 +83,10 @@ which can only be installed on UCS Systems with role Master or Backup.
 # Tools
 
 * /usr/share/univention-office365/scripts/manage_adconnections list
+* /usr/share/univention-office365/scripts/print_users_and_groups
+* /usr/share/univention-office365/scripts/print_subscriptions
+* /usr/share/univention-office365/scripts/o365_list_users
+* /usr/share/univention-office365/scripts/o365_usertokens
 
 # Design
 
