@@ -38,7 +38,7 @@ import subprocess
 import sys
 import univention.admin.uldap
 from univention.config_registry import ConfigRegistry, handler_set, handler_unset
-from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler, adconnection_alias_ucrv
+from univention.office365.azure_auth import AzureAuth, adconnection_alias_ucrv
 from univention.office365.udm_helper import UDMHelper
 from univention.office365.logging2udebug import get_logger
 from univention.office365.listener import Office365Listener
@@ -50,7 +50,7 @@ ucr.load()
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='Migrate a single Azure AD Office 365 connector setup to a multi-connection setup.')
-	parser.add_argument('adconnection_alias', help='Value to be written to user attribute. Must not be listed in UCR {}.'.format(adconnection_alias_ucrv))
+	parser.add_argument('adconnection_alias', help='Value to be written to user attribute.')
 	parser.add_argument('--dryrun', help='Simulate the migration, but don\'t actually change anything [default off].', action='store_true')
 	args = parser.parse_args()
 
@@ -59,18 +59,11 @@ if __name__ == '__main__':
 	_handler.setLevel(logging.INFO)
 	logger.addHandler(_handler)
 
-	aliases = AzureADConnectionHandler.get_adconnection_aliases()
-	if args.adconnection_alias in aliases:
-		state = ucr.get('{}{}'.format(adconnection_alias_ucrv, args.adconnection_alias))
-		if not state == 'uninitialized':
-			print('Error: Azure AD connection alias {!r} is already listed in UCR {!r}. Exiting.'.format(args.adconnection_alias, adconnection_alias_ucrv))
-			sys.exit(1)
-
 	if args.dryrun:
 		print('Dry run - no changes will be applied.')
 
 	if args.dryrun or AzureAuth.is_initialized(args.adconnection_alias):
-		print('OK: Azure AD connection {!r} is now initialized.'.format(args.adconnection_alias))
+		print('OK: Azure AD connection {!r} is initialized.'.format(args.adconnection_alias))
 	else:
 		print('Error: Azure AD connection {!r} is not initialized after copying. Exiting.'.format(args.adconnection_alias))
 		sys.exit(1)
@@ -114,7 +107,7 @@ if __name__ == '__main__':
 		attr = users[dn]
 		print('{: <20} |    {}    | {}'.format(
 			attr['uid'][0],
-			'x' if attr['univentionOffice365Enabled'][0] == '1' and attr['uid'][0] != 'test3abx' else ' ',
+			'x' if 'univentionOffice365Enabled' in attr and attr['univentionOffice365Enabled'][0] == '1' else ' ',
 			attr.get('univentionOffice365ObjectID', [''])[0])
 		)
 	if users:
@@ -126,16 +119,15 @@ if __name__ == '__main__':
 			modlist = [('univentionOffice365ADConnectionAlias', None, args.adconnection_alias)]
 
 			azure_data_encoded = attr.get('univentionOffice365Data', [''])[0]
-			if azure_data_encoded:
-				azure_data = Office365Listener.decode_o365data(azure_data_encoded)
-				adconnection_data = {
-					args.adconnection_alias: {
-						'userPrincipalName': azure_data['userPrincipalName'],
-						'objectId': azure_data['objectId'],
-					}
+
+			adconnection_data = {
+				args.adconnection_alias: {
+					'userPrincipalName': attr.get('univentionOffice365userPrincipalName', [''])[0],
+					'objectId': attr.get('univentionOffice365ObjectID', [''])[0],
 				}
-				new_univentionOffice365Data = Office365Listener.encode_o365data(adconnection_data)
-				modlist.append(('univentionOffice365Data', azure_data_encoded, new_univentionOffice365Data))
+			}
+			new_univentionOffice365Data = Office365Listener.encode_o365data(adconnection_data)
+			modlist.append(('univentionOffice365Data', azure_data_encoded, new_univentionOffice365Data))
 
 			azure_object_id = attr.get('univentionOffice365ObjectID', [''])[0]
 			if azure_object_id:
@@ -186,6 +178,5 @@ if __name__ == '__main__':
 	else:
 		print('No groups found.')
 	print('Finished migrating groups.\n')
-
 
 	print('\nEnd of migration.\n')

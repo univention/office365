@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-70) unstable; urgency=medium
+
+  * Bug #50612: Fix migrationscript to work with deactivated users
+
+ -- Erik Damrose <damrose@univention.de>  Mon, 09 Dec 2019 17:35:56 +0100
+
 univention-office365 (2.0.2-69) unstable; urgency=medium
 
   * Bug #50579: Fix UDM property case in last commit
