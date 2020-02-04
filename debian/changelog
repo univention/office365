@@ -1,3 +1,10 @@
+univention-office365 (2.0.2-71) unstable; urgency=medium
+
+  * Bug #50719: Extend service plan names to account for new subscriptions in
+    Azure
+
+ -- Erik Damrose <damrose@univention.de>  Tue, 04 Feb 2020 17:58:01 +0100
+
 univention-office365 (2.0.2-70) unstable; urgency=medium
 
   * Bug #50612: Fix migrationscript to work with deactivated users

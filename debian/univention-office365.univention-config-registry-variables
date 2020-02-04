@@ -47,8 +47,8 @@ Type=bool
 Categories=service-collaboration
 
 [office365/subscriptions/service_plan_names]
-Description[de]=Kommaseparierte Liste an Lizenznamen, die zur Erkennung der zu wählenden Subskriptionen verwendet wird. Standard, wenn nicht gesetzt, ist 'SHAREPOINTWAC, SHAREPOINTWAC_DEVELOPER, OFFICESUBSCRIPTION'.
-Description[en]=Comma separated list of service plans. Will be used to detect which subscriptions to use. Defaults, if not set, to 'SHAREPOINTWAC, SHAREPOINTWAC_DEVELOPER, OFFICESUBSCRIPTION'.
+Description[de]=Kommaseparierte Liste an Lizenznamen, die zur Erkennung der zu wählenden Subskriptionen verwendet wird. Standard, wenn nicht gesetzt, ist 'SHAREPOINTWAC, SHAREPOINTWAC_DEVELOPER, OFFICESUBSCRIPTION, OFFICEMOBILE_SUBSCRIPTION, SHAREPOINTWAC_EDU'.
+Description[en]=Comma separated list of service plans. Will be used to detect which subscriptions to use. Defaults, if not set, to 'SHAREPOINTWAC, SHAREPOINTWAC_DEVELOPER, OFFICESUBSCRIPTION, OFFICEMOBILE_SUBSCRIPTION, SHAREPOINTWAC_EDU'.
 Type=str
 Categories=service-collaboration
 

@@ -102,7 +102,7 @@ azure_attribute_types = dict(
 # SHAREPOINTWAC          Office Online
 # SHAREPOINTENTERPRISE   SharePoint Online
 # EXCHANGE_S_ENTERPRISE  Exchange Online Plan 2
-_default_azure_service_plan_names = "SHAREPOINTWAC, SHAREPOINTWAC_DEVELOPER, OFFICESUBSCRIPTION"
+_default_azure_service_plan_names = "SHAREPOINTWAC, SHAREPOINTWAC_DEVELOPER, OFFICESUBSCRIPTION, OFFICEMOBILE_SUBSCRIPTION, SHAREPOINTWAC_EDU"
 
 logger = get_logger("office365", "o365")
 
