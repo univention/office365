@@ -502,6 +502,8 @@ class AzureHandler(object):
 			url = self.uris["group_members"].format(group_id=group_id, params=params)
 			try:
 				self.call_api("POST", url, data=objs)
+			except ResourceNotFoundError as exc:
+				logger.error("Error Adding object %r failed (ResourceNotFoundError), skipping", object_id)
 			except ApiError as exc:
 				logger.error("Error Adding object %r to members list %s", object_id, object_ids_already_in_azure)
 				raise
