@@ -190,57 +190,71 @@ class AzureHandler(object):
 		headers["Authorization"] = "Bearer {}".format(access_token)
 
 		data = self._prepare_data(data)
-		# hide password
-		msg = self._fprints_hide_pw(data, "%s %s data: {data}" % (method.upper(), url))
-		logger.debug(msg)
 
-		args = dict(url=url, headers=headers, verify=True, proxies=self.auth.proxies)
-		if method.upper() in ["PATCH", "POST"] and data:
-			headers["Content-Type"] = "application/json"
-			args["data"] = json.dumps(data)
+		values = []
+		while url:
+			# hide password
+			msg = self._fprints_hide_pw(data, "%s %s data: {data}" % (method.upper(), url))
+			logger.debug(msg)
 
-		requests_func = getattr(requests, method.lower())
-		response = requests_func(**args)
+			args = dict(url=url, headers=headers, verify=True, proxies=self.auth.proxies)
+			if method.upper() in ["PATCH", "POST"] and data:
+				headers["Content-Type"] = "application/json"
+				args["data"] = json.dumps(data)
 
-		if response is not None:
-			try:
-				response_json = response.json
-				if callable(response_json):  # requests version compatibility
-					response_json = response_json()
-			except (TypeError, JSONDecodeError) as exc:
-				if method.upper() in ["DELETE", "PATCH", "PUT"]:
-					# no/empty response expected
-					response_json = {}
-				elif method.upper() == "POST" and "members" in url:
-					# no/empty response expected (add_objects_to_azure_group())
-					response_json = {}
-				else:
-					logger.exception("response is not JSON (adconnection_alias=%r). response.__dict__: %r", self.adconnection_alias, response.__dict__)
-					raise ApiError, ApiError(response, chained_exc=exc, adconnection_alias=self.adconnection_alias), sys.exc_info()[2]
-			logger.info(
-				"status: %r (%s)%s (%s %s)",
-				response.status_code,
-				"OK" if 200 <= response.status_code <= 299 else "FAIL",
-				" Code: {}".format(response_json["odata.error"]["code"]) if response_json and "odata.error" in response_json else "",
-				method.upper(),
-				url)
+			requests_func = getattr(requests, method.lower())
+			response = requests_func(**args)
 
-			if not (200 <= response.status_code <= 299):
-				if response.status_code == 404 and response_json["odata.error"]["code"] == "Request_ResourceNotFound":
-					raise ResourceNotFoundError(response, adconnection_alias=self.adconnection_alias)
-				elif 500 <= response.status_code <= 599:
-					# server error
-					if retry > 0:
-						raise ApiError(response, adconnection_alias=self.adconnection_alias)
+			if response is not None:
+				try:
+					response_json = response.json
+					if callable(response_json):  # requests version compatibility
+						response_json = response_json()
+				except (TypeError, JSONDecodeError) as exc:
+					if method.upper() in ["DELETE", "PATCH", "PUT"]:
+						# no/empty response expected
+						response_json = {}
+					elif method.upper() == "POST" and "members" in url:
+						# no/empty response expected (add_objects_to_azure_group())
+						response_json = {}
 					else:
-						logger.error("AzureHandler.call_api() Server error. Azure said: %r. Will sleep 10s and then retry one time.", response_json["odata.error"]["message"]["value"])
-						time.sleep(10)
-						self.call_api(method, url, data=data, retry=retry + 1)
-				else:
-					raise ApiError(response, adconnection_alias=self.adconnection_alias)
-		else:
-			logger.error("AzureHandler.call_api() response is None")
-			raise ApiError("Response is None", adconnection_alias=self.adconnection_alias)
+						logger.exception("response is not JSON (adconnection_alias=%r). response.__dict__: %r", self.adconnection_alias, response.__dict__)
+						raise ApiError, ApiError(response, chained_exc=exc, adconnection_alias=self.adconnection_alias), sys.exc_info()[2]
+				logger.info(
+					"status: %r (%s)%s (%s %s)",
+					response.status_code,
+					"OK" if 200 <= response.status_code <= 299 else "FAIL",
+					" Code: {}".format(response_json["odata.error"]["code"]) if response_json and "odata.error" in response_json else "",
+					method.upper(),
+					url)
+
+				if not (200 <= response.status_code <= 299):
+					if response.status_code == 404 and response_json["odata.error"]["code"] == "Request_ResourceNotFound":
+						raise ResourceNotFoundError(response, adconnection_alias=self.adconnection_alias)
+					elif 500 <= response.status_code <= 599:
+						# server error
+						if retry > 0:
+							raise ApiError(response, adconnection_alias=self.adconnection_alias)
+						else:
+							logger.error("AzureHandler.call_api() Server error. Azure said: %r. Will sleep 10s and then retry one time.", response_json["odata.error"]["message"]["value"])
+							time.sleep(10)
+							self.call_api(method, url, data=data, retry=retry + 1)
+					else:
+						raise ApiError(response, adconnection_alias=self.adconnection_alias)
+				url = response_json.get("odata.nextLink")
+				if url:
+					# We are in paging mode, accumulate the batches
+					values.extend(response_json["value"])
+					url += "&api-version=1.6"
+				elif values:
+					# If we are in paging mode, get the last batch
+					values.extend(response_json["value"])
+			else:
+				logger.error("AzureHandler.call_api() response is None")
+				raise ApiError("Response is None", adconnection_alias=self.adconnection_alias)
+		if values:
+			# If paging was used, then replace values with accumulated list
+			response_json["value"] = values
 		return response_json or response
 
 	def _list_objects(self, object_type, object_id=None, ofilter=None, params_extra=None, url_extra=None):
@@ -468,6 +482,8 @@ class AzureHandler(object):
 		# added at once (https://social.msdn.microsoft.com/Forums/azure/en-US/04113864-51af-4d46-8b13-725e4120433b/graphi-api-how-to-add-many-members-to-a-group).
 		# The added complexity is entirely out of proportion for the benefit,
 		# so here comes a loop instead.
+		members = self.get_groups_direct_members(group_id)
+		object_ids_already_in_azure = self.directory_object_urls_to_object_ids(members["value"])
 		for object_id in object_ids:
 			if not object_id:
 				logger.warn("AzureHandler.add_objects_to_azure_group(): not adding empty object_id to group %r.", group_id)
@@ -479,14 +495,16 @@ class AzureHandler(object):
 			# for the following modified properties: 'members'."
 			dir_obj_url = self.uris["directoryObjects"].format(object_id=object_id)
 			objs = {"url": dir_obj_url}
-			members = self.get_groups_direct_members(group_id)
-			object_ids_already_in_azure = self.directory_object_urls_to_object_ids(members["value"])
 			if object_id in object_ids_already_in_azure:
 				logger.debug("Object %r already in group.", object_id)
 				continue
 			params = urllib.urlencode(azure_params)
 			url = self.uris["group_members"].format(group_id=group_id, params=params)
-			self.call_api("POST", url, data=objs)
+			try:
+				self.call_api("POST", url, data=objs)
+			except ApiError as exc:
+				logger.error("Error Adding object %r to members list %s", object_id, object_ids_already_in_azure)
+				raise
 
 	def delete_group_member(self, group_id, member_id):
 		logger.info("Removing member %r from group %r (%s)...", member_id, group_id, self.adconnection_alias)
