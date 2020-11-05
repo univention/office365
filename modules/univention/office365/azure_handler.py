@@ -474,19 +474,18 @@ class AzureHandler(object):
 				continue
 			if len(object_ids) > 1:
 				logger.debug("Adding %r...", object_id)
-			# Check if object is already there, because adding it again leads
-			# to an error: "One or more added object references already exist
-			# for the following modified properties: 'members'."
 			dir_obj_url = self.uris["directoryObjects"].format(object_id=object_id)
 			objs = {"url": dir_obj_url}
-			members = self.get_groups_direct_members(group_id)
-			object_ids_already_in_azure = self.directory_object_urls_to_object_ids(members["value"])
-			if object_id in object_ids_already_in_azure:
-				logger.debug("Object %r already in group.", object_id)
-				continue
 			params = urllib.urlencode(azure_params)
 			url = self.uris["group_members"].format(group_id=group_id, params=params)
-			self.call_api("POST", url, data=objs)
+			try:
+				self.call_api("POST", url, data=objs)
+			except ApiError as exc:
+				# ignore error if object is already member of group
+				if str(exc) == "One or more added object references already exist for the following modified properties: 'members'.":
+					logger.info("Ignore ApiError 'One or more added object references already exist ...' in add_objects_to_azure_group, object is already member of group")
+				else:
+					raise
 
 	def delete_group_member(self, group_id, member_id):
 		logger.info("Removing member %r from group %r (%s)...", member_id, group_id, self.adconnection_alias)

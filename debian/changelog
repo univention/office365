@@ -1,3 +1,10 @@
+univention-office365 (2.0.2-72) unstable; urgency=medium
+
+  * Bug #51921: Ignore "already member of" error in
+    AzureHandler.add_objects_to_azure_group
+
+ -- Felix Botner <botner@univention.de>  Thu, 05 Nov 2020 12:03:00 +0100
+
 univention-office365 (2.0.2-71) unstable; urgency=medium
 
   * Bug #50719: Extend service plan names to account for new subscriptions in
