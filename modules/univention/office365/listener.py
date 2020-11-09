@@ -411,35 +411,42 @@ class Office365Listener(object):
 		# check members
 		members = self.ah.get_groups_direct_members(group_id)["value"]
 		if members:
-			member_ids = self.ah.directory_object_urls_to_object_ids(members)
-			azure_objs = list()
-			for member_id in member_ids:
-				try:
-					azure_objs.append(self.ah.list_users(objectid=member_id))
-				except ResourceNotFoundError:
-					# that's OK - it is probably not a user but a group
-					try:
-						azure_objs.append(self.ah.list_groups(objectid=member_id))
-					except ResourceNotFoundError:
-						# ignore
-						logger.error("Office365Listener.delete_empty_group() found unexpected object in group: %r, ignoring.", member_id)
-			if all(azure_obj["mailNickname"].startswith("ZZZ_deleted_") for azure_obj in azure_objs):
-				logger.info("All members of group %r (%s) are deactivated, deleting it.", group_id, self.adconnection_alias)
-				self.ah.delete_group(group_id)
-				if not udm_group:
-					try:
-						azure_group = self.ah.list_groups(objectid=group_id)
-					except ResourceNotFoundError:
-						# ignore
-						azure_group = None
-						logger.error("Office365Listener.delete_empty_group() failed to find own group: %r, ignoring.", group_id)
-					if azure_group:
-						udm_group = self.udm.lookup_udm_group(azure_group["displayName"])
-				if udm_group:  # TODO: lookup group in UDM if not given
-					self.set_adconnection_object_id(udm_group, None)
-			else:
-				logger.debug("Group has active members, not deleting it.")
-				return False
+			# TODO, find another way to check for active members
+			# this for member_id ...
+			#          self.ah.list_users
+			# is just too expensive,
+			# think about it, if we have a group with 100 members and we create another
+			# 100 users (members of that group) this creates over 10000 requests
+
+			#member_ids = self.ah.directory_object_urls_to_object_ids(members)
+			#azure_objs = list()
+			#for member_id in member_ids:
+			#	try:
+			#		azure_objs.append(self.ah.list_users(objectid=member_id))
+			#	except ResourceNotFoundError:
+			#		# that's OK - it is probably not a user but a group
+			#		try:
+			#			azure_objs.append(self.ah.list_groups(objectid=member_id))
+			#		except ResourceNotFoundError:
+			#			# ignore
+			#			logger.error("Office365Listener.delete_empty_group() found unexpected object in group: %r, ignoring.", member_id)
+			#if all(azure_obj["mailNickname"].startswith("ZZZ_deleted_") for azure_obj in azure_objs):
+			#	logger.info("All members of group %r (%s) are deactivated, deleting it.", group_id, self.adconnection_alias)
+			#	self.ah.delete_group(group_id)
+			#	if not udm_group:
+			#		try:
+			#			azure_group = self.ah.list_groups(objectid=group_id)
+			#		except ResourceNotFoundError:
+			#			# ignore
+			#			azure_group = None
+			#			logger.error("Office365Listener.delete_empty_group() failed to find own group: %r, ignoring.", group_id)
+			#		if azure_group:
+			#			udm_group = self.udm.lookup_udm_group(azure_group["displayName"])
+			#	if udm_group:  # TODO: lookup group in UDM if not given
+			#		self.set_adconnection_object_id(udm_group, None)
+			#else:
+			logger.debug("Group has active members, not deleting it.")
+			return False
 		else:
 			logger.info("Removing empty group %r (%s)...", group_id, self.adconnection_alias)
 			self.ah.delete_group(group_id)
@@ -596,10 +603,11 @@ class Office365Listener(object):
 
 				self.ah.delete_group_member(group_id=object_id, member_id=member_id)
 
-		# remove group if it became empty
-		deleted = self.delete_empty_group(object_id, udm_group)
-		if deleted:
-			return None
+			# remove group if it became empty
+			if removed_members and not added_members:
+				deleted = self.delete_empty_group(object_id, udm_group)
+				if deleted:
+					return None
 
 		# modify other attributes
 		modifications = dict([(mod_attr, new[mod_attr]) for mod_attr in modification_attributes])
