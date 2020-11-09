@@ -38,6 +38,7 @@ import base64
 
 from univention.config_registry import ConfigRegistry
 from univention.office365.azure_handler import AzureHandler
+from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
 
 
 def print_users(users, complete=False, short=False):
@@ -117,6 +118,7 @@ if __name__ == "__main__":
 	parser.add_argument("-o", "--objectid", help="if action is 'list', 'modify', 'delete' or 'memberof', set the object ID [required with 'modify', 'delete', 'memberof'].")
 	parser.add_argument("-s", "--short", help="if action is 'list', only list object IDs [default off]", action="store_true")
 	parser.add_argument("-v", "--verbosity", help="once to send syslog output of level INFO to console, twice (-vv) for DEBUG output [default off]", action="count")
+	parser.add_argument("connection", help="connection to use")
 	parser.add_argument("action", help="add/list/modify/delete/memberofgroups/memberofobjects/examples")
 	parser.add_argument("object", help="users/groups/licenses/domains/subscriptions")
 	parser.add_argument("set", help="if action is 'add' (TODO) or 'modify', set attribute 'key' of object to 'value' [required only for 'modify'].", nargs="*", metavar="key=value")
@@ -135,6 +137,9 @@ if __name__ == "__main__":
 
 	if args.verbosity is None:
 		args.verbosity = 0
+
+	if args.connection not in AzureADConnectionHandler.get_adconnection_aliases():
+		parser.error("choose one of these connections: {}".format(AzureADConnectionHandler.get_adconnection_aliases()))
 
 	if args.object in ["users", "groups", "licenses", "domains", "subscriptions", "adconnection"]:
 		if args.action == "examples":
@@ -186,7 +191,7 @@ if __name__ == "__main__":
 
 	ucr = ConfigRegistry()
 	ucr.load()
-	ah = AzureHandler(ucr, "office365")
+	ah = AzureHandler(ucr, args.connection, args.connection)
 
 	if args.action == "add":
 		if args.objectid:

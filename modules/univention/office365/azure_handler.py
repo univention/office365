@@ -128,6 +128,7 @@ def _get_azure_uris(adconnection_id):
 		domain="%s/domains({domain_name})?{params}" % graph_base_url,
 		adconnectionDetails="%s/adconnectionDetails?{params}" % graph_base_url,
 		invalidateTokens="%s/users/{user_id}/invalidateAllRefreshTokens?{params}" % graph_base_url,
+		baseUrl=graph_base_url,
 	)
 
 
@@ -190,57 +191,76 @@ class AzureHandler(object):
 		headers["Authorization"] = "Bearer {}".format(access_token)
 
 		data = self._prepare_data(data)
-		# hide password
-		msg = self._fprints_hide_pw(data, "%s %s data: {data}" % (method.upper(), url))
-		logger.debug(msg)
 
-		args = dict(url=url, headers=headers, verify=True, proxies=self.auth.proxies)
-		if method.upper() in ["PATCH", "POST"] and data:
-			headers["Content-Type"] = "application/json"
-			args["data"] = json.dumps(data)
+		values = []
+		while url:
+			# hide password
+			msg = self._fprints_hide_pw(data, "%s %s data: {data}" % (method.upper(), url))
+			logger.debug(msg)
 
-		requests_func = getattr(requests, method.lower())
-		response = requests_func(**args)
+			args = dict(url=url, headers=headers, verify=True, proxies=self.auth.proxies)
+			if method.upper() in ["PATCH", "POST"] and data:
+				headers["Content-Type"] = "application/json"
+				args["data"] = json.dumps(data)
 
-		if response is not None:
-			try:
-				response_json = response.json
-				if callable(response_json):  # requests version compatibility
-					response_json = response_json()
-			except (TypeError, JSONDecodeError) as exc:
-				if method.upper() in ["DELETE", "PATCH", "PUT"]:
-					# no/empty response expected
-					response_json = {}
-				elif method.upper() == "POST" and "members" in url:
-					# no/empty response expected (add_objects_to_azure_group())
-					response_json = {}
-				else:
-					logger.exception("response is not JSON (adconnection_alias=%r). response.__dict__: %r", self.adconnection_alias, response.__dict__)
-					raise ApiError, ApiError(response, chained_exc=exc, adconnection_alias=self.adconnection_alias), sys.exc_info()[2]
-			logger.info(
-				"status: %r (%s)%s (%s %s)",
-				response.status_code,
-				"OK" if 200 <= response.status_code <= 299 else "FAIL",
-				" Code: {}".format(response_json["odata.error"]["code"]) if response_json and "odata.error" in response_json else "",
-				method.upper(),
-				url)
 
-			if not (200 <= response.status_code <= 299):
-				if response.status_code == 404 and response_json["odata.error"]["code"] == "Request_ResourceNotFound":
-					raise ResourceNotFoundError(response, adconnection_alias=self.adconnection_alias)
-				elif 500 <= response.status_code <= 599:
-					# server error
-					if retry > 0:
-						raise ApiError(response, adconnection_alias=self.adconnection_alias)
+			requests_func = getattr(requests, method.lower())
+			response = requests_func(**args)
+
+			if response is not None:
+				try:
+					response_json = response.json
+					if callable(response_json):  # requests version compatibility
+						response_json = response_json()
+				except (TypeError, JSONDecodeError) as exc:
+					if method.upper() in ["DELETE", "PATCH", "PUT"]:
+						# no/empty response expected
+						response_json = {}
+					elif method.upper() == "POST" and "members" in url:
+						# no/empty response expected (add_objects_to_azure_group())
+						response_json = {}
 					else:
-						logger.error("AzureHandler.call_api() Server error. Azure said: %r. Will sleep 10s and then retry one time.", response_json["odata.error"]["message"]["value"])
-						time.sleep(10)
-						self.call_api(method, url, data=data, retry=retry + 1)
-				else:
-					raise ApiError(response, adconnection_alias=self.adconnection_alias)
-		else:
-			logger.error("AzureHandler.call_api() response is None")
-			raise ApiError("Response is None", adconnection_alias=self.adconnection_alias)
+						logger.exception("response is not JSON (adconnection_alias=%r). response.__dict__: %r", self.adconnection_alias, response.__dict__)
+						raise ApiError, ApiError(response, chained_exc=exc, adconnection_alias=self.adconnection_alias), sys.exc_info()[2]
+				logger.info(
+					"status: %r (%s)%s (%s %s)",
+					response.status_code,
+					"OK" if 200 <= response.status_code <= 299 else "FAIL",
+					" Code: {}".format(response_json["odata.error"]["code"]) if response_json and "odata.error" in response_json else "",
+					method.upper(),
+					url)
+
+				if not (200 <= response.status_code <= 299):
+					if response.status_code == 404 and response_json["odata.error"]["code"] == "Request_ResourceNotFound":
+						raise ResourceNotFoundError(response, adconnection_alias=self.adconnection_alias)
+					elif 500 <= response.status_code <= 599:
+						# server error
+						if retry > 0:
+							raise ApiError(response, adconnection_alias=self.adconnection_alias)
+						else:
+							logger.error("AzureHandler.call_api() Server error. Azure said: %r. Will sleep 10s and then retry one time.", response_json["odata.error"]["message"]["value"])
+							time.sleep(10)
+							self.call_api(method, url, data=data, retry=retry + 1)
+					else:
+						raise ApiError(response, adconnection_alias=self.adconnection_alias)
+				url = response_json.get("odata.nextLink")
+				if url:
+					# We are in paging mode, accumulate the batches
+					values.extend(response_json["value"])
+					if url.startswith('https://') or url.startswith('http://'):
+						url += "&api-version=1.6"
+					else:
+						url = self.uris['baseUrl'] + '/' + url + "&api-version=1.6"
+					# TODO do we want paging?
+				elif values:
+					# If we are in paging mode, get the last batch
+					values.extend(response_json["value"])
+			else:
+				logger.error("AzureHandler.call_api() response is None")
+				raise ApiError("Response is None", adconnection_alias=self.adconnection_alias)
+		if values:
+			# If paging was used, then replace values with accumulated list
+			response_json["value"] = values
 		return response_json or response
 
 	def _list_objects(self, object_type, object_id=None, ofilter=None, params_extra=None, url_extra=None):
@@ -459,7 +479,14 @@ class AzureHandler(object):
 		assert type(group_id) in [str, unicode], "The ObjectId must be a string."
 		assert type(object_ids) == list, "object_ids must be a list."
 		assert all(type(o_id) in [str, unicode] for o_id in object_ids), "object_ids must be a list of objectID strings."
-		logger.debug("Adding objects %r to group %r (%s)...", object_ids, group_id, self.adconnection_alias)
+		logger.info("Adding objects %r to group %r (%s)...", object_ids, group_id, self.adconnection_alias)
+
+		# remove object's that already member of group
+		# if it's just one new member, it's not worth the effort
+		if len(object_ids) > 1:
+			members = self.get_groups_direct_members(group_id)
+			object_ids_already_in_azure = self.directory_object_urls_to_object_ids(members["value"])
+			object_ids = set(object_ids) - set(object_ids_already_in_azure)
 
 		# While the Graph API clearly states that multiple objects can be added
 		# at once to a group that is no entirely true, as the usual API syntax
@@ -472,8 +499,6 @@ class AzureHandler(object):
 			if not object_id:
 				logger.warn("AzureHandler.add_objects_to_azure_group(): not adding empty object_id to group %r.", group_id)
 				continue
-			if len(object_ids) > 1:
-				logger.debug("Adding %r...", object_id)
 			dir_obj_url = self.uris["directoryObjects"].format(object_id=object_id)
 			objs = {"url": dir_obj_url}
 			params = urllib.urlencode(azure_params)

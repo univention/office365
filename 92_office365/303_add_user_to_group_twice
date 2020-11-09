@@ -90,6 +90,10 @@ with utils.AutomaticListenerRestart():
 
 			# (re)add
 			ol.ah.add_objects_to_azure_group(group_objectid, [user_id1, user_id2])
+			ol.ah.add_objects_to_azure_group(group_objectid, [user_id1])
+			ol.ah.add_objects_to_azure_group(group_objectid, [user_id1])
+			ol.ah.add_objects_to_azure_group(group_objectid, [user_id2])
+			ol.ah.add_objects_to_azure_group(group_objectid, [user_id2])
 			ol.ah.add_objects_to_azure_group(group_objectid, [user_id1, user_id2])
 			ol.ah.add_objects_to_azure_group(group_objectid, [user_id1, user_id2])
 			ol.ah.add_objects_to_azure_group(group_objectid, [user_id1, user_id2])
