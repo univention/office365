@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-75) unstable; urgency=medium
+
+  * Bug #52151: added check_for_empty_groups
+
+ -- Felix Botner <botner@univention.de>  Tue, 10 Nov 2020 09:21:18 +0100
+
 univention-office365 (2.0.2-74) unstable; urgency=medium
 
   * Bug #52151: do not check active membership in delete_empty_group
