@@ -109,6 +109,11 @@ if __name__ == '__main__':
 					logger.info("Modified %s users, exiting", modified_users)
 					exit(0)
 
+				if ldap_user[1].has_key("univentionOffice365Data"):
+                                    pass
+                                else:
+                                    continue
+
 				adconnection_objects = Office365Listener.decode_o365data(ldap_user[1]["univentionOffice365Data"][0])
 				for alias, values in adconnection_objects.items():
 					ah = AzureHandler(ucr, name = "tokens", adconnection_alias = alias)
