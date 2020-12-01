@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-76) unstable; urgency=medium
+
+  * Bug #52159: add groupmembership after user reactivation
+
+ -- Felix Botner <botner@univention.de>  Tue, 01 Dec 2020 20:23:11 +0100
+
 univention-office365 (2.0.2-75) unstable; urgency=medium
 
   * Bug #52151: added check_for_empty_groups

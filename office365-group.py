@@ -115,14 +115,6 @@ def clean():
 	logger.info("Removing Office 365 ObjectID and Data from all users (adconnection_filter=%r)...", adconnection_filter)
 	UDMHelper.clean_udm_objects("groups/group", listener.configRegistry["ldap/base"], ldap_cred, adconnection_filter)
 
-def create_groups(ol, dn, new, old):
-	if ol.udm.udm_groups_with_azure_users(dn):
-		new_group = ol.create_group_from_new(new)
-		# save Azure objectId in UDM object
-		udm_group = ol.udm.get_udm_group(dn)
-		ol.set_adconnection_object_id(udm_group, new_group["objectId"])
-		logger.info("Created group with displayName: %r (%r) adconnection: %s", new_group["displayName"], new_group["objectId"], ol.adconnection_alias)
-
 
 def handler(dn, new, old, command):
 	logger.debug("%s.handler() command: %r dn: %r", name, command, dn)
@@ -148,7 +140,7 @@ def handler(dn, new, old, command):
 		logger.debug("new and not old -> NEW (%s)", dn)
 		for conn in initialized_adconnections:
 			ol = Office365Listener(listener, name, dict(listener=attributes_copy), ldap_cred, dn, conn)
-			create_groups(ol, dn, new, old)
+			ol.create_groups(dn, new)
 		logger.debug("done (%s)", dn)
 		return
 
@@ -182,7 +174,7 @@ def handler(dn, new, old, command):
 				logger.info("Modified group %r (%r).", old["cn"][0], conn)
 			else:
 				logger.debug("Modified group %r has no members in %r.", new["cn"][0], conn)
-				## Handle case where no active user is left in the group and any nested group
+				# Handle case where no active user is left in the group and any nested group
 				if (
 					conn in new.get("univentionOffice365ADConnectionAlias", []) or
 					conn in old.get("univentionOffice365ADConnectionAlias", [])

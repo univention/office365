@@ -326,6 +326,14 @@ class Office365Listener(object):
 			return list()
 		return self.ah.list_users(objectid=object_id)
 
+	def create_groups(self, dn, new):
+		if self.udm.udm_groups_with_azure_users(dn):
+			new_group = self.create_group_from_new(new)
+			# save Azure objectId in UDM object
+			udm_group = self.udm.get_udm_group(dn)
+			self.set_adconnection_object_id(udm_group, new_group["objectId"])
+			logger.info("Created group with displayName: %r (%r) adconnection: %s", new_group["displayName"], new_group["objectId"], self.adconnection_alias)
+
 	def create_group(self, name, description, group_dn, add_members=True):
 		self.ah.create_group(name, description)
 
