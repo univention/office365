@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-77) unstable; urgency=medium
+
+  * Bug #52159: added "disbaled" test
+
+ -- Felix Botner <botner@univention.de>  Wed, 02 Dec 2020 09:42:22 +0100
+
 univention-office365 (2.0.2-76) unstable; urgency=medium
 
   * Bug #52159: add groupmembership after user reactivation

@@ -95,8 +95,7 @@ with utils.AutomaticListenerRestart():
 			assert group_objectid2 in ol.ah.member_of_groups(user_id).get('value', [])
 
 			# check UniventionOffice365Enabled and disabled
-			#for attr, disable, enable in [('UniventionOffice365Enabled', 0, 1), ('disabled', 1, 0)]:
-			for attr, disable, enable in [('UniventionOffice365Enabled', 0, 1)]:
+			for attr, disable, enable in [('UniventionOffice365Enabled', 0, 1), ('disabled', 1, 0)]:
 				# deactivate office user, groups should be clean
 				udm.modify_object(modulename="users/user", dn=user_dn, set={attr: disable})
 				for i in range(60):
