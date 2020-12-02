@@ -9,7 +9,7 @@
 		</categories>
 		<command name="office365/query" function="query"/>
 		<command name="office365/upload" function="upload"/>
-		<command name="office365/authorize" function="authorize"/>
+		<command name="office365/authorize" function="authorize" allow_anonymous="true"/>
 		<command name="office365/state" function="state"/>
 		<command name="office365/manifest.json" function="manifest_json"/>
 		<command name="office365/saml_setup.bat" function="saml_setup_script"/>
