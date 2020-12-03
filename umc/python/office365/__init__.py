@@ -155,16 +155,41 @@ class Instance(Base):
 		error=StringSanitizer(),
 		error_description=StringSanitizer()
 	)
-
-
 	def authorize(self, request):
 		self.init()  # reset state in case the first attempt failed
 		self.azure_response = {}
 		self.azure_response.update(request.options)
 
-		if request.options.get('UMCSessionId', '') != '':
-		    request.headers['X-Xsrf-Protection'] = request.options.get('UMCSessionId', '')
-		    content = textwrap.dedent("""\
+		if request.options.get('X-SameSite', '') == '':
+			content = textwrap.dedent("""\
+			<!DOCTYPE html>
+			<html>
+			<head>
+			<title>%(title)s</title>
+			</head>
+			<body>
+			<form action="" id="form_auth" method="post">
+			<input type="hidden" name="code" value="%(code)s" />
+			<input type="hidden" name="session_state" value="%(session_state)s" />
+			<input type="hidden" name="admin_consent" value="%(admin_consent)s" />
+			<input type="hidden" name="X-SameSite" value="1" />
+			<button type="submit">...</button>
+			</form>
+			<script type="application/javascript">
+			window.setTimeout(function(){ document.getElementById("form_auth").submit(); }, 3000);
+			</script>
+			</body>
+			</html>
+			""" % {
+				'title': _('Office 365 Configuration finished'),
+				'content': _('This page will disappear in 3 seconds and close the current browser window. That will bring you back to the office365 configuration assistent.'),
+				'code': request.options.get('code', ''),
+				'session_state': request.options.get('session_state', ''),
+				'admin_consent': request.options.get('admin_consent', ''),
+			})
+		else:
+			request.headers['X-Xsrf-Protection'] = request.cookies.get('UMCSessionId', '')
+			content = textwrap.dedent("""\
 			<!DOCTYPE html>
 			<html>
 			<head>
@@ -178,45 +203,12 @@ class Instance(Base):
 			%(content)s
 			</body>
 			</html>
-		    """ % {
-			'title': _('Office 365 Configuration finished'),
-			'content': _('The configuration has finished! You can now close this page and continue the configuration wizard.'),
-			}
-		    )
-		    self.finished(request.id, bytes(content), mimetype='text/html')
-		    return
-		else:
-		    content = textwrap.dedent("""\
-		    <!DOCTYPE html>
-		    <html>
-		    <head>
-		    <title>%(title)s</title>
-		    </head>
-		    <body>
-		    <form action="" id="form_auth" method="post">
-			<input type="hidden" name="code" value="%(code)s" />
-			<input type="hidden" name="session_state" value="%(session_state)s" />
-			<input type="hidden" name="admin_consent" value="%(admin_consent)s" />
-			<input type="text" name="UMCSessionId" value="%(UMCSessionId)s" />
-			<button type="submit">close this window</button>
-		    </form>
+			""" % {
+				'title': _('Office 365 Configuration finished'),
+				'content': _('The configuration has finished! You can now close this page and continue the configuration wizard.'),
+			})
 
-		    <script type="application/javascript">
-			window.setTimeout(function(){ document.getElementById("form_auth").submit(); }, 3000);
-		    </script>
-		    </body>
-		    </html>
-		    """ % {
-			'title': _('Office 365 Configuration finished'),
-			'content': _('This page will disappear in 3 seconds and close the current browser window. That will bring you back to the office365 configuration assistent.'),
-			'code': request.options.get('code', ''),
-			'session_state': request.options.get('session_state', ''),
-			'admin_consent': request.options.get('admin_consent', ''),
-			'UMCSessionId': request.cookies.get('UMCSessionId', ''), 
-			}
-		    )
-
-		    self.finished(request.id, bytes(content), mimetype='text/html')
+		self.finished(request.id, bytes(content), mimetype='text/html')
 
 	@simple_response
 	def state(self):
