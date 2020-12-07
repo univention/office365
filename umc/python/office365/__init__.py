@@ -34,7 +34,6 @@
 import urlparse
 import functools
 import subprocess
-import textwrap
 
 from univention.lib.i18n import Translation
 from univention.config_registry import handler_set
@@ -83,16 +82,16 @@ class Instance(Base):
 	def init(self):
 		self.azure_response = None
 		self.adconnection_alias = ucr.get(adconnection_wizard_ucrv) or None
-		self.fqdn = '%s.%s' % (ucr.get('hostname'), ucr.get('domainname'))
 		MODULE.process('adconnection_alias={!r}'.format(self.adconnection_alias))
 
 	@simple_response
 	def query(self):
+		fqdn = '%s.%s' % (ucr.get('hostname'), ucr.get('domainname'))
 		return {
 			'initialized': AzureAuth.is_initialized(self.adconnection_alias),
 			'login-url': '{origin}/univention/command/office365/authorize',
-			'appid-url': 'https://%s/office365' % (self.fqdn,),
-			'base-url': 'https://%s/' % (self.fqdn,),
+			'appid-url': 'https://%s/office365' % (fqdn,),
+			'base-url': 'https://%s/' % (fqdn,),
 		}
 
 	@file_upload
@@ -159,55 +158,23 @@ class Instance(Base):
 		self.init()  # reset state in case the first attempt failed
 		self.azure_response = {}
 		self.azure_response.update(request.options)
-
-		if request.options.get('X-SameSite', '') == '':
-			content = textwrap.dedent("""\
-			<!DOCTYPE html>
-			<html>
-			<head>
-			<title>%(title)s</title>
-			</head>
-			<body>
-			<form action="" id="form_auth" method="post">
-			<input type="hidden" name="code" value="%(code)s" />
-			<input type="hidden" name="session_state" value="%(session_state)s" />
-			<input type="hidden" name="admin_consent" value="%(admin_consent)s" />
-			<input type="hidden" name="X-SameSite" value="1" />
-			<button type="submit">...</button>
-			</form>
-			<script type="application/javascript">
-			window.setTimeout(function(){ document.getElementById("form_auth").submit(); }, 3000);
-			</script>
-			</body>
-			</html>
-			""" % {
-				'title': _('Office 365 Configuration finished'),
-				'content': _('This page will disappear in 3 seconds and close the current browser window. That will bring you back to the office365 configuration assistent.'),
-				'code': request.options.get('code', ''),
-				'session_state': request.options.get('session_state', ''),
-				'admin_consent': request.options.get('admin_consent', ''),
-			})
-		else:
-			request.headers['X-Xsrf-Protection'] = request.cookies.get('UMCSessionId', '')
-			content = textwrap.dedent("""\
-			<!DOCTYPE html>
-			<html>
-			<head>
-			<title>%(title)s</title>
-			<script type="application/javascript">
-			window.close();
-			window.top.close();
-			</script>
-			</head>
-			<body>
-			%(content)s
-			</body>
-			</html>
-			""" % {
-				'title': _('Office 365 Configuration finished'),
-				'content': _('The configuration has finished! You can now close this page and continue the configuration wizard.'),
-			})
-
+		content = """<!DOCTYPE html>
+<html>
+<head>
+<title>%(title)s</title>
+<script type="application/javascript">
+window.close();
+window.top.close();
+</script>
+</head>
+<body>
+%(content)s
+</body>
+</html>
+		""" % {
+			'title': _('Office 365 Configuration finished'),
+			'content': _('The configuration has finished! You can now close this page and continue the configuration wizard.'),
+		}
 		self.finished(request.id, bytes(content), mimetype='text/html')
 
 	@simple_response
