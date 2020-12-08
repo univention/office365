@@ -290,8 +290,8 @@ def new_or_reactivate_user(ol, dn, new, old):
 		for group in udm_user['groups']:
 			logger.info('Need to add user to group %s.' % group)
 			udm_grp = ol.udm.get_udm_group(group)
-			if not udm_grp.get('UniventionOffice365Data'):
-				logger.info('Need to create azure group %s first.' % group)
+			if not udm_grp.get('UniventionOffice365Data') or ol.adconnection_alias not in Office365Listener.decode_o365data(udm_grp['UniventionOffice365Data']):
+				logger.info('Need to create azure group %s for %s first.' % (group, ol.adconnection_alias))
 				ol.create_groups(group, udm_grp.oldattr)
 				udm_grp = ol.udm.get_udm_group(group)
 			if udm_grp.get('UniventionOffice365Data'):
@@ -300,6 +300,10 @@ def new_or_reactivate_user(ol, dn, new, old):
 					if 'objectId' in azure_data[ol.adconnection_alias]:
 						logger.info('Adding user %s to azure group %s' % (dn, group))
 						ol.ah.add_objects_to_azure_group(azure_data[ol.adconnection_alias]['objectId'], [new_user["objectId"]])
+				else:
+					logger.error('Azure group %s not found at udm object.' % group)
+			else:
+				logger.error('UCS group %s is not synced to any azure ad.' % group)
 
 
 def delete_user(ol, dn, new, old):
