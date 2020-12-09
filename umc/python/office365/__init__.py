@@ -43,6 +43,7 @@ from univention.management.console.base import Base
 from univention.management.console.error import UMC_Error, UnprocessableEntity
 from univention.management.console.modules.decorators import sanitize, simple_response, file_upload, allow_get_request
 from univention.management.console.modules.sanitizers import StringSanitizer, DictSanitizer, BooleanSanitizer, ValidationError, MultiValidationError
+from univention.management.console.modules.decorators import prevent_referer_check
 from univention.management.console.log import MODULE
 
 from univention.office365.azure_auth import AzureAuth, AzureError, AzureADConnectionHandler, Manifest, ManifestError, SAML_SETUP_SCRIPT_PATH, ADConnectionIDError, adconnection_alias_ucrv, adconnection_wizard_ucrv
@@ -155,61 +156,64 @@ class Instance(Base):
 		error=StringSanitizer(),
 		error_description=StringSanitizer()
 	)
-	def authorize(self, request):
+	@prevent_referer_check
+	def authorize_internal(self, request):
 		self.init()  # reset state in case the first attempt failed
 		self.azure_response = {}
 		self.azure_response.update(request.options)
+		content = textwrap.dedent("""\
+		<!DOCTYPE html>
+		<html>
+		<head>
+		<title>%(title)s</title>
+		<script type="application/javascript">//<!--
+		window.close();
+		window.top.close();
+		//--></script>
+		</head>
+		<body>
+		%(content)s
+		</body>
+		</html>
+		""" % {
+			'title': _('Office 365 Configuration finished'),
+			'content': _('The configuration has finished! You can now close this page and continue the configuration wizard.'),
+		})
 
-		if request.options.get('X-SameSite', '') == '':
-			content = textwrap.dedent("""\
-			<!DOCTYPE html>
-			<html>
-			<head>
-			<title>%(title)s</title>
-			</head>
-			<body>
-			<form action="" id="form_auth" method="post">
-			<input type="hidden" name="code" value="%(code)s" />
-			<input type="hidden" name="session_state" value="%(session_state)s" />
-			<input type="hidden" name="admin_consent" value="%(admin_consent)s" />
-			<input type="hidden" name="id_token" value="%(id_token)s" />
-			<input type="hidden" name="X-SameSite" value="1" />
-			<button type="submit">...</button>
-			</form>
-			<script type="application/javascript">//<!--
-			window.setTimeout(function(){ document.getElementById("form_auth").submit(); }, 3000);
-			//--></script>
-			</body>
-			</html>
-			""" % {
-				'title': _('Office 365 Configuration finished'),
-				'content': _('This page will disappear in 3 seconds and close the current browser window. That will bring you back to the office365 configuration assistent.'),
-				'code': request.options.get('code', ''),
-				'session_state': request.options.get('session_state', ''),
-				'admin_consent': request.options.get('admin_consent', ''),
-				'id_token': request.options.get('id_token', ''),
-			})
-		else:
-			request.headers['X-Xsrf-Protection'] = request.cookies.get('UMCSessionId', '')
-			content = textwrap.dedent("""\
-			<!DOCTYPE html>
-			<html>
-			<head>
-			<title>%(title)s</title>
-			<script type="application/javascript">//<!--
-			window.close();
-			window.top.close();
-			//--></script>
-			</head>
-			<body>
-			%(content)s
-			</body>
-			</html>
-			""" % {
-				'title': _('Office 365 Configuration finished'),
-				'content': _('The configuration has finished! You can now close this page and continue the configuration wizard.'),
-			})
+		self.finished(request.id, content.encode('UTF-8'), mimetype='text/html')
 
+
+	@allow_get_request
+	def authorize(self, request):
+
+		content = textwrap.dedent("""\
+		<!DOCTYPE html>
+		<html>
+		<head>
+		<title>%(title)s</title>
+		</head>
+		<body>
+		<form action="/univention/command/office365/authorize_internal" id="form_auth" method="post">
+		<input type="hidden" name="code" value="%(code)s" />
+		<input type="hidden" name="session_state" value="%(session_state)s" />
+		<input type="hidden" name="admin_consent" value="%(admin_consent)s" />
+		<input type="hidden" name="id_token" value="%(id_token)s" />
+		<input type="hidden" name="X-SameSite" value="1" />
+		<button type="submit">...</button>
+		</form>
+		<script type="application/javascript">//<!--
+		window.setTimeout(function(){ document.getElementById("form_auth").submit(); }, 3000);
+		//--></script>
+		</body>
+		</html>
+		""" % {
+			'title': _('Office 365 Configuration finished'),
+			'content': _('This page will disappear in 3 seconds and close the current browser window. That will bring you back to the office365 configuration assistent.'),
+			'code': request.options.get('code', ''),
+			'session_state': request.options.get('session_state', ''),
+			'admin_consent': request.options.get('admin_consent', ''),
+			'id_token': request.options.get('id_token', ''),
+		})
 		self.finished(request.id, content.encode('UTF-8'), mimetype='text/html')
 
 	@simple_response
