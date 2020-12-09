@@ -35,7 +35,11 @@ import urlparse
 import functools
 import subprocess
 import textwrap
-from cgi import escape
+try:
+	from html import escape
+except ImportError:  # Python 2
+	from cgi import escape
+
 
 from univention.lib.i18n import Translation
 from univention.config_registry import handler_set
@@ -160,7 +164,7 @@ class Instance(Base):
 		self.init()  # reset state in case the first attempt failed
 		self.azure_response = {}
 		self.azure_response.update(request.options)
-		content = textwrap.dedent("""\
+		content = textwrap.dedent(u"""\
 		<!DOCTYPE html>
 		<html>
 			<head>
@@ -184,7 +188,7 @@ class Instance(Base):
 	@allow_get_request
 	def authorize(self, request):
 
-		content = textwrap.dedent("""\
+		content = textwrap.dedent(u"""\
 		<!DOCTYPE html>
 		<html>
 			<head>
@@ -192,31 +196,20 @@ class Instance(Base):
 			</head>
 			<body>
 				<form action="/univention/command/office365/authorize_internal" id="form_auth" method="post">
-					<input type="hidden" name="code" value="%(code)s" />
-					<input type="hidden" name="session_state" value="%(session_state)s" />
-					<input type="hidden" name="admin_consent" value="%(admin_consent)s" />
-					<input type="hidden" name="id_token" value="%(id_token)s" />
-					<input type="hidden" name="error_description" value="%(error_description)s" />
-					<input type="hidden" name="error" value="%(error)s" />
-					<input type="hidden" name="X-SameSite" value="%(X-SameSite)s" />
+		""" % {
+			'title': _('Office 365 Configuration finished')})
+
+		for name, value in request.options.items():
+				content += u'\t<input type="hidden" name="%s" value="%s" />\n' % (name, escape(value))
+		content += textwrap.dedent(u"""\
 					<button type="submit">...</button>
 				</form>
 				<script type="application/javascript">//<!--
-		window.setTimeout(function(){ document.getElementById("form_auth").submit(); }, 3000);
-		//--></script>
+					document.getElementById("form_auth").submit();
+				//--></script>
 			</body>
 		</html>
-		""" % {
-			'title': _('Office 365 Configuration finished'),
-			'content': _('This page will disappear in 3 seconds and close the current browser window. That will bring you back to the office365 configuration assistent.'),
-			'code': escape(request.options.get('code', '')),
-			'session_state': escape(request.options.get('session_state', '')),
-			'error_description': escape(request.options.get('error_description', '')),
-			'error': escape(request.options.get('error', '')),
-			'admin_consent': escape(request.options.get('admin_consent', '')),
-			'X-SameSite': escape(request.options.get('X-SameSite', '')),
-			'id_token': escape(request.options.get('id_token', '')),
-		})
+		""")
 		self.finished(request.id, content.encode('UTF-8'), mimetype='text/html')
 
 	@simple_response
