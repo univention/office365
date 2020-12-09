@@ -1,3 +1,10 @@
+univention-office365 (2.0.2-81) unstable; urgency=high
+
+  * Bug #52148: chrome & edge took HTTP SameSite seriously and made it
+    impossible to finish the configuration wizard. It now works again.
+
+ -- Max Christian Pohle <pohle@univention.de>  Wed, 09 Dec 2020 08:44:26 +0100
+
 univention-office365 (2.0.2-79) unstable; urgency=medium
 
   * Bug #52159: also create group if already existing but for

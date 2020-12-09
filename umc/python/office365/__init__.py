@@ -34,6 +34,8 @@
 import urlparse
 import functools
 import subprocess
+import textwrap
+from cgi import escape
 
 from univention.lib.i18n import Translation
 from univention.config_registry import handler_set
@@ -82,16 +84,16 @@ class Instance(Base):
 	def init(self):
 		self.azure_response = None
 		self.adconnection_alias = ucr.get(adconnection_wizard_ucrv) or None
+		self.fqdn = '%s.%s' % (ucr.get('hostname'), ucr.get('domainname'))
 		MODULE.process('adconnection_alias={!r}'.format(self.adconnection_alias))
 
 	@simple_response
 	def query(self):
-		fqdn = '%s.%s' % (ucr.get('hostname'), ucr.get('domainname'))
 		return {
 			'initialized': AzureAuth.is_initialized(self.adconnection_alias),
 			'login-url': '{origin}/univention/command/office365/authorize',
-			'appid-url': 'https://%s/office365' % (fqdn,),
-			'base-url': 'https://%s/' % (fqdn,),
+			'appid-url': 'https://%s/office365' % (self.fqdn,),
+			'base-url': 'https://%s/' % (self.fqdn,),
 		}
 
 	@file_upload
@@ -154,28 +156,68 @@ class Instance(Base):
 		error=StringSanitizer(),
 		error_description=StringSanitizer()
 	)
-	def authorize(self, request):
+	def authorize_internal(self, request):
 		self.init()  # reset state in case the first attempt failed
 		self.azure_response = {}
 		self.azure_response.update(request.options)
-		content = """<!DOCTYPE html>
-<html>
-<head>
-<title>%(title)s</title>
-<script type="application/javascript">
-window.close();
-window.top.close();
-</script>
-</head>
-<body>
-%(content)s
-</body>
-</html>
+		content = textwrap.dedent("""\
+		<!DOCTYPE html>
+		<html>
+			<head>
+				<title>%(title)s</title>
+					<script type="application/javascript">//<!--
+						window.close();
+						window.top.close();
+					//--></script>
+			</head>
+			<body>
+				%(content)s
+				</body>
+		</html>
 		""" % {
 			'title': _('Office 365 Configuration finished'),
 			'content': _('The configuration has finished! You can now close this page and continue the configuration wizard.'),
-		}
-		self.finished(request.id, bytes(content), mimetype='text/html')
+		})
+
+		self.finished(request.id, content.encode('UTF-8'), mimetype='text/html')
+
+	@allow_get_request
+	def authorize(self, request):
+
+		content = textwrap.dedent("""\
+		<!DOCTYPE html>
+		<html>
+			<head>
+				<title>%(title)s</title>
+			</head>
+			<body>
+				<form action="/univention/command/office365/authorize_internal" id="form_auth" method="post">
+					<input type="hidden" name="code" value="%(code)s" />
+					<input type="hidden" name="session_state" value="%(session_state)s" />
+					<input type="hidden" name="admin_consent" value="%(admin_consent)s" />
+					<input type="hidden" name="id_token" value="%(id_token)s" />
+					<input type="hidden" name="error_description" value="%(error_description)s" />
+					<input type="hidden" name="error" value="%(error)s" />
+					<input type="hidden" name="X-SameSite" value="%(X-SameSite)s" />
+					<button type="submit">...</button>
+				</form>
+				<script type="application/javascript">//<!--
+		window.setTimeout(function(){ document.getElementById("form_auth").submit(); }, 3000);
+		//--></script>
+			</body>
+		</html>
+		""" % {
+			'title': _('Office 365 Configuration finished'),
+			'content': _('This page will disappear in 3 seconds and close the current browser window. That will bring you back to the office365 configuration assistent.'),
+			'code': escape(request.options.get('code', '')),
+			'session_state': escape(request.options.get('session_state', '')),
+			'error_description': escape(request.options.get('error_description', '')),
+			'error': escape(request.options.get('error', '')),
+			'admin_consent': escape(request.options.get('admin_consent', '')),
+			'X-SameSite': escape(request.options.get('X-SameSite', '')),
+			'id_token': escape(request.options.get('id_token', '')),
+		})
+		self.finished(request.id, content.encode('UTF-8'), mimetype='text/html')
 
 	@simple_response
 	def state(self):
