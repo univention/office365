@@ -172,12 +172,13 @@ class Instance(Base):
 			<input type="hidden" name="code" value="%(code)s" />
 			<input type="hidden" name="session_state" value="%(session_state)s" />
 			<input type="hidden" name="admin_consent" value="%(admin_consent)s" />
+			<input type="hidden" name="id_token" value="%(id_token)s" />
 			<input type="hidden" name="X-SameSite" value="1" />
 			<button type="submit">...</button>
 			</form>
-			<script type="application/javascript">
+			<script type="application/javascript">//<!--
 			window.setTimeout(function(){ document.getElementById("form_auth").submit(); }, 3000);
-			</script>
+			//--></script>
 			</body>
 			</html>
 			""" % {
@@ -186,6 +187,7 @@ class Instance(Base):
 				'code': request.options.get('code', ''),
 				'session_state': request.options.get('session_state', ''),
 				'admin_consent': request.options.get('admin_consent', ''),
+				'id_token': request.options.get('id_token', ''),
 			})
 		else:
 			request.headers['X-Xsrf-Protection'] = request.cookies.get('UMCSessionId', '')
@@ -194,10 +196,10 @@ class Instance(Base):
 			<html>
 			<head>
 			<title>%(title)s</title>
-			<script type="application/javascript">
+			<script type="application/javascript">//<!--
 			window.close();
 			window.top.close();
-			</script>
+			//--></script>
 			</head>
 			<body>
 			%(content)s
@@ -208,7 +210,7 @@ class Instance(Base):
 				'content': _('The configuration has finished! You can now close this page and continue the configuration wizard.'),
 			})
 
-		self.finished(request.id, bytes(content), mimetype='text/html')
+		self.finished(request.id, content.encode('UTF-8'), mimetype='text/html')
 
 	@simple_response
 	def state(self):
