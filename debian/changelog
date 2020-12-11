@@ -1,4 +1,4 @@
-univention-office365 (2.0.2-84) unstable; urgency=high
+univention-office365 (2.0.2-85) unstable; urgency=high
 
   * Bug #52148: chrome & edge took HTTP SameSite seriously and made it
     impossible to finish the configuration wizard. It now works again.
