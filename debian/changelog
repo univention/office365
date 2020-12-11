@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-86) unstable; urgency=medium
+
+  * Bug #52159: fixed "disbaled" test
+
+ -- Felix Botner <botner@univention.de>  Fri, 11 Dec 2020 14:16:13 +0100
+
 univention-office365 (2.0.2-85) unstable; urgency=high
 
   * Bug #52148: chrome & edge took HTTP SameSite seriously and made it

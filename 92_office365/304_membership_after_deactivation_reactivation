@@ -129,13 +129,12 @@ def test_membership(ucr, udm, check):
 	user_args["set"]["primaryGroup"] = group_dn_new_other
 	user_dn_other, username_other = udm.create_user(**user_args)
 
-	# wait for group to be in other ad connection
+	# wait for user to be synced to azure
 	for i in range(60):
-		print('waiting for group')
+		print('waiting for user')
 		time.sleep(1)
-		udm_user = ol.udm.get_udm_user(user_dn)
-		udm_group_new_other = ol.udm.get_udm_group(group_dn_new_other)
-		if udm_user.get("UniventionOffice365Data", None):
+		udm_user_other = ol.udm.get_udm_user(user_dn_other)
+		if udm_user_other.get("UniventionOffice365Data", None):
 			break
 
 	# reactivate user, user should be member of groups
