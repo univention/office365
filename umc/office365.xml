@@ -7,12 +7,8 @@
 		<categories>
 			<category name="domain"/>
 		</categories>
-		<requiredCommands>
-			<requiredCommand name="office365/authorize_internal"/>
-		</requiredCommands>
 		<command name="office365/query" function="query"/>
 		<command name="office365/upload" function="upload"/>
-		<command name="office365/authorize" function="authorize" allow_anonymous="true"/>
 		<command name="office365/authorize_internal" function="authorize_internal" />
 		<command name="office365/state" function="state"/>
 		<command name="office365/manifest.json" function="manifest_json"/>

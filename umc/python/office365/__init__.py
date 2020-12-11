@@ -35,11 +35,6 @@ import urlparse
 import functools
 import subprocess
 import textwrap
-try:
-	from html import escape
-except ImportError:  # Python 2
-	from cgi import escape
-
 
 from univention.lib.i18n import Translation
 from univention.config_registry import handler_set
@@ -183,33 +178,6 @@ class Instance(Base):
 			'content': _('The configuration has finished! You can now close this page and continue the configuration wizard.'),
 		})
 
-		self.finished(request.id, content.encode('UTF-8'), mimetype='text/html')
-
-	@allow_get_request
-	def authorize(self, request):
-
-		content = textwrap.dedent(u"""\
-		<!DOCTYPE html>
-		<html>
-			<head>
-				<title>%(title)s</title>
-			</head>
-			<body>
-				<form action="/univention/command/office365/authorize_internal" id="form_auth" method="post">
-		""" % {
-			'title': _('Office 365 Configuration finished')})
-
-		for name, value in request.options.items():
-				content += u'\t<input type="hidden" name="%s" value="%s" />\n' % (escape(name), escape(value))
-		content += textwrap.dedent(u"""\
-					<button type="submit">...</button>
-				</form>
-				<script type="application/javascript">//<!--
-					document.getElementById("form_auth").submit();
-				//--></script>
-			</body>
-		</html>
-		""")
 		self.finished(request.id, content.encode('UTF-8'), mimetype='text/html')
 
 	@simple_response

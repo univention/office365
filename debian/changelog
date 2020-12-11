@@ -1,3 +1,12 @@
+univention-office365 (2.0.2-87) unstable; urgency=medium
+
+  * Bug #52148: Due to a problem with the UMC, we decided to use a
+    wsgi script for the implementation instead of an anonymous UMC module.
+    I renamed the authorization url to "/office365-authorize, to be able to
+    use the wsgi script.
+
+ -- Julia Bremer <bremer@univention.de>  Fri, 11 Dec 2020 20:17:37 +0100
+
 univention-office365 (2.0.2-86) unstable; urgency=medium
 
   * Bug #52159: fixed "disbaled" test

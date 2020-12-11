@@ -48,4 +48,7 @@ if dpkg --compare-versions "2.0.0-8" gt-nl "$2"; then
 	ucr commit /etc/simplesamlphp/metadata/saml20-sp-remote.php
 fi
 
+a2ensite office365-wsgi
+systemctl reload apache2
+
 exit 0

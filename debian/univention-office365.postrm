@@ -38,4 +38,7 @@ then
 	call_unjoinscript 60univention-office365.uinst
 fi
 
+a2dissite office365-wsgi
+systemctl reload apache2
+
 exit 0
