@@ -17,6 +17,7 @@ Architecture: all
 Depends: ${misc:Depends},
  univention-config,
  python-univention,
+ libapache2-mod-wsgi,
  python-univention-lib,
  shell-univention-lib,
  univention-join,

@@ -1,4 +1,4 @@
-univention-office365 (2.0.2-87) unstable; urgency=medium
+univention-office365 (2.0.2-88) unstable; urgency=medium
 
   * Bug #52148: Due to a problem with the UMC, we decided to use a
     wsgi script for the implementation instead of an anonymous UMC module.
