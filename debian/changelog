@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-89) unstable; urgency=medium
+
+  * Bug #52148: Adapt login-url that is shown in wizard.
+
+ -- Erik Damrose <damrose@univention.de>  Mon, 14 Dec 2020 10:59:40 +0100
+
 univention-office365 (2.0.2-88) unstable; urgency=medium
 
   * Bug #52148: Due to a problem with the UMC, we decided to use a

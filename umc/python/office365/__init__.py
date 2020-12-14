@@ -90,7 +90,7 @@ class Instance(Base):
 	def query(self):
 		return {
 			'initialized': AzureAuth.is_initialized(self.adconnection_alias),
-			'login-url': '{origin}/univention/command/office365/authorize',
+			'login-url': '{origin}/office365-authorize',
 			'appid-url': 'https://%s/office365' % (self.fqdn,),
 			'base-url': 'https://%s/' % (self.fqdn,),
 		}
