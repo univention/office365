@@ -82,6 +82,13 @@ ucs_registerLDAPExtension "$@" --udm_module /usr/share/univention-office365/hand
 	--messagecatalog /usr/share/univention-office365/handler.d/de.mo || die
 ucs_registerLDAPExtension "$@" --udm_module /usr/share/univention-office365/handler.d/ad-connection.py || die
 
+# just for testing, remove before next release
+#  seems that univention-cli-server is not properly terminated during ucs_registerLDAPExtension
+#  maybe we need to use SIGKILL?
+ps aux
+pidof  -x univention-cli-server
+#
+
 ea_base="cn=custom attributes,cn=univention,$ldap_base"
 
 udm container/cn create "$@" --ignore_exists \
