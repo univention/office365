@@ -2,8 +2,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: univention-management-console-module-office365\n"
-"Report-Msgid-Bugs-To: packages@univention.de\n"
-"POT-Creation-Date: 2019-10-24 18:26+0200\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-01-04 16:52+0100\n"
 "PO-Revision-Date: 2016-01-14 11:26+0100\n"
 "Last-Translator: Univention GmbH <packages@univention.de>\n"
 "Language-Team: Univention GmbH <packages@univention.de>\n"
@@ -12,7 +12,19 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: umc/js/office365.js:77
+#: office365.js:72
+msgid "Welcome to the Microsoft 365 configuration"
+msgstr "Willkommen zur Microsoft 365 Konfiguration"
+
+#: office365.js:73
+msgid ""
+"Welcome to the Microsoft 365 setup wizard. A few steps are needed to "
+"complete the configuration process."
+msgstr ""
+"Willkommen zum Microsoft 365 Einrichtungsassistent. Es sind einige Schritte "
+"notwendig, um den Konfigurationsprozess fertigzustellen."
+
+#: office365.js:77
 msgid ""
 "<b>Warning!</b> The configuration has already been done. If you continue, "
 "the current connection settings will be replaced."
@@ -20,85 +32,27 @@ msgstr ""
 "<b>Achtung!</b> Die Konfiguration wurde bereits durchgeführt. Die aktuellen "
 "Verbindungseinstellungen werden ersetzt wenn fortgefahren wird."
 
-#: umc/js/office365.js:296
-msgid "AAD.png"
-msgstr "AAD.png"
+#: office365.js:83
+msgid "Open single sign-on configuration instructions"
+msgstr "Single Sign-On Einrichtungsanweisungen öffnen"
 
-#: umc/js/office365.js:371
+#: office365.js:94
+msgid "Create an application for Microsoft 365"
+msgstr "Eine Anwendung für Microsoft 365 erstellen"
+
+#: office365.js:95
 msgid ""
-"Additional configuration settings can be viewed in the help of the UCR "
-"variables <i>office365/attributes/anonymize</i> and <i>office365/attributes/"
-"static/.*</i>."
+"To allow UCS to synchronize selected user accounts a new application have to "
+"be added in the active directory."
 msgstr ""
-"Weitere Einstellungsmöglichkeiten erfahren Sie in der Hilfe zu den UCR-"
-"Variablen <i>office365/attributes/anonymize</i> und <i>office365/attributes/"
-"static/.*</i>."
+"Um UCS zu erlauben, ausgewählte Benutzerkonten zu synchronisieren, muss eine "
+"neue Anwendung im Active Directory hinzugefügt werden."
 
-#: umc/js/office365.js:338
-msgid ""
-"After the permission granting has succeeded continue this wizard by clicking "
-"on <i>Next</i>."
-msgstr ""
-"Nach dem erfolgreichen Setzen der Berechtigungen fahren Sie mit dem "
-"Assistenten durch klicken auf <i>Weiter</i> fort."
+#: office365.js:105
+msgid "SIGN-ON URL"
+msgstr "URL FÜR ANMELDUNG"
 
-#: umc/js/office365.js:336
-msgid ""
-"After the upload has succeeded, select the <i>API permissions</i> section."
-msgstr ""
-"Nach dem erfolgreichen Hochladen, öffnen Sie die <I>API-Berechtigungen</i> "
-"Sektion."
-
-#: umc/js/office365.js:345
-msgid ""
-"After this the browser window will close itself and the connection between "
-"UCS and the Office 365 application will be established."
-msgstr ""
-"Das Browserfenster wird sich dann von selbst schließen und die Verbindung "
-"zwischen UCS und der Office 365 Anwendung wird hergestellt."
-
-#: umc/js/office365.js:328
-msgid ""
-"After uploading the manifest you will be offered to download a file "
-"<i>manifest.json</i>. Store this file on your computer."
-msgstr ""
-"Nachdem das Manifest hochgeladen wurde, wird Ihnen eine Datei <i>manifest."
-"json</i> zum Download angeboten. Speichern Sie diese Datei auf Ihrer "
-"Festplatte."
-
-#: umc/js/office365.js:253
-msgid "An error occurred"
-msgstr "Es ist ein Fehler aufgetreten"
-
-#: umc/js/office365.js:258
-msgid "An error occurred. It might help to restart the wizard."
-msgstr ""
-"Es ist ein Fehler aufgetreten. Eventuell hilft ein Neustart des Wizards."
-
-#: umc/js/office365.js:301
-msgid ""
-"As supported account type select <i>Accounts in this organizational "
-"directory only</i>."
-msgstr ""
-"Als unterstützten Kontotypen wählen Sie <i>Nur Konten in diesem "
-"Organisationsverzeichnis</i> aus."
-
-#: umc/js/office365.js:198
-msgid "Authorize UCS Office 365 application"
-msgstr "UCS Office 365 Anwendung autorisieren"
-
-#: umc/js/office365.js:211
-msgid "Authorize UCS to access application"
-msgstr "Zugang zur Anwendung für UCS autorisieren"
-
-#: umc/js/office365.js:299
-msgid ""
-"Click <i>NEW REGISTRATION</i> to add a new application to your directory."
-msgstr ""
-"Klicken Sie <i>NEUE REGISTRIERUNG</i> um Ihrem Directory eine neue "
-"Applikation hinzuzufügen."
-
-#: umc/js/office365.js:109
+#: office365.js:109
 msgid ""
 "Complete the wizard in the Azure portal by clicking the <i>Register</i> "
 "button."
@@ -106,7 +60,97 @@ msgstr ""
 "Beenden Sie die den Wizard im Azure Portal durch Klicken auf den "
 "<i>Registrieren</i> Knopf."
 
-#: umc/js/office365.js:227
+#: office365.js:113
+msgid "Connect Azure with UCS"
+msgstr "Azure mit UCS verbinden"
+
+#: office365.js:114
+msgid ""
+"To integrate Microsoft 365 into UCS the manifest of the new application has "
+"to be downloaded."
+msgstr ""
+"Um Microsoft 365 in UCS zu integrieren, ist es notwendig, das Manifest der "
+"neuen Anwendung herunterzuladen."
+
+#: office365.js:114 office365.js:145
+msgid ""
+"The manifest is a JSON file which contains all necessary information "
+"required to connect UCS with your active directory."
+msgstr ""
+"Das Manifest ist eine JSON-Datei, die alle notwendigen Informationen "
+"beinhaltet, um UCS mit dem Active Directory zu verbinden."
+
+#: office365.js:122
+msgid "Federation metadata document"
+msgstr "Verbund-Metadatendokument"
+
+#: office365.js:123
+msgid "Please insert the federation metadata document URL here..."
+msgstr "Bitte fügen Sie die Verbund-Metadatendokument URL hier ein..."
+
+#: office365.js:140
+msgid "Continue by clicking on <i>Next</i>."
+msgstr "Fahren Sie durch klicken auf <i>Weiter</i> fort."
+
+#: office365.js:144
+msgid "Upload manifest to UCS"
+msgstr "Manifest zu UCS hochladen"
+
+#: office365.js:153
+msgid "Verified domain name"
+msgstr "Verifizierter Domänenname"
+
+#: office365.js:155
+msgid "domain name (e.g. univention.de)"
+msgstr "Domänenname (z.B. univention.de)"
+
+#: office365.js:169
+msgid "Upload manifest"
+msgstr "Manifest hochladen"
+
+#: office365.js:189
+msgid "Upload updated manifest"
+msgstr "Aktualisiertes Manifest hochladen"
+
+#: office365.js:190
+msgid ""
+"UCS modified the manifest to include all information which Azure needs to "
+"accept connections from UCS. The modified manifest now has to be uploaded to "
+"Azure."
+msgstr ""
+"UCS hat das Manifest modifiziert, damit es alle Informationen beinhaltet, "
+"die Azure benötigt, um Verbindungen von UCS zu akzeptieren. Das modifizierte "
+"Manifest muss nun in Azure hochgeladen werden."
+
+#: office365.js:198
+msgid "Authorize UCS Microsoft 365 application"
+msgstr "UCS Microsoft 365 Anwendung autorisieren"
+
+#: office365.js:199
+msgid "In the following step some permissions have to be granted to UCS."
+msgstr "Im folgenden Schritt werden einige Berechtigungen für UCS akzeptiert."
+
+#: office365.js:211
+msgid "Authorize UCS to access application"
+msgstr "Zugang zur Anwendung für UCS autorisieren"
+
+#: office365.js:217
+msgid "Single Sign-On setup"
+msgstr "Single Sign-On Einrichtung"
+
+#: office365.js:218
+msgid ""
+"The UCS SAML identity provider has to be connected to Azure by running a "
+"Windows Powershell script."
+msgstr ""
+"Der UCS SAML Identity Provider muss über ein Windows Powershell Script mit "
+"Azure verbunden werden."
+
+#: office365.js:226 office365.js:235 office365.js:244
+msgid "Microsoft 365 setup complete"
+msgstr "Microsoft 365 Einrichtung abgeschlossen"
+
+#: office365.js:227
 msgid ""
 "Congratulations, the connection between UCS and Microsoft Azure has been "
 "established."
@@ -114,109 +158,69 @@ msgstr ""
 "Glückwunsch, die Verbindung zwischen UCS und Microsoft Azure wurde "
 "hergestellt."
 
-#: umc/js/office365.js:113
-msgid "Connect Azure with UCS"
-msgstr "Azure mit UCS verbinden"
-
-#: umc/js/office365.js:140
-msgid "Continue by clicking on <i>Next</i>."
-msgstr "Fahren Sie durch klicken auf <i>Weiter</i> fort."
-
-#: umc/js/office365.js:310
-msgid "Copy the value for <i>FEDERATION METADATA DOCUMENT</i>."
-msgstr "Kopieren Sie den Wert <i>DOKUMENT MIT VERBUNDMETADATEN</i>."
-
-#: umc/js/office365.js:419
+#: office365.js:236
 msgid ""
-"Could not open a new browser window. Please deactivate all pop up blocker "
-"for this site."
+"The configuration of synchronized attributes can be done via Univention "
+"Config Registry."
 msgstr ""
-"Ein neues Browser Fenster konnte nicht geöffnet werden. Bitte deaktivieren "
-"Sie Pop-Up-Blocker für diese Seite."
+"Die zu synchronisierenden Attribute können per Univention Config Registry "
+"eingestellt werden."
 
-#: umc/js/office365.js:94
-msgid "Create an application for Office 365"
-msgstr "Eine Anwendung für Office 365 erstellen"
+#: office365.js:245
+msgid "Users can now single sign on into the Microsoft 365 account."
+msgstr "Benutzer können nun Single Sign-On zu Microsoft 365 benutzen."
 
-#: umc/js/office365.js:360
-msgid "Download the {link} for Microsoft Powershell."
-msgstr "Laden Sie das {link} für Microsoft Powershell herunter."
-
-#: umc/js/office365.js:317
+#: office365.js:249
 msgid ""
-"Download the {link} which is used to prove the application’s identity when "
-"requesting a token."
+"Synchronized users can log into Microsoft 365 by using the link on the <a "
+"href=\"/univention/\" target=\"_blank\">UCS portal</a>."
 msgstr ""
-"Laden Sie den {link} herunter. Er wird verwendet um die Identität "
-"derApplikation, beim Holen eines Tokens, zu beweisen."
+"Synchronisierte Benutzer können sich bei Microsoft 365 anmelden, indem Sie "
+"den Link auf dem <a href=\"/univention/\" target=\"_blank\">UCS Portal</a> "
+"nutzen."
 
-#: umc/js/office365.js:300
-msgid "Enter a name for your application, e.g. <i>UCS Office 365</i>."
+#: office365.js:249
+msgid "sso-login_EN.png"
+msgstr "sso-login_DE.png"
+
+#: office365.js:253
+msgid "An error occurred"
+msgstr "Es ist ein Fehler aufgetreten"
+
+#: office365.js:258
+msgid "An error occurred. It might help to restart the wizard."
 msgstr ""
-"Geben Sie einen Namen für Ihre Applikation ein, z.B. <i>UCS Office 365</i>."
+"Es ist ein Fehler aufgetreten. Eventuell hilft ein Neustart des Wizards."
 
-#: umc/js/office365.js:361
+#: office365.js:286
 msgid ""
-"Execute the downloaded SAML configuration script, and authenticate with the "
-"Azure Active Directory domain administrator account."
+"Welcome to the <a href=\"https://products.office.com/\" target=\"_blank"
+"\">Microsoft 365</a> setup wizard."
 msgstr ""
-"Führen Sie das heruntergeladene SAML-Konfigurationsscript aus, und "
-"authentifizieren Sie sich mit Ihrem Azure Active Directory "
-"Domänenadministrator Account."
+"Willkommen beim <a href=\"https://products.office.com/\" target=\"_blank\"> "
+"Microsoft 365</a> Einrichtungsassistenten."
 
-#: umc/js/office365.js:122
-msgid "Federation metadata document"
-msgstr "Verbund-Metadatendokument"
-
-#: umc/js/office365.js:368
+#: office365.js:287
 msgid ""
-"For the UCS user account for which Office 365 is enabled, an account in the "
-"Microsoft directory is created and selected account attributes get "
-"synchronized from UCS to the Microsoft directory."
+"It will guide you through the process of setting up automatic provisioning "
+"of Microsoft 365 accounts for your user accounts."
 msgstr ""
-"Für die UCS-Benutzerkonten, bei denen Office 365 aktiviert wurde, werden "
-"entsprechende Konten im Microsoft-Verzeichnis angelegt und ausgewählte "
-"Kontoattribute zu diesem synchronisiert."
+"Er wird Sie dabei begleiten, das automatische Erstellen von Microsoft 365 "
+"Konten durch UCS zu konfigurieren."
 
-#: umc/js/office365.js:541
-msgid "Help"
-msgstr "Hilfe"
-
-#: umc/js/office365.js:298
+#: office365.js:288
 msgid ""
-"If existing applications are not shown, select <i>All applications</i> above "
-"the search field."
+"To use this app you need a Microsoft 365 admin account, a global "
+"administrator account in the corresponding Azure AD and a <a href=\"https://"
+"azure.microsoft.com/en-us/documentation/articles/active-directory-add-domain/"
+"\" target=\"_blank\">verified domain</a>."
 msgstr ""
-"Werden bereits existierende Applikationen nicht angezeigt, wählen Sie über "
-"dem Suchfeld <i>Alle Anwendungen</i> aus."
+"Um diese App zu verwenden wird ein Microsoft 365 Administrator Konto, ein "
+"globales Administrator Konto im entsprechenden Azure AD und eine <a href="
+"\"https://azure.microsoft.com/de-de/documentation/articles/active-directory-"
+"add-domain/\" target=\"_blank\">verifizierte Domäne</a> benötigt."
 
-#: umc/js/office365.js:333
-msgid ""
-"If the download of the <i>manifest.json</i> file didn't start automatically "
-"<a download=\"manifest.json\" href=\"/univention/command/office365/manifest."
-"json\" target=\"_blank\">click here</a>."
-msgstr ""
-"Falls der Download der <i>manifest.json</i> Datei nicht automatisch "
-"gestartet wurde <a download=\"manifest.json\" target=\"_blank\" href=\"/"
-"univention/command/office365/manifest.json\">hier klicken</a>."
-
-#: umc/js/office365.js:362
-msgid ""
-"If the script has been executed successfully, single sign-on configuration "
-"is completed. Continue by clicking on <i>Next</i>."
-msgstr ""
-"Wenn das Script erfolgreich ausgeführt wurde, ist die Einrichtung des Single "
-"Sign-on abgeschlossen. Fahren Sie durch klicken auf <i>Weiter</i> fort."
-
-#: umc/js/office365.js:355
-msgid ""
-"If you open this setup wizard again at a later time, a link on the first "
-"page will take you back to this instructions."
-msgstr ""
-"Falls Sie diesen Einrichtungsassistenten später erneut öffnen, können Sie "
-"durch einen Link auf der ersten Seite zu dieser Anleitung zurückkehren."
-
-#: umc/js/office365.js:289
+#: office365.js:289
 msgid ""
 "In addition, a Windows PC with at least Windows 7 is required to configure "
 "single sign-on for this domain."
@@ -224,7 +228,132 @@ msgstr ""
 "Zusätzlich wird ein PC mit mindestens Windows 7 benötigt, um Single Sign-On "
 "für diese Domäne einzurichten."
 
-#: umc/js/office365.js:318
+#: office365.js:294
+msgid ""
+"Please follow the next steps to create a new application in the Azure active "
+"directory:"
+msgstr ""
+"Bitte folgen Sie den nächsten Schritten, um eine neue Anwendung im Azure "
+"Active Directory zu erstellen:"
+
+#: office365.js:295
+msgid ""
+"Login to the <a href=\"https://portal.azure.com/\" target=\"_blank"
+"\">Microsoft Azure portal</a>."
+msgstr ""
+"Melden Sie sich am <a href=\"https://portal.azure.com/\" target=\"_blank"
+"\">Microsoft Azure Portal</a> an."
+
+#: office365.js:296
+msgid ""
+"Select the Azure Active Directory service. In case you have multiple Active "
+"Directories, click <i>Switch directory</i> to choose the one you wish to "
+"synchronize with UCS."
+msgstr ""
+"Wählen Sie den Azure Active Directory Dienst aus. (Sollten Sie mehrere "
+"Active Directories haben, klicken Sie auf <i>Verzeichnis wechseln</i> um das "
+"auszuwählen, das mit UCS synchronisiert werden soll."
+
+#: office365.js:296
+msgid "AAD.png"
+msgstr "AAD.png"
+
+#: office365.js:297
+msgid "Open the <i>APP REGISTRATIONS</i> module."
+msgstr "Öffnen Sie das <i>App-Registrieren</i> Modul."
+
+#: office365.js:297
+msgid "app_registrations_EN.png"
+msgstr "app_registrations_DE.png"
+
+#: office365.js:298
+msgid ""
+"If existing applications are not shown, select <i>All applications</i> above "
+"the search field."
+msgstr ""
+"Werden bereits existierende Applikationen nicht angezeigt, wählen Sie über "
+"dem Suchfeld <i>Alle Anwendungen</i> aus."
+
+#: office365.js:299
+msgid ""
+"Click <i>NEW REGISTRATION</i> to add a new application to your directory."
+msgstr ""
+"Klicken Sie <i>NEUE REGISTRIERUNG</i> um Ihrem Directory eine neue "
+"Applikation hinzuzufügen."
+
+#: office365.js:299
+msgid "top_bar_add_app_EN.png"
+msgstr "top_bar_add_app_DE.png"
+
+#: office365.js:300
+msgid "Enter a name for your application, e.g. <i>UCS Microsoft 365</i>."
+msgstr ""
+"Geben Sie einen Namen für Ihre Applikation ein, z.B. <i>UCS Microsoft 365</"
+"i>."
+
+#: office365.js:301
+msgid ""
+"As supported account type select <i>Accounts in this organizational "
+"directory only</i>."
+msgstr ""
+"Als unterstützten Kontotypen wählen Sie <i>Nur Konten in diesem "
+"Organisationsverzeichnis</i> aus."
+
+#: office365.js:301
+msgid "app_name_EN.png"
+msgstr "app_name_DE.png"
+
+#: office365.js:302
+msgid ""
+"In the category <i>Redirect URI</i>, make sure <i>Web</i> is selected in the "
+"dropdown. Copy the value below and paste it into the textfield in the Azure "
+"wizard."
+msgstr ""
+"Stellen Sie sicher, dass in der Sektion <i>Umleitungs-URI</i> im Drop-Down "
+"<i>Web</i> ausgewählt ist. Kopieren Sie den unteren Wert und fügen Sie ihn "
+"in das Feld im Azure-Assistenten ein."
+
+#: office365.js:308
+msgid ""
+"Make sure the newly created application is selected or open it by clicking "
+"on it."
+msgstr ""
+"Stellen Sie sicher, dass die neu erstellte Anwendung ausgewählt ist oder "
+"öffnen Sie sie durch einen Klick."
+
+#: office365.js:309
+msgid "On the app <i>Overview</i>, click on <i>ENDPOINTS</i>."
+msgstr "Klicken Sie in der App <i>Übersicht</i> auf <i>Endpunkte</i>."
+
+#: office365.js:309
+msgid "endpoints_EN.png"
+msgstr "endpoints_DE.png"
+
+#: office365.js:310
+msgid "Copy the value for <i>FEDERATION METADATA DOCUMENT</i>."
+msgstr "Kopieren Sie den Wert <i>DOKUMENT MIT VERBUNDMETADATEN</i>."
+
+#: office365.js:310
+msgid "copy_adconnection_id_EN.png"
+msgstr "copy_adconnection_id_DE.png"
+
+#: office365.js:311
+msgid "Insert the copied value into the text box below."
+msgstr "Fügen Sie den kopierten Wert in die unten stehende Textbox ein."
+
+#: office365.js:317
+msgid ""
+"Download the {link} which is used to prove the application’s identity when "
+"requesting a token."
+msgstr ""
+"Laden Sie den {link} herunter. Er wird verwendet um die Identität "
+"derApplikation, beim Holen eines Tokens, zu beweisen."
+
+#: office365.js:317
+msgid "public certificate key"
+msgstr "Öffentlicher Zertifikatsschlüssel"
+
+#: office365.js:318
 msgid ""
 "In the <i>Certificate & secrets</i> section, click on <i>Upload certificate</"
 "i> and select the certificate file that was downloaded in the above step. "
@@ -235,7 +364,11 @@ msgstr ""
 "heruntergeladene Zertifikatsdatei aus. Klicken Sie auf <i>Hinzufügen</i> um "
 "das Zertifikat zur Azure App hinzuzufügen."
 
-#: umc/js/office365.js:319
+#: office365.js:318
+msgid "upload_certificate_EN.png"
+msgstr "upload_certificate_DE.png"
+
+#: office365.js:319
 msgid ""
 "In the <i>Manage</i> section, select <i>MANIFEST</i> and then <i>DOWNLOAD</"
 "i> on the top. The manifest file will be downloaded onto your computer."
@@ -243,25 +376,176 @@ msgstr ""
 "Wählen Sie im <i>Verwalten</i> Menü <i>MANIFEST</i> und klicken Sie dort auf "
 "<i>HERUNTERLADEN</i>. Speichern Sie die Manifest-Datei auf Ihrem Computer."
 
-#: umc/js/office365.js:302
+#: office365.js:319
+msgid "manage_manifest_EN.png"
+msgstr "manage_manifest_DE.png"
+
+#: office365.js:324
 msgid ""
-"In the category <i>Redirect URI</i>, make sure <i>Web</i> is selected in the "
-"dropdown. Copy the value below and paste it into the textfield in the Azure "
-"wizard."
+"The setup wizard now needs the domain that was verified during the "
+"configuration of the Microsoft 365 account. Insert it into the text box "
+"below."
 msgstr ""
-"Stellen Sie sicher, dass in der Sektion <i>Umleitungs-URI</i> im Drop-Down "
-"<i>Web</i> ausgewählt ist. Kopieren Sie den unteren Wert und fügen Sie ihn "
-"in das Feld im Azure-Assistenten ein."
+"Der Einrichtungsassistent benötigt nun die Domäne, die während der "
+"Konfiguration des Microsoft 365 Konto, eingerichtet wurde. Fügen Sie ihn in "
+"das unten stehende Eingabefeld ein."
 
-#: umc/js/office365.js:199
-msgid "In the following step some permissions have to be granted to UCS."
-msgstr "Im folgenden Schritt werden einige Berechtigungen für UCS akzeptiert."
+#: office365.js:328
+msgid ""
+"Please upload the manifest that you just downloaded from the Azure Portal by "
+"using the upload button below. (The downloaded manifest is a file with the "
+"same name as the app and ends in \".json\".)"
+msgstr ""
+"Bitte laden Sie das Manifest, das Sie gerade im Azure Portal heruntergeladen "
+"haben, mit dem unten stehenden Upload-Button hoch. (Das Manifest ist eine "
+"Datei mit den Namen der App und endet auf \".json\".)"
 
-#: umc/js/office365.js:311
-msgid "Insert the copied value into the text box below."
-msgstr "Fügen Sie den kopierten Wert in die unten stehende Textbox ein."
+#: office365.js:328
+msgid ""
+"After uploading the manifest you will be offered to download a file "
+"<i>manifest.json</i>. Store this file on your computer."
+msgstr ""
+"Nachdem das Manifest hochgeladen wurde, wird Ihnen eine Datei <i>manifest."
+"json</i> zum Download angeboten. Speichern Sie diese Datei auf Ihrer "
+"Festplatte."
 
-#: umc/js/office365.js:357
+#: office365.js:333
+msgid ""
+"If the download of the <i>manifest.json</i> file didn't start automatically "
+"<a download=\"manifest.json\" href=\"/univention/command/office365/manifest."
+"json\" target=\"_blank\">click here</a>."
+msgstr ""
+"Falls der Download der <i>manifest.json</i> Datei nicht automatisch "
+"gestartet wurde <a download=\"manifest.json\" target=\"_blank\" href=\"/"
+"univention/command/office365/manifest.json\">hier klicken</a>."
+
+#: office365.js:334
+msgid ""
+"Select your app, <i>MANIFEST</i> and <i>UPLOAD</i> the manifest in the Azure "
+"dashboard."
+msgstr ""
+"Wählen Sie Ihre App, <i>MANIFEST</i> und <i>HOCHLADEN</i> im Azure Dashboard."
+
+#: office365.js:335
+msgid ""
+"To upload the manifest in the panel click on <i>SELECT A FILE</i> and choose "
+"the previously downloaded <i>manifest.json</i>. Click on <i>Save</i> to "
+"complete the upload."
+msgstr ""
+"Um das Manifest in dem Panel hochzuladen, klicken Sie  auf <i>DATEI "
+"AUSWÄHLEN</i> und wählen Sie die zuvor heruntergeladene <i>manifest.json</i> "
+"Datei aus."
+
+#: office365.js:335
+msgid "azure_upload_manifest_window_EN.png"
+msgstr "azure_upload_manifest_window_DE.png"
+
+#: office365.js:336
+msgid ""
+"After the upload has succeeded, select the <i>API permissions</i> section."
+msgstr ""
+"Nach dem erfolgreichen Hochladen, öffnen Sie die <I>API-Berechtigungen</i> "
+"Sektion."
+
+#: office365.js:336
+msgid "required_perms_btn_EN.png"
+msgstr "required_perms_btn_DE.png"
+
+#: office365.js:337
+msgid ""
+"The permissions have already been configured by the manifest. Click the "
+"<i>Grant admin consent for ...</i> button and <i>Yes</i> in the following "
+"dialog."
+msgstr ""
+"Die Berechtigungen wurden bereits mit dem Manifest konfiguriert. Klicken Sie "
+"auf <i>Administratorzustimmung für ... erteilen</i> und im anschließenden "
+"Dialog auf <i>Ja</i>."
+
+#: office365.js:337
+msgid "grant_perms_EN.png"
+msgstr "grant_perms_DE.png"
+
+#: office365.js:337
+msgid "grant_perms_yes_EN.png"
+msgstr "grant_perms_yes_DE.png"
+
+#: office365.js:338
+msgid ""
+"After the permission granting has succeeded continue this wizard by clicking "
+"on <i>Next</i>."
+msgstr ""
+"Nach dem erfolgreichen Setzen der Berechtigungen fahren Sie mit dem "
+"Assistenten durch klicken auf <i>Weiter</i> fort."
+
+#: office365.js:343
+msgid ""
+"The connection between UCS and the Microsoft Azure application has to be "
+"authorized now."
+msgstr ""
+"Die Verbindung zwischen UCS und der Microsoft Azure Anwendung muss nun "
+"autorisiert werden."
+
+#: office365.js:344
+msgid ""
+"When you click on the button below a a new browser window will be opened. "
+"Please select your account and log in if necessary and click on <i>Accept</"
+"i> to permit the permission request."
+msgstr ""
+"Wenn Sie auf den unten stehenden Button klicken, wird ein neues "
+"Browserfenster geöffnet. Melden Sie sich ggf. mit Ihrem Konto an und klicken "
+"auf <i>Akzeptieren</i> um die Berechtigungsanfrage zu bestätigen."
+
+#: office365.js:345
+msgid ""
+"After this the browser window will close itself and the connection between "
+"UCS and the Microsoft 365 application will be established."
+msgstr ""
+"Das Browserfenster wird sich dann von selbst schließen und die Verbindung "
+"zwischen UCS und der Microsoft 365 Anwendung wird hergestellt."
+
+#: office365.js:350
+msgid "ms_authorize_screen_text_and_image_EN.png"
+msgstr "ms_authorize_screen_text_and_image_DE.png"
+
+#: office365.js:354
+msgid ""
+"To finish configuration, single sign-on has to be configured for the "
+"Microsoft 365 domain. Microsoft only supports to configure single sign-on by "
+"running a Microsoft Powershell script on a Windows PC."
+msgstr ""
+"Um die Konfiguration abzuschließen muss Single Sign-on für die Microsoft 365 "
+"Domäne eingerichtet werden. Microsoft bietet für das Einrichten der Single "
+"Sign-on Verbindung nur die Möglichkeit, dies durch Ausführen eines Microsoft "
+"Powershell Scripts auf einem Windows PC zu konfigurieren."
+
+#: office365.js:355
+msgid ""
+"If you open this setup wizard again at a later time, a link on the first "
+"page will take you back to this instructions."
+msgstr ""
+"Falls Sie diesen Einrichtungsassistenten später erneut öffnen, können Sie "
+"durch einen Link auf der ersten Seite zu dieser Anleitung zurückkehren."
+
+#: office365.js:356
+msgid "https://www.microsoft.com/download/details.aspx?id=40779"
+msgstr "https://www.microsoft.com/download/details.aspx?id=40779"
+
+#: office365.js:356
+#, javascript-format
+msgid ""
+"To use the single sign-on script, your Windows PC must have at least "
+"installed the <a href=\"%s\" target=\"_blank\">.NET runtime environment "
+"version 4.5.1.</a>."
+msgstr ""
+"Um das Single Sign-On Konfigurationsscript nutzen zu können, muss auf dem "
+"Windows PC mindestens die <a href=\"%s\" target=\"_blank\">.NET "
+"Laufzeitumgebung in Version 4.5.1</a> installiert sein."
+
+#: office365.js:357
+msgid "https://aka.ms/wmf5download"
+msgstr "https://aka.ms/wmf5download"
+
+#: office365.js:357
 #, javascript-format
 msgid ""
 "Install the latest version of Microsoft Powershell, at least <a href=\"%s\" "
@@ -271,68 +555,11 @@ msgstr ""
 "Powershell. Es muss mindestens das <a href=\"%s\" target=\"_blank\">Windows "
 "Management Framework 5.1</a> installiert sein."
 
-#: umc/js/office365.js:475
-msgid ""
-"It is necessary to <a href=\"https://%(url)s\">run this wizard while using "
-"the Univention Management Console with a https connection.</a> If you "
-"continue without a https connection, the wizard will likely not complete."
-msgstr ""
-"Es ist notwendig <a href=\"https://%(url)s\">den Einrichtungswizard in der "
-"Univention Management Console mit einer https Verbindung zu nutzen.</a> Wenn "
-"Sie ohne https Verbindung fortfahren, wird die Einrichtung wahrscheinlich "
-"nicht erfolgreich sein."
+#: office365.js:358
+msgid "https://www.powershellgallery.com/packages/MSOnline"
+msgstr "https://www.powershellgallery.com/packages/MSOnline"
 
-#: umc/js/office365.js:287
-msgid ""
-"It will guide you through the process of setting up automatic provisioning "
-"of Microsoft Office 365 accounts for your user accounts."
-msgstr ""
-"Er wird Sie dabei begleiten, das automatische Erstellen von Microsoft Office "
-"365 Konten durch UCS zu konfigurieren."
-
-#: umc/js/office365.js:295
-msgid ""
-"Login to the <a href=\"https://portal.azure.com/\" target=\"_blank"
-"\">Microsoft Azure portal</a>."
-msgstr ""
-"Melden Sie sich am <a href=\"https://portal.azure.com/\" target=\"_blank"
-"\">Microsoft Azure Portal</a> an."
-
-#: umc/js/office365.js:359
-msgid ""
-"Make sure that the verified domain which is set up in Azure Active Directory "
-"is <b>not</b> configured as the primary domain. Otherwise, the next step "
-"will fail."
-msgstr ""
-"Stellen Sie sicher, dass die im Azure Active Directory verifizierte Domäne "
-"<b>nicht</b> als primäre Domäne konfiguriert ist. Ansonsten wird der nächste "
-"Schritt fehlschlagen."
-
-#: umc/js/office365.js:308
-msgid ""
-"Make sure the newly created application is selected or open it by clicking "
-"on it."
-msgstr ""
-"Stellen Sie sicher, dass die neu erstellte Anwendung ausgewählt ist oder "
-"öffnen Sie sie durch einen Klick."
-
-#: umc/js/office365.js:549
-msgid "Microsoft Office 365 setup wizard"
-msgstr "Microsoft Office 365 Einrichtungsassistent"
-
-#: umc/js/office365.js:436
-msgid "Office 365 configuration"
-msgstr "Office 365 Konfiguration"
-
-#: umc/js/office365.js:226 umc/js/office365.js:235 umc/js/office365.js:244
-msgid "Office 365 setup complete"
-msgstr "Office 365 Einrichtung abgeschlossen"
-
-#: umc/js/office365.js:309
-msgid "On the app <i>Overview</i>, click on <i>ENDPOINTS</i>."
-msgstr "Klicken Sie in der App <i>Übersicht</i> auf <i>Endpunkte</i>."
-
-#: umc/js/office365.js:358
+#: office365.js:358
 #, javascript-format
 msgid ""
 "On your Windows PC, follow the <a href=\"%s\" target=\"_blank\">instructions "
@@ -344,235 +571,56 @@ msgstr ""
 "Online Services PowerShell for Azure Active Directory</i> Modul zu "
 "installieren."
 
-#: umc/js/office365.js:83
-msgid "Open single sign-on configuration instructions"
-msgstr "Single Sign-On Einrichtungsanweisungen öffnen"
-
-#: umc/js/office365.js:297
-msgid "Open the <i>APP REGISTRATIONS</i> module."
-msgstr "Öffnen Sie das <i>App-Registrieren</i> Modul."
-
-#: umc/js/office365.js:294
+#: office365.js:359
 msgid ""
-"Please follow the next steps to create a new application in the Azure active "
-"directory:"
+"Make sure that the verified domain which is set up in Azure Active Directory "
+"is <b>not</b> configured as the primary domain. Otherwise, the next step "
+"will fail."
 msgstr ""
-"Bitte folgen Sie den nächsten Schritten, um eine neue Anwendung im Azure "
-"Active Directory zu erstellen:"
+"Stellen Sie sicher, dass die im Azure Active Directory verifizierte Domäne "
+"<b>nicht</b> als primäre Domäne konfiguriert ist. Ansonsten wird der nächste "
+"Schritt fehlschlagen."
 
-#: umc/js/office365.js:123
-msgid "Please insert the federation metadata document URL here..."
-msgstr "Bitte fügen Sie die Verbund-Metadatendokument URL hier ein..."
+#: office365.js:360
+msgid "Download the {link} for Microsoft Powershell."
+msgstr "Laden Sie das {link} für Microsoft Powershell herunter."
 
-#: umc/js/office365.js:328
-msgid ""
-"Please upload the manifest that you just downloaded from the Azure Portal by "
-"using the upload button below. (The downloaded manifest is a file with the "
-"same name as the app and ends in \".json\".)"
-msgstr ""
-"Bitte laden Sie das Manifest, das Sie gerade im Azure Portal heruntergeladen "
-"haben, mit dem unten stehenden Upload-Button hoch. (Das Manifest ist eine "
-"Datei mit den Namen der App und endet auf \".json\".)"
-
-#: umc/js/office365.js:360
+#: office365.js:360
 msgid "SAML configuration script"
 msgstr "SAML-Konfigurationsscript"
 
-#: umc/js/office365.js:105
-msgid "SIGN-ON URL"
-msgstr "URL FÜR ANMELDUNG"
-
-#: umc/js/office365.js:296
+#: office365.js:361
 msgid ""
-"Select the Azure Active Directory service. In case you have multiple Active "
-"Directories, click <i>Switch directory</i> to choose the one you wish to "
-"synchronize with UCS."
+"Execute the downloaded SAML configuration script, and authenticate with the "
+"Azure Active Directory domain administrator account."
 msgstr ""
-"Wählen Sie den Azure Active Directory Dienst aus. (Sollten Sie mehrere "
-"Active Directories haben, klicken Sie auf <i>Verzeichnis wechseln</i> um das "
-"auszuwählen, das mit UCS synchronisiert werden soll."
+"Führen Sie das heruntergeladene SAML-Konfigurationsscript aus, und "
+"authentifizieren Sie sich mit Ihrem Azure Active Directory "
+"Domänenadministrator Account."
 
-#: umc/js/office365.js:334
+#: office365.js:361
+msgid "saml_setup_script_windows_EN.png"
+msgstr "saml_setup_script_windows_DE.png"
+
+#: office365.js:362
 msgid ""
-"Select your app, <i>MANIFEST</i> and <i>UPLOAD</i> the manifest in the Azure "
-"dashboard."
+"If the script has been executed successfully, single sign-on configuration "
+"is completed. Continue by clicking on <i>Next</i>."
 msgstr ""
-"Wählen Sie Ihre App, <i>MANIFEST</i> und <i>HOCHLADEN</i> im Azure Dashboard."
+"Wenn das Script erfolgreich ausgeführt wurde, ist die Einrichtung des Single "
+"Sign-on abgeschlossen. Fahren Sie durch klicken auf <i>Weiter</i> fort."
 
-#: umc/js/office365.js:217
-msgid "Single Sign-On setup"
-msgstr "Single Sign-On Einrichtung"
-
-#: umc/js/office365.js:249
+#: office365.js:368
 msgid ""
-"Synchronized users can log into Office 365 by using the link on the <a href="
-"\"/univention/\" target=\"_blank\">UCS portal</a>."
+"For the UCS user account for which Microsoft 365 is enabled, an account in "
+"the Microsoft directory is created and selected account attributes get "
+"synchronized from UCS to the Microsoft directory."
 msgstr ""
-"Synchronisierte Benutzer können sich bei Office 365 anmelden, indem Sie den "
-"Link auf dem <a href=\"/univention/\" target=\"_blank\">UCS Portal</a> "
-"nutzen."
+"Für die UCS-Benutzerkonten, bei denen Microsoft 365 aktiviert wurde, werden "
+"entsprechende Konten im Microsoft-Verzeichnis angelegt und ausgewählte "
+"Kontoattribute zu diesem synchronisiert."
 
-#: umc/js/office365.js:218
-msgid ""
-"The UCS SAML identity provider has to be connected to Azure by running a "
-"Windows Powershell script."
-msgstr ""
-"Der UCS SAML Identity Provider muss über ein Windows Powershell Script mit "
-"Azure verbunden werden."
-
-#: umc/js/office365.js:236
-msgid ""
-"The configuration of synchronized attributes can be done via Univention "
-"Config Registry."
-msgstr ""
-"Die zu synchronisierenden Attribute können per Univention Config Registry "
-"eingestellt werden."
-
-#: umc/js/office365.js:343
-msgid ""
-"The connection between UCS and the Microsoft Azure application has to be "
-"authorized now."
-msgstr ""
-"Die Verbindung zwischen UCS und der Microsoft Azure Anwendung muss nun "
-"autorisiert werden."
-
-#: umc/js/office365.js:114 umc/js/office365.js:145
-msgid ""
-"The manifest is a JSON file which contains all necessary information "
-"required to connect UCS with your active directory."
-msgstr ""
-"Das Manifest ist eine JSON-Datei, die alle notwendigen Informationen "
-"beinhaltet, um UCS mit dem Active Directory zu verbinden."
-
-#: umc/js/office365.js:337
-msgid ""
-"The permissions have already been configured by the manifest. Click the "
-"<i>Grant admin consent for ...</i> button and <i>Yes</i> in the following "
-"dialog."
-msgstr ""
-"Die Berechtigungen wurden bereits mit dem Manifest konfiguriert. Klicken Sie "
-"auf <i>Administratorzustimmung für ... erteilen</i> und im anschließenden "
-"Dialog auf <i>Ja</i>."
-
-#: umc/js/office365.js:324
-msgid ""
-"The setup wizard now needs the domain that was verified during the "
-"configuration of the Office 365 account. Insert it into the text box below."
-msgstr ""
-"Der Einrichtungsassistent benötigt nun die Domäne, die während der "
-"Konfiguration des Office 365 Konto, eingerichtet wurde. Fügen Sie ihn in das "
-"unten stehende Eingabefeld ein."
-
-#: umc/js/office365.js:544
-msgid ""
-"This wizard helps you to configure the connection between UCS and Microsoft "
-"Office 365."
-msgstr ""
-"Dieser Einrichtungsassistent hilft Ihnen die Verbindung zwischen UCS und "
-"Microsoft Office 365 zu konfigurieren."
-
-#: umc/js/office365.js:95
-msgid ""
-"To allow UCS to synchronize selected user accounts a new application have to "
-"be added in the active directory."
-msgstr ""
-"Um UCS zu erlauben, ausgewählte Benutzerkonten zu synchronisieren, muss eine "
-"neue Anwendung im Active Directory hinzugefügt werden."
-
-#: umc/js/office365.js:354
-msgid ""
-"To finish configuration, single sign-on has to be configured for the Office "
-"365 domain. Microsoft only supports to configure single sign-on by running a "
-"Microsoft Powershell script on a Windows PC."
-msgstr ""
-"Um die Konfiguration abzuschließen muss Single Sign-on für die Office 365 "
-"Domäne eingerichtet werden. Microsoft bietet für das Einrichten der Single "
-"Sign-on Verbindung nur die Möglichkeit, dies durch Ausführen eines Microsoft "
-"Powershell Scripts auf einem Windows PC zu konfigurieren."
-
-#: umc/js/office365.js:114
-msgid ""
-"To integrate Office 365 into UCS the manifest of the new application has to "
-"be downloaded."
-msgstr ""
-"Um Office 365 in UCS zu integrieren, ist es notwendig, das Manifest der "
-"neuen Anwendung herunterzuladen."
-
-#: umc/js/office365.js:379
-#, javascript-format
-msgid ""
-"To learn more about configuring individual subscriptions and service plans "
-"for users, see <a href=\"%s\" target=\"_blank\">the Office 365 Connector "
-"documentation</a>"
-msgstr ""
-"Weitere Informationen über die Konfiguration individueller Subskriptionen "
-"und Service Plänen für Benutzer finden Sie in der <a href=\"%s\" target="
-"\"_blank\"> Office 365 Connector Dokumentation</a>"
-
-#: umc/js/office365.js:335
-msgid ""
-"To upload the manifest in the panel click on <i>SELECT A FILE</i> and choose "
-"the previously downloaded <i>manifest.json</i>. Click on <i>Save</i> to "
-"complete the upload."
-msgstr ""
-"Um das Manifest in dem Panel hochzuladen, klicken Sie  auf <i>DATEI "
-"AUSWÄHLEN</i> und wählen Sie die zuvor heruntergeladene <i>manifest.json</i> "
-"Datei aus."
-
-#: umc/js/office365.js:356
-#, javascript-format
-msgid ""
-"To use the single sign-on script, your Windows PC must have at least "
-"installed the <a href=\"%s\" target=\"_blank\">.NET runtime environment "
-"version 4.5.1.</a>."
-msgstr ""
-"Um das Single Sign-On Konfigurationsscript nutzen zu können, muss auf dem "
-"Windows PC mindestens die <a href=\"%s\" target=\"_blank\">.NET "
-"Laufzeitumgebung in Version 4.5.1</a> installiert sein."
-
-#: umc/js/office365.js:288
-msgid ""
-"To use this app you need a Microsoft Office 365 admin account, a global "
-"administrator account in the corresponding Azure AD and a <a href=\"https://"
-"azure.microsoft.com/en-us/documentation/articles/active-directory-add-domain/"
-"\" target=\"_blank\">verified domain</a>."
-msgstr ""
-"Um diese App zu verwenden wird ein Microsoft Office 365 Administrator Konto, "
-"ein globales Administrator Konto im entsprechenden Azure AD und eine <a href="
-"\"https://azure.microsoft.com/de-de/documentation/articles/active-directory-"
-"add-domain/\" target=\"_blank\">verifizierte Domäne</a> benötigt."
-
-#: umc/js/office365.js:190
-msgid ""
-"UCS modified the manifest to include all information which Azure needs to "
-"accept connections from UCS. The modified manifest now has to be uploaded to "
-"Azure."
-msgstr ""
-"UCS hat das Manifest modifiziert, damit es alle Informationen beinhaltet, "
-"die Azure benötigt, um Verbindungen von UCS zu akzeptieren. Das modifizierte "
-"Manifest muss nun in Azure hochgeladen werden."
-
-#: umc/js/office365.js:169
-msgid "Upload manifest"
-msgstr "Manifest hochladen"
-
-#: umc/js/office365.js:144
-msgid "Upload manifest to UCS"
-msgstr "Manifest zu UCS hochladen"
-
-#: umc/js/office365.js:189
-msgid "Upload updated manifest"
-msgstr "Aktualisiertes Manifest hochladen"
-
-#: umc/js/office365.js:245
-msgid "Users can now single sign on into the Office 365 account."
-msgstr "Benutzer können nun Single Sign-On zu Office 365 benutzen."
-
-#: umc/js/office365.js:153
-msgid "Verified domain name"
-msgstr "Verifizierter Domänenname"
-
-#: umc/js/office365.js:369
+#: office365.js:369
 msgid ""
 "Via the Univention Config Registry variable <i>office365/attributes/sync</i> "
 "can be configured which LDAP attributes (e.g. given name, surname, etc.) of "
@@ -582,116 +630,100 @@ msgstr ""
 "welche LDAP-Attribute (z.B. Vorname, Nachname, etc.) eines Benutzerkontos "
 "synchronisiert werden."
 
-#: umc/js/office365.js:478
-msgid "Warning"
-msgstr "Warnung"
-
-#: umc/js/office365.js:286
-msgid ""
-"Welcome to the <a href=\"https://products.office.com/\" target=\"_blank"
-"\">Microsoft Office 365</a> setup wizard."
-msgstr ""
-"Willkommen beim <a href=\"https://products.office.com/\" target=\"_blank"
-"\">Microsoft Office 365</a> Einrichtungsassistenten."
-
-#: umc/js/office365.js:73
-msgid ""
-"Welcome to the Microsoft Office 365 setup wizard. A few steps are needed to "
-"complete the configuration process."
-msgstr ""
-"Willkommen zum Microsoft Office 365 Einrichtungsassistent. Es sind einige "
-"Schritte notwendig, um den Konfigurationsprozess fertigzustellen."
-
-#: umc/js/office365.js:72
-msgid "Welcome to the Office 365 configuration"
-msgstr "Willkommen zur Office 365 Konfiguration"
-
-#: umc/js/office365.js:344
-msgid ""
-"When you click on the button below a a new browser window will be opened. "
-"Please select your account and log in if necessary and click on <i>Accept</"
-"i> to permit the permission request."
-msgstr ""
-"Wenn Sie auf den unten stehenden Button klicken, wird ein neues "
-"Browserfenster geöffnet. Melden Sie sich ggf. mit Ihrem Konto an und klicken "
-"auf <i>Akzeptieren</i> um die Berechtigungsanfrage zu bestätigen."
-
-#: umc/js/office365.js:372
-msgid ""
-"You can enable the UCR variable <i>office365/groups/sync</i> to synchronize "
-"the groups of the enabled Office 365 users."
-msgstr ""
-"Sie können die UCR-Variable <i>office365/groups/sync</i> aktivieren, um die "
-"Gruppen der für Office 365 aktivierten Benutzer zu synchronisieren."
-
-#: umc/js/office365.js:378
-#, javascript-format
-msgid ""
-"You can now enable the Microsoft Azure synchronization for users on the "
-"<i>Office 365</i> tab in the %s."
-msgstr ""
-"Sie können nun die Microsoft Azure Synchronisation für Benutzer im <i>Office "
-"365</i>-Tab im %s aktivieren."
-
-#: umc/js/office365.js:370
+#: office365.js:370
 #, javascript-format
 msgid "You may add or remove attributes from the list by using the %s."
 msgstr ""
 "Sie können mithilfe des %s Attribute von der Liste löschen oder hinzufügen."
 
-#: umc/js/office365.js:545
+#: office365.js:371
 msgid ""
-"You need a <a href=\"%(domain)s\" target=\"_blank\">verified domain</a> and "
-"access to the <a href=\"%(dev)s\" target=\"_blank\">Microsoft Azure Portal</"
-"a> with a Microsoft Office 365 administrator account."
+"Additional configuration settings can be viewed in the help of the UCR "
+"variables <i>office365/attributes/anonymize</i> and <i>office365/attributes/"
+"static/.*</i>."
 msgstr ""
-"Sie benötigen eine <a href=\"%(domain)s\" target=\"_blank\">verifizierte "
-"Domäne</a> und Zugang mit einem Microsoft Office 365 Administratorkonto zum "
-"<a href=\"%(dev)s\" target=\"_blank\">Microsoft Azure Portal</a>."
+"Weitere Einstellungsmöglichkeiten erfahren Sie in der Hilfe zu den UCR-"
+"Variablen <i>office365/attributes/anonymize</i> und <i>office365/attributes/"
+"static/.*</i>."
 
-#: umc/js/office365.js:301
-msgid "app_name_EN.png"
-msgstr "app_name_DE.png"
+#: office365.js:372
+msgid ""
+"You can enable the UCR variable <i>office365/groups/sync</i> to synchronize "
+"the groups of the enabled Microsoft 365 users."
+msgstr ""
+"Sie können die UCR-Variable <i>office365/groups/sync</i> aktivieren, um die "
+"Gruppen der für Microsoft 365 aktivierten Benutzer zu synchronisieren."
 
-#: umc/js/office365.js:297
-msgid "app_registrations_EN.png"
-msgstr "app_registrations_DE.png"
+#: office365.js:378
+#, javascript-format
+msgid ""
+"You can now enable the Microsoft Azure synchronization for users on the "
+"<i>Microsoft 365</i> tab in the %s."
+msgstr ""
+"Sie können nun die Microsoft Azure Synchronisation für Benutzer im <i> "
+"365</i>-Tab im %s aktivieren."
 
-#: umc/js/office365.js:335
-msgid "azure_upload_manifest_window_EN.png"
-msgstr "azure_upload_manifest_window_DE.png"
-
-#: umc/js/office365.js:310
-msgid "copy_adconnection_id_EN.png"
-msgstr "copy_adconnection_id_DE.png"
-
-#: umc/js/office365.js:155
-msgid "domain name (e.g. univention.de)"
-msgstr "Domänenname (z.B. univention.de)"
-
-#: umc/js/office365.js:309
-msgid "endpoints_EN.png"
-msgstr "endpoints_DE.png"
-
-#: umc/js/office365.js:337
-msgid "grant_perms_EN.png"
-msgstr "grant_perms_DE.png"
-
-#: umc/js/office365.js:337
-msgid "grant_perms_yes_EN.png"
-msgstr "grant_perms_yes_DE.png"
-
-#: umc/js/office365.js:379
+#: office365.js:379
 msgid ""
 "http://wiki.univention.de/index.php?title=Microsoft_Office_365_Connector"
 msgstr ""
 "http://wiki.univention.de/index.php?title=Microsoft_Office_365_Connector"
 
-#: umc/js/office365.js:357
-msgid "https://aka.ms/wmf5download"
-msgstr "https://aka.ms/wmf5download"
+#: office365.js:379
+#, javascript-format
+msgid ""
+"To learn more about configuring individual subscriptions and service plans "
+"for users, see <a href=\"%s\" target=\"_blank\">the Microsoft 365 Connector "
+"documentation</a>"
+msgstr ""
+"Weitere Informationen über die Konfiguration individueller Subskriptionen "
+"und Service Plänen für Benutzer finden Sie in der <a href=\"%s\" target="
+"\"_blank\"> Microsoft 365 Connector Dokumentation</a>"
 
-#: umc/js/office365.js:546
+#: office365.js:379
+msgid "umc_office365_EN.png"
+msgstr "umc_office365_DE.png"
+
+#: office365.js:419
+msgid ""
+"Could not open a new browser window. Please deactivate all pop up blocker "
+"for this site."
+msgstr ""
+"Ein neues Browser Fenster konnte nicht geöffnet werden. Bitte deaktivieren "
+"Sie Pop-Up-Blocker für diese Seite."
+
+#: office365.js:436
+msgid "Microsoft 365 configuration"
+msgstr "Microsoft 365 Konfiguration"
+
+#: office365.js:475
+msgid ""
+"It is necessary to <a href=\"https://%(url)s\">run this wizard while using "
+"the Univention Management Console with a https connection.</a> If you "
+"continue without a https connection, the wizard will likely not complete."
+msgstr ""
+"Es ist notwendig <a href=\"https://%(url)s\">den Einrichtungswizard in der "
+"Univention Management Console mit einer https Verbindung zu nutzen.</a> Wenn "
+"Sie ohne https Verbindung fortfahren, wird die Einrichtung wahrscheinlich "
+"nicht erfolgreich sein."
+
+#: office365.js:478
+msgid "Warning"
+msgstr "Warnung"
+
+#: office365.js:541
+msgid "Help"
+msgstr "Hilfe"
+
+#: office365.js:544
+msgid ""
+"This wizard helps you to configure the connection between UCS and Microsoft "
+"365."
+msgstr ""
+"Dieser Einrichtungsassistent hilft Ihnen die Verbindung zwischen UCS und "
+"Microsoft 365 zu konfigurieren."
+
+#: office365.js:546
 msgid ""
 "https://azure.microsoft.com/en-us/documentation/articles/active-directory-"
 "add-domain/"
@@ -699,50 +731,20 @@ msgstr ""
 "https://azure.microsoft.com/de-de/documentation/articles/active-directory-"
 "add-domain/"
 
-#: umc/js/office365.js:547
+#: office365.js:547
 msgid "https://manage.windowsazure.com/"
 msgstr "https://manage.windowsazure.com/"
 
-#: umc/js/office365.js:356
-msgid "https://www.microsoft.com/download/details.aspx?id=40779"
-msgstr "https://www.microsoft.com/download/details.aspx?id=40779"
+#: office365.js:545
+msgid ""
+"You need a <a href=\"%(domain)s\" target=\"_blank\">verified domain</a> and "
+"access to the <a href=\"%(dev)s\" target=\"_blank\">Microsoft Azure Portal</"
+"a> with a Microsoft 365 administrator account."
+msgstr ""
+"Sie benötigen eine <a href=\"%(domain)s\" target=\"_blank\">verifizierte "
+"Domäne</a> und Zugang mit einem Microsoft 365 Administratorkonto zum <a href="
+"\"%(dev)s\" target=\"_blank\">Microsoft Azure Portal</a>."
 
-#: umc/js/office365.js:358
-msgid "https://www.powershellgallery.com/packages/MSOnline"
-msgstr "https://www.powershellgallery.com/packages/MSOnline"
-
-#: umc/js/office365.js:319
-msgid "manage_manifest_EN.png"
-msgstr "manage_manifest_DE.png"
-
-#: umc/js/office365.js:350
-msgid "ms_authorize_screen_text_and_image_EN.png"
-msgstr "ms_authorize_screen_text_and_image_DE.png"
-
-#: umc/js/office365.js:317
-msgid "public certificate key"
-msgstr "Öffentlicher Zertifikatsschlüssel"
-
-#: umc/js/office365.js:336
-msgid "required_perms_btn_EN.png"
-msgstr "required_perms_btn_DE.png"
-
-#: umc/js/office365.js:361
-msgid "saml_setup_script_windows_EN.png"
-msgstr "saml_setup_script_windows_DE.png"
-
-#: umc/js/office365.js:249
-msgid "sso-login_EN.png"
-msgstr "sso-login_DE.png"
-
-#: umc/js/office365.js:299
-msgid "top_bar_add_app_EN.png"
-msgstr "top_bar_add_app_DE.png"
-
-#: umc/js/office365.js:379
-msgid "umc_office365_EN.png"
-msgstr "umc_office365_DE.png"
-
-#: umc/js/office365.js:318
-msgid "upload_certificate_EN.png"
-msgstr "upload_certificate_DE.png"
+#: office365.js:549
+msgid "Microsoft 365 setup wizard"
+msgstr "Microsoft 365 Einrichtungsassistent"

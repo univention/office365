@@ -17,8 +17,8 @@ Type=str
 Categories=service-collaboration
 
 [office365/attributes/static/.*]
-Description[de]=Variablen der Form office365/attributes/static/ATTRIBUT-HIER=WERT können verwendet werden, um das automatische Synchronisieren von LDAP Attributen mit dem Azure Active Directory (AAD) zu konfigurieren. ATTRIBUT-HIER ist der Name des LDAP Attributs in UCS. Beim Aktivieren eines Benutzers für Office 365, wird WERT unabhängig vom Wert in UCS immer geschrieben ins entsprechende Attribut in AAD geschrieben. Wird gegenüber Attributen in .../sync vorrangig ausgewertet. Die Attributnamen müssen als ATTRIBUT-HIER in office365/attributes/mapping/.* auftauchen.
-Description[en]=Variables in the format office365/attributes/static/ATTRIBUTE-HERE=VALUE can be used to configure synchronization of user attributes to the Azure Active Directory (AAD). ATTRIBUTE-HERE is the name of the LDAP attribute in UCS. VALUE will be written to the corresponding attribute in AAD when a user is enabled for Office 365. Will be be given precedence over attributes in .../sync. The names of the attributes must be included in office365/attributes/mapping/.* as ATTRIBUTE-HERE.
+Description[de]=Variablen der Form office365/attributes/static/ATTRIBUT-HIER=WERT können verwendet werden, um das automatische Synchronisieren von LDAP Attributen mit dem Azure Active Directory (AAD) zu konfigurieren. ATTRIBUT-HIER ist der Name des LDAP Attributs in UCS. Beim Aktivieren eines Benutzers für Microsoft 365, wird WERT unabhängig vom Wert in UCS immer geschrieben ins entsprechende Attribut in AAD geschrieben. Wird gegenüber Attributen in .../sync vorrangig ausgewertet. Die Attributnamen müssen als ATTRIBUT-HIER in office365/attributes/mapping/.* auftauchen.
+Description[en]=Variables in the format office365/attributes/static/ATTRIBUTE-HERE=VALUE can be used to configure synchronization of user attributes to the Azure Active Directory (AAD). ATTRIBUTE-HERE is the name of the LDAP attribute in UCS. VALUE will be written to the corresponding attribute in AAD when a user is enabled for Microsoft 365. Will be be given precedence over attributes in .../sync. The names of the attributes must be included in office365/attributes/mapping/.* as ATTRIBUTE-HERE.
 Type=str
 Categories=service-collaboration
 
@@ -41,8 +41,8 @@ Type=bool
 Categories=service-collaboration
 
 [office365/groups/sync]
-Description[de]=Sollen Gruppen in denen sich Benutzer mit Office 365 Konto befinden, synchronisiert werden? Standard ist 'no'.
-Description[en]=Should groups that contain users with a Office 365 account be syncronized? Defaults to 'no'.
+Description[de]=Sollen Gruppen in denen sich Benutzer mit Microsoft 365 Konto befinden, synchronisiert werden? Standard ist 'no'.
+Description[en]=Should groups that contain users with a Microsoft 365 account be syncronized? Defaults to 'no'.
 Type=bool
 Categories=service-collaboration
 

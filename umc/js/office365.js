@@ -69,8 +69,8 @@ define([
 			lang.mixin(this, {
 				pages: [{
 					name: 'start',
-					headerText: _('Welcome to the Office 365 configuration'),
-					helpText: _('Welcome to the Microsoft Office 365 setup wizard. A few steps are needed to complete the configuration process.'),
+					headerText: _('Welcome to the Microsoft 365 configuration'),
+					helpText: _('Welcome to the Microsoft 365 setup wizard. A few steps are needed to complete the configuration process.'),
 					widgets: [{
 						type: Text,
 						name: 'already-initialized',
@@ -91,7 +91,7 @@ define([
 					}]
 				}, {
 					name: 'add-application',
-					headerText: _('Create an application for Office 365'),
+					headerText: _('Create an application for Microsoft 365'),
 					helpText: _('To allow UCS to synchronize selected user accounts a new application have to be added in the active directory.'),
 					widgets: [{
 						name: 'infos',
@@ -111,7 +111,7 @@ define([
 				}, {
 					name: 'ucs-integration',
 					headerText: _('Connect Azure with UCS'),
-					helpText: _('To integrate Office 365 into UCS the manifest of the new application has to be downloaded.') + ' ' + _('The manifest is a JSON file which contains all necessary information required to connect UCS with your active directory.'),
+					helpText: _('To integrate Microsoft 365 into UCS the manifest of the new application has to be downloaded.') + ' ' + _('The manifest is a JSON file which contains all necessary information required to connect UCS with your active directory.'),
 					widgets: [{
 						type: Text,
 						name: 'infos',
@@ -195,7 +195,7 @@ define([
 					}]
 				}, {
 					name: 'authorize',
-					headerText: _('Authorize UCS Office 365 application'),
+					headerText: _('Authorize UCS Microsoft 365 application'),
 					helpText: _('In the following step some permissions have to be granted to UCS.'),
 					widgets: [{
 						type: Text,
@@ -223,7 +223,7 @@ define([
 					}]
 				}, {
 					name: 'success',
-					headerText: _('Office 365 setup complete'),
+					headerText: _('Microsoft 365 setup complete'),
 					helpText: _('Congratulations, the connection between UCS and Microsoft Azure has been established.'),
 					widgets: [{
 						type: Text,
@@ -232,7 +232,7 @@ define([
 					}]
 				}, {
 					name: 'success2',
-					headerText: _('Office 365 setup complete'),
+					headerText: _('Microsoft 365 setup complete'),
 					helpText: _('The configuration of synchronized attributes can be done via Univention Config Registry.'),
 					widgets: [{
 						type: Text,
@@ -241,12 +241,12 @@ define([
 					}]
 				}, {
 					name: 'success3',
-					headerText: _('Office 365 setup complete'),
-					helpText: _('Users can now single sign on into the Office 365 account.'),
+					headerText: _('Microsoft 365 setup complete'),
+					helpText: _('Users can now single sign on into the Microsoft 365 account.'),
 					widgets: [{
 						type: Text,
 						name: 'infos',
-						content: _('Synchronized users can log into Office 365 by using the link on the <a href="/univention/" target="_blank">UCS portal</a>.') + '<br>' + this.img(_('sso-login_EN.png'))
+						content: _('Synchronized users can log into Microsoft 365 by using the link on the <a href="/univention/" target="_blank">UCS portal</a>.') + '<br>' + this.img(_('sso-login_EN.png'))
 					}]
 				}, {
 					name: 'error',
@@ -283,9 +283,9 @@ define([
 
 		getTextWelcome: function() {
 			return this.formatParagraphs([
-				_('Welcome to the <a href="https://products.office.com/" target="_blank">Microsoft Office 365</a> setup wizard.'),
-				_('It will guide you through the process of setting up automatic provisioning of Microsoft Office 365 accounts for your user accounts.'),
-				_('To use this app you need a Microsoft Office 365 admin account, a global administrator account in the corresponding Azure AD and a <a href="https://azure.microsoft.com/en-us/documentation/articles/active-directory-add-domain/" target="_blank">verified domain</a>.'),
+				_('Welcome to the <a href="https://products.office.com/" target="_blank">Microsoft 365</a> setup wizard.'),
+				_('It will guide you through the process of setting up automatic provisioning of Microsoft 365 accounts for your user accounts.'),
+				_('To use this app you need a Microsoft 365 admin account, a global administrator account in the corresponding Azure AD and a <a href="https://azure.microsoft.com/en-us/documentation/articles/active-directory-add-domain/" target="_blank">verified domain</a>.'),
 				_('In addition, a Windows PC with at least Windows 7 is required to configure single sign-on for this domain.')
 			]);
 		},
@@ -297,7 +297,7 @@ define([
 				_('Open the <i>APP REGISTRATIONS</i> module.') + this.img(_('app_registrations_EN.png')),
 				_('If existing applications are not shown, select <i>All applications</i> above the search field.'),
 				_('Click <i>NEW REGISTRATION</i> to add a new application to your directory.') + this.img(_('top_bar_add_app_EN.png')),
-				_('Enter a name for your application, e.g. <i>UCS Office 365</i>.'),
+				_('Enter a name for your application, e.g. <i>UCS Microsoft 365</i>.'),
 				_('As supported account type select <i>Accounts in this organizational directory only</i>.') + this.img(_('app_name_EN.png')),
 				_('In the category <i>Redirect URI</i>, make sure <i>Web</i> is selected in the dropdown. Copy the value below and paste it into the textfield in the Azure wizard.')
 			]);
@@ -321,7 +321,7 @@ define([
 		},
 
 		getTextManifestUploadDomain: function() {
-			return _('The setup wizard now needs the domain that was verified during the configuration of the Office 365 account. Insert it into the text box below.');
+			return _('The setup wizard now needs the domain that was verified during the configuration of the Microsoft 365 account. Insert it into the text box below.');
 		},
 
 		getTextManifestUpload: function() {
@@ -342,7 +342,7 @@ define([
 		getTextAzureAuthorization: function() {
 			return [_('The connection between UCS and the Microsoft Azure application has to be authorized now.'),
 				_('When you click on the button below a a new browser window will be opened. Please select your account and log in if necessary and click on <i>Accept</i> to permit the permission request.'),
-				_('After this the browser window will close itself and the connection between UCS and the Office 365 application will be established.')
+				_('After this the browser window will close itself and the connection between UCS and the Microsoft 365 application will be established.')
 			].join(' ');
 		},
 
@@ -351,7 +351,7 @@ define([
 		},
 
 		getTextSingleSignOnSetup: function() {
-			return '<p>' + _('To finish configuration, single sign-on has to be configured for the Office 365 domain. Microsoft only supports to configure single sign-on by running a Microsoft Powershell script on a Windows PC.') + '</p>' + this.formatOrderedList([
+			return '<p>' + _('To finish configuration, single sign-on has to be configured for the Microsoft 365 domain. Microsoft only supports to configure single sign-on by running a Microsoft Powershell script on a Windows PC.') + '</p>' + this.formatOrderedList([
 				_('If you open this setup wizard again at a later time, a link on the first page will take you back to this instructions.'),
 				_('To use the single sign-on script, your Windows PC must have at least installed the <a href="%s" target="_blank">.NET runtime environment version 4.5.1.</a>.', _('https://www.microsoft.com/download/details.aspx?id=40779')),
 				_('Install the latest version of Microsoft Powershell, at least <a href="%s" target="_blank">Windows Management Framework 5.1</a> has to be installed.', _('https://aka.ms/wmf5download')),
@@ -365,18 +365,18 @@ define([
 
 		getTextUniventionConfigRegistry: function() {
 			return this.formatParagraphs([
-				_('For the UCS user account for which Office 365 is enabled, an account in the Microsoft directory is created and selected account attributes get synchronized from UCS to the Microsoft directory.'),
+				_('For the UCS user account for which Microsoft 365 is enabled, an account in the Microsoft directory is created and selected account attributes get synchronized from UCS to the Microsoft directory.'),
 				_('Via the Univention Config Registry variable <i>office365/attributes/sync</i> can be configured which LDAP attributes (e.g. given name, surname, etc.) of a user account are sychronized.') + ' ' +
 				_('You may add or remove attributes from the list by using the %s.', [tools.linkToModule({module: 'ucr'})]),
 				_('Additional configuration settings can be viewed in the help of the UCR variables <i>office365/attributes/anonymize</i> and <i>office365/attributes/static/.*</i>.') + ' ' +
-				_('You can enable the UCR variable <i>office365/groups/sync</i> to synchronize the groups of the enabled Office 365 users.')
+				_('You can enable the UCR variable <i>office365/groups/sync</i> to synchronize the groups of the enabled Microsoft 365 users.')
 			]);
 		},
 
 		getTextSuccessPage1: function() {
 			return this.formatParagraphs([
-				_('You can now enable the Microsoft Azure synchronization for users on the <i>Office 365</i> tab in the %s.', [tools.linkToModule({module: 'udm', flavor: 'users/user'})]),
-				_('To learn more about configuring individual subscriptions and service plans for users, see <a href="%s" target="_blank">the Office 365 Connector documentation</a>', _('http://wiki.univention.de/index.php?title=Microsoft_Office_365_Connector')) + '<br>' + this.img(_('umc_office365_EN.png'))
+				_('You can now enable the Microsoft Azure synchronization for users on the <i>Microsoft 365</i> tab in the %s.', [tools.linkToModule({module: 'udm', flavor: 'users/user'})]),
+				_('To learn more about configuring individual subscriptions and service plans for users, see <a href="%s" target="_blank">the Microsoft 365 Connector documentation</a>', _('http://wiki.univention.de/index.php?title=Microsoft_Office_365_Connector')) + '<br>' + this.img(_('umc_office365_EN.png'))
 			]);
 		},
 
@@ -433,7 +433,7 @@ define([
 			this._progressBar = new ProgressBar();
 			this._progressDeferred = new Deferred();
 			this._progressBar.setInfo(null, null, Infinity);
-			this._progressBar.feedFromDeferred(this._progressDeferred, _('Office 365 configuration'));
+			this._progressBar.feedFromDeferred(this._progressDeferred, _('Microsoft 365 configuration'));
 		},
 
 		startPolling: function() {
@@ -473,7 +473,7 @@ define([
 			} else if (nextPage == 'add-application') {
 				if (window.location.protocol != 'https:') {
 					dialog.alert(_('It is necessary to <a href="https://%(url)s">run this wizard while using the Univention Management Console with a https connection.</a> If you continue without a https connection, the wizard will likely not complete.', {
-								url: window.location.href.slice(7)	
+								url: window.location.href.slice(7)
 							}),
 						_('Warning'));
 				}
@@ -541,12 +541,12 @@ define([
 				label: _('Help'),
 				callback: lang.hitch(this, function() {
 					dialog.alert([
-						_('This wizard helps you to configure the connection between UCS and Microsoft Office 365.'), '<br>',
-						_('You need a <a href="%(domain)s" target="_blank">verified domain</a> and access to the <a href="%(dev)s" target="_blank">Microsoft Azure Portal</a> with a Microsoft Office 365 administrator account.', {
+						_('This wizard helps you to configure the connection between UCS and Microsoft 365.'), '<br>',
+						_('You need a <a href="%(domain)s" target="_blank">verified domain</a> and access to the <a href="%(dev)s" target="_blank">Microsoft Azure Portal</a> with a Microsoft 365 administrator account.', {
 							domain: _('https://azure.microsoft.com/en-us/documentation/articles/active-directory-add-domain/'),
 							dev: _('https://manage.windowsazure.com/')
 						})
-					].join(' '), _('Microsoft Office 365 setup wizard'));
+					].join(' '), _('Microsoft 365 setup wizard'));
 				})
 			}]);
 		},

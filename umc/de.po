@@ -12,11 +12,11 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-msgid "Configuration of the Office 365 connector"
-msgstr "Konfiguration des Office 365 Konnektors"
+msgid "Configuration of the Microsoft 365 connector"
+msgstr "Konfiguration des Microsoft 365 Konnektors"
 
-msgid "Office 365 setup wizard"
-msgstr "Office 365 Einrichtungsassistent"
+msgid "Microsoft 365 setup wizard"
+msgstr "Microsoft 365 Einrichtungsassistent"
 
 msgid "microsoft,azure,office,sync"
 msgstr ""

@@ -33,7 +33,7 @@
 
 ## joinscript api: bindpwdfile
 
-VERSION=6
+VERSION=7
 
 . /usr/share/univention-join/joinscripthelper.lib
 . /usr/share/univention-lib/all.sh
@@ -91,36 +91,36 @@ ea_base="cn=custom attributes,cn=univention,$ldap_base"
 udm container/cn create "$@" --ignore_exists \
 	--position="$ldap_base" \
 	--set name="office365" \
-	--set description="Container for Office 365 objects" || die
+	--set description="Container for Microsoft 365 objects" || die
 
 udm container/cn create "$@" --ignore_exists \
 	--position="cn=office365,$ldap_base" \
 	--set name="profiles" \
-	--set description="Container for Office 365 profiles" || die
+	--set description="Container for Microsoft 365 profiles" || die
 
 udm container/cn create "$@" --ignore_exists \
 	--position="cn=office365,$ldap_base" \
 	--set name="ad-connections" \
-	--set description="Container for Office 365 connections" || die
+	--set description="Container for Microsoft 365 connections" || die
 
 # Create first Profile
 udm office365/profile create "$@" --ignore_exists \
 	--position="cn=profiles,cn=office365,$ldap_base" \
-	--set name="Default Office 365 Subscription" \
+	--set name="Default Microsoft 365 Subscription" \
 	--set subscription="ENTERPRISEPACK" || die
 
 udm settings/extended_attribute create "$@" --ignore_exists \
 	--position "$ea_base" \
 	--set name="UniventionOffice365Enabled" \
 	--set CLIName="UniventionOffice365Enabled" \
-	--set shortDescription="Enable user for Office 365" \
-	--set translationShortDescription='"de_DE" "Benutzer für Nutzung von Office 365 aktivieren"' \
-	--set longDescription="Enable user for Office 365" \
-	--set translationLongDescription='"de_DE" "Benutzer für Nutzung von Office 365 aktivieren"' \
+	--set shortDescription="Enable user for Microsoft 365" \
+	--set translationShortDescription='"de_DE" "Benutzer für Nutzung von Microsoft 365 aktivieren"' \
+	--set longDescription="Enable user for Microsoft 365" \
+	--set translationLongDescription='"de_DE" "Benutzer für Nutzung von Microsoft 365 aktivieren"' \
 	--set tabAdvanced=0 \
-	--set tabName="Office 365" \
+	--set tabName="Microsoft 365" \
 	--set tabPosition=1 \
-	--set translationTabName='"de_DE" "Office 365"' \
+	--set translationTabName='"de_DE" "Microsoft 365"' \
 	--set module="users/user" \
 	--set module="settings/usertemplate" \
 	--set syntax=boolean \
@@ -134,6 +134,16 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set deleteObjectClass=0 \
 	--set overwriteTab=0 \
 	--set fullWidth=1 || die
+
+# in existing installations to rename Office 365 to Microsoft 365...
+udm settings/extended_attribute modify "$@" \
+	--dn "cn=UniventionOffice365Enabled,$ea_base" \
+	--set shortDescription="Enable user for Microsoft 365" \
+	--set translationShortDescription='"de_DE" "Benutzer für Nutzung von Microsoft 365 aktivieren"' \
+	--set longDescription="Enable user for Microsoft 365" \
+	--set translationLongDescription='"de_DE" "Benutzer für Nutzung von Microsoft 365 aktivieren"' \
+	--set tabName="Microsoft 365" \
+	--set translationTabName='"de_DE" "Microsoft 365"' || die
 
 udm settings/extended_attribute create "$@" --ignore_exists \
 	--position "$ea_base" \
@@ -164,8 +174,8 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set longDescription="Azure AD connections for a user" \
 	--set translationLongDescription='"de_DE" "Verbindungsdaten des Benutzers im Azure AD"' \
 	--set tabAdvanced=0 \
-	--set tabName="Office 365" \
-	--set translationTabName='"de_DE" "Office 365"' \
+	--set tabName="Microsoft 365" \
+	--set translationTabName='"de_DE" "Microsoft 365"' \
 	--set tabPosition=2 \
 	--set module="users/user" \
 	--set syntax=univentionOffice365ADConnections \
@@ -179,6 +189,12 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set ldapMapping=dummyUniventionOffice365ADConnections \
 	--set deleteObjectClass=0 \
 	--set disableUDMWeb=0 || die
+
+# in existing installations to rename Office 365 to Microsoft 365...
+udm settings/extended_attribute modify "$@" \
+	--dn "cn=UniventionOffice365ADConnections,$ea_base" \
+	--set tabName="Microsoft 365" \
+	--set translationTabName='"de_DE" "Microsoft 365"' || die
 
 udm settings/extended_attribute create "$@" --ignore_exists \
 	--position "$ea_base" \
@@ -210,9 +226,9 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set translationLongDescription='"de_DE" "Profil, das Mitglieder dieser Gruppe im Azure AD zugewiesen bekommen"' \
 	--set module="groups/group" \
 	--set tabAdvanced=0 \
-	--set tabName="Office 365" \
+	--set tabName="Microsoft 365" \
 	--set tabPosition=1 \
-	--set translationTabName='"de_DE" "Office 365"' \
+	--set translationTabName='"de_DE" "Microsoft 365"' \
 	--set syntax=univentionOffice365ProfileSyntax \
 	--set default="" \
 	--set multivalue=0 \
@@ -223,6 +239,12 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set ldapMapping=univentionOffice365ProfileLink \
 	--set deleteObjectClass=0 || die
 
+# in existing installations to rename Office 365 to Microsoft 365...
+udm settings/extended_attribute modify "$@" \
+	--dn "cn=UniventionOffice365GroupProfile,$ea_base" \
+	--set tabName="Microsoft 365" \
+	--set translationTabName='"de_DE" "Microsoft 365"' || die
+
 udm settings/extended_attribute create "$@" --ignore_exists \
 	--position "$ea_base" \
 	--set name="UniventionOffice365TokenResetDate" \
@@ -232,8 +254,8 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set longDescription="Date when App Tokens should be invalidated in Azure AD" \
 	--set translationLongDescription='"de_DE" "Datum an dem App Tokens im Azure AD invalidiert werden"' \
 	--set tabAdvanced=0 \
-	--set tabName="Office 365" \
-	--set translationTabName='"de_DE" "Office 365"' \
+	--set tabName="Microsoft 365" \
+	--set translationTabName='"de_DE" "Microsoft 365"' \
 	--set module="users/user" \
 	--set syntax=integerOrEmpty \
 	--set default="" \
@@ -247,6 +269,12 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set overwriteTab=0 \
 	--set disableUDMWeb=1 || die
 
+# in existing installations to rename Office 365 to Microsoft 365...
+udm settings/extended_attribute modify "$@" \
+	--dn "cn=UniventionOffice365TokenResetDate,$ea_base" \
+	--set tabName="Microsoft 365" \
+	--set translationTabName='"de_DE" "Microsoft 365"' || true
+
 udm settings/extended_attribute create "$@" --ignore_exists \
 	--position "$ea_base" \
 	--set name="UniventionOffice365ADConnectionAlias" \
@@ -256,8 +284,8 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set longDescription="Alias of the Azure AD connection to use for syncing this user" \
 	--set translationLongDescription='"de_DE" "Alias der zu nutzenden Azure AD Connection zum Synchronisieren dieses Benutzers"' \
 	--set tabAdvanced=0 \
-	--set tabName="Office 365" \
-	--set translationTabName='"de_DE" "Office 365"' \
+	--set tabName="Microsoft 365" \
+	--set translationTabName='"de_DE" "Microsoft 365"' \
 	--set module="users/user" \
 	--set syntax=univentionOffice365ADConnection \
 	--set default="" \
@@ -272,6 +300,12 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set disableUDMWeb=1 \
 	--set tabPosition=4 || die
 
+# in existing installations to rename Office 365 to Microsoft 365...
+udm settings/extended_attribute modify "$@" \
+	--dn "cn=UniventionOffice365ADConnectionAlias,$ea_base" \
+	--set tabName="Microsoft 365" \
+	--set translationTabName='"de_DE" "Microsoft 365"' || true
+
 udm settings/extended_attribute create "$@" --ignore_exists \
 	--position "$ea_base" \
 	--set name="UniventionOffice365GroupADConnectionAlias" \
@@ -282,9 +316,9 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set translationLongDescription='"de_DE" "Alias der zu nutzenden Azure AD Connection zum Synchronisieren dieser Gruppe"' \
 	--set module="groups/group" \
 	--set tabAdvanced=0 \
-	--set tabName="Office 365" \
+	--set tabName="Microsoft 365" \
 	--set tabPosition=2 \
-	--set translationTabName='"de_DE" "Office 365"' \
+	--set translationTabName='"de_DE" "Microsoft 365"' \
 	--set syntax=univentionOffice365ADConnection \
 	--set default="" \
 	--set multivalue=1 \
@@ -296,6 +330,12 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set deleteObjectClass=0 \
 	--set overwriteTab=0 \
 	--set disableUDMWeb=1 || die
+
+# in existing installations to rename Office 365 to Microsoft 365...
+udm settings/extended_attribute modify "$@" \
+	--dn "cn=UniventionOffice365GroupADConnectionAlias,$ea_base" \
+	--set tabName="Microsoft 365" \
+	--set translationTabName='"de_DE" "Microsoft 365"' || true
 
 # New installation - no joinscript has ever run
 if ! joinscript_check_any_version_executed; then
@@ -360,7 +400,7 @@ done
 # user template
 univention-directory-manager settings/usertemplate create "$@" --ignore_exists \
 	--position "cn=templates,cn=univention,$ldap_base" \
-	--set name="Office 365 Account" \
+	--set name="Microsoft 365 Account" \
 	--set mailPrimaryAddress="<username>@$domainname" \
 	--set UniventionOffice365Enabled="1" \
 

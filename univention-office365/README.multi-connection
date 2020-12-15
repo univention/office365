@@ -1,8 +1,8 @@
 Introduction
 ------------
-The multi adconnection support for the Office 365 connector allows the synchronisation of UCS user accounts of one UCS domain to Microsoft Azure Active Directory using multiple adconnections.
+The multi adconnection support for the Microsoft 365 connector allows the synchronisation of UCS user accounts of one UCS domain to Microsoft Azure Active Directory using multiple adconnections.
 
-The Office 365 connector is implemented in two univention directory listener modules, one for users and one for groups, and a configuration wizard. All three have been modified to handle multiple adconnections.
+The Microsoft 365 connector is implemented in two univention directory listener modules, one for users and one for groups, and a configuration wizard. All three have been modified to handle multiple adconnections.
 
 Configuration files
 -------------------

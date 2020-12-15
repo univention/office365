@@ -38,8 +38,8 @@ _ = translation.translate
 
 module = 'office365/ad-connection'
 childs = False
-short_description = _(u'Office 365 Azure AD Connection')
-long_description = _(u'Management of Office 365 Azure AD connections')
+short_description = _(u'Microsoft 365 Azure AD Connection')
+long_description = _(u'Management of Microsoft 365 Azure AD connections')
 operations = ['add', 'edit', 'remove', 'search', 'move']
 default_containers = ["cn=ad-connections,cn=office365"]
 
@@ -67,7 +67,7 @@ property_descriptions = {
 }
 
 layout = [
-	Tab(_(u'General'), _(u'Office 365 Azure AD Alias'), layout=[
+	Tab(_(u'General'), _(u'Microsoft 365 Azure AD Alias'), layout=[
 		['name'],
 		['description'],
 	]),
