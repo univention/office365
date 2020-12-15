@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Univention Office 365 - listener module to provision accounts in MS Azure
+# Univention Microsoft 365 - listener module to provision accounts in MS Azure
 #
 # Copyright 2016-2019 Univention GmbH
 #
@@ -232,7 +232,7 @@ def initialize():
 	logger.info("office 365 user listener active with filter=%r", filter)
 	logger.info('AD connection aliases: %r', adconnection_aliases)
 	if not initialized_adconnection:
-		raise RuntimeError("Office 365 App ({}) not initialized for any AD connection yet, please run wizard.".format(name))
+		raise RuntimeError("Microsoft 365 App ({}) not initialized for any AD connection yet, please run wizard.".format(name))
 
 
 def clean():
@@ -241,7 +241,7 @@ def clean():
 	user objects.
 	"""
 	adconnection_filter = get_adconnection_filter(listener.configRegistry, initialized_adconnection)
-	logger.info("Removing Office 365 ObjectID and Data from all users (adconnection_filter=%r)...", adconnection_filter)
+	logger.info("Removing Microsoft 365 ObjectID and Data from all users (adconnection_filter=%r)...", adconnection_filter)
 	UDMHelper.clean_udm_objects("users/user", listener.configRegistry["ldap/base"], ldap_cred, adconnection_filter)
 
 
@@ -367,7 +367,7 @@ def modify_user(ol, dn, new, old):
 def handler(dn, new, old, command):
 	logger.debug("%s.handler() command: %r dn: %r", name, command, dn)
 	if not initialized_adconnection:
-		raise RuntimeError("{}.handler() Office 365 App not initialized for any AD connection yet, please run wizard.".format(name))
+		raise RuntimeError("{}.handler() Microsoft 365 App not initialized for any AD connection yet, please run wizard.".format(name))
 
 	if command == 'r':
 		save_old(old)

@@ -36,8 +36,8 @@ msgid "Not yet initialized."
 msgstr "Noch nicht initialisiert."
 
 #: umc/python/office365/__init__.py:175
-msgid "Office 365 Configuration finished"
-msgstr "Office 365 Konfiguration beendet"
+msgid "Microsoft 365 Configuration finished"
+msgstr "Microsoft 365 Konfiguration beendet"
 
 #: umc/python/office365/__init__.py:206
 msgid "Successfully authorized. Starting synchronization."

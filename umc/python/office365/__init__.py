@@ -174,7 +174,7 @@ class Instance(Base):
 				</body>
 		</html>
 		""" % {
-			'title': _('Office 365 Configuration finished'),
+			'title': _('Microsoft 365 Configuration finished'),
 			'content': _('The configuration has finished! You can now close this page and continue the configuration wizard.'),
 		})
 

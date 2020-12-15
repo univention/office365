@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Univention Office 365 - UDM hook to access ADConnection data
+# Univention Microsoft 365 - UDM hook to access ADConnection data
 #
 # Copyright 2016-2019 Univention GmbH
 #
@@ -35,7 +35,7 @@ from univention.lib.i18n import Translation
 from univention.office365.listener import Office365Listener
 
 _ = Translation('univention-admin-handlers-office365').translate
-msg_require_mail = _("Office 365 users must have a primary e-mail address specified.")
+msg_require_mail = _("Microsoft 365 users must have a primary e-mail address specified.")
 
 
 class Office365ADConnectionsHook(simpleHook):

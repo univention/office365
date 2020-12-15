@@ -29,7 +29,7 @@
 # <http://www.gnu.org/licenses/>.
 
 """
-Univention Office 365 reset tokens
+Univention Microsoft 365 reset tokens
 """
 
 from univention.config_registry import ConfigRegistry
@@ -89,7 +89,7 @@ if __name__ == '__main__':
 		univention.admin.modules.init(lo, po, usermod)
 		config = univention.admin.config.config()
 	except Exception as exc:
-		logger.exception("Failed to initilize Office 365 token reset script: %s", exc)
+		logger.exception("Failed to initilize Microsoft 365 token reset script: %s", exc)
 		sys.exit(1)
 
 	today = datetime.today()
