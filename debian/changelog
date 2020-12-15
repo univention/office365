@@ -1,3 +1,10 @@
+univention-office365 (2.0.2-92) unstable; urgency=medium
+
+  * Bug #50671: stop udm-cli in joinscript if still running
+    after ucs_registerLDAPExtension
+
+ -- Felix Botner <botner@univention.de>  Tue, 15 Dec 2020 14:12:10 +0100
+
 univention-office365 (2.0.2-91) unstable; urgency=medium
 
   * Bug #51953: Fix Exception handling in listener lib
