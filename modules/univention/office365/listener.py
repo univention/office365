@@ -198,7 +198,7 @@ class Office365Listener(object):
 				azure_data_encoded = old_or_new['univentionOffice365Data'][0]
 				try:
 					azure_data = self.decode_o365data(azure_data_encoded) or {}
-				except Exception:
+				except (zlib.error, TypeError):
 					azure_data = {}
 			except (KeyError, IndexError):
 				azure_data = {}
@@ -234,7 +234,7 @@ class Office365Listener(object):
 				azure_data_encoded = udm_obj['UniventionOffice365Data']
 				try:
 					azure_data = self.decode_o365data(azure_data_encoded) or {}
-				except Exception:
+				except (zlib.error, TypeError):
 					azure_data = {}
 			except KeyError:
 				azure_data = {}
@@ -382,7 +382,7 @@ class Office365Listener(object):
 			try:
 				azure_data = self.decode_o365data(azure_data_encoded)
 				# The account already has an Azure AD connection
-			except TypeError:
+			except (zlib.error, TypeError):
 				azure_data = {}
 			if object_id:
 				azure_connection_data = {

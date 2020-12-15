@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-91) unstable; urgency=medium
+
+  * Bug #51953: Fix Exception handling in listener lib
+
+ -- Erik Damrose <damrose@univention.de>  Tue, 15 Dec 2020 13:12:52 +0100
+
 univention-office365 (2.0.2-90) unstable; urgency=medium
 
   * Bug #50671: added debug to join script
