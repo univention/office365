@@ -2,7 +2,7 @@
 
 attributetype ( 1.3.6.1.4.1.10176.4000.101
 	NAME 'univentionOffice365Enabled'
-	DESC 'If user is enabled for Office 365'
+	DESC 'If user is enabled for Microsoft 365'
 	EQUALITY integerMatch
 	SINGLE-VALUE
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )
@@ -52,7 +52,7 @@ attributetype ( 1.3.6.1.4.1.10176.4000.107
 
 objectclass ( 1.3.6.1.4.1.10176.4000.100
 	NAME 'univentionOffice365'
-	DESC 'Data for the Office 365 provisioning service'
+	DESC 'Data for the Microsoft 365 provisioning service'
 	SUP top AUXILIARY
 	MAY ( univentionOffice365Enabled $ univentionOffice365ObjectID $
 	    univentionOffice365Data $ univentionOffice365userPrincipalName $
@@ -88,7 +88,7 @@ attributetype ( 1.3.6.1.4.1.10176.4000.204
 
 objectclass ( 1.3.6.1.4.1.10176.4000.200
 	NAME 'univentionOffice365Profile'
-	DESC 'Profiles for the Office 365 provisioning service'
+	DESC 'Profiles for the Microsoft 365 provisioning service'
 	SUP top STRUCTURAL
 	MAY ( office365ProfileName $ office365ProfileSubscription $
 	      office365ProfileWhitelist $ office365ProfileBlacklist ) )

@@ -114,7 +114,7 @@ with utils.AutomaticListenerRestart():
 					else:
 						utils.fail("Attribute '{}' was set, but should not be.".format(attrib))
 
-				print("*** OK: office365/attributes/never")
+				print("*** OK: microsoft365/attributes/never")
 
 				#
 				# anonymize
@@ -128,7 +128,7 @@ with utils.AutomaticListenerRestart():
 					if udm_val == value:
 						utils.fail("Attribute '{}' was synced without anonymizing it.".format(attrib))
 
-				print("*** OK: office365/attributes/anonymize")
+				print("*** OK: microsoft365/attributes/anonymize")
 
 				#
 				# static
@@ -141,4 +141,4 @@ with utils.AutomaticListenerRestart():
 					if user_args["set"][attrib] == value:
 						utils.fail("Attribute '{}' was synced without anonymizing it.".format(attrib))
 
-				print("*** OK: office365/attributes/static")
+				print("*** OK: microsoft365/attributes/static")
