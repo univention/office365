@@ -33,7 +33,7 @@
 
 ## joinscript api: bindpwdfile
 
-VERSION=6
+VERSION=7
 
 . /usr/share/univention-join/joinscripthelper.lib
 . /usr/share/univention-lib/all.sh
@@ -42,9 +42,9 @@ joinscript_init
 
 eval "$(ucr shell)"
 
-CONFDIR=/etc/univention-microsoft365
+CONFDIR=/etc/univention-office365
 defaultADconnectionDir="$CONFDIR/defaultADconnection"
-VARDIR=/var/lib/univention-microsoft365
+VARDIR=/var/lib/univention-office365
 
 if ! joinscript_check_any_version_executed || [ -n "$FORCE_NEW_CERT" ]; then
 	cd "$CONFDIR"
@@ -74,7 +74,7 @@ if ! joinscript_check_any_version_executed || [ -n "$FORCE_NEW_CERT" ]; then
 	chmod 0400 key.pem cert.pem cert.fp
 fi
 
-ucs_addServiceToLocalhost "univention-microsoft365" "$@" || die
+ucs_addServiceToLocalhost "univention-office365" "$@" || die
 
 ucs_registerLDAPExtension "$@" --schema /usr/share/univention-office365/office365.schema || die
 ucs_registerLDAPExtension "$@" --udm_syntax /usr/share/univention-office365/syntax.d/office365.py || die
@@ -137,12 +137,13 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 
 # in existing installations to rename Office 365 to Microsoft 365...
 udm settings/extended_attribute modify "$@" \
-	--dn "$ea_base" \
+	--dn "cn=UniventionOffice365Enabled,$ea_base" \
 	--set shortDescription="Enable user for Microsoft 365" \
 	--set translationShortDescription='"de_DE" "Benutzer für Nutzung von Microsoft 365 aktivieren"' \
 	--set longDescription="Enable user for Microsoft 365" \
-	--set translationLongDescription='"de_DE" "Benutzer für Nutzung von Microsoft 365 aktivieren"'
-	--set translationTabName='"de_DE" "Microsoft 365"' || : # ignore errors
+	--set translationLongDescription='"de_DE" "Benutzer für Nutzung von Microsoft 365 aktivieren"' \
+	--set tabName="Microsoft 365" \
+	--set translationTabName='"de_DE" "Microsoft 365"' || die
 
 udm settings/extended_attribute create "$@" --ignore_exists \
 	--position "$ea_base" \
@@ -189,6 +190,12 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set deleteObjectClass=0 \
 	--set disableUDMWeb=0 || die
 
+# in existing installations to rename Office 365 to Microsoft 365...
+udm settings/extended_attribute modify "$@" \
+	--dn "cn=UniventionOffice365ADConnections,$ea_base" \
+	--set tabName="Microsoft 365" \
+	--set translationTabName='"de_DE" "Microsoft 365"' || die
+
 udm settings/extended_attribute create "$@" --ignore_exists \
 	--position "$ea_base" \
 	--set name="UniventionOffice365GroupData" \
@@ -232,6 +239,12 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set ldapMapping=univentionOffice365ProfileLink \
 	--set deleteObjectClass=0 || die
 
+# in existing installations to rename Office 365 to Microsoft 365...
+udm settings/extended_attribute modify "$@" \
+	--dn "cn=UniventionOffice365GroupProfile,$ea_base" \
+	--set tabName="Microsoft 365" \
+	--set translationTabName='"de_DE" "Microsoft 365"' || die
+
 udm settings/extended_attribute create "$@" --ignore_exists \
 	--position "$ea_base" \
 	--set name="UniventionOffice365TokenResetDate" \
@@ -255,6 +268,12 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set deleteObjectClass=0 \
 	--set overwriteTab=0 \
 	--set disableUDMWeb=1 || die
+
+# in existing installations to rename Office 365 to Microsoft 365...
+udm settings/extended_attribute modify "$@" \
+	--dn "cn=UniventionOffice365TokenResetDate,$ea_base" \
+	--set tabName="Microsoft 365" \
+	--set translationTabName='"de_DE" "Microsoft 365"' || true
 
 udm settings/extended_attribute create "$@" --ignore_exists \
 	--position "$ea_base" \
@@ -281,6 +300,12 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set disableUDMWeb=1 \
 	--set tabPosition=4 || die
 
+# in existing installations to rename Office 365 to Microsoft 365...
+udm settings/extended_attribute modify "$@" \
+	--dn "cn=UniventionOffice365ADConnectionAlias,$ea_base" \
+	--set tabName="Microsoft 365" \
+	--set translationTabName='"de_DE" "Microsoft 365"' || true
+
 udm settings/extended_attribute create "$@" --ignore_exists \
 	--position "$ea_base" \
 	--set name="UniventionOffice365GroupADConnectionAlias" \
@@ -305,6 +330,12 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set deleteObjectClass=0 \
 	--set overwriteTab=0 \
 	--set disableUDMWeb=1 || die
+
+# in existing installations to rename Office 365 to Microsoft 365...
+udm settings/extended_attribute modify "$@" \
+	--dn "cn=UniventionOffice365GroupADConnectionAlias,$ea_base" \
+	--set tabName="Microsoft 365" \
+	--set translationTabName='"de_DE" "Microsoft 365"' || true
 
 # New installation - no joinscript has ever run
 if ! joinscript_check_any_version_executed; then

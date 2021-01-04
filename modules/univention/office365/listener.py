@@ -694,7 +694,7 @@ class Office365Listener(object):
 	def assign_subscription(self, new, azure_user):
 		msg_no_allocatable_subscriptions = 'User {}/{} created in Azure AD ({}), but no allocatable subscriptions' \
 			' found.'.format(new['uid'][0], azure_user['objectId'], self.adconnection_alias)
-		msg_multiple_subscriptions = 'More than one usable Office 365 subscription found.'
+		msg_multiple_subscriptions = 'More than one usable Microsoft 365 subscription found.'
 
 		# check subscription availability in azure
 		subscriptions_online = self.ah.get_enabled_subscriptions()
