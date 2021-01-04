@@ -3,7 +3,7 @@
 #
 # Univention Office 365 - handle subscription profiles
 #
-# Copyright 2016-2019 Univention GmbH
+# Copyright 2016-2021 Univention GmbH
 #
 # http://www.univention.de/
 #

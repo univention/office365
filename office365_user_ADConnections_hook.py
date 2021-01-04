@@ -2,7 +2,7 @@
 #
 # Univention Microsoft 365 - UDM hook to access ADConnection data
 #
-# Copyright 2016-2019 Univention GmbH
+# Copyright 2016-2021 Univention GmbH
 #
 # http://www.univention.de/
 #
