@@ -839,6 +839,7 @@ class Office365Listener(object):
 	def decode_o365data(cls, data):
 		"""
 		Decode ldap UniventionOffice365Data
+		Calling code must catch zlib.error and TypeError
 		"""
 		return json.loads(zlib.decompress(base64.b64decode(data)))
 

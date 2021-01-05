@@ -44,6 +44,7 @@ from random import randrange
 import sys
 import logging
 from logging.handlers import SysLogHandler
+import zlib
 
 
 # Query local LDAP for users that are activated for O365
@@ -109,9 +110,14 @@ if __name__ == '__main__':
 					logger.info("Modified %s users, exiting", modified_users)
 					exit(0)
 
-				adconnection_objects = Office365Listener.decode_o365data(ldap_user[1]["univentionOffice365Data"][0])
+				try:
+					adconnection_objects = Office365Listener.decode_o365data(ldap_user[1]["univentionOffice365Data"][0])
+				except (zlib.error, TypeError):
+					logger.error("Error decoding o365data for user %s", ldap_user[1]["uid"][0])
+					adconnection_objects = {}
+
 				for alias, values in adconnection_objects.items():
-					ah = AzureHandler(ucr, name = "tokens", adconnection_alias = alias)
+					ah = AzureHandler(ucr, name="tokens", adconnection_alias=alias)
 					if options.newpassword:
 						ah.reset_user_password(user_id=values['objectId'])
 					if options.invalidatetokens:

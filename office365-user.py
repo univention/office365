@@ -36,6 +36,7 @@ import json
 import base64
 import copy
 import datetime
+import zlib
 from stat import S_IRUSR, S_IWUSR
 
 import listener
@@ -267,7 +268,10 @@ def new_or_reactivate_user(ol, dn, new, old):
 		old_azure_data_encoded = udm_user["UniventionOffice365Data"]
 		if old_azure_data_encoded:
 			# The account already has an Azure AD connection
-			old_azure_data = Office365Listener.decode_o365data(old_azure_data_encoded)
+			try:
+				old_azure_data = Office365Listener.decode_o365data(old_azure_data_encoded)
+			except (zlib.error, TypeError):
+				old_azure_data = {}
 			if 'objectId' in old_azure_data and not isinstance(old_azure_data['objectId'], dict):
 				# Migration case
 				old_azure_data = {
@@ -290,20 +294,25 @@ def new_or_reactivate_user(ol, dn, new, old):
 		for group in udm_user['groups']:
 			logger.info('Need to add user to group %s.' % group)
 			udm_grp = ol.udm.get_udm_group(group)
-			if not udm_grp.get('UniventionOffice365Data') or ol.adconnection_alias not in Office365Listener.decode_o365data(udm_grp['UniventionOffice365Data']):
-				logger.info('Need to create azure group %s for %s first.' % (group, ol.adconnection_alias))
-				ol.create_groups(group, udm_grp.oldattr)
-				udm_grp = ol.udm.get_udm_group(group)
-			if udm_grp.get('UniventionOffice365Data'):
-				azure_data = Office365Listener.decode_o365data(udm_grp['UniventionOffice365Data'])
-				if ol.adconnection_alias in azure_data:
-					if 'objectId' in azure_data[ol.adconnection_alias]:
-						logger.info('Adding user %s to azure group %s' % (dn, group))
-						ol.ah.add_objects_to_azure_group(azure_data[ol.adconnection_alias]['objectId'], [new_user["objectId"]])
+			try:
+				if not udm_grp.get('UniventionOffice365Data') or ol.adconnection_alias not in Office365Listener.decode_o365data(udm_grp['UniventionOffice365Data']):
+					logger.info('Need to create azure group %s for %s first.' % (group, ol.adconnection_alias))
+					ol.create_groups(group, udm_grp.oldattr)
+					udm_grp = ol.udm.get_udm_group(group)
+				if udm_grp.get('UniventionOffice365Data'):
+					azure_data = Office365Listener.decode_o365data(udm_grp['UniventionOffice365Data'])
+					if ol.adconnection_alias in azure_data:
+						if 'objectId' in azure_data[ol.adconnection_alias]:
+							logger.info('Adding user %s to azure group %s' % (dn, group))
+							ol.ah.add_objects_to_azure_group(azure_data[ol.adconnection_alias]['objectId'], [new_user["objectId"]])
+					else:
+						logger.error('Azure group %s not found at udm object.' % group)
 				else:
-					logger.error('Azure group %s not found at udm object.' % group)
-			else:
-				logger.error('UCS group %s is not synced to any azure ad.' % group)
+					logger.error('UCS group %s is not synced to any azure ad.' % group)
+			except (zlib.error, TypeError):
+				# decode_o365data failed, try next group
+				logger.error('Error while decoding UCS group data from %s' % group)
+				continue
 
 
 def delete_user(ol, dn, new, old):
@@ -322,10 +331,10 @@ def deactivate_user(ol, dn, new, old):
 		old_azure_data_encoded = udm_user["UniventionOffice365Data"]
 		if old_azure_data_encoded:
 			# The account already has an Azure AD connection
-			old_azure_data = Office365Listener.decode_o365data(old_azure_data_encoded)
 			try:
+				old_azure_data = Office365Listener.decode_o365data(old_azure_data_encoded)
 				del old_azure_data[ol.adconnection_alias]['userPrincipalName']
-			except KeyError:
+			except (KeyError, zlib.error, TypeError):
 				pass
 			udm_user["UniventionOffice365Data"] = Office365Listener.encode_o365data(old_azure_data)
 			udm_user.modify()
@@ -349,7 +358,10 @@ def modify_user(ol, dn, new, old):
 		old_azure_data_encoded = udm_user["UniventionOffice365Data"]
 		if old_azure_data_encoded:
 			# The account already has an Azure AD connection
-			old_azure_data = Office365Listener.decode_o365data(old_azure_data_encoded)
+			try:
+				old_azure_data = Office365Listener.decode_o365data(old_azure_data_encoded)
+			except (zlib.error, TypeError):
+				old_azure_data = {}
 			if 'objectId' in old_azure_data and not isinstance(old_azure_data['objectId'], dict):
 				# Migration case
 				old_azure_data = {
