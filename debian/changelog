@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-95) unstable; urgency=medium
+
+  * Bug #51953: Fix exception handling in o365 data decoding
+
+ -- Erik Damrose <damrose@univention.de>  Tue, 05 Jan 2021 16:20:13 +0100
+
 univention-office365 (2.0.2-94) unstable; urgency=low
 
   * Bug #51153: Renamed Office 365 to Microsoft 365
