@@ -273,7 +273,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 udm settings/extended_attribute modify "$@" \
 	--dn "cn=UniventionOffice365TokenResetDate,$ea_base" \
 	--set tabName="Microsoft 365" \
-	--set translationTabName='"de_DE" "Microsoft 365"' || true
+	--set translationTabName='"de_DE" "Microsoft 365"' || die
 
 udm settings/extended_attribute create "$@" --ignore_exists \
 	--position "$ea_base" \
@@ -304,7 +304,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 udm settings/extended_attribute modify "$@" \
 	--dn "cn=UniventionOffice365ADConnectionAlias,$ea_base" \
 	--set tabName="Microsoft 365" \
-	--set translationTabName='"de_DE" "Microsoft 365"' || true
+	--set translationTabName='"de_DE" "Microsoft 365"' || die
 
 udm settings/extended_attribute create "$@" --ignore_exists \
 	--position "$ea_base" \
@@ -335,7 +335,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 udm settings/extended_attribute modify "$@" \
 	--dn "cn=UniventionOffice365GroupADConnectionAlias,$ea_base" \
 	--set tabName="Microsoft 365" \
-	--set translationTabName='"de_DE" "Microsoft 365"' || true
+	--set translationTabName='"de_DE" "Microsoft 365"' || die
 
 # New installation - no joinscript has ever run
 if ! joinscript_check_any_version_executed; then
