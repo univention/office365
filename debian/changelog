@@ -1,3 +1,11 @@
+univention-office365 (2.0.2-97) unstable; urgency=medium
+
+  * Bug #51153: Fix typos
+  * Do not rename udm profile object
+  * Group renaming in joinscript into one step
+
+ -- Erik Damrose <damrose@univention.de>  Fri, 08 Jan 2021 16:39:20 +0100
+
 univention-office365 (2.0.2-96) unstable; urgency=medium
 
   * Bug #51153: Change two screenshots, fix typo in joinscript

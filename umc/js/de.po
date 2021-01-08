@@ -660,7 +660,7 @@ msgid ""
 "You can now enable the Microsoft Azure synchronization for users on the "
 "<i>Microsoft 365</i> tab in the %s."
 msgstr ""
-"Sie können nun die Microsoft Azure Synchronisation für Benutzer im <i> "
+"Sie können nun die Microsoft Azure Synchronisation für Benutzer im <i>Microsoft "
 "365</i>-Tab im %s aktivieren."
 
 #: office365.js:379
