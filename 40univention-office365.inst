@@ -107,8 +107,8 @@ udm container/cn create "$@" --ignore_exists \
 
 # Rename Office 365 to Microsoft 365 in existing installations.
 if joinscript_check_version_in_range_executed 1 6; then
-	if udm settings/usertemplate list --filter="cn=Office 365 Account" --position="cn=templates,cn=univention,$(ucr get ldap/base)" | grep -q "^DN: cn=Office 365 Account,"; then
-		udm settings/usertemplate modify --dn="cn=Office 365 Account,cn=templates,cn=univention,$(ucr get ldap/base)" --set name="Microsoft 365 Account" || die
+	if udm settings/usertemplate list "$@" --filter="cn=Office 365 Account" --position="cn=templates,cn=univention,$(ucr get ldap/base)" | grep -q "^DN: cn=Office 365 Account,"; then
+		udm settings/usertemplate modify "$@" --dn="cn=Office 365 Account,cn=templates,cn=univention,$(ucr get ldap/base)" --set name="Microsoft 365 Account" || die
 	fi
 
 	udm settings/extended_attribute modify "$@" \

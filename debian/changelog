@@ -1,4 +1,4 @@
-univention-office365 (2.0.2-97) unstable; urgency=medium
+univention-office365 (2.0.2-98) unstable; urgency=medium
 
   * Bug #51153: Fix typos
   * Do not rename udm profile object
