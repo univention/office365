@@ -1,9 +1,9 @@
-univention-office365 (2.0.2-99) unstable; urgency=medium
+univention-office365 (2.0.2-100) unstable; urgency=medium
 
   * Bug #52661: Fix joinscript logic to only execute migration steps
     if they have not been done before
 
- -- Erik Damrose <damrose@univention.de>  Fri, 15 Jan 2021 12:12:17 +0100
+ -- Erik Damrose <damrose@univention.de>  Fri, 15 Jan 2021 15:04:17 +0100
 
 univention-office365 (2.0.2-98) unstable; urgency=medium
 
