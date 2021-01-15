@@ -106,7 +106,7 @@ udm container/cn create "$@" --ignore_exists \
 
 
 # Rename Office 365 to Microsoft 365 in existing installations.
-if joinscript_check_version_in_range_executed 1 6; then
+if [ "$JS_LAST_EXECUTED_VERSION" -lt 7 ]; then
 	if udm settings/usertemplate list "$@" --filter="cn=Office 365 Account" --position="cn=templates,cn=univention,$(ucr get ldap/base)" | grep -q "^DN: cn=Office 365 Account,"; then
 		udm settings/usertemplate modify "$@" --dn="cn=Office 365 Account,cn=templates,cn=univention,$(ucr get ldap/base)" --set name="Microsoft 365 Account" || die
 	fi
@@ -346,8 +346,9 @@ if ! joinscript_check_any_version_executed; then
 	/usr/share/univention-office365/scripts/manage_adconnections create defaultADconnection --makedefault
 fi
 
-# Update from previous app/package version
-if joinscript_check_version_in_range_executed 1 5; then
+# Update from app/package version which does not support multiple azure ad connections
+# migrate app data and state to joinscript version 6, which supports multiple ADs
+if [ "$JS_LAST_EXECUTED_VERSION" -lt 6 ]; then
 	ucs_unregisterLDAPExtension --udm_syntax univentionOffice365ProfileSyntax
 	ucs_unregisterLDAPExtension --udm_module settings/office365profile
 	python - <<EOF || die "Migrating univentionObjectType failed"
