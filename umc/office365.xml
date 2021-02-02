@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <umc version="2.0">
 	<module id="office365" priority="50" version="1.0">
-		<name>Office 365 setup wizard</name>
-		<description>Configuration of the Office 365 connector</description>
+		<name>Microsoft 365 setup wizard</name>
+		<description>Configuration of the Microsoft 365 connector</description>
 		<keywords>microsoft,azure,office,sync</keywords>
 		<categories>
 			<category name="domain"/>

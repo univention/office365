@@ -90,7 +90,7 @@ class Instance(Base):
 	def query(self):
 		return {
 			'initialized': AzureAuth.is_initialized(self.adconnection_alias),
-			'login-url': '{origin}/office365-authorize',
+			'login-url': '{origin}/microsoft365-authorize',
 			'appid-url': 'https://%s/office365' % (self.fqdn,),
 			'base-url': 'https://%s/' % (self.fqdn,),
 		}
@@ -174,7 +174,7 @@ class Instance(Base):
 				</body>
 		</html>
 		""" % {
-			'title': _('Office 365 Configuration finished'),
+			'title': _('Microsoft 365 Configuration finished'),
 			'content': _('The configuration has finished! You can now close this page and continue the configuration wizard.'),
 		})
 

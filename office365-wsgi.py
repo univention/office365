@@ -30,7 +30,7 @@ def application(environ, start_response):
 		</head>
 		<body>
 			<form action="/univention/command/office365/authorize_internal" id="form_auth" method="post">
-	""" % {'title': _('Office 365 Configuration finished')})
+	""" % {'title': _('Microsoft 365 Configuration finished')})
 
 	for name, value in request_body.items():
 		content += u'\t<input type="hidden" name="%s" value="%s" />\n' % (escape(name), escape(value[0]))

@@ -127,14 +127,15 @@ class AzureADConnectionHandler(object):
 		return None
 
 	@classmethod
-	def get_adconnections(self):
+	def get_adconnections(self, only_initialized=False):
 		res = []
 		aliases = self.get_adconnection_aliases().items()
 		for alias, adconnection_id in aliases:
 			confdir = self.get_conf_path('CONFDIR', alias)
 			initialized = AzureAuth.is_initialized(alias)
 			status = 'initialized' if initialized else 'uninitialized'
-			res.append((alias, status, confdir))
+			if (only_initialized is False or initialized):
+				res.append((alias, status, confdir))
 		return res
 
 	@classmethod
@@ -611,6 +612,10 @@ class AzureAuth(object):
 		return adconnection_id
 
 	def retrieve_access_token(self):
+		'''
+		gets a new access token from microsoft and stores the result in a file
+		named after the alias of the connection.
+		'''
 		assertion = self._get_client_assertion()
 
 		post_form = {
@@ -762,3 +767,5 @@ pause
 			"ucs/web/overview/entries/service/office365/priority": "50",
 			"ucs/web/overview/entries/service/office365/icon": "/office365.png"
 		})
+
+# vim: filetype=python noexpandtab tabstop=4 shiftwidth=4 softtabstop=4

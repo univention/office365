@@ -38,8 +38,8 @@ _ = translation.translate
 
 module = 'office365/profile'
 childs = False
-short_description = _(u'Office 365 Profile')
-long_description = _(u'Management of office 365 profiles')
+short_description = _(u'Microsoft 365 Profile')
+long_description = _(u'Management of Microsoft 365 profiles')
 operations = ['add', 'edit', 'remove', 'search', 'move']
 default_containers = ["cn=profiles,cn=office365"]
 
@@ -79,7 +79,7 @@ property_descriptions = {
 }
 
 layout = [
-	Tab(_(u'General'), _(u'Office 365 Profile'), layout=[
+	Tab(_(u'General'), _(u'Microsoft 365 Profile'), layout=[
 		['name'], ['subscription'],
 		['whitelisted_plans'],
 		['blacklisted_plans'],

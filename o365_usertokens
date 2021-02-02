@@ -29,7 +29,7 @@
 # <http://www.gnu.org/licenses/>.
 
 """
-Univention Office 365 reset tokens
+Univention Microsoft 365 reset tokens
 """
 
 from univention.config_registry import ConfigRegistry
@@ -44,6 +44,7 @@ from random import randrange
 import sys
 import logging
 from logging.handlers import SysLogHandler
+import zlib
 
 
 # Query local LDAP for users that are activated for O365
@@ -89,7 +90,7 @@ if __name__ == '__main__':
 		univention.admin.modules.init(lo, po, usermod)
 		config = univention.admin.config.config()
 	except Exception as exc:
-		logger.exception("Failed to initilize Office 365 token reset script: %s", exc)
+		logger.exception("Failed to initilize Microsoft 365 token reset script: %s", exc)
 		sys.exit(1)
 
 	today = datetime.today()
@@ -109,9 +110,14 @@ if __name__ == '__main__':
 					logger.info("Modified %s users, exiting", modified_users)
 					exit(0)
 
-				adconnection_objects = Office365Listener.decode_o365data(ldap_user[1]["univentionOffice365Data"][0])
+				try:
+					adconnection_objects = Office365Listener.decode_o365data(ldap_user[1]["univentionOffice365Data"][0])
+				except (zlib.error, TypeError):
+					logger.error("Error decoding o365data for user %s", ldap_user[1]["uid"][0])
+					adconnection_objects = {}
+
 				for alias, values in adconnection_objects.items():
-					ah = AzureHandler(ucr, name = "tokens", adconnection_alias = alias)
+					ah = AzureHandler(ucr, name="tokens", adconnection_alias=alias)
 					if options.newpassword:
 						ah.reset_user_password(user_id=values['objectId'])
 					if options.invalidatetokens:

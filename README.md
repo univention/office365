@@ -1,7 +1,7 @@
-# Office 365 connector
+# Microsoft 365 connector
 
 This package provides functionality to synchronize UCS user and group accounts
-to Azure AD to provision MS Office 365 accounts for them.
+to Azure AD to provision Microsoft 365 accounts for them.
 The accounts can be configured for synchonization to multiple Azure AD domains.
 
 This package contains a UMC wizard, extended attributes and hooks for user and
@@ -12,7 +12,7 @@ which can only be installed on UCS Systems with role Master or Backup.
 
 # User Story
 
-* After installation of this App UCS user accounts have a new Tab "Office 365"
+* After installation of this App UCS user accounts have a new Tab "Microsoft 365"
   in UMC, which offers a checkbox to Enable the Syncronization of the account
   to an Azure Active Directory. Below that checkbox, the "alias" name of a
   target Azure AD can be selected. If none is selected, then a default
@@ -48,11 +48,11 @@ which can only be installed on UCS Systems with role Master or Backup.
   via LDAP search, because it is stored as encoded as base64(zipped(json(dict)))
   in an LDAP attribute "univentionOffice365Data". For user objects this
   encoded dictionary additionally includes the Azure AD specific userPrincipalNames,
-  which are visible in the UMC users/user tab "Office 365". Their presence
+  which are visible in the UMC users/user tab "Microsoft 365". Their presence
   in the UMC provides a possiblity to quickly check, if the initial
   synchronization of an account has been successful.
 * The connector is able to configure O365 subscriptions at user objects. Subscriptions are
-  only assigned when a user is enabled for Azure synchronisation, reenabling a user also 
+  only assigned when a user is enabled for Azure synchronisation, reenabling a user also
   configures subscriptions. By default it is it is tried to enable a subscription with the
   following Azure-internal identifiers:
   'SHAREPOINTWAC, SHAREPOINTWAC_DEVELOPER, OFFICESUBSCRIPTION'.

@@ -33,7 +33,7 @@
 
 ## joinscript api: bindpwdfile
 
-VERSION=6
+VERSION=7
 
 . /usr/share/univention-join/joinscripthelper.lib
 . /usr/share/univention-lib/all.sh
@@ -91,17 +91,61 @@ ea_base="cn=custom attributes,cn=univention,$ldap_base"
 udm container/cn create "$@" --ignore_exists \
 	--position="$ldap_base" \
 	--set name="office365" \
-	--set description="Container for Office 365 objects" || die
+	--set description="Container for Microsoft 365 objects" || die
 
 udm container/cn create "$@" --ignore_exists \
 	--position="cn=office365,$ldap_base" \
 	--set name="profiles" \
-	--set description="Container for Office 365 profiles" || die
+	--set description="Container for Microsoft 365 profiles" || die
 
 udm container/cn create "$@" --ignore_exists \
 	--position="cn=office365,$ldap_base" \
 	--set name="ad-connections" \
-	--set description="Container for Office 365 connections" || die
+	--set description="Container for Microsoft 365 connections" || die
+
+
+
+# Rename Office 365 to Microsoft 365 in existing installations.
+if [ "$JS_LAST_EXECUTED_VERSION" -lt 7 ] && [ $JS_LAST_EXECUTED_VERSION -gt 0 ]; then
+	if udm settings/usertemplate list "$@" --filter="cn=Office 365 Account" --position="cn=templates,cn=univention,$(ucr get ldap/base)" | grep -q "^DN: cn=Office 365 Account,"; then
+		udm settings/usertemplate modify "$@" --dn="cn=Office 365 Account,cn=templates,cn=univention,$(ucr get ldap/base)" --set name="Microsoft 365 Account" || die
+	fi
+
+	udm settings/extended_attribute modify "$@" \
+		--dn "cn=UniventionOffice365Enabled,$ea_base" \
+		--set shortDescription="Enable user for Microsoft 365" \
+		--set translationShortDescription='"de_DE" "Benutzer für Nutzung von Microsoft 365 aktivieren"' \
+		--set longDescription="Enable user for Microsoft 365" \
+		--set translationLongDescription='"de_DE" "Benutzer für Nutzung von Microsoft 365 aktivieren"' \
+		--set tabName="Microsoft 365" \
+		--set translationTabName='"de_DE" "Microsoft 365"' || die
+
+	udm settings/extended_attribute modify "$@" \
+		--dn "cn=UniventionOffice365ADConnections,$ea_base" \
+		--set tabName="Microsoft 365" \
+		--set translationTabName='"de_DE" "Microsoft 365"' || die
+
+	udm settings/extended_attribute modify "$@" \
+		--dn "cn=UniventionOffice365GroupProfile,$ea_base" \
+		--set tabName="Microsoft 365" \
+		--set translationTabName='"de_DE" "Microsoft 365"' || die
+
+	udm settings/extended_attribute modify "$@" \
+		--dn "cn=UniventionOffice365TokenResetDate,$ea_base" \
+		--set tabName="Microsoft 365" \
+		--set translationTabName='"de_DE" "Microsoft 365"' || die
+
+	udm settings/extended_attribute modify "$@" \
+		--dn "cn=UniventionOffice365ADConnectionAlias,$ea_base" \
+		--set tabName="Microsoft 365" \
+		--set translationTabName='"de_DE" "Microsoft 365"' || die
+
+	udm settings/extended_attribute modify "$@" \
+		--dn "cn=UniventionOffice365GroupADConnectionAlias,$ea_base" \
+		--set tabName="Microsoft 365" \
+		--set translationTabName='"de_DE" "Microsoft 365"' || die
+fi
+
 
 # Create first Profile
 udm office365/profile create "$@" --ignore_exists \
@@ -113,14 +157,14 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--position "$ea_base" \
 	--set name="UniventionOffice365Enabled" \
 	--set CLIName="UniventionOffice365Enabled" \
-	--set shortDescription="Enable user for Office 365" \
-	--set translationShortDescription='"de_DE" "Benutzer für Nutzung von Office 365 aktivieren"' \
-	--set longDescription="Enable user for Office 365" \
-	--set translationLongDescription='"de_DE" "Benutzer für Nutzung von Office 365 aktivieren"' \
+	--set shortDescription="Enable user for Microsoft 365" \
+	--set translationShortDescription='"de_DE" "Benutzer für Nutzung von Microsoft 365 aktivieren"' \
+	--set longDescription="Enable user for Microsoft 365" \
+	--set translationLongDescription='"de_DE" "Benutzer für Nutzung von Microsoft 365 aktivieren"' \
 	--set tabAdvanced=0 \
-	--set tabName="Office 365" \
+	--set tabName="Microsoft 365" \
 	--set tabPosition=1 \
-	--set translationTabName='"de_DE" "Office 365"' \
+	--set translationTabName='"de_DE" "Microsoft 365"' \
 	--set module="users/user" \
 	--set module="settings/usertemplate" \
 	--set syntax=boolean \
@@ -164,8 +208,8 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set longDescription="Azure AD connections for a user" \
 	--set translationLongDescription='"de_DE" "Verbindungsdaten des Benutzers im Azure AD"' \
 	--set tabAdvanced=0 \
-	--set tabName="Office 365" \
-	--set translationTabName='"de_DE" "Office 365"' \
+	--set tabName="Microsoft 365" \
+	--set translationTabName='"de_DE" "Microsoft 365"' \
 	--set tabPosition=2 \
 	--set module="users/user" \
 	--set syntax=univentionOffice365ADConnections \
@@ -210,9 +254,9 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set translationLongDescription='"de_DE" "Profil, das Mitglieder dieser Gruppe im Azure AD zugewiesen bekommen"' \
 	--set module="groups/group" \
 	--set tabAdvanced=0 \
-	--set tabName="Office 365" \
+	--set tabName="Microsoft 365" \
 	--set tabPosition=1 \
-	--set translationTabName='"de_DE" "Office 365"' \
+	--set translationTabName='"de_DE" "Microsoft 365"' \
 	--set syntax=univentionOffice365ProfileSyntax \
 	--set default="" \
 	--set multivalue=0 \
@@ -232,8 +276,8 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set longDescription="Date when App Tokens should be invalidated in Azure AD" \
 	--set translationLongDescription='"de_DE" "Datum an dem App Tokens im Azure AD invalidiert werden"' \
 	--set tabAdvanced=0 \
-	--set tabName="Office 365" \
-	--set translationTabName='"de_DE" "Office 365"' \
+	--set tabName="Microsoft 365" \
+	--set translationTabName='"de_DE" "Microsoft 365"' \
 	--set module="users/user" \
 	--set syntax=integerOrEmpty \
 	--set default="" \
@@ -256,8 +300,8 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set longDescription="Alias of the Azure AD connection to use for syncing this user" \
 	--set translationLongDescription='"de_DE" "Alias der zu nutzenden Azure AD Connection zum Synchronisieren dieses Benutzers"' \
 	--set tabAdvanced=0 \
-	--set tabName="Office 365" \
-	--set translationTabName='"de_DE" "Office 365"' \
+	--set tabName="Microsoft 365" \
+	--set translationTabName='"de_DE" "Microsoft 365"' \
 	--set module="users/user" \
 	--set syntax=univentionOffice365ADConnection \
 	--set default="" \
@@ -282,9 +326,9 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set translationLongDescription='"de_DE" "Alias der zu nutzenden Azure AD Connection zum Synchronisieren dieser Gruppe"' \
 	--set module="groups/group" \
 	--set tabAdvanced=0 \
-	--set tabName="Office 365" \
+	--set tabName="Microsoft 365" \
 	--set tabPosition=2 \
-	--set translationTabName='"de_DE" "Office 365"' \
+	--set translationTabName='"de_DE" "Microsoft 365"' \
 	--set syntax=univentionOffice365ADConnection \
 	--set default="" \
 	--set multivalue=1 \
@@ -302,8 +346,9 @@ if ! joinscript_check_any_version_executed; then
 	/usr/share/univention-office365/scripts/manage_adconnections create defaultADconnection --makedefault
 fi
 
-# Update from previous app/package version
-if joinscript_check_version_in_range_executed 1 5; then
+# Update from app/package version which does not support multiple azure ad connections
+# migrate app data and state to joinscript version 6, which supports multiple ADs
+if [ "$JS_LAST_EXECUTED_VERSION" -lt 6 ] && [ $JS_LAST_EXECUTED_VERSION -gt 0 ]; then
 	ucs_unregisterLDAPExtension --udm_syntax univentionOffice365ProfileSyntax
 	ucs_unregisterLDAPExtension --udm_module settings/office365profile
 	python - <<EOF || die "Migrating univentionObjectType failed"
@@ -360,9 +405,9 @@ done
 # user template
 univention-directory-manager settings/usertemplate create "$@" --ignore_exists \
 	--position "cn=templates,cn=univention,$ldap_base" \
-	--set name="Office 365 Account" \
+	--set name="Microsoft 365 Account" \
 	--set mailPrimaryAddress="<username>@$domainname" \
-	--set UniventionOffice365Enabled="1" \
+	--set UniventionOffice365Enabled="1" || die
 
 # create mail domain object(s) if missing
 if ! udm mail/domain list "$@" | grep -q "name: $domainname" ; then

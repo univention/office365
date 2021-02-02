@@ -1,7 +1,7 @@
-<p>The Microsoft Office 365 integration for UCS allows to easily provision Azure Active Directory accounts with single sign-on for users.</p>
+<p>The Microsoft 365 integration for UCS allows to easily provision Azure Active Directory accounts with single sign-on for users.</p>
 <ul>
-    <li>To use this app, an Azure AD  administrator account is required. In addition, Office 365 licences are required for the account</li>
-    <li>To test Microsoft Office 365 free of charge, a test account can be created at <a href="https://products.office.com/business/">products.office.com</a>.</li>
+    <li>To use this app, an Azure AD  administrator account is required. In addition, Microsoft 365 licences are required for the account</li>
+    <li>To test Microsoft 365 free of charge, a test account can be created at <a href="https://products.office.com/business/">products.office.com</a>.</li>
     <li>To create, modify and delete accounts, this app needs administrative access to the Azure Active Directory account. A <a href="javascript:void(0)" onclick="require('umc/app').openModule('office365')">setup wizard</a> will guide you through the configuration process.</li>
 </ul>
 <p>Users need to be modified in the <a href="javascript:void(0)" onclick="require('umc/app').openModule('udm', 'users/user')">Domain administration</a> in order to use this service.</p>

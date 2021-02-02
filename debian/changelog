@@ -1,3 +1,36 @@
+univention-office365 (2.0.2-100) unstable; urgency=medium
+
+  * Bug #52661: Fix joinscript logic to only execute migration steps
+    if they have not been done before
+
+ -- Erik Damrose <damrose@univention.de>  Fri, 15 Jan 2021 15:04:17 +0100
+
+univention-office365 (2.0.2-98) unstable; urgency=medium
+
+  * Bug #51153: Fix typos
+  * Do not rename udm profile object
+  * Group renaming in joinscript into one step
+
+ -- Erik Damrose <damrose@univention.de>  Fri, 08 Jan 2021 16:39:20 +0100
+
+univention-office365 (2.0.2-96) unstable; urgency=medium
+
+  * Bug #51153: Change two screenshots, fix typo in joinscript
+
+ -- Julia Bremer <bremer@univention.de>  Wed, 06 Jan 2021 13:50:05 +0100
+
+univention-office365 (2.0.2-95) unstable; urgency=medium
+
+  * Bug #51953: Fix exception handling in o365 data decoding
+
+ -- Erik Damrose <damrose@univention.de>  Tue, 05 Jan 2021 16:20:13 +0100
+
+univention-office365 (2.0.2-94) unstable; urgency=low
+
+  * Bug #51153: Renamed Office 365 to Microsoft 365
+
+ -- Max Christian Pohle <pohle@univention.de>  Fri, 18 Dec 2020 17:37:46 +0100
+
 univention-office365 (2.0.2-92) unstable; urgency=medium
 
   * Bug #50671: stop udm-cli in joinscript if still running
