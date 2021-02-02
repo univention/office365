@@ -1,0 +1,16 @@
+# simple package builder
+
+build-package:
+  image: docker-registry.knut.univention.de/phahn/ucs-devbase
+  script:
+    - apt-get -q --assume-yes build-dep .
+    - dpkg-buildpackage
+  artifacts:
+    paths:
+      - "../*.deb"
+      - "../*.buildinfo"
+      - "../*.tar.gz"
+      - "../*.dsc"
+      - "../*.changes"
+
+# vim: filetype=yaml expandtab tabstop=2 shiftwidth=2 softtabstop=2

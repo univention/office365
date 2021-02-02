@@ -1,0 +1,265 @@
+#!/usr/share/ucs-test/runner python
+## -*- coding: utf-8 -*-
+## desc: tests the team related API calls, return values and exception handling.
+## tags: [apptest, integrationtest]
+## exposure: dangerous
+## packages:
+##   - univention-office365
+
+import os
+import logging
+import argparse
+import pytest
+import unittest
+import json
+import time
+
+import univention.testing.ucr as testing_ucr
+
+from univention.office365.api.graph import Graph
+from univention.office365.api.graph_auth import get_all_aliases_from_ucr
+from univention.office365.api.responseparser.create_team import get_team_id
+from univention.office365.api.exceptions import GraphError
+from helpers.random_strings import create_random_string_with_prefix
+
+from helpers.office365_test_helpers import azure_user_args
+
+
+class Test_TeamsAPI(unittest.TestCase):
+
+    def setUp(self):
+        self.ucr = testing_ucr.UCSTestConfigRegistry()
+        self.ucr.load()
+        self.logger = logging.getLogger()
+
+        self.aliases = get_all_aliases_from_ucr(self.ucr)
+        self.assertGreater(len(self.aliases), 0, "No endpoints found.")
+
+        self.graph = None
+        for alias in self.aliases:
+            try:
+                self.logger.debug("trying to load {alias}...".format(alias=alias))
+                self.graph = Graph(
+                    ucr=self.ucr,
+                    name=__name__,
+                    connection_alias=alias
+                )
+                self.logger.debug("trying to load {alias}...success".format(alias=alias))
+                break  # if this succeeds we are happy and use it
+            except Exception as e:
+                self.logger.error(
+                    "Could not load endpoint '{alias}': {error}".format(
+                        alias=alias, error=str(e)
+                    )
+                )
+        self.assertIsNotNone(self.graph, msg="Graph class was not loaded.")
+
+        # some attempts to get a user-id with the correct plans assigned to
+        # become an owner...
+        #     args = azure_user_args(self.graph, minimal=True)
+        #     args['usageLocation'] = "DE"
+        #     self.new_user = self.graph.create_user(args)
+        #     subscriptions_online = self.graph.get_enabled_subscriptions()
+        #     self.graph.add_license(self.new_user['objectId'], "6fd2c87f-b296-42f0-b197-1e91e994b900")  # add TeamspaceAPI
+        #     raise Exception(json.dumps(subscriptions_online, indent=4))
+        #     print("NEW USER: " + str(json.dumps(self.new_user, indent=4)))
+        #     self.owner = self.new_user['objectId']
+        self.owner = "2a5926ba-d37e-4f4b-adc0-fc3e3b10f72a"
+
+    def teardown(self):
+        self.graph.delete_user(self.owner)
+
+    def _create_random_user(self):
+        '''
+        NOTE: the mailaddr must have the correct domain or an error says
+        'You must use one of the verified domain names in your organization.'
+        '''
+        username = create_random_string_with_prefix(5, "testuser")
+        password = '123' + create_random_string_with_prefix(8) + '@#$'
+        mailaddr = create_random_string_with_prefix(8) + '@office365.dev-univention.de'
+        new_user = self.graph.add_user(username, mailaddr, password)
+        return new_user
+
+    def _wait_for_microsoft(self, timeout=10):
+        time.sleep(timeout)  # this is bad
+
+    def _create_sample_team(self):
+        name = create_random_string_with_prefix(20)
+        team = self.graph.create_team(name, self.owner)
+        return get_team_id(team)
+
+    def test_create_team(self):
+        team_id = self._create_sample_team()
+
+        self.assertIsNotNone(
+            team_id,
+            'Created a team, but the returned json object did not have'
+            ' a `Location` field to it, which we expected it to have.')
+
+    def test_create_team_with_very_long_name_and_description(self):
+        team = self.graph.create_team(
+            create_random_string_with_prefix(256),
+            self.owner,
+            create_random_string_with_prefix(1000)
+        )
+        team_id = get_team_id(team)
+        self._wait_for_microsoft()
+
+        team_object = self.graph.get_team(team_id)
+        self.assertEqual(
+            256, len(team_object['displayName']),
+            'team name shorter/truncated.')
+        self.assertEqual(
+            1000, len(team_object['description']),
+            'team description too short/truncated.')
+
+    def test_create_team_with_no_owner(self):
+        ''' No exception occured when creating a team with a name but no owner '''
+        with self.assertRaises(GraphError):
+            self.graph.create_team(create_random_string_with_prefix(20), "")
+
+    def test_create_team_with_no_name_and_owner(self):
+        ''' We got no exception, even though created a team without a name '''
+        with self.assertRaises(GraphError):
+            self.graph.create_team("", "")
+
+    def test_create_team_with_missing_parameters(self):
+        '''
+        We got no exception, although we created a team with `None` as its'
+        team name.
+        '''
+        with self.assertRaises(GraphError):
+            self.graph.create_team(None, None)
+
+    def test_get_team(self):
+        new_team = self._create_sample_team()
+        self._wait_for_microsoft()
+        retval = self.graph.get_team(new_team)
+        self.assertIsNotNone(
+            retval,
+            'A new team was created. The call is expected to return a json'
+            ' object to represent the newly created team. This object however'
+            ' does not have the team name to it.')
+
+    def test_add_team_member(self):
+        team_id = self._create_sample_team()
+        new_user = self._create_random_user()
+
+        self._wait_for_microsoft()
+
+        response = self.graph.add_team_member(
+            team_id,
+            new_user['id']
+        )
+        self.assertEqual(
+            new_user['displayName'],
+            response['displayName']
+        )
+
+    def test_list_team_members(self):
+        new_user = self._create_random_user()
+        team_id = self._create_sample_team()
+        self._wait_for_microsoft()
+        self.graph.add_team_member(team_id, new_user['id'])
+        self._wait_for_microsoft()
+        team_members = self.graph.list_team_members(team_id)
+        self.assertIn('value', team_members)
+        self.assertGreater(team_members['value'], 0)
+
+        member_ids = map(lambda x: x['userId'], team_members['value'])
+        self.assertTrue(
+            new_user['id'] in member_ids,
+            'A new user and a new team was created. The user has been added to'
+            ' the team, the teams members have been listed and we expected to'
+            ' a single element in the list of team members. But the element did'
+            ' not have the users id to it. That is caused this assertion error.'
+            ' assertion: {user_id} & {members}'.format(
+                user_id=new_user['id'],
+                members=member_ids
+            ))
+
+    def test_delete_team_member(self):
+        new_user = self._create_random_user()
+        team_id = self._create_sample_team()
+
+        self._wait_for_microsoft()
+
+        team_member_object = self.graph.add_team_member(team_id, new_user['id'])
+        team_member_id = team_member_object['id']
+
+        self._wait_for_microsoft()
+
+        self.graph.delete_team_member(team_id, team_member_id)
+
+    def test_create_team_from_group(self):
+        name = create_random_string_with_prefix(5, "test_create_team_from_group")
+
+        new_group = self.graph.create_group(name)
+        self.assertGreater(len(new_group), 0)
+        self.assertIn('objectId', new_group)
+        new_group_id = new_group['objectId']
+        self._wait_for_microsoft(60)
+
+        self.graph.add_group_owner(new_group_id, self.owner)
+        self._wait_for_microsoft()
+
+        new_team = self.graph.create_team_from_group(new_group_id)
+        team_id = get_team_id(new_team)
+        self.assertIsNotNone(
+            team_id,
+            'We could not determine the new teams id after creating one'
+            'from a group'
+        )
+
+    def test_create_team_from_group_with_invalid_id(self):
+        '''
+        We tried to create a team from an invalid group id and that worked for
+        some reason. But we assumed it to raise an exception.
+        '''
+        with self.assertRaises(GraphError):
+            self.graph.create_team_from_group(create_random_string_with_prefix(20))
+
+    def test_delete_team(self):
+        team_id = self._create_sample_team()
+        self._wait_for_microsoft()
+        self.graph.delete_team(team_id)
+
+    def test_list_teams(self):
+        self.graph.create_team(create_random_string_with_prefix(20), self.owner, "")
+        teams = self.graph.list_teams()
+        self.assertIn('value', teams)
+        self.assertGreater(
+            len(teams['value']), 0,
+            'one team has been created, but the `list_all_teams` returns zero.'
+        )
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description="Test for the Microsoft Graph API library integration",
+    )
+    parser.add_argument(
+        '--fast',
+        help='fail fast (exit after the first failed test)',
+        action="store_false"
+    )
+    parser.add_argument(
+        '-l',
+        '--log',
+        help='log file path',
+        nargs='?',
+        default='/tmp/test-{pid}.log'.format(
+            pid=os.getpid()
+        )
+    )
+
+    args = parser.parse_args()
+
+    logging.basicConfig(
+        level=logging.DEBUG,
+        filename=args.log,
+        filemode='w')
+
+    unittest.main(failfast=args.fast)
+
+# vim: filetype=python expandtab tabstop=4 shiftwidth=4 softtabstop=4

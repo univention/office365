@@ -140,15 +140,38 @@ def get_service_plan_names(ucr):
 class ApiError(AzureError):
 	def __init__(self, response, *args, **kwargs):
 		msg = "Communication error."
+		if isinstance(response, requests.Response):
+			msg += "HTTP response status: {num}\n".format(
+			    num=response.status_code
+			)
 		if hasattr(response, "json"):
 			j = response.json
 			if callable(j):  # requests version compatibility
 				j = j()
 			msg = j["odata.error"]["message"]["value"]
 			self.json = j
+			msg += (
+				"> request url: {req_url}\n\n"
+				"> request header: {req_headers}\n\n"
+				"> request body: {req_body}\n\n"
+				"> response header: {headers}\n\n"
+				"> response body: {body}\n\n"
+			).format(
+				req_url=str(response.request.url),
+				req_headers=json.dumps(dict(response.request.headers), indent=2),
+				req_body=self._try_to_prettify(response.request.body or "-NONE-"),
+				headers=json.dumps(dict(response.headers), indent=2),
+				body=self._try_to_prettify(response.content or "-NONE-")
+			)
 		self.response = response
 		logger.error(msg)
 		super(ApiError, self).__init__(msg, *args, **kwargs)
+
+	def _try_to_prettify(self, json_string):
+		try:
+			return json.dumps(json.loads(json_string), indent=2)
+		except ValueError:
+			return json_string
 
 
 class ResourceNotFoundError(ApiError):
@@ -177,7 +200,39 @@ class AzureHandler(object):
 		self.service_plan_names = get_service_plan_names(self.ucr)
 		logger.info("service_plan_names=%r", self.service_plan_names)
 
+	def getAzureLogger(self):
+		return logger
+
 	def call_api(self, method, url, data=None, retry=0):
+		'''
+			This function overwrites the underlaying call_api function for
+			demonstration purposes. It is meant to replace the call_api
+			function in the azure_handler class and had the original function
+			as its starting point. The refactoring made it clearer what this
+			function does and does not do.
+
+			From that it was understood, that this function:
+
+			* creates the correct http header for requests against azure
+			* support for proxy servers
+			* implements pagination
+			* implements retry after 10 seconds if error code is 5xx
+			* implements basic sanity checks and catches error codes
+
+			:param method:
+			GET|POST|PATCH|PUT|DELETE|...
+
+			:param url:
+			string in the form protocol://tld.example.com/path/[file]?params
+
+			:param data:
+			a json-object (or dict) to be used as payload (json.dumps
+			is used for serialization)
+
+			:return:
+			Either a json object or an exception of type APIError
+		'''
+
 		request_id = str(uuid.uuid4())
 		headers = {
 			"User-Agent": "ucs-office365/1.0",
@@ -728,3 +783,5 @@ class AzureHandler(object):
 			except KeyError as exc:
 				raise UnkownTypeError, UnkownTypeError("Attribute '{}' not in azure_attribute_types mapping.".format(k), chained_exc=exc), sys.exc_info()[2]
 		return res
+
+# vim: filetype=python noexpandtab tabstop=4 shiftwidth=4 softtabstop=4

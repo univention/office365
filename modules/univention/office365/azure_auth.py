@@ -57,6 +57,8 @@ from univention.office365.logging2udebug import get_logger
 from univention.office365.udm_helper import UDMHelper
 from univention.config_registry.frontend import ucr_update
 from univention.config_registry import ConfigRegistry, handler_set, handler_unset
+from univention.office365.api_helper import get_http_proxies
+from univention.office365.certificate_helper import get_client_assertion
 
 
 _ = Translation('univention-office365').translate
@@ -127,14 +129,15 @@ class AzureADConnectionHandler(object):
 		return None
 
 	@classmethod
-	def get_adconnections(self):
+	def get_adconnections(self, only_initialized=False):
 		res = []
 		aliases = self.get_adconnection_aliases().items()
 		for alias, adconnection_id in aliases:
 			confdir = self.get_conf_path('CONFDIR', alias)
 			initialized = AzureAuth.is_initialized(alias)
 			status = 'initialized' if initialized else 'uninitialized'
-			res.append((alias, status, confdir))
+			if (only_initialized is False or initialized):
+				res.append((alias, status, confdir))
 		return res
 
 	@classmethod
@@ -367,7 +370,7 @@ class AzureAuth(object):
 		self._access_token = None
 		self._access_token_exp_at = None
 		if self.proxies is None:
-			self.__class__.proxies = self.get_http_proxies()
+			self.__class__.proxies = get_http_proxies(ucr, logger)
 
 	@classmethod
 	def is_initialized(cls, adconnection_alias=None):
@@ -420,39 +423,6 @@ class AzureAuth(object):
 	@staticmethod
 	def store_tokens(adconnection_alias=None, **kwargs):
 		JsonStorage(AzureADConnectionHandler.get_conf_path('TOKEN_FILE', adconnection_alias)).write(**kwargs)
-
-	@staticmethod
-	def get_http_proxies():
-		res = dict()
-		# 1. proxy settings from environment
-		for req_key, env_key in [
-			('http', 'HTTP_PROXY'), ('http', 'http_proxy'), ('https', 'HTTPS_PROXY'), ('https', 'https_proxy')
-		]:
-			try:
-				res[req_key] = os.environ[env_key]
-			except KeyError:
-				pass
-		# 2. settings from system wide UCR proxy settings
-		for req_key, ucrv in [('http', 'proxy/http'), ('https', 'proxy/https')]:
-			if ucr[ucrv]:
-				res[req_key] = ucr[ucrv]
-		# 3. settings from office365 UCR proxy settings
-		for req_key, ucrv in [('http', 'office365/proxy/http'), ('https', 'office365/proxy/https')]:
-			if ucr[ucrv] and ucr[ucrv] == 'ignore':
-				try:
-					del res[req_key]
-				except KeyError:
-					pass
-			elif ucr[ucrv]:
-				res[req_key] = ucr[ucrv]
-		# remove password from log output
-		res_redacted = res.copy()
-		for k, v in res_redacted.items():
-			password = re.findall(r'http.?://\w+:(\w+)@.*', v)
-			if password:
-				res_redacted[k] = v.replace(password[0], '*****', 1)
-		logger.info('proxy settings: %r', res_redacted)
-		return res
 
 	@classmethod
 	def get_domain(cls, adconnection_alias=None):
@@ -534,7 +504,7 @@ class AzureAuth(object):
 			# the certificates with which the tokens were signed can be downloaded from the federation metadata document
 			# https://msdn.microsoft.com/en-us/library/azure/dn195592.aspx
 			if cls.proxies is None:
-				cls.proxies = cls.get_http_proxies()
+				cls.proxies = get_http_proxies(ucr, logger)
 			try:
 				fed = requests.get(federation_metadata_url.format(adconnection_id=adconnection_id), proxies=cls.proxies)
 			except RequestException as exc:
@@ -611,7 +581,17 @@ class AzureAuth(object):
 		return adconnection_id
 
 	def retrieve_access_token(self):
-		assertion = self._get_client_assertion()
+		'''
+		gets a new access token from microsoft and stores the result in a file
+		named after the alias of the connection.
+		'''
+
+		assertion = get_client_assertion(
+			oauth2_token_url.format(adconnection_id=self.adconnection_id),
+			self._load_certificate_fingerprint(),
+			self._get_key_file_data(),
+			self.client_id
+		)
 
 		post_form = {
 			'resource': resource_url,
@@ -642,58 +622,15 @@ class AzureAuth(object):
 			logger.exception("Response didn't contain an access_token. response: %r", response)
 			raise TokenError(_("Error retrieving authentication token from Azure for AD connection {adconnection}.").format(adconnection=self.adconnection_alias), response=response, adconnection_alias=self.adconnection_alias)
 
-	def _get_client_assertion(self):
-		def _load_certificate_fingerprint():
-			with open(AzureADConnectionHandler.get_conf_path('SSL_CERT_FP', self.adconnection_alias), "r") as fd:
-				fp = fd.read()
-			return fp.strip()
+	def _load_certificate_fingerprint(self):
+		with open(AzureADConnectionHandler.get_conf_path('SSL_CERT_FP', self.adconnection_alias), "r") as fd:
+			fp = fd.read()
+		return fp.strip()
 
-		def _get_assertion_blob(header, payload):
-			header_string = json.dumps(header).encode('utf-8')
-			encoded_header = base64.urlsafe_b64encode(header_string).decode('utf-8').strip('=')
-			payload_string = json.dumps(payload).encode('utf-8')
-			encoded_payload = base64.urlsafe_b64encode(payload_string).decode('utf-8').strip('=')
-			return '{0}.{1}'.format(encoded_header, encoded_payload)  # <base64-encoded-header>.<base64-encoded-payload>
-
-		def _get_key_file_data():
-			with open(AzureADConnectionHandler.get_conf_path('SSL_KEY', self.adconnection_alias), "rb") as pem_file:
-				key_data = pem_file.read()
-			return key_data
-
-		def _get_signature(message):
-			key_data = _get_key_file_data()
-
-			priv_key = rsa.PrivateKey.load_pkcs1(key_data)
-			_signature = rsa.sign(message.encode('utf-8'), priv_key, 'SHA-256')
-			encoded_signature = base64.urlsafe_b64encode(_signature)
-			encoded_signature_string = encoded_signature.decode('utf-8').strip('=')
-			return encoded_signature_string
-
-		client_assertion_header = {
-			'alg': 'RS256',
-			'x5t': _load_certificate_fingerprint(),
-		}
-
-		# thanks to Vittorio Bertocci for this:
-		# http://www.cloudidentity.com/blog/2015/02/06/requesting-an-aad-token-with-a-certificate-without-adal/
-		not_before = int(time.time()) - 300  # -5min to allow time diff between us and the server
-		exp_time = int(time.time()) + 600  # 10min
-		client_assertion_payload = {
-			'sub': self.client_id,
-			'iss': self.client_id,
-			'jti': str(uuid.uuid4()),
-			'exp': exp_time,
-			'nbf': not_before,
-			'aud': oauth2_token_url.format(adconnection_id=self.adconnection_id)
-		}
-
-		assertion_blob = _get_assertion_blob(client_assertion_header, client_assertion_payload)
-		signature = _get_signature(assertion_blob)
-
-		# <base64-encoded-header>.<base64-encoded-payload>.<base64-encoded-signature>
-		client_assertion = '{0}.{1}'.format(assertion_blob, signature)
-
-		return client_assertion
+	def _get_key_file_data(self):
+		with open(AzureADConnectionHandler.get_conf_path('SSL_KEY', self.adconnection_alias), "rb") as pem_file:
+			key_data = pem_file.read()
+		return key_data
 
 	@classmethod
 	def write_saml_setup_script(cls, adconnection_alias=None):
@@ -762,3 +699,5 @@ pause
 			"ucs/web/overview/entries/service/office365/priority": "50",
 			"ucs/web/overview/entries/service/office365/icon": "/office365.png"
 		})
+
+# vim: filetype=python noexpandtab tabstop=4 shiftwidth=4 softtabstop=4

@@ -1,3 +1,10 @@
+univention-office365 (2.0.2-101) unstable; urgency=low
+
+  * Bug 52840 - Encapsulate Graph API functionality to work with Microsoft 365
+    Teams
+
+ -- Max Christian Pohle <pohle@univention.de>  Mon, 15 Mar 2021 14:57:02 +0100
+
 univention-office365 (2.0.2-100) unstable; urgency=medium
 
   * Bug #52661: Fix joinscript logic to only execute migration steps

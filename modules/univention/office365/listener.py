@@ -37,6 +37,7 @@ import json
 import zlib
 from ldap.filter import filter_format
 
+from univention.office365.api.graph import Graph
 from univention.office365.azure_handler import AzureHandler, AddLicenseError, ResourceNotFoundError
 from univention.office365.azure_auth import AzureAuth, adconnection_alias_ucrv, default_adconnection_alias_ucrv
 from univention.office365.logging2udebug import get_logger
