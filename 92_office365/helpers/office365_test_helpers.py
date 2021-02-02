@@ -105,7 +105,7 @@ class AzureDirectoryTestObjects(object):
 		"""
 		Context manager that deletes the azure objects when leaving it.
 		:param otype: str: type of object to delete ("user", "group")
-		:param a_handler: AzureHandler object
+		:param a_handler: MSAPIHandler object
 		:param obj_ids: list of object IDs to delete from azure when leaving
 		the context manager
 		"""
@@ -139,7 +139,7 @@ class AzureDirectoryTestUsers(AzureDirectoryTestObjects):
 	def __init__(self, a_handler, user_ids=None):
 		"""
 		Context manager that deletes the azure users when leaving it.
-		:param a_handler: AzureHandler object
+		:param a_handler: MSAPIHandler object
 		:param user_ids: list of user IDs to delete from azure
 		when leaving the context manager
 		"""
@@ -150,7 +150,7 @@ class AzureDirectoryTestGroups(AzureDirectoryTestObjects):
 	def __init__(self, a_handler, group_ids=None):
 		"""
 		Context manager that deletes the azure groups when leaving it.
-		:param a_handler: AzureHandler object
+		:param a_handler: MSAPIHandler object
 		:param group_ids: list of group IDs to delete from azure
 		when leaving the context manager
 		"""
@@ -251,6 +251,12 @@ def azure_user_args(azure_handler, minimal=True):
 
 
 def udm_user_args(ucr, minimal=True):
+	"""
+	creates a dictionary to be used as random user object. In its minimal form
+	it contains only the necessary fields `displayName`, `password`,
+	`mailHomeServer` and `mailPrimaryAddress`. The non-minimal version has
+	also `birthday`, `city` and several other fields defined with random data.
+	"""
 	res = dict(
 		firstname=uts.random_string(),
 		lastname=uts.random_string(),
@@ -419,3 +425,5 @@ def remove_externally_configured_adconnections():
 	except Exception:
 		return False
 	return True
+
+# vim: filetype=python noexpandtab tabstop=4 shiftwidth=4 softtabstop=4

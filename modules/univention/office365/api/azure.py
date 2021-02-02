@@ -44,6 +44,7 @@ import random
 import string
 import sys
 
+from univention.office365.api.base import Base as APIBase
 from univention.office365.azure_auth import AzureAuth, AzureError, resource_url
 from univention.office365.logging2udebug import get_logger
 
@@ -166,7 +167,7 @@ class UnkownTypeError(AzureError):
 	pass
 
 
-class AzureHandler(object):
+class Azure(APIBase):
 	def __init__(self, ucr, name, adconnection_alias=None):
 		self.ucr = ucr
 		self.name = name
@@ -238,7 +239,7 @@ class AzureHandler(object):
 						if retry > 0:
 							raise ApiError(response, adconnection_alias=self.adconnection_alias)
 						else:
-							logger.error("AzureHandler.call_api() Server error. Azure said: %r. Will sleep 10s and then retry one time.", response_json["odata.error"]["message"]["value"])
+							logger.error("APIHandler.call_api() Server error. Azure said: %r. Will sleep 10s and then retry one time.", response_json["odata.error"]["message"]["value"])
 							time.sleep(10)
 							self.call_api(method, url, data=data, retry=retry + 1)
 					else:
@@ -256,7 +257,7 @@ class AzureHandler(object):
 					# If we are in paging mode, get the last batch
 					values.extend(response_json["value"])
 			else:
-				logger.error("AzureHandler.call_api() response is None")
+				logger.error("APIHandler.call_api() response is None")
 				raise ApiError("Response is None", adconnection_alias=self.adconnection_alias)
 		if values:
 			# If paging was used, then replace values with accumulated list
@@ -497,7 +498,7 @@ class AzureHandler(object):
 		# so here comes a loop instead.
 		for object_id in object_ids:
 			if not object_id:
-				logger.warn("AzureHandler.add_objects_to_azure_group(): not adding empty object_id to group %r.", group_id)
+				logger.warn("APIHandler.add_objects_to_azure_group(): not adding empty object_id to group %r.", group_id)
 				continue
 			dir_obj_url = self.uris["directoryObjects"].format(object_id=object_id)
 			objs = {"url": dir_obj_url}

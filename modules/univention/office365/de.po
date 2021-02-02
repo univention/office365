@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: univention-office365\n"
 "Report-Msgid-Bugs-To: packages@univention.de\n"
-"POT-Creation-Date: 2019-10-24 18:41+0200\n"
+"POT-Creation-Date: 2021-02-02 15:40+0100\n"
 "PO-Revision-Date: 2019-10-24 18:35+0200\n"
 "Last-Translator: Univention GmbH <packages@univention.de>\n"
 "Language-Team: Univention GmbH <packages@univention.de>\n"
@@ -12,81 +12,84 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: modules/univention/office365/azure_auth.py:714
-msgid "Error converting identity provider certificate."
-msgstr "Fehler beim Umwandeln des Identity Provider Zertifikates."
-
-#: modules/univention/office365/azure_auth.py:534
-#, python-brace-format
-msgid ""
-"Error downloading certificates from Azure for AD connection {adconnection}. Please run "
-"the wizard again."
-msgstr ""
-"Fehler beim Herunterladen der Zertifikate von Azure für AD Connection {adconnection}. "
-"Bitte führen Sie den Einrichtungsassistent erneut aus."
-
-#: modules/univention/office365/azure_auth.py:553
-#, python-brace-format
-msgid ""
-"Error reading certificates of Azure AD connection {adconnection} from Azure. Please run the "
-"wizard again."
-msgstr ""
-"Fehler beim Lesen von Azures Zertifikaten für AD Connection {adconnection}. Bitte führen"
-" Sie den Einrichtungsassistent erneut aus."
-
-#: modules/univention/office365/azure_auth.py:708
-msgid "Error reading identity provider certificate."
-msgstr "Fehler beim Lesen des Identity Provider Zertifikates"
-
-#: modules/univention/office365/azure_auth.py:520
-#, python-brace-format
-msgid ""
-"Error reading token of Azure AD connection {adconnection} received from Azure. Please run the "
-"wizard again."
-msgstr ""
-"Fehler beim lesen von Azures Token für AD Connection {adconnection}. Bitte führen Sie "
-"den Einrichtungsassistent erneut aus."
-
-#: modules/univention/office365/azure_auth.py:623
-#: modules/univention/office365/azure_auth.py:635
-#, python-brace-format
-msgid "Error retrieving authentication token from Azure for AD connection {adconnection}."
-msgstr ""
-"Fehler beim Abrufen eines Authentifizierungs-Tokens von Azure für AD Connection "
-"{adconnection}."
-
-#: modules/univention/office365/azure_auth.py:733
-msgid "Error writing SAML setup script."
-msgstr "Fehler beim Schreiben des SAML Installations-Skriptes."
-
-#: modules/univention/office365/azure_auth.py:404
+#: modules/univention/office365/azure_auth.py:412
 msgid "ADConnection-ID '{}' has wrong format."
 msgstr "ADConnection-ID '{}' hat ein ungültiges Format."
 
-#: modules/univention/office365/azure_auth.py:358
-#: modules/univention/office365/azure_auth.py:479
-#: modules/univention/office365/azure_auth.py:594
+#: modules/univention/office365/azure_auth.py:721
+msgid "Error converting identity provider certificate."
+msgstr "Fehler beim Umwandeln des Identity Provider Zertifikates."
+
+#: modules/univention/office365/azure_auth.py:542
 #, python-brace-format
 msgid ""
-"The configuration of Azure AD connection {adconnection} is incomplete and misses some data. "
+"Error downloading certificates from Azure for AD connection {adconnection}. "
 "Please run the wizard again."
 msgstr ""
-"Die Konfiguration von Azure AD Connection {adconnection} ist unvollständig, da einige Daten "
-"fehlen. Bitte führen Sie den Einrichtungsassistent erneut aus."
+"Fehler beim Herunterladen der Zertifikate von Azure für AD Connection "
+"{adconnection}. Bitte führen Sie den Einrichtungsassistent erneut aus."
 
-#: modules/univention/office365/azure_auth.py:280
+#: modules/univention/office365/azure_auth.py:561
+#, python-brace-format
+msgid ""
+"Error reading certificates of Azure AD connection {adconnection} from Azure."
+" Please run the wizard again."
+msgstr ""
+"Fehler beim Lesen von Azures Zertifikaten für AD Connection {adconnection}. "
+"Bitte führen Sie den Einrichtungsassistent erneut aus."
+
+#: modules/univention/office365/azure_auth.py:715
+msgid "Error reading identity provider certificate."
+msgstr "Fehler beim Lesen des Identity Provider Zertifikates"
+
+#: modules/univention/office365/azure_auth.py:528
+#, python-brace-format
+msgid ""
+"Error reading token of Azure AD connection {adconnection} received from "
+"Azure. Please run the wizard again."
+msgstr ""
+"Fehler beim lesen von Azures Token für AD Connection {adconnection}. Bitte "
+"führen Sie den Einrichtungsassistent erneut aus."
+
+#: modules/univention/office365/azure_auth.py:631
+#: modules/univention/office365/azure_auth.py:643
+#, python-brace-format
+msgid ""
+"Error retrieving authentication token from Azure for AD connection "
+"{adconnection}."
+msgstr ""
+"Fehler beim Abrufen eines Authentifizierungs-Tokens von Azure für AD "
+"Connection {adconnection}."
+
+#: modules/univention/office365/azure_auth.py:746
+msgid "Error writing SAML setup script."
+msgstr "Fehler beim Schreiben des SAML Installations-Skriptes."
+
+#: modules/univention/office365/azure_auth.py:366
+#: modules/univention/office365/azure_auth.py:487
+#: modules/univention/office365/azure_auth.py:602
+#, python-brace-format
+msgid ""
+"The configuration of Azure AD connection {adconnection} is incomplete and "
+"misses some data. Please run the wizard again."
+msgstr ""
+"Die Konfiguration von Azure AD Connection {adconnection} ist unvollständig, "
+"da einige Daten fehlen. Bitte führen Sie den Einrichtungsassistent erneut "
+"aus."
+
+#: modules/univention/office365/azure_auth.py:288
 msgid "The manifest is invalid: Invalid JSON document."
 msgstr "Das Manifest ist ungültig: ungültiges JSON Dokument."
 
-#: modules/univention/office365/azure_auth.py:583
-#: modules/univention/office365/azure_auth.py:599
+#: modules/univention/office365/azure_auth.py:591
+#: modules/univention/office365/azure_auth.py:607
 #, python-brace-format
 msgid ""
-"The received token for Azure AD connection {adconnection} is not valid. Please run the wizard "
-"again."
+"The received token for Azure AD connection {adconnection} is not valid. "
+"Please run the wizard again."
 msgstr ""
-"Der empfangene Token für Azure AD Connection {adconnection} ist ungültig. Bitte führen Sie den"
-" Einrichtungsassistent erneut aus."
+"Der empfangene Token für Azure AD Connection {adconnection} ist ungültig. "
+"Bitte führen Sie den Einrichtungsassistent erneut aus."
 
 #~ msgid ""
 #~ "Could not read certificate. Please make sure the joinscript 40univention-"

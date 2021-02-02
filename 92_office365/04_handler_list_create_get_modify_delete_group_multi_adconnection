@@ -12,7 +12,7 @@ import univention.testing.ucr as ucr_test
 import univention.testing.utils as utils
 
 from helpers.office365_test_helpers import AzureDirectoryTestGroups, azure_group_args, setup_logging
-from univention.office365.azure_handler import AzureHandler, ResourceNotFoundError
+from univention.office365.azure_handler import MSAPIHandler, ResourceNotFoundError
 from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
 
 
@@ -33,7 +33,7 @@ for adconnection_alias in initialized_adconnections:
 	print("*** Running for adconnection_alias={!r}.".format(adconnection_alias))
 
 	with ucr_test.UCSTestConfigRegistry() as ucr:
-		ah = AzureHandler(ucr, "ucs-test", adconnection_alias)
+		ah = MSAPIHandler(ucr, "ucs-test", adconnection_alias)
 
 	groups1 = ah.list_groups()["value"]
 

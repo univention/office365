@@ -35,7 +35,7 @@ from __future__ import print_function
 import argparse
 
 from univention.config_registry import ConfigRegistry
-from univention.office365.azure_handler import AzureHandler, ResourceNotFoundError
+from univention.office365.azure_handler import MSAPIHandler, ResourceNotFoundError
 from univention.office365.azure_auth import AzureADConnectionHandler
 
 
@@ -70,7 +70,7 @@ if __name__ == "__main__":
 		parser.error("choose one of these connections: {}".format(AzureADConnectionHandler.get_adconnection_aliases()))
 	ucr = ConfigRegistry()
 	ucr.load()
-	ah = AzureHandler(ucr, args.connection, args.connection)
+	ah = MSAPIHandler(ucr, args.connection, args.connection)
 	groups = ah.list_groups()
 	empty_groups = list()
 	if groups and groups.get('value'):

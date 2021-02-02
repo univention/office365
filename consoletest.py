@@ -37,7 +37,7 @@ import random
 import base64
 
 from univention.config_registry import ConfigRegistry
-from univention.office365.azure_handler import AzureHandler
+from univention.office365.azure_handler import MSAPIHandler
 from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
 
 
@@ -191,7 +191,7 @@ if __name__ == "__main__":
 
 	ucr = ConfigRegistry()
 	ucr.load()
-	ah = AzureHandler(ucr, args.connection, args.connection)
+	ah = MSAPIHandler(ucr, args.connection, args.connection)
 
 	if args.action == "add":
 		if args.objectid:

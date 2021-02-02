@@ -1,0 +1,154 @@
+#!/usr/share/ucs-test/runner python
+## -*- coding: utf-8 -*-
+## desc: test microsoft graph API calls for team management
+## tags: [apptest, integrationtest]
+## exposure: dangerous
+## packages:
+##   - univention-office365
+
+import time
+
+import univention.testing.strings as uts
+import univention.testing.ucr as ucr_test
+import univention.testing.udm as udm_test
+import univention.testing.utils as utils
+from univention.config_registry import handler_set, handler_unset
+
+from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, setup_logging
+from univention.office365.listener import Office365Listener
+from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
+
+import subprocess
+
+import os
+import sys
+import unittest
+import logging
+import univention.testing.ucr as ucr_test
+import univention.testing.udm as udm_test
+
+
+logger = logging.getLogger(__file__)
+logger.addHandler(logging.StreamHandler())
+logger.setLevel(logging.DEBUG)
+logger.debug("TEST")
+
+print("isatty %d" % os.isatty(1))
+
+handler_set(["office365/groups/sync=yes"])
+utils.restart_listener()
+
+#subprocess.call("systemctl restart univention-directory-listener", shell=True)
+sys.exit(0)
+
+class TestTeamsAPI(unittest.TestCase):
+    def setUp(self):
+
+        self.udm = udm_test.UCSTestUDM()
+        self.ucr = ucr_test.UCSTestConfigRegistry()
+        self.ucr.load()
+
+        initialized_adconnections = [adconnection_alias for adconnection_alias in AzureADConnectionHandler.get_adconnection_aliases() if AzureAuth.is_initialized(adconnection_alias)]
+        self.adconnection_alias = initialized_adconnections[0]
+        print("*** initialized_adconnections={!r}, using the first: {!r}.".format(
+            initialized_adconnections, self.adconnection_alias))
+
+        print(self.ucr.get("ldap/base"))
+        print(udm_user_args(self.ucr, minimal=True))
+
+    def tearDown(self):
+        handler_unset(["office365/groups/sync"])
+        utils.restart_listener()
+
+    def test_create_team(self):
+        pass
+
+    def test_test(self):
+        print("================================================================================")
+        utils.restart_listener()
+        print("================================================================================")
+        pass
+
+    def _test_add_user_twice(self):
+        with utils.AutomaticListenerRestart():
+            class _listener(object):
+                configRegistry = self.ucr
+
+
+            ol = Office365Listener(_listener(), "ucs-test", listener_attributes_data, {}, "dn", adconnection_alias)
+
+            # create a group
+            group_name = uts.random_name()
+            group_dn = self.udm.create_object(
+                "groups/group",
+                set=dict(name=group_name),
+                position="cn=groups,{}".format(self.ucr.get("ldap/base")),
+            )
+
+            # create user
+            user_args = udm_user_args(self.ucr, minimal=True)
+            user_args["set"]["UniventionOffice365Enabled"] = 1
+            user_args["set"]["UniventionOffice365ADConnectionAlias"] = self.adconnection_alias
+            user_args["set"]["primaryGroup"] = group_dn
+            user_dn1, username1 = self.udm.create_user(**user_args)
+
+            user_args = udm_user_args(self.ucr, minimal=True)
+            user_args["set"]["UniventionOffice365Enabled"] = 1
+            user_args["set"]["UniventionOffice365ADConnectionAlias"] = self.adconnection_alias
+            user_dn2, username2 = self.udm.create_user(**user_args)
+
+            # wait for user to be created in azure
+            for i in range(600):
+                print('waiting for user to be created in azure')
+                time.sleep(1)
+                udm_user = ol.udm.get_udm_user(user_dn2)
+                if udm_user.get("UniventionOffice365Data", None):
+                    break
+
+            # get user id
+            udm_user1 = ol.udm.get_udm_user(user_dn1)
+            udm_user2 = ol.udm.get_udm_user(user_dn2)
+            user_id1 = Office365Listener.decode_o365data(udm_user1.get("UniventionOffice365Data"))[self.adconnection_alias]['objectId']
+            user_id2 = Office365Listener.decode_o365data(udm_user2.get("UniventionOffice365Data"))[self.adconnection_alias]['objectId']
+            assert user_id1
+            assert user_id2
+            azure_user1 = ol.ah.list_users(objectid=user_id1)
+            azure_user2 = ol.ah.list_users(objectid=user_id2)
+            assert azure_user1
+            assert azure_user2
+
+            # get group id
+            udm_group = ol.udm.get_udm_group(group_dn)
+            group_objectid = Office365Listener.decode_o365data(udm_group.get("UniventionOffice365Data"))[self.adconnection_alias]['objectId']
+            print('group id: {}'.format(group_objectid))
+
+            # check user1 is member of group
+            print('user1 is member of: {}'.format(ol.ah.member_of_groups(user_id1).get('value', [])))
+            assert group_objectid in ol.ah.member_of_groups(user_id1).get('value', [])
+
+            # (re)add
+            ol.ah.add_objects_to_azure_group(group_objectid, [user_id1, user_id2])
+            ol.ah.add_objects_to_azure_group(group_objectid, [user_id1])
+            ol.ah.add_objects_to_azure_group(group_objectid, [user_id1])
+            ol.ah.add_objects_to_azure_group(group_objectid, [user_id2])
+            ol.ah.add_objects_to_azure_group(group_objectid, [user_id2])
+            ol.ah.add_objects_to_azure_group(group_objectid, [user_id1, user_id2])
+            ol.ah.add_objects_to_azure_group(group_objectid, [user_id1, user_id2])
+            ol.ah.add_objects_to_azure_group(group_objectid, [user_id1, user_id2])
+
+            # check both users are member of group
+            print('user1 is member of: {}'.format(ol.ah.member_of_groups(user_id1).get('value', [])))
+            print('user2 is member of: {}'.format(ol.ah.member_of_groups(user_id2).get('value', [])))
+            assert group_objectid in ol.ah.member_of_groups(user_id1).get('value', [])
+            assert group_objectid in ol.ah.member_of_groups(user_id2).get('value', [])
+
+
+
+
+
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+# vim: filetype=python expandtab tabstop=4 shiftwidth=4 softtabstop=4

@@ -97,7 +97,7 @@ univention-office365 (2.0.2-73) unstable; urgency=medium
 univention-office365 (2.0.2-72) unstable; urgency=medium
 
   * Bug #51921: Ignore "already member of" error in
-    AzureHandler.add_objects_to_azure_group
+    MSAPIHandler.add_objects_to_azure_group
 
  -- Felix Botner <botner@univention.de>  Thu, 05 Nov 2020 12:03:00 +0100
 

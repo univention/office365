@@ -1,0 +1,122 @@
+#!/usr/share/ucs-test/runner python
+## -*- coding: utf-8 -*-
+## desc: check compatibility between azure- and graph-implementation
+## tags: [apptest, integrationtest]
+## exposure: dangerous
+## packages:
+##   - univention-office365
+
+import unittest
+
+import random
+import string
+
+from univention.office365.api.graph import Graph
+from univention.office365.api.azure import Azure
+
+from univention.office365.api.exceptions import \
+    GraphError, AzureError
+
+import univention.testing.ucr as testing_ucr
+from univention.office365.api.graph_auth import get_all_available_endpoints
+
+class TestTeamsAPI(unittest.TestCase):
+    def setUp(self):
+        self.ucr = ucr testing_ucr.UCSTestConfigRegistry()
+        self.ucr.load()
+
+        self.endpoints = get_all_available_endpoints(self.ucr)
+        self.logger.info("*** enabled_connections={!r}".format(self.endpoints))
+        assert(len(self.endpoints) > 0)
+
+        for alias in self.endpoints.keys():
+            try:
+                self.graph = Graph(ucr, self.__name__, self.endpoints[alias])
+                return  # if this succeeds we are happy and use it
+            except Exception e:
+                self.logger.warn("Could not load endpoint '{}': {}" % (alias, str(e)))
+
+    def tearDown(self):
+        handler_unset(["office365/groups/sync"])
+        utils.restart_listener()
+
+    def _create_random_string(length, prefix=""):
+        """
+        creates a simple random string with uppercase letters and numbers in
+        a given length. These strings should be easily distinguishable from
+        other objects a user may have created and thus allow a bulk-removal
+        of all test data.
+        """
+        return prefix + ''.join(random.choice(
+            string.ascii_uppercase + string.digits) for _ in range(length))
+
+    def test_create_team(self):
+        self.graph.create_team(_create_random_string(20))
+
+    def test_create_team_with_very_long_name_and_description(self):
+        self.graph.create_team(
+            _create_random_string(1000),
+            _create_random_string(1000)
+        )
+
+    def test_create_team_with_no_name(self):
+        self.assertRaises(Exception, self.graph.create_team(""))
+
+    def test_create_team_with_missing_parameter(self):
+        self.assertRaises(Exception, self.graph.create_team(None))
+
+    def test_get_team(self):
+        name = self._create_random_string(20)
+        new_team = json.loads(self.graph.create_team(name))
+        assert(new_team['name'] == name)
+
+    def test_add_team_member(self):
+        new_user = json.loads(self.graph.create_invitation(
+            "test@example.com",
+            "https://test.univention.de/"
+        ))
+        new_team = json.loads(self.graph.create_team(_create_random_string(20)))
+        self.graph.add_team_member(new_user['id'])
+
+    def test_list_team_members(self):
+        new_user = json.loads(self.graph.create_invitation(
+            "test@example.com",
+            "https://test.univention.de/"
+        ))
+        new_team_name = _create_random_string(20)
+        new_team = json.loads(self.graph.create_team(new_team_name))
+        self.graph.add_team_member(new_team['id'], new_user['id'])
+        team = json.loads(self.graph.get_team(new_team['id']))
+        assert(team['name'] == new_team_name)
+
+    def test_delete_team_member(self):
+        new_user = json.loads(self.graph.create_invitation(
+            "test@example.com",
+            "https://test.univention.de/"
+        ))
+        new_team = self.graph.create_team(_create_random_string(20))
+        self.graph.add_team_member(new_team['id'], new_user['id'])
+        self.graph.delete_team_member(new_user['id'])
+
+    def test_create_team_from_group(self):
+        name = self._create_random_string(20)
+        new_group = json.loads(self.graph.create_group(name))
+        new_team = self.graph.create_team_from_group(new_group['id'])
+        assert(new_team['name'] == new_group['name'])
+
+    def test_delete_team(self):
+        name = self._create_random_string(20)
+        new_group = json.loads(self.graph.create_group(name))
+        self.graph.create_team_from_group(new_group['id'])
+        self.graph.delete_team(new_group['id'])
+
+    def test_list_all_teams(self):
+        self.graph.create_team(_create_random_string(20))
+        teams = json.loads(self.graph.list_all_teams())
+        assert(len(teams) > 0)
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+# vim: filetype=python expandtab tabstop=4 shiftwidth=4 softtabstop=4

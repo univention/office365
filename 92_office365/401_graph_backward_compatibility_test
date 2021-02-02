@@ -1,0 +1,115 @@
+#!/usr/share/ucs-test/runner python
+## -*- coding: utf-8 -*-
+## desc: check compatibility between azure- and graph-implementation
+## tags: [apptest, integrationtest]
+## exposure: dangerous
+## packages:
+##   - univention-office365
+
+import unittest
+
+import random
+import string
+
+from univention.office365.api.graph import Graph
+from univention.office365.api.azure import Azure
+
+from univention.office365.api.exceptions import \
+    GraphError, AzureError
+
+import univention.testing.ucr as testing_ucr
+from univention.office365.api.graph_auth import get_all_available_endpoints
+
+class TestTeamsAPI(unittest.TestCase):
+    def setUp(self):
+        self.ucr = ucr testing_ucr.UCSTestConfigRegistry()
+        self.ucr.load()
+
+        self.endpoints = get_all_available_endpoints(self.ucr)
+        self.logger.info("*** enabled_connections={!r}".format(self.endpoints))
+        assert(len(self.endpoints) > 0)
+
+        for alias in self.endpoints.keys():
+            try:
+                self.graph = Graph(ucr, self.__name__, self.endpoints[alias])
+                self.azure = Azure(ucr, self.__name__, self.endpoints[alias])
+                return  # if both succeeds we are happy and use that
+            except Exception e:
+                self.logger.warn("Could not load endpoint '{}': {}" % (alias, str(e)))
+
+    def tearDown(self):
+        handler_unset(["office365/groups/sync"])
+        utils.restart_listener()
+
+    def _create_random_string(length, prefix=""):
+        """
+        creates a simple random string with uppercase letters and numbers in
+        a given length. These strings should be easily distinguishable from
+        other objects a user may have created and thus allow a bulk-removal
+        of all test data.
+        """
+        return prefix + ''.join(random.choice(
+            string.ascii_uppercase + string.digits) for _ in range(length))
+
+    def test_create_group(self):
+        """
+        The basic functionality should work implementation independently.
+        """
+        name = self._create_random_string('_' + self.__name__ + '_')
+        desc = self._create_random_string('_' + self.__name__ + '_')
+
+        self.assertEqual(
+            self.graph.create_group(name, desc),
+            self.azure.create_group(name, desc)
+        )
+
+    def test_create_group_twice(self):
+        """
+        We expect to be able to create the same group twice. It should then
+        have different group_ids though.
+        """
+        name = self._create_random_string('_' + self.__name__ + '_')
+        desc = self._create_random_string('_' + self.__name__ + '_')
+
+        self.assertEqual(
+            self.graph.create_group(name, desc),
+            self.azure.create_group(name, desc)
+        )
+        self.assertEqual(
+            self.graph.create_group(name, desc),
+            self.azure.create_group(name, desc)
+        )
+
+    def test_create_group_with_illegal_chars(self):
+        """
+        This test is supposed to succeed in creating a group even if it contains
+        illegal chars. The implementation is supposed to translate or delete
+        them.
+        """
+        name = self._create_random_string(
+            '_' + self.__name__ + '_' + '@()\\[]";:.<>, ')
+
+        self.assertEqual(
+            self.graph.create_group(name),
+            self.azure.create_group(name)
+        )
+
+    def test_create_group_fail_because_no_name(self):
+        """ try to break things by creating a group without a name """
+        try:
+            self.graph.create_group(""),
+        except GraphError:
+            try:
+                self.azure.create_group("")
+            except AzureError:
+                return  # success: both calls failed
+            else:
+                pass
+        else:
+            pass
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+# vim: filetype=python expandtab tabstop=4 shiftwidth=4 softtabstop=4

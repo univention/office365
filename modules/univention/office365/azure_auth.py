@@ -51,13 +51,13 @@ import jwt
 from requests.exceptions import RequestException
 import subprocess
 import shutil
+import univention.office365.api.exceptions
 
 from univention.lib.i18n import Translation
 from univention.office365.logging2udebug import get_logger
 from univention.office365.udm_helper import UDMHelper
 from univention.config_registry.frontend import ucr_update
 from univention.config_registry import ConfigRegistry, handler_set, handler_unset
-
 
 _ = Translation('univention-office365').translate
 
@@ -95,6 +95,7 @@ class AzureADConnectionHandler(object):
 
 	@classmethod
 	def get_conf_path(self, name, adconnection_alias):
+                
 		conf_dir = os.path.join(ADCONNECTION_CONF_BASEPATH, adconnection_alias)
 		if not os.path.exists(conf_dir):
 			logger.error('Config directory for Azure AD connection %s not found (%s)', adconnection_alias, conf_dir)
@@ -127,14 +128,15 @@ class AzureADConnectionHandler(object):
 		return None
 
 	@classmethod
-	def get_adconnections(self):
+	def get_adconnections(self, only_initialized=False):
 		res = []
 		aliases = self.get_adconnection_aliases().items()
 		for alias, adconnection_id in aliases:
 			confdir = self.get_conf_path('CONFDIR', alias)
 			initialized = AzureAuth.is_initialized(alias)
 			status = 'initialized' if initialized else 'uninitialized'
-			res.append((alias, status, confdir))
+            if (only_initialized == False || initialized)
+                res.append((alias, status, confdir))
 		return res
 
 	@classmethod
@@ -218,49 +220,6 @@ class AzureADConnectionHandler(object):
 		ucrv_unset = '%s%s' % (adconnection_alias_ucrv, adconnection_alias)
 		handler_unset([ucrv_unset])
 		self.listener_restart()
-
-
-class AzureError(Exception):
-	def __init__(self, msg, chained_exc=None, adconnection_alias=None, *args, **kwargs):
-		self.chained_exc = chained_exc
-		self.adconnection_alias = adconnection_alias
-		super(AzureError, self).__init__(msg, *args, **kwargs)
-
-
-class TokenError(AzureError):
-	def __init__(self, msg, response=None, *args, **kwargs):
-		self.response = response
-		if response and hasattr(response, "json"):
-			j = response.json
-			if callable(response.json):  # requests version compatibility
-				j = j()
-			self.error_description = j["error_description"]
-		super(TokenError, self).__init__(msg, *args, **kwargs)
-
-
-class IDTokenError(AzureError):
-	pass
-
-
-class TokenValidationError(AzureError):
-	pass
-
-
-class NoIDsStored(AzureError):
-	pass
-
-
-class ManifestError(AzureError):
-	pass
-
-
-class WriteScriptError(AzureError):
-	pass
-
-
-class ADConnectionIDError(AzureError):
-	pass
-
 
 class Manifest(object):
 
@@ -762,3 +721,5 @@ pause
 			"ucs/web/overview/entries/service/office365/priority": "50",
 			"ucs/web/overview/entries/service/office365/icon": "/office365.png"
 		})
+
+# vim: filetype=python expandtab tabstop=4 shiftwidth=4 softtabstop=4

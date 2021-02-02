@@ -33,7 +33,7 @@
 import sys
 from operator import itemgetter
 from univention.config_registry import ConfigRegistry
-from univention.office365.azure_handler import AzureHandler, ResourceNotFoundError
+from univention.office365.azure_handler import MSAPIHandler, ResourceNotFoundError
 from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
 
 
@@ -60,7 +60,7 @@ def print_table(data, data_fetchers, header_parts, line, epilog, column_lengths=
 def print_users_and_groups(adconnection_alias=None):
 	ucr = ConfigRegistry()
 	ucr.load()
-	ah = AzureHandler(ucr, "print_subscriptions", adconnection_alias)
+	ah = MSAPIHandler(ucr, "print_subscriptions", adconnection_alias)
 
 	users = ah.list_users()
 	groups = ah.list_groups()
