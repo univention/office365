@@ -17,12 +17,18 @@ from univention.office365.azure_auth import AzureAuth
 
 
 class Graph(AzureHandler):
-    def __init__(self, ucr, name, connection_alias):
+    def __init__(self, ucr, name, connection_alias, loglevel=logging.INFO):
         # initialize logging..
         self.initialized = False
         self.logger = logging.getLogger()
-        self.logger.level = logging.INFO
+        self.logger.level = loglevel
         self.logger.addHandler(logging.StreamHandler(sys.stdout))
+
+        if (self.logger.level == logging.DEBUG):
+            logging.basicConfig(level=logging.DEBUG)
+            requests_log = logging.getLogger("requests.packages.urllib3")
+            requests_log.setLevel(logging.DEBUG)
+            requests_log.propagate = True
 
         # load the univention config registry for testing...
         self.ucr = ucr
@@ -37,20 +43,22 @@ class Graph(AzureHandler):
         # if the access token has expired (is too old), it is automatically
         # tried to renew it. We use the old API calls for that, so that this
         # is guaranteed to stay compatible for now.
-        if datetime.datetime.now() > datetime.datetime.fromtimestamp(
-            int(token_file_as_json.get("access_token_exp_at", 0))
-        ):
-            self.logger.info("Access token has expired. We will try to renew it.")
-            self.token = AzureAuth(
-                self.name,  # unique name in codebase making it easy to spot
-                self.connection_alias
-            ).retrieve_access_token()
+        # if datetime.datetime.now() > datetime.datetime.fromtimestamp(
+        #     int(token_file_as_json.get("access_token_exp_at", 0))
+        # ):
+        #     self.logger.info("Access token has expired. We will try to renew it.")
+        #     self.token = AzureAuth(
+        #         self.name,  # unique name in codebase making it easy to spot
+        #         self.connection_alias
+        #     ).retrieve_access_token()
 
         # prepare the http headers, which we are going to send with any request
         self.headers = {
-            "Authorization": ("Bearer %s" % self.token),
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "Authorization": 'Bearer {token}'.format(token=quote(self.token))
         }
+
+        self.logger.debug("header: {header}".format(header=self.headers))
 
     def create_random_pw(self):
         return super(Graph, self).create_random_pw()
@@ -68,6 +76,7 @@ class Graph(AzureHandler):
 
             if hasattr(response, 'content'):
                 message += response.content
+
         elif response is None:
             message = "The response was of type `None`"
         else:

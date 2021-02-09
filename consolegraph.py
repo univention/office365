@@ -31,6 +31,7 @@
 # <http://www.gnu.org/licenses/>.
 
 import argparse
+import logging
 
 import json
 from univention.config_registry import ConfigRegistry
@@ -39,31 +40,62 @@ from univention.office365.api.graph import Graph
 from univention.office365.api.graph_auth import get_all_aliases_from_ucr, get_all_available_endpoints
 
 if __name__ == "__main__":
+	logging.basicConfig(level=logging.DEBUG)
+
 	ucr = ConfigRegistry()
 	ucr.load()
 
 	parser = argparse.ArgumentParser(description="Test for the Microsoft Graph API library integration")
 	parser.add_argument(
+		'--create_invitation',
+		help='create an invitation (a user object marked as `guest`)',
+		nargs=2,
+		metavar=('invitedUserEmailAddress', 'inviteRedirectUrl')
+	)
+	parser.add_argument(
 		'--create_team',
-		help='create_team',
+		help='create a new team',
 		nargs=2,
 		metavar=('name', 'description')
 	)
 	parser.add_argument(
-		"graph",
-		help="test microsoft graph library calls",
+		'--list_team_members',
+		help='list team members',
+		nargs=1,
+		metavar=('team_id')
+	)
+	parser.add_argument(
+		"-g",
+		"--graph",
+		help="test microsoft graph library calls optionally with one of the options above",
 		choices=get_all_aliases_from_ucr(ucr)
+	)
+	parser.add_argument(
+		'-e',
+		'--endpoints',
+		help="list all endpoints",
+		action="store_true"
 	)
 	args = parser.parse_args()
 
-	# print(json.dumps(get_all_available_endpoints(ucr), indent=4, sort_keys=True))
 	if args.graph:
-		g = Graph(ucr, str(__file__), args.graph)
+		g = Graph(ucr, str(__file__), args.graph, logging.DEBUG)
 
 		if args.create_team:
 			name = args.create_team[0]
 			desc = args.create_team[1]
 			print('creating team: {name} - {desc}'.format(name=name, desc=desc))
-			g.create_team(args.create_team[0], args.create_team[1])
+			g.create_team(name, desc)
+		if args.create_invitation:
+			mail = args.create_invitation[0]
+			url = args.create_invitation[1]
+			print('creating invitation for: {mail} - {url}'.format(mail=mail, url=url))
+			g.create_invitation(mail, url)
+		if args.list_team_members:
+			team_id = args.list_team_members[0]
+			print('listing team members of {team_id}'.format(team_id=team_id))
+			g.list_team_members(team_id)
+	elif args.endpoints:
+		print(json.dumps(get_all_available_endpoints(ucr), indent=4, sort_keys=True))
 
 # vim: filetype=python noexpandtab tabstop=4 shiftwidth=4 softtabstop=4
