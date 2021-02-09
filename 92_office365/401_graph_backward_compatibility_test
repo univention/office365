@@ -12,17 +12,17 @@ import random
 import string
 
 from univention.office365.api.graph import Graph
-from univention.office365.api.azure import Azure
+from univention.office365.azure_handler import AzureHandler as Azure
 
-from univention.office365.api.exceptions import \
-    GraphError, AzureError
+from univention.office365.api.exceptions import GraphError
+from univention.office365.azure_auth import AzureError
 
 import univention.testing.ucr as testing_ucr
 from univention.office365.api.graph_auth import get_all_available_endpoints
 
 class TestTeamsAPI(unittest.TestCase):
     def setUp(self):
-        self.ucr = ucr testing_ucr.UCSTestConfigRegistry()
+        self.ucr = testing_ucr.UCSTestConfigRegistry()
         self.ucr.load()
 
         self.endpoints = get_all_available_endpoints(self.ucr)

@@ -4,7 +4,7 @@ from univention.office365.api.exceptions import TokenFileNotFound, TokenFileInva
 
 
 def load_token_file(alias, config_basepath="/etc/univention-office365"):
-    """
+    '''
     finds the correct `token.json` file and checks the `consent_given` field
     within. The returned object is of type dict and has the enabled_connection
     as its name associated with with the json object, in which the access_token
@@ -13,7 +13,7 @@ def load_token_file(alias, config_basepath="/etc/univention-office365"):
         for c in consent_given_connections:
             print(c['access_token']
     may be easier to understand.
-    """
+    '''
 
     token_file = os.path.join(config_basepath, alias, "token.json")
     if (os.path.exists(token_file)):
@@ -35,9 +35,10 @@ def load_token_file(alias, config_basepath="/etc/univention-office365"):
 
 
 def get_all_aliases_from_ucr(ucr):
-    """
+    '''
     find all initialized connections according to the univention config registry...
-    """
+    '''
+
     return [x[0].split('/')[-1] for x in filter(
         lambda x: all([
             x[0].startswith("office365/adconnection/alias/"),
@@ -47,10 +48,11 @@ def get_all_aliases_from_ucr(ucr):
 
 
 def get_all_available_endpoints(ucr, config_basepath=None):
-    """
+    '''
     returns a dict with the name of each `alias` and the endpoint in form of
     a plain json file. Basic checks are performed.
-    """
+    '''
+
     endpoints = {}
     for a in get_all_aliases_from_ucr(ucr):
         endpoints[a] = load_token_file(ucr)

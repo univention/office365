@@ -251,12 +251,12 @@ def azure_user_args(azure_handler, minimal=True):
 
 
 def udm_user_args(ucr, minimal=True):
-	"""
+	'''
 	creates a dictionary to be used as random user object. In its minimal form
 	it contains only the necessary fields `displayName`, `password`,
 	`mailHomeServer` and `mailPrimaryAddress`. The non-minimal version has
 	also `birthday`, `city` and several other fields defined with random data.
-	"""
+	'''
 	res = dict(
 		firstname=uts.random_string(),
 		lastname=uts.random_string(),
