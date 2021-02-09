@@ -1,15 +1,16 @@
+import datetime
 import logging
 import json
 import requests
-import univention.office365.api.exceptions
+import sys
 
 from urllib.parse import urlencode
-from univention.office365.api.base import Base as APIBase
+from univention.office365.api.exceptions import GraphError
 from univention.office365.api.graph_auth import load_token_file
 from univention.office365.azure_handler import Azure as AzureBase
 
 
-class Graph(APIBase, AzureBase):
+class Graph(AzureBase):
     def __init__(self, ucr, name, connection_alias):
         # initialize logging..
         self.initialized = False
@@ -25,16 +26,15 @@ class Graph(APIBase, AzureBase):
         # if connection_alias is left out: load all available aliases.
         token_file_as_json = load_token_file(self.connection_alias)
 
-        access_token_exp_at = datetime.datetime.fromtimestamp(
-            int(token_file_as_json.get("access_token_exp_at", 0)))
-
-        if datetime.datetime.now() > access_token_exp_at:
-            logger.debug("Access token has expired. We will try to renew it.")
-            self._access_token = self.retrieve_access_token()
-
-        if not self._access_token_exp_at or datetime.datetime.now() > self._access_token_exp_at:
-
         self.token = self.token_file_as_json['access_token']
+
+        # access token expired (too old):
+        if datetime.datetime.now() > datetime.datetime.fromtimestamp(
+            int(token_file_as_json.get("access_token_exp_at", 0))
+        ):
+            self.logger.info("Access token has expired. We will try to renew it.")
+            self.token = self.retrieve_access_token()
+
         self.headers = {
             "Authorization": ("Bearer %s" % self.token),
             "Content-Type": "application/json"
@@ -44,45 +44,9 @@ class Graph(APIBase, AzureBase):
         return super(Graph, self).create_random_pw()
 
     def _generate_error_message(self, response):
-        # TODO: some logging and interprestation and based on that
-        # return a different type of exception
         message = "[%s]: %s" % (str(response.header), response.content)
         self.logger.error(message)
         return GraphError(message)
-
-    def retrieve_access_token(self):
-        # TODO reimplmentation of that
-        assertion = self._get_client_assertion()
-
-        post_form = {
-                'resource': resource_url,
-                'client_id': self.client_id,
-                'client_assertion_type': 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
-                'client_assertion': assertion,
-                'grant_type': 'client_credentials',
-                'redirect_uri': self.reply_url,
-                'scope': SCOPE
-        }
-        url = oauth2_token_url.format(adconnection_id=self.adconnection_id)
-
-        logger.debug("POST to URL=%r with data=%r", url, post_form)
-        response = requests.post(url, data=post_form, verify=True, proxies=self.proxies)
-        if response.status_code != 200:
-                logger.exception("Error retrieving token (status %r), response: %r", response.status_code, response.__dict__)
-                raise TokenError(_("Error retrieving authentication token from Azure for AD connection {adconnection}.").format(adconnection=self.adconnection_alias), response=response, adconnection_alias=self.adconnection_alias)
-        at = response.json
-        if callable(at):  # requests version compatibility
-                at = at()
-        logger.debug("response: %r", at)
-        if "access_token" in at and at["access_token"]:
-                self._access_token = at["access_token"]
-                self._access_token_exp_at = datetime.datetime.fromtimestamp(int(at["expires_on"]))
-                self.store_tokens(adconnection_alias=self.adconnection_alias, access_token=at["access_token"], access_token_exp_at=at["expires_on"])
-                return at["access_token"]
-        else:
-                logger.exception("Response didn't contain an access_token. response: %r", response)
-                raise TokenError(_("Error retrieving authentication token from Azure for AD connection {adconnection}.").format(adconnection=self.adconnection_alias), response=response, adconnection_alias=self.adconnection_alias)
-
 
     def list_users(self, objectid=None, ofilter=None):
         return super(Graph, self).list_users(self, objectid, ofilter)
@@ -263,7 +227,7 @@ class Graph(APIBase, AzureBase):
         ''' https://docs.microsoft.com/en-us/graph/api/team-list-members '''
         response = requests.get(
             "https://graph.microsoft.com/v1.0/teams/{team_id}/members".format(
-                team_id=object_id),
+                team_id=team_id),
             headers=self.headers)
 
         if (200 == response.status_code):

@@ -43,7 +43,7 @@ def get_all_aliases_from_ucr(ucr):
         lambda x: all([
             x[0].startswith("office365/adconnection/alias/"),
             x[1] == 'initialized'
-        ]), self.ucr.items())
+        ]), ucr.items())
     ]
 
 
