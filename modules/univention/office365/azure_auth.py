@@ -570,6 +570,10 @@ class AzureAuth(object):
 		return adconnection_id
 
 	def retrieve_access_token(self):
+		'''
+		get a new access token from microsoft and stores the result in a file
+		named after the alias of the connection.
+		'''
 		assertion = self._get_client_assertion()
 
 		post_form = {
@@ -722,4 +726,4 @@ pause
 			"ucs/web/overview/entries/service/office365/icon": "/office365.png"
 		})
 
-# vim: filetype=python expandtab tabstop=4 shiftwidth=4 softtabstop=4
+# vim: filetype=python noexpandtab tabstop=4 shiftwidth=4 softtabstop=4

@@ -5,10 +5,11 @@ import univention.office365.api.exceptions
 
 from urllib.parse import urlencode
 from univention.office365.api.base import Base as APIBase
+from univention.office365.api.graph import Base as AzureBase
 from univention.office365.api.graph_auth import load_token_file
 
 
-class Graph(APIBase):
+class Graph(APIBase, AzureBase):
     def __init__(self, ucr, name, connection_alias):
         # initialize logging..
         self.initialized = False
@@ -24,7 +25,14 @@ class Graph(APIBase):
         # if connection_alias is left out: load all available aliases.
         token_file_as_json = load_token_file(self.connection_alias)
 
-        # TODO: sanity check: is token expired?
+        access_token_exp_at = datetime.datetime.fromtimestamp(
+            int(token_file_as_json.get("access_token_exp_at", 0)))
+
+        if datetime.datetime.now() > access_token_exp_at:
+            logger.debug("Access token has expired. We will try to renew it.")
+            self._access_token = self.retrieve_access_token()
+
+        if not self._access_token_exp_at or datetime.datetime.now() > self._access_token_exp_at:
 
         self.token = self.token_file_as_json['access_token']
         self.headers = {
@@ -41,6 +49,40 @@ class Graph(APIBase):
         message = "[%s]: %s" % (str(response.header), response.content)
         self.logger.error(message)
         return GraphError(message)
+
+    def retrieve_access_token(self):
+        # TODO reimplmentation of that
+        assertion = self._get_client_assertion()
+
+        post_form = {
+                'resource': resource_url,
+                'client_id': self.client_id,
+                'client_assertion_type': 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+                'client_assertion': assertion,
+                'grant_type': 'client_credentials',
+                'redirect_uri': self.reply_url,
+                'scope': SCOPE
+        }
+        url = oauth2_token_url.format(adconnection_id=self.adconnection_id)
+
+        logger.debug("POST to URL=%r with data=%r", url, post_form)
+        response = requests.post(url, data=post_form, verify=True, proxies=self.proxies)
+        if response.status_code != 200:
+                logger.exception("Error retrieving token (status %r), response: %r", response.status_code, response.__dict__)
+                raise TokenError(_("Error retrieving authentication token from Azure for AD connection {adconnection}.").format(adconnection=self.adconnection_alias), response=response, adconnection_alias=self.adconnection_alias)
+        at = response.json
+        if callable(at):  # requests version compatibility
+                at = at()
+        logger.debug("response: %r", at)
+        if "access_token" in at and at["access_token"]:
+                self._access_token = at["access_token"]
+                self._access_token_exp_at = datetime.datetime.fromtimestamp(int(at["expires_on"]))
+                self.store_tokens(adconnection_alias=self.adconnection_alias, access_token=at["access_token"], access_token_exp_at=at["expires_on"])
+                return at["access_token"]
+        else:
+                logger.exception("Response didn't contain an access_token. response: %r", response)
+                raise TokenError(_("Error retrieving authentication token from Azure for AD connection {adconnection}.").format(adconnection=self.adconnection_alias), response=response, adconnection_alias=self.adconnection_alias)
+
 
     def list_users(self, objectid=None, ofilter=None):
         return super(Graph, self).list_users(self, objectid, ofilter)
@@ -61,9 +103,7 @@ class Graph(APIBase):
         return super(Graph, self).create_user(self, attributes)
 
     def create_invitation(self, invitedUserEmailAddress, inviteRedirectUrl):
-        """
-        returns: a user object of type `Guest`
-        """
+        ''' returns: a user object of type `Guest` '''
         response = requests.post(
             "https://graph.microsoft.com/v1.0/invitations",
             headers=self.headers,
@@ -81,7 +121,7 @@ class Graph(APIBase):
             raise self._generate_error_message(response)
 
     def create_group(self, name, description=""):
-        """ https://docs.microsoft.com/de-de/graph/api/group-post-groups """
+        ''' https://docs.microsoft.com/de-de/graph/api/group-post-groups '''
         response = requests.post(
             "https://graph.microsoft.com/v1.0/groups",
             headers=self.headers,
@@ -169,7 +209,7 @@ class Graph(APIBase):
 
     # Microsoft Teams
     def create_team(self, name, description=""):
-        """ https://docs.microsoft.com/de-de/graph/api/team-post """
+        ''' https://docs.microsoft.com/de-de/graph/api/team-post '''
         response = requests.put(
             "https://graph.microsoft.com/v1.0/groups/9c14ee2f-f926-4a3b-80e2-7ed63deb22c8/teams",
             headers=self.headers,
@@ -190,10 +230,10 @@ class Graph(APIBase):
             raise self._generate_error_message(response)
 
     def create_team_from_group(self, object_id):  # object_id is similar to cb57b853-be97-457c-8232-491dd82f5940
-        """
+        '''
         https://docs.microsoft.com/de-de/graph/api/team-put-teams?view=graph-rest-beta
         @TODO: the name of this endpoint will change at one point in time. Regular tests are necessary.
-        """
+        '''
 
         response = requests.post(
             "https://graph.microsoft.com/beta/teams",
@@ -219,11 +259,11 @@ class Graph(APIBase):
         # links to the `delete group` page in the API doc on the MS website
         return self.delete_group(self, object_id)
 
-    def list_team_members(self, object_id):
-        """ https://docs.microsoft.com/en-us/graph/api/team-list-members """
+    def list_team_members(self, team_id):
+        ''' https://docs.microsoft.com/en-us/graph/api/team-list-members '''
         response = requests.get(
-            "https://graph.microsoft.com/v1.0/teams/{object_id}/members".format(
-                object_id=object_id),
+            "https://graph.microsoft.com/v1.0/teams/{team_id}/members".format(
+                team_id=object_id),
             headers=self.headers)
 
         if (200 == response.status_code):
@@ -232,7 +272,7 @@ class Graph(APIBase):
             raise self._generate_error_message(response)
 
     def add_team_member(self, team_id, user_id):
-        """ https://docs.microsoft.com/en-us/graph/api/team-post-members """
+        ''' https://docs.microsoft.com/en-us/graph/api/team-post-members '''
         response = requests.post(
             "https://graph.microsoft.com/v1.0/teams/{object_id}/members".format(
                 object_id=team_id
@@ -255,7 +295,7 @@ class Graph(APIBase):
             raise self._generate_error_message(response)
 
     def delete_team_member(self, team_id, membership_id):
-        """ https://docs.microsoft.com/en-us/graph/api/team-post-members """
+        ''' https://docs.microsoft.com/en-us/graph/api/team-post-members '''
         response = requests.delete(
             "https://graph.microsoft.com/v1.0/teams/{team_id}/members/{membership_id}".format(
                 team_id=team_id,
@@ -269,7 +309,7 @@ class Graph(APIBase):
             raise self._generate_error_message(response)
 
     def get_team(self, group_id):
-        """ https://docs.microsoft.com/en-us/graph/api/team-get """
+        ''' https://docs.microsoft.com/en-us/graph/api/team-get '''
         response = requests.get(
             "https://graph.microsoft.com/v1.0/teams/{group_id}".format(
                 group_id=group_id)
@@ -281,13 +321,13 @@ class Graph(APIBase):
             raise self._generate_error_message(response)
 
     def list_all_teams(self):
-        """
+        '''
         https://docs.microsoft.com/en-us/graph/teams-list-all-teams
         To list all teams in an organization (tenant), you find all groups that
         have teams, and then get information for each team.
 
         @TODO: the name of this endpoint will change at one point in time. Regular tests are necessary.
-        """
+        '''
 
         # step 1: find all groups having teams within...
         response = requests.get(
