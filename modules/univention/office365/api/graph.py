@@ -5,8 +5,8 @@ import univention.office365.api.exceptions
 
 from urllib.parse import urlencode
 from univention.office365.api.base import Base as APIBase
-from univention.office365.api.graph import Base as AzureBase
 from univention.office365.api.graph_auth import load_token_file
+from univention.office365.azure_handler import Azure as AzureBase
 
 
 class Graph(APIBase, AzureBase):

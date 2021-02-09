@@ -51,7 +51,6 @@ import jwt
 from requests.exceptions import RequestException
 import subprocess
 import shutil
-import univention.office365.api.exceptions
 
 from univention.lib.i18n import Translation
 from univention.office365.logging2udebug import get_logger
@@ -220,6 +219,49 @@ class AzureADConnectionHandler(object):
 		ucrv_unset = '%s%s' % (adconnection_alias_ucrv, adconnection_alias)
 		handler_unset([ucrv_unset])
 		self.listener_restart()
+
+
+class AzureError(Exception):
+	def __init__(self, msg, chained_exc=None, adconnection_alias=None, *args, **kwargs):
+		self.chained_exc = chained_exc
+		self.adconnection_alias = adconnection_alias
+		super(AzureError, self).__init__(msg, *args, **kwargs)
+
+
+class TokenError(AzureError):
+	def __init__(self, msg, response=None, *args, **kwargs):
+		self.response = response
+		if response and hasattr(response, "json"):
+			j = response.json
+			if callable(response.json):  # requests version compatibility
+				j = j()
+			self.error_description = j["error_description"]
+		super(TokenError, self).__init__(msg, *args, **kwargs)
+
+
+class IDTokenError(AzureError):
+	pass
+
+
+class TokenValidationError(AzureError):
+	pass
+
+
+class NoIDsStored(AzureError):
+	pass
+
+
+class ManifestError(AzureError):
+	pass
+
+
+class WriteScriptError(AzureError):
+	pass
+
+
+class ADConnectionIDError(AzureError):
+	pass
+
 
 class Manifest(object):
 
