@@ -1,9 +1,9 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Univention Office 365 - cmdline tests
+# Univention Microsoft 365 - cmdline microsoft graph tests
 #
-# Copyright 2016-2019 Univention GmbH
+# Copyright 2016-2021 Univention GmbH
 #
 # http://www.univention.de/
 #
@@ -40,7 +40,7 @@ from univention.office365.api.graph import Graph
 from univention.office365.api.graph_auth import get_all_aliases_from_ucr, get_all_available_endpoints
 
 if __name__ == "__main__":
-	logging.basicConfig(level=logging.DEBUG)
+	# logging.basicConfig(level=logging.DEBUG)
 
 	ucr = ConfigRegistry()
 	ucr.load()

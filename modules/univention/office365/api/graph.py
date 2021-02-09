@@ -43,22 +43,21 @@ class Graph(AzureHandler):
         # if the access token has expired (is too old), it is automatically
         # tried to renew it. We use the old API calls for that, so that this
         # is guaranteed to stay compatible for now.
-        # if datetime.datetime.now() > datetime.datetime.fromtimestamp(
-        #     int(token_file_as_json.get("access_token_exp_at", 0))
-        # ):
-        #     self.logger.info("Access token has expired. We will try to renew it.")
-        #     self.token = AzureAuth(
-        #         self.name,  # unique name in codebase making it easy to spot
-        #         self.connection_alias
-        #     ).retrieve_access_token()
+        if datetime.datetime.now() > datetime.datetime.fromtimestamp(
+            int(token_file_as_json.get("access_token_exp_at", 0))
+        ):
+            self.logger.info("Access token has expired. We will try to renew it.")
+            self.token = AzureAuth(
+                self.name,  # unique name in codebase making it easy to spot
+                self.connection_alias
+            ).retrieve_access_token()
 
         # prepare the http headers, which we are going to send with any request
         self.headers = {
             "Content-Type": "application/json",
-            "Authorization": 'Bearer {token}'.format(token=quote(self.token))
+            "Authorization": 'Bearer {token}'.format(token=self.token)
         }
 
-        self.logger.debug("header: {header}".format(header=self.headers))
 
     def create_random_pw(self):
         return super(Graph, self).create_random_pw()
@@ -67,9 +66,9 @@ class Graph(AzureHandler):
         if isinstance(response, str):
             message = response
         elif isinstance(response, requests.Response):
-            if hasattr(response, 'header'):
+            if hasattr(response, 'headers'):
                 message = "HTTP response header: {header}".format(
-                    header=str(response.header))
+                    header=str(response.headers))
             else:
                 message = "HTTP response status: {num}".format(
                     num=response.status_code)
@@ -81,6 +80,11 @@ class Graph(AzureHandler):
             message = "The response was of type `None`"
         else:
             message('unexpected error')
+
+        self.logger.debug('HTTP request headers: {header}'.format(
+            header=json.dumps(self.headers, indent=4)))
+        self.logger.debug('Token file: {json}'.format(
+            json=json.dumps(load_token_file(self.connection_alias), indent=4)))
 
         self.logger.error(message)
         return GraphError(message)
@@ -264,7 +268,8 @@ class Graph(AzureHandler):
         response = requests.get(
             "https://graph.microsoft.com/v1.0/teams/{team_id}/members".format(
                 team_id=team_id),
-            headers=self.headers)
+            headers=self.headers
+        )
 
         if (200 == response.status_code):
             return response.reason  # returns `Created` (200)
