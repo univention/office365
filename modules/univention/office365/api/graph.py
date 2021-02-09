@@ -8,6 +8,7 @@ from urllib.parse import urlencode
 from univention.office365.api.exceptions import GraphError
 from univention.office365.api.graph_auth import load_token_file
 from univention.office365.azure_handler import Azure as AzureBase
+from univention.office365.azure_auth import AzureAuth
 
 
 class Graph(AzureBase):
@@ -23,18 +24,24 @@ class Graph(AzureBase):
         self.name = name
         self.connection_alias = connection_alias
 
-        # if connection_alias is left out: load all available aliases.
+        # load the token file from disk and parses it into a json object
         token_file_as_json = load_token_file(self.connection_alias)
+        # assign the value from the `access_token` field to the class variable
+        self.token = token_file_as_json['access_token']
 
-        self.token = self.token_file_as_json['access_token']
-
-        # access token expired (too old):
+        # if the access token has expired (is too old), it is automatically
+        # tried to renew it. We use the old API calls for that, so that this
+        # is guaranteed to stay compatible for now.
         if datetime.datetime.now() > datetime.datetime.fromtimestamp(
             int(token_file_as_json.get("access_token_exp_at", 0))
         ):
             self.logger.info("Access token has expired. We will try to renew it.")
-            self.token = self.retrieve_access_token()
+            self.token = AzureAuth(
+                "GraphLegacy",  # unique name in codebase making it easy to spot
+                self.connection_alias
+            ).retrieve_access_token()
 
+        # prepare the http headers, which we are going to send with any request
         self.headers = {
             "Authorization": ("Bearer %s" % self.token),
             "Content-Type": "application/json"
@@ -198,7 +205,6 @@ class Graph(AzureBase):
         https://docs.microsoft.com/de-de/graph/api/team-put-teams?view=graph-rest-beta
         @TODO: the name of this endpoint will change at one point in time. Regular tests are necessary.
         '''
-
         response = requests.post(
             "https://graph.microsoft.com/beta/teams",
             headers=self.headers,
@@ -292,7 +298,6 @@ class Graph(AzureBase):
 
         @TODO: the name of this endpoint will change at one point in time. Regular tests are necessary.
         '''
-
         # step 1: find all groups having teams within...
         response = requests.get(
             "https://graph.microsoft.com/beta/groups?$filter=resourceProvisioningOptions/Any(x:x eq 'Team')",
