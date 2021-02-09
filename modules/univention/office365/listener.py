@@ -37,7 +37,7 @@ import json
 import zlib
 from ldap.filter import filter_format
 
-from univention.office365.azure_handler import MSAPIHandler, AddLicenseError, ResourceNotFoundError
+from univention.office365.azure_handler import AzureHandler, AddLicenseError, ResourceNotFoundError
 from univention.office365.azure_auth import AzureAuth, adconnection_alias_ucrv, default_adconnection_alias_ucrv
 from univention.office365.logging2udebug import get_logger
 from univention.office365.udm_helper import UDMHelper
@@ -112,7 +112,7 @@ class Office365Listener(object):
 
 		self.not_migrated_to_v3 = self.ucr.is_false('office365/migrate/adconnectionalias')
 
-		self.ah = MSAPIHandler(self.ucr, name, self.adconnection_alias)
+		self.ah = AzureHandler(self.ucr, name, self.adconnection_alias)
 
 	@property
 	def verified_domains(self):
@@ -587,7 +587,7 @@ class Office365Listener(object):
 						object_name = m.groups()[0]
 						# do not try with a user account: it will either have
 						# been deleted, in which case it will be removed from
-						# all groups by MSAPIHandler.deactivate_user() or if it
+						# all groups by AzureHandler.deactivate_user() or if it
 						# existed, we'd have found it already at the top of the
 						# for loop with self.get_udm_user(removed_member).
 

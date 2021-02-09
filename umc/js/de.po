@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: univention-management-console-module-office365\n"
 "Report-Msgid-Bugs-To: packages@univention.de\n"
-"POT-Creation-Date: 2021-02-02 15:39+0100\n"
+"POT-Creation-Date: 2019-10-24 18:26+0200\n"
 "PO-Revision-Date: 2016-01-14 11:26+0100\n"
 "Last-Translator: Univention GmbH <packages@univention.de>\n"
 "Language-Team: Univention GmbH <packages@univention.de>\n"
@@ -153,8 +153,7 @@ msgstr ""
 #: umc/js/office365.js:300
 msgid "Enter a name for your application, e.g. <i>UCS Microsoft 365</i>."
 msgstr ""
-"Geben Sie einen Namen für Ihre Applikation ein, z.B. <i>UCS Microsoft 365</"
-"i>."
+"Geben Sie einen Namen für Ihre Applikation ein, z.B. <i>UCS Microsoft 365</i>."
 
 #: umc/js/office365.js:361
 msgid ""
@@ -171,8 +170,8 @@ msgstr "Verbund-Metadatendokument"
 
 #: umc/js/office365.js:368
 msgid ""
-"For the UCS user account for which Microsoft 365 is enabled, an account in "
-"the Microsoft directory is created and selected account attributes get "
+"For the UCS user account for which Microsoft 365 is enabled, an account in the "
+"Microsoft directory is created and selected account attributes get "
 "synchronized from UCS to the Microsoft directory."
 msgstr ""
 "Für die UCS-Benutzerkonten, bei denen Microsoft 365 aktiviert wurde, werden "
@@ -284,10 +283,9 @@ msgstr ""
 "nicht erfolgreich sein."
 
 #: umc/js/office365.js:287
-#, fuzzy
 msgid ""
 "It will guide you through the process of setting up automatic provisioning "
-"of Microsoft 365 accounts for your user accounts."
+"of Microsoft Microsoft 365 accounts for your user accounts."
 msgstr ""
 "Er wird Sie dabei begleiten, das automatische Erstellen von Microsoft Office "
 "365 Konten durch UCS zu konfigurieren."
@@ -318,6 +316,10 @@ msgstr ""
 "Stellen Sie sicher, dass die neu erstellte Anwendung ausgewählt ist oder "
 "öffnen Sie sie durch einen Klick."
 
+#: umc/js/office365.js:549
+msgid "Microsoft Microsoft 365 setup wizard"
+msgstr "Microsoft Microsoft 365 Einrichtungsassistent"
+
 #: umc/js/office365.js:436
 msgid "Microsoft 365 configuration"
 msgstr "Microsoft 365 Konfiguration"
@@ -325,11 +327,6 @@ msgstr "Microsoft 365 Konfiguration"
 #: umc/js/office365.js:226 umc/js/office365.js:235 umc/js/office365.js:244
 msgid "Microsoft 365 setup complete"
 msgstr "Microsoft 365 Einrichtung abgeschlossen"
-
-#: umc/js/office365.js:549
-#, fuzzy
-msgid "Microsoft 365 setup wizard"
-msgstr "Microsoft Microsoft 365 Einrichtungsassistent"
 
 #: umc/js/office365.js:309
 msgid "On the app <i>Overview</i>, click on <i>ENDPOINTS</i>."
@@ -408,11 +405,11 @@ msgstr "Single Sign-On Einrichtung"
 
 #: umc/js/office365.js:249
 msgid ""
-"Synchronized users can log into Microsoft 365 by using the link on the <a "
-"href=\"/univention/\" target=\"_blank\">UCS portal</a>."
+"Synchronized users can log into Microsoft 365 by using the link on the <a href="
+"\"/univention/\" target=\"_blank\">UCS portal</a>."
 msgstr ""
-"Synchronisierte Benutzer können sich bei Microsoft 365 anmelden, indem Sie "
-"den Link auf dem <a href=\"/univention/\" target=\"_blank\">UCS Portal</a> "
+"Synchronisierte Benutzer können sich bei Microsoft 365 anmelden, indem Sie den "
+"Link auf dem <a href=\"/univention/\" target=\"_blank\">UCS Portal</a> "
 "nutzen."
 
 #: umc/js/office365.js:218
@@ -460,18 +457,16 @@ msgstr ""
 #: umc/js/office365.js:324
 msgid ""
 "The setup wizard now needs the domain that was verified during the "
-"configuration of the Microsoft 365 account. Insert it into the text box "
-"below."
+"configuration of the Microsoft 365 account. Insert it into the text box below."
 msgstr ""
 "Der Einrichtungsassistent benötigt nun die Domäne, die während der "
-"Konfiguration des Microsoft 365 Konto, eingerichtet wurde. Fügen Sie ihn in "
-"das unten stehende Eingabefeld ein."
+"Konfiguration des Microsoft 365 Konto, eingerichtet wurde. Fügen Sie ihn in das "
+"unten stehende Eingabefeld ein."
 
 #: umc/js/office365.js:544
-#, fuzzy
 msgid ""
 "This wizard helps you to configure the connection between UCS and Microsoft "
-"365."
+"Microsoft 365."
 msgstr ""
 "Dieser Einrichtungsassistent hilft Ihnen die Verbindung zwischen UCS und "
 "Microsoft Microsoft 365 zu konfigurieren."
@@ -485,11 +480,10 @@ msgstr ""
 "neue Anwendung im Active Directory hinzugefügt werden."
 
 #: umc/js/office365.js:354
-#, fuzzy
 msgid ""
-"To finish configuration, single sign-on has to be configured for the "
-"Microsoft 365 domain. Microsoft only supports to configure single sign-on by "
-"running a Microsoft Powershell script on a Windows PC."
+"To finish configuration, single sign-on has to be configured for the Office "
+"365 domain. Microsoft only supports to configure single sign-on by running a "
+"Microsoft Powershell script on a Windows PC."
 msgstr ""
 "Um die Konfiguration abzuschließen muss Single Sign-on für die Microsoft 365 "
 "Domäne eingerichtet werden. Microsoft bietet für das Einrichten der Single "
@@ -498,8 +492,8 @@ msgstr ""
 
 #: umc/js/office365.js:114
 msgid ""
-"To integrate Microsoft 365 into UCS the manifest of the new application has "
-"to be downloaded."
+"To integrate Microsoft 365 into UCS the manifest of the new application has to "
+"be downloaded."
 msgstr ""
 "Um Microsoft 365 in UCS zu integrieren, ist es notwendig, das Manifest der "
 "neuen Anwendung herunterzuladen."
@@ -537,17 +531,16 @@ msgstr ""
 "Laufzeitumgebung in Version 4.5.1</a> installiert sein."
 
 #: umc/js/office365.js:288
-#, fuzzy
 msgid ""
-"To use this app you need a Microsoft 365 admin account, a global "
+"To use this app you need a Microsoft Microsoft 365 admin account, a global "
 "administrator account in the corresponding Azure AD and a <a href=\"https://"
 "azure.microsoft.com/en-us/documentation/articles/active-directory-add-domain/"
 "\" target=\"_blank\">verified domain</a>."
 msgstr ""
-"Um diese App zu verwenden wird ein Microsoft Microsoft 365 Administrator "
-"Konto, ein globales Administrator Konto im entsprechenden Azure AD und eine "
-"<a href=\"https://azure.microsoft.com/de-de/documentation/articles/active-"
-"directory-add-domain/\" target=\"_blank\">verifizierte Domäne</a> benötigt."
+"Um diese App zu verwenden wird ein Microsoft Microsoft 365 Administrator Konto, "
+"ein globales Administrator Konto im entsprechenden Azure AD und eine <a href="
+"\"https://azure.microsoft.com/de-de/documentation/articles/active-directory-"
+"add-domain/\" target=\"_blank\">verifizierte Domäne</a> benötigt."
 
 #: umc/js/office365.js:190
 msgid ""
@@ -594,26 +587,24 @@ msgid "Warning"
 msgstr "Warnung"
 
 #: umc/js/office365.js:286
-#, fuzzy
 msgid ""
 "Welcome to the <a href=\"https://products.office.com/\" target=\"_blank"
-"\">Microsoft 365</a> setup wizard."
+"\">Microsoft Microsoft 365</a> setup wizard."
 msgstr ""
 "Willkommen beim <a href=\"https://products.office.com/\" target=\"_blank"
 "\">Microsoft Microsoft 365</a> Einrichtungsassistenten."
 
-#: umc/js/office365.js:72
-msgid "Welcome to the Microsoft 365 configuration"
-msgstr "Willkommen zur Microsoft 365 Konfiguration"
-
 #: umc/js/office365.js:73
-#, fuzzy
 msgid ""
-"Welcome to the Microsoft 365 setup wizard. A few steps are needed to "
+"Welcome to the Microsoft Microsoft 365 setup wizard. A few steps are needed to "
 "complete the configuration process."
 msgstr ""
 "Willkommen zum Microsoft Microsoft 365 Einrichtungsassistent. Es sind einige "
 "Schritte notwendig, um den Konfigurationsprozess fertigzustellen."
+
+#: umc/js/office365.js:72
+msgid "Welcome to the Microsoft 365 configuration"
+msgstr "Willkommen zur Microsoft 365 Konfiguration"
 
 #: umc/js/office365.js:344
 msgid ""
@@ -649,15 +640,14 @@ msgstr ""
 "Sie können mithilfe des %s Attribute von der Liste löschen oder hinzufügen."
 
 #: umc/js/office365.js:545
-#, fuzzy
 msgid ""
 "You need a <a href=\"%(domain)s\" target=\"_blank\">verified domain</a> and "
 "access to the <a href=\"%(dev)s\" target=\"_blank\">Microsoft Azure Portal</"
-"a> with a Microsoft 365 administrator account."
+"a> with a Microsoft Microsoft 365 administrator account."
 msgstr ""
 "Sie benötigen eine <a href=\"%(domain)s\" target=\"_blank\">verifizierte "
-"Domäne</a> und Zugang mit einem Microsoft Microsoft 365 Administratorkonto "
-"zum <a href=\"%(dev)s\" target=\"_blank\">Microsoft Azure Portal</a>."
+"Domäne</a> und Zugang mit einem Microsoft Microsoft 365 Administratorkonto zum "
+"<a href=\"%(dev)s\" target=\"_blank\">Microsoft Azure Portal</a>."
 
 #: umc/js/office365.js:301
 msgid "app_name_EN.png"

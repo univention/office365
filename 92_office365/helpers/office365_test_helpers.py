@@ -105,7 +105,7 @@ class AzureDirectoryTestObjects(object):
 		"""
 		Context manager that deletes the azure objects when leaving it.
 		:param otype: str: type of object to delete ("user", "group")
-		:param a_handler: MSAPIHandler object
+		:param a_handler: AzureHandler object
 		:param obj_ids: list of object IDs to delete from azure when leaving
 		the context manager
 		"""
@@ -139,7 +139,7 @@ class AzureDirectoryTestUsers(AzureDirectoryTestObjects):
 	def __init__(self, a_handler, user_ids=None):
 		"""
 		Context manager that deletes the azure users when leaving it.
-		:param a_handler: MSAPIHandler object
+		:param a_handler: AzureHandler object
 		:param user_ids: list of user IDs to delete from azure
 		when leaving the context manager
 		"""
@@ -150,7 +150,7 @@ class AzureDirectoryTestGroups(AzureDirectoryTestObjects):
 	def __init__(self, a_handler, group_ids=None):
 		"""
 		Context manager that deletes the azure groups when leaving it.
-		:param a_handler: MSAPIHandler object
+		:param a_handler: AzureHandler object
 		:param group_ids: list of group IDs to delete from azure
 		when leaving the context manager
 		"""

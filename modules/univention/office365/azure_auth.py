@@ -1,5 +1,5 @@
 #!/usr/bin/env python2.7
-# -*- coding: utf-8 -*-
+
 #
 # Univention Office 365 - handle Azure oauth calls
 #
@@ -59,6 +59,7 @@ from univention.office365.udm_helper import UDMHelper
 from univention.config_registry.frontend import ucr_update
 from univention.config_registry import ConfigRegistry, handler_set, handler_unset
 
+
 _ = Translation('univention-office365').translate
 
 NAME = "office365"
@@ -95,7 +96,6 @@ class AzureADConnectionHandler(object):
 
 	@classmethod
 	def get_conf_path(self, name, adconnection_alias):
-                
 		conf_dir = os.path.join(ADCONNECTION_CONF_BASEPATH, adconnection_alias)
 		if not os.path.exists(conf_dir):
 			logger.error('Config directory for Azure AD connection %s not found (%s)', adconnection_alias, conf_dir)

@@ -33,7 +33,7 @@ Univention Microsoft 365 reset tokens
 """
 
 from univention.config_registry import ConfigRegistry
-from univention.office365.azure_handler import MSAPIHandler
+from univention.office365.azure_handler import AzureHandler
 from univention.office365.logging2udebug import get_logger
 from univention.office365.listener import Office365Listener
 import univention.admin.objects
@@ -111,7 +111,7 @@ if __name__ == '__main__':
 
 				adconnection_objects = Office365Listener.decode_o365data(ldap_user[1]["univentionOffice365Data"][0])
 				for alias, values in adconnection_objects.items():
-					ah = MSAPIHandler(ucr, name = "tokens", adconnection_alias = alias)
+					ah = AzureHandler(ucr, name = "tokens", adconnection_alias = alias)
 					if options.newpassword:
 						ah.reset_user_password(user_id=values['objectId'])
 					if options.invalidatetokens:

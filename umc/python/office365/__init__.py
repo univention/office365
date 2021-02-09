@@ -46,7 +46,7 @@ from univention.management.console.modules.sanitizers import StringSanitizer, Di
 from univention.management.console.log import MODULE
 
 from univention.office365.azure_auth import AzureAuth, AzureError, AzureADConnectionHandler, Manifest, ManifestError, SAML_SETUP_SCRIPT_PATH, ADConnectionIDError, adconnection_alias_ucrv, adconnection_wizard_ucrv
-from univention.office365.azure_handler import MSAPIHandler
+from univention.office365.azure_handler import AzureHandler
 
 _ = Translation('univention-management-console-module-office365').translate
 
@@ -213,7 +213,7 @@ class Instance(Base):
 		elif AzureAuth.is_initialized(self.adconnection_alias):
 			self.init()
 			try:
-				ah = MSAPIHandler(ucr, "wizard", self.adconnection_alias)
+				ah = AzureHandler(ucr, "wizard", self.adconnection_alias)
 				users = ah.list_users()
 				MODULE.process('Retrieved list of users: %r' % users)
 
