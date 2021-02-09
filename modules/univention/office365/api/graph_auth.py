@@ -55,5 +55,5 @@ def get_all_available_endpoints(ucr, config_basepath=None):
 
     endpoints = {}
     for a in get_all_aliases_from_ucr(ucr):
-        endpoints[a] = load_token_file(ucr)
+        endpoints[a] = load_token_file(a)
     return endpoints

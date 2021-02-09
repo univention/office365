@@ -4,14 +4,19 @@ import json
 import requests
 import sys
 
-from urllib.parse import urlencode
+try:
+    from urllib.parse import quote
+except ImportError:
+    from urllib import quote
+
+
 from univention.office365.api.exceptions import GraphError
 from univention.office365.api.graph_auth import load_token_file
-from univention.office365.azure_handler import Azure as AzureBase
+from univention.office365.azure_handler import AzureHandler
 from univention.office365.azure_auth import AzureAuth
 
 
-class Graph(AzureBase):
+class Graph(AzureHandler):
     def __init__(self, ucr, name, connection_alias):
         # initialize logging..
         self.initialized = False
@@ -37,7 +42,7 @@ class Graph(AzureBase):
         ):
             self.logger.info("Access token has expired. We will try to renew it.")
             self.token = AzureAuth(
-                "GraphLegacy",  # unique name in codebase making it easy to spot
+                self.name,  # unique name in codebase making it easy to spot
                 self.connection_alias
             ).retrieve_access_token()
 
@@ -51,7 +56,23 @@ class Graph(AzureBase):
         return super(Graph, self).create_random_pw()
 
     def _generate_error_message(self, response):
-        message = "[%s]: %s" % (str(response.header), response.content)
+        if isinstance(response, str):
+            message = response
+        elif isinstance(response, requests.Response):
+            if hasattr(response, 'header'):
+                message = "HTTP response header: {header}".format(
+                    header=str(response.header))
+            else:
+                message = "HTTP response status: {num}".format(
+                    num=response.status_code)
+
+            if hasattr(response, 'content'):
+                message += response.content
+        elif response is None:
+            message = "The response was of type `None`"
+        else:
+            message('unexpected error')
+
         self.logger.error(message)
         return GraphError(message)
 
@@ -80,8 +101,8 @@ class Graph(AzureBase):
             headers=self.headers,
             data=json.dumps(
                 {
-                    'invitedUserEmailAddress': urlencode(invitedUserEmailAddress),
-                    'inviteRedirectUrl': urlencode(inviteRedirectUrl)
+                    'invitedUserEmailAddress': quote(invitedUserEmailAddress),
+                    'inviteRedirectUrl': quote(inviteRedirectUrl)
                 }
             )
         )
@@ -98,8 +119,8 @@ class Graph(AzureBase):
             headers=self.headers,
             data=json.dumps(
                 {
-                    'displayName': urlencode(name),
-                    'description': urlencode(description),
+                    'displayName': quote(name),
+                    'description': quote(description),
                     'mailEnabled': False,
                     'mailNickname': name.translate(
                         ''.maketrans(
@@ -189,8 +210,8 @@ class Graph(AzureBase):
                     'template@odata.bind':
                         "https://graph.microsoft.com/v1.0/teamsTemplates('standard')",
 
-                    'displayName': urlencode(name),
-                    'description': urlencode(description),
+                    'displayName': quote(name),
+                    'description': quote(description),
                 }
             )
         )
