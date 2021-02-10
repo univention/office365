@@ -141,7 +141,7 @@ if __name__ == "__main__":
 			ucr=ucr,
 			name=str(__file__),
 			connection_alias=args.graph,
-			loglevel=args.debug)
+			loglevel=args.verbose)
 
 		try:
 			if args.me:

@@ -37,25 +37,46 @@ class Graph(AzureHandler):
 
         # load the token file from disk and parses it into a json object
         token_file_as_json = load_token_file(self.connection_alias)
+        self.logger.debug(json.dumps(token_file_as_json, indent=4))
+
         # assign the value from the `access_token` field to the class variable
         self.token = token_file_as_json['access_token']
 
         # if the access token has expired (is too old), it is automatically
         # tried to renew it. We use the old API calls for that, so that this
         # is guaranteed to stay compatible for now.
-        if datetime.datetime.now() > datetime.datetime.fromtimestamp(
+        valid_until = datetime.datetime.fromtimestamp(
             int(token_file_as_json.get("access_token_exp_at", 0))
-        ):
+        )
+
+        self.logger.info(
+            "The token for `{alias}` is valid until `{timestamp}`."
+            " The token: `{starts}-trimmed-{ends}`".format(
+                starts=self.token[:10],
+                ends=self.token[-10:],
+                alias=self.connection_alias,
+                timestamp=valid_until
+            )
+        )
+
+        if (datetime.datetime.now() > valid_until):
             self.logger.info("Access token has expired. We will try to renew it.")
             self.token = AzureAuth(
                 self.name,  # unique name in codebase making it easy to spot
                 self.connection_alias
             ).retrieve_access_token()
 
+        # TODO: remove these commented out lines - they are currently
+        # be used for testing against the old login mechanism
+        # self.auth = AzureAuth(name, self.connection_alias)
+        # initialized = self.auth.is_initialized(self.connection_alias)
+        # self.token = self.auth.get_access_token()
+
         # prepare the http headers, which we are going to send with any request
         self.headers = {
-            "Content-Type": "application/json",
-            "Authorization": 'Bearer {token}'.format(token=self.token)
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer {token}'.format(token=self.token),
+            'User-Agent': 'ucs-microsoft365/1.0'  # not strictly needed
         }
 
     def create_random_pw(self):

@@ -10,7 +10,7 @@ def load_token_file(alias, config_basepath="/etc/univention-office365"):
     as its name associated with with the json object, in which the access_token
     can
     be found.
-        for c in consent_given_connections:
+        for c in get_all_aliases_from_ucr(ucr):
             print(c['access_token']
     may be easier to understand.
     '''
