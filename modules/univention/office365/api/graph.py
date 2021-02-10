@@ -49,9 +49,10 @@ class Graph(AzureHandler):
             int(token_file_as_json.get("access_token_exp_at", 0))
         )
 
+        # write some information about the token in use into the log file
         self.logger.info(
-            "The token for `{alias}` is valid until `{timestamp}`."
-            " The token: `{starts}-trimmed-{ends}`".format(
+            "The token for `{alias}` is valid until `{timestamp}` and it looks"
+            " similar to: `{starts}-trimmed-{ends}`".format(
                 starts=self.token[:10],
                 ends=self.token[-10:],
                 alias=self.connection_alias,
@@ -168,14 +169,23 @@ class Graph(AzureHandler):
         else:
             raise self._generate_error_message(response)
 
-    def get_me(self):
+    def get_azure_domains(self):
         ''' https://docs.microsoft.com/en-US/graph/api/user-get '''
-        response = requests.get(
-            "https://graph.microsoft.com/v1.0/me",
-            headers=self.headers)
+        # "https://graph.microsoft.com/v1.0/me",
 
+        try:
+            from urllib.parse import unquote
+        except ImportError:
+            from urllib import unquote
+        from univention.office365.azure_auth import resource_url
+        self.auth = AzureAuth("TEST", self.connection_alias)
+        # self.uris = self._get_azure_uris(self.auth.adconnection_id)
+        graph_base_url = "{0}/{1}".format(resource_url, self.auth.adconnection_id)
+        response = requests.get(
+            "{base_url}/domains?api-version=1.6".format(base_url=graph_base_url),
+            headers=self.headers)
         if (200 == response.status_code):
-            return response.content
+            return unquote(response.content)
         else:
             raise self._generate_error_message(response)
 

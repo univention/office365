@@ -111,6 +111,12 @@ if __name__ == "__main__":
 	)
 
 	parser.add_argument(
+		'--azure',
+		help='make the call against the azure API',
+		action="store_true"
+	)
+
+	parser.add_argument(
 		'--create_invitation',
 		help='create an invitation (a user object marked as `guest`)',
 		nargs=2,
@@ -145,8 +151,8 @@ if __name__ == "__main__":
 			loglevel=args.verbose)
 
 		try:
-			if args.me:
-				print(json.dumps(g.get_me(), indent=4, sort_keys=True))
+			if args.azure:
+				print(json.dumps(json.loads(g.get_azure_domains()), indent=4, sort_keys=True))
 
 			if args.create_team:
 				name = args.create_team[0]
