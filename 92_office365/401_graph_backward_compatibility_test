@@ -31,15 +31,15 @@ class TestTeamsAPI(unittest.TestCase):
 
         for alias in self.endpoints.keys():
             try:
-                self.graph = Graph(ucr, self.__name__, self.endpoints[alias])
-                self.azure = Azure(ucr, self.__name__, self.endpoints[alias])
+                self.graph = Graph(self.ucr, self.__name__, self.endpoints[alias])
+                self.azure = Azure(self.ucr, self.__name__, self.endpoints[alias])
                 return  # if both succeeds we are happy and use that
-            except Exception e:
-                self.logger.warn("Could not load endpoint '{}': {}" % (alias, str(e)))
-
-    def tearDown(self):
-        handler_unset(['office365/groups/sync'])
-        utils.restart_listener()
+            except Exception as e:
+                self.logger.warn(
+                    "Could not load endpoint '{alias}': {error}".format(
+                        alias=alias, error=str(e)
+                    )
+                )
 
     def _create_random_string(length, prefix=''):
         '''

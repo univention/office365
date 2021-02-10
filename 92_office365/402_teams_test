@@ -13,17 +13,16 @@ import random
 import string
 
 from univention.office365.api.graph import Graph
-from univention.office365.api.azure import Azure
 
-from univention.office365.api.exceptions import \
-    GraphError, AzureError
+from univention.office365.api.exceptions import GraphError
 
 import univention.testing.ucr as testing_ucr
 from univention.office365.api.graph_auth import get_all_available_endpoints
 
+
 class TestTeamsAPI(unittest.TestCase):
     def setUp(self):
-        self.ucr = ucr testing_ucr.UCSTestConfigRegistry()
+        self.ucr = testing_ucr.UCSTestConfigRegistry()
         self.ucr.load()
 
         self.endpoints = get_all_available_endpoints(self.ucr)
@@ -32,14 +31,14 @@ class TestTeamsAPI(unittest.TestCase):
 
         for alias in self.endpoints.keys():
             try:
-                self.graph = Graph(ucr, self.__name__, self.endpoints[alias])
+                self.graph = Graph(self.ucr, self.__name__, self.endpoints[alias])
                 return  # if this succeeds we are happy and use it
-            except Exception e:
-                self.logger.warn("Could not load endpoint '{}': {}" % (alias, str(e)))
-
-    def tearDown(self):
-        handler_unset(['office365/groups/sync'])
-        utils.restart_listener()
+            except Exception as e:
+                self.logger.warn(
+                    "Could not load endpoint '{alias}': {error}".format(
+                        alias=alias, error=str(e)
+                    )
+                )
 
     def _create_random_string(length, prefix=""):
         '''
@@ -62,8 +61,8 @@ class TestTeamsAPI(unittest.TestCase):
 
     def test_create_team_with_very_long_name_and_description(self):
         team = json.loads(self.graph.create_team(
-            _create_random_string(1000),
-            _create_random_string(1000))
+            self._create_random_string(1000),
+            self._create_random_string(1000))
         )
         self.assertEqual(
             1000, len(team['name']),
@@ -74,14 +73,14 @@ class TestTeamsAPI(unittest.TestCase):
 
     def test_create_team_with_no_name(self):
         self.assertRaises(
-            GraphException,
+            GraphError,
             self.graph.create_team(""),
             'We got no exception, even though created a team without a name'
         )
 
     def test_create_team_with_missing_parameter(self):
         self.assertRaises(
-            GraphException,
+            GraphError,
             self.graph.create_team(None),
             'We got no exception, although we created a team with `None` as its'
             ' team name.'
@@ -102,15 +101,16 @@ class TestTeamsAPI(unittest.TestCase):
             'test@example.com',
             'https://test.univention.de/'
         ))
-        new_team = json.loads(self.graph.create_team(_create_random_string(20)))
-        self.graph.add_team_member(new_user['id'])
+        self.graph.create_team(self._create_random_string(20))
+        response = self.graph.add_team_member(new_user['id'])
+        self.assertEqual(new_user, response['displayName'])
 
     def test_list_team_members(self):
         new_user = json.loads(self.graph.create_invitation(
             'test@example.com',
             'https://test.univention.de/'
         ))
-        new_team_name = _create_random_string(20)
+        new_team_name = self._create_random_string(20)
         new_team = json.loads(self.graph.create_team(new_team_name))
         self.graph.add_team_member(new_team['id'], new_user['id'])
         team_members = json.loads(self.graph.list_team_members(new_team['id']))
@@ -127,13 +127,12 @@ class TestTeamsAPI(unittest.TestCase):
             "test@example.com",
             "https://test.univention.de/"
         ))
-        new_team = self.graph.create_team(_create_random_string(20))
+        new_team = self.graph.create_team(self._create_random_string(20))
         self.graph.add_team_member(new_team['id'], new_user['id'])
         response = self.graph.delete_team_member(new_user['id'])
         self.assertEqual(
             response, '', 'If successful, `delete_team_member` does not return'
             ' anything in the response body, but there is something.')
-
 
     def test_create_team_from_group(self):
         name = self._create_random_string(20)
@@ -147,7 +146,7 @@ class TestTeamsAPI(unittest.TestCase):
 
     def test_create_team_from_group_with_invalid_id(self):
         self.assertRaises(
-            GraphException,
+            GraphError,
             self.graph.create_team_from_group(self._create_random_string(20)),
             'We tried to create a team from an invalid group id and that'
             ' worked for some reason. But we assumed it to raise an exception.'
@@ -163,7 +162,7 @@ class TestTeamsAPI(unittest.TestCase):
             ' anything in the response body, but there is something.')
 
     def test_list_all_teams(self):
-        self.graph.create_team(_create_random_string(20))
+        self.graph.create_team(self._create_random_string(20))
         teams = json.loads(self.graph.list_all_teams())
         self.assertTrue(
             len(teams) > 0,
