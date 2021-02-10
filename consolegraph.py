@@ -154,6 +154,9 @@ if __name__ == "__main__":
 			if args.azure:
 				print(json.dumps(json.loads(g.get_azure_domains()), indent=4, sort_keys=True))
 
+			if args.me:
+				print(json.dumps(json.loads(g.get_me()), indent=4, sort_keys=True))
+
 			if args.create_team:
 				name = args.create_team[0]
 				desc = args.create_team[1]
