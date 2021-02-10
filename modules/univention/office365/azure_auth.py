@@ -613,7 +613,7 @@ class AzureAuth(object):
 
 	def retrieve_access_token(self):
 		'''
-		get a new access token from microsoft and stores the result in a file
+		gets a new access token from microsoft and stores the result in a file
 		named after the alias of the connection.
 		'''
 		assertion = self._get_client_assertion()

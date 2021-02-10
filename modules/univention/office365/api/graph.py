@@ -58,7 +58,6 @@ class Graph(AzureHandler):
             "Authorization": 'Bearer {token}'.format(token=self.token)
         }
 
-
     def create_random_pw(self):
         return super(Graph, self).create_random_pw()
 
@@ -86,7 +85,6 @@ class Graph(AzureHandler):
         self.logger.debug('Token file: {json}'.format(
             json=json.dumps(load_token_file(self.connection_alias), indent=4)))
 
-        self.logger.error(message)
         return GraphError(message)
 
     def list_users(self, objectid=None, ofilter=None):
@@ -145,6 +143,17 @@ class Graph(AzureHandler):
         )
 
         if (201 == response.status_code):  # group was created
+            return response.content
+        else:
+            raise self._generate_error_message(response)
+
+    def get_me(self):
+        ''' https://docs.microsoft.com/en-US/graph/api/user-get '''
+        response = requests.get(
+            "https://graph.microsoft.com/v1.0/me",
+            headers=self.headers)
+
+        if (200 == response.status_code):
             return response.content
         else:
             raise self._generate_error_message(response)
