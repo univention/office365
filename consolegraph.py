@@ -30,11 +30,12 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-import argparse
-import logging
 
-import json
 import sys
+import logging
+import json
+import argparse
+
 from argparse import RawTextHelpFormatter
 from univention.config_registry import ConfigRegistry
 

@@ -6,40 +6,51 @@
 ## packages:
 ##   - univention-office365
 
+import os
+import logging
+import argparse
 import unittest
-
 import random
 import string
 
-from univention.office365.api.graph import Graph
-from univention.office365.azure_handler import AzureHandler as Azure
+import univention.testing.ucr as testing_ucr
 
+from univention.office365.api.graph import Graph
+from univention.office365.api.graph_auth import get_all_aliases_from_ucr
 from univention.office365.api.exceptions import GraphError
+
+from univention.office365.azure_handler import AzureHandler as Azure
 from univention.office365.azure_auth import AzureError
 
-import univention.testing.ucr as testing_ucr
-from univention.office365.api.graph_auth import get_all_available_endpoints
 
-class TestTeamsAPI(unittest.TestCase):
+class TestTeamsAPICompatibility(unittest.TestCase):
     def setUp(self):
         self.ucr = testing_ucr.UCSTestConfigRegistry()
         self.ucr.load()
+        self.logger = logging.getLogger()
 
-        self.endpoints = get_all_available_endpoints(self.ucr)
-        self.logger.info("*** enabled_connections={!r}".format(self.endpoints))
-        assert(len(self.endpoints) > 0)
+        self.aliases = get_all_aliases_from_ucr(self.ucr)
+        self.assertGreater(len(self.aliases), 0, "No endpoints found.")
 
-        for alias in self.endpoints.keys():
+        self.graph = None
+        for alias in self.aliases:
             try:
-                self.graph = Graph(self.ucr, self.__name__, self.endpoints[alias])
-                self.azure = Azure(self.ucr, self.__name__, self.endpoints[alias])
+                self.logger.debug("trying to load {alias}...".format(alias=alias))
+                self.graph = Graph(
+                    ucr=self.ucr,
+                    name=__name__,
+                    connection_alias=alias
+                )
+                self.azure = Azure(self.ucr, __name__, alias)
+                self.logger.debug("trying to load {alias}...success".format(alias=alias))
                 return  # if both succeeds we are happy and use that
             except Exception as e:
-                self.logger.warn(
+                self.logger.error(
                     "Could not load endpoint '{alias}': {error}".format(
                         alias=alias, error=str(e)
                     )
                 )
+        self.assertIsNotNone(self.graph, msg="Graph class was not loaded.")
 
     def _create_random_string(length, prefix=''):
         '''
@@ -114,6 +125,31 @@ class TestTeamsAPI(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    parser = argparse.ArgumentParser(
+        description="Test for the Microsoft Graph API library integration",
+    )
+    parser.add_argument(
+        '--fast',
+        help='fail fast (exit after the first failed test)',
+        action="store_false"
+    )
+    parser.add_argument(
+        '-l',
+        '--log',
+        help='log file path',
+        nargs='?',
+        default='/tmp/test-{pid}.log'.format(
+            pid=os.getpid()
+        )
+    )
+
+    args = parser.parse_args()
+
+    logging.basicConfig(
+        level=logging.DEBUG,
+        filename=args.log,
+        filemode='w')
+
+    unittest.main(failfast=args.fast)
 
 # vim: filetype=python expandtab tabstop=4 shiftwidth=4 softtabstop=4
