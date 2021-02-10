@@ -33,7 +33,7 @@
 
 ## joinscript api: bindpwdfile
 
-VERSION=7
+VERSION=10
 
 . /usr/share/univention-join/joinscripthelper.lib
 . /usr/share/univention-lib/all.sh
@@ -167,7 +167,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set translationTabName='"de_DE" "Microsoft 365"' \
 	--set module="users/user" \
 	--set module="settings/usertemplate" \
-	--set syntax=boolean \
+	--set syntax=univention.admin.syntax.boolean \
 	--set default=0 \
 	--set multivalue=0 \
 	--set valueRequired=0 \
@@ -318,28 +318,28 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 
 udm settings/extended_attribute create "$@" --ignore_exists \
 	--position "$ea_base" \
-	--set name="UniventionOffice365GroupADConnectionAlias" \
-	--set CLIName="UniventionOffice365ADConnectionAlias" \
-	--set shortDescription="Active Directory connection alias" \
-	--set translationShortDescription='"de_DE" "Azure Active Directory Verbindungs-Alias"' \
-	--set longDescription="Alias of the Azure AD connection to use for syncing this group" \
-	--set translationLongDescription='"de_DE" "Alias der zu nutzenden Azure AD Connection zum Synchronisieren dieser Gruppe"' \
+	--set name="UniventionMicrosoft365Team" \
+	--set CLIName="UniventionMicrosoft365Team" \
+	--set shortDescription="Microsoft 365 Team" \
+	--set translationShortDescription='"de_DE" "Microsoft 365 Team"' \
+	--set longDescription="If this attribute is true, the group is a Microsoft 365 Team" \
+	--set translationLongDescription='"de_DE" "Wenn dieser Wert wahr ist, ist diese Gruppe ein Microsoft 365 Team"' \
 	--set module="groups/group" \
 	--set tabAdvanced=0 \
 	--set tabName="Microsoft 365" \
 	--set tabPosition=2 \
 	--set translationTabName='"de_DE" "Microsoft 365"' \
-	--set syntax=univentionOffice365ADConnection \
+	--set syntax=boolean \
 	--set default="" \
-	--set multivalue=1 \
+	--set multivalue=0 \
 	--set valueRequired=0 \
 	--set mayChange=1 \
-	--set doNotSearch=1 \
+	--set doNotSearch=0 \
 	--set objectClass=univentionOffice365 \
-	--set ldapMapping=univentionOffice365ADConnectionAlias \
+	--set ldapMapping=univentionMicrosoft365Team \
 	--set deleteObjectClass=0 \
 	--set overwriteTab=0 \
-	--set disableUDMWeb=1 || die
+	--set disableUDMWeb=0 || die
 
 # New installation - no joinscript has ever run
 if ! joinscript_check_any_version_executed; then
