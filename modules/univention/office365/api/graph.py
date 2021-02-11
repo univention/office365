@@ -116,7 +116,20 @@ class Graph(AzureHandler):
         return super(Graph, self).get_users_direct_groups(self, user_id)
 
     def list_groups(self, objectid=None, ofilter=None):
-        return super(Graph, self).list_groups(self, objectid, ofilter)
+        '''https://docs.microsoft.com/en-US/graph/api/group-list
+        lists by default all groups. Filters are not implemented at the moment,
+        because microsoft will provide such in future versions of the graph
+        API, which is already accessible as `beta`. We have the choice to use
+        the beta endpoint or implement the filtering in python for now.
+        '''
+        response = requests.get(
+            'https://graph.microsoft.com/v1.0/groups',
+            headers=self.headers
+        )
+        if (200 == response.status_code):
+            return response.content
+        else:
+            raise self._generate_error_message(response)
 
     def invalidate_all_tokens_for_user(self, user_id):
         return super(Graph, self).invalidate_all_tokens_for_user(self, user_id)
@@ -134,8 +147,8 @@ class Graph(AzureHandler):
             headers=self.headers,
             data=json.dumps(
                 {
-                    'invitedUserEmailAddress': quote(invitedUserEmailAddress),
-                    'inviteRedirectUrl': quote(inviteRedirectUrl)
+                    'invitedUserEmailAddress': quote(invitedUserEmailAddress, safe='@'),
+                    'inviteRedirectUrl': quote(inviteRedirectUrl, safe=':/')
                 }
             )
         )
@@ -186,7 +199,8 @@ class Graph(AzureHandler):
         ''' https://docs.microsoft.com/en-US/graph/api/user-get '''
         response = requests.get(
             "https://graph.microsoft.com/v1.0/me",
-            headers=self.headers)
+            headers=self.headers
+        )
         if (200 == response.status_code):
             return response.content
         else:
