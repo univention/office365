@@ -142,6 +142,25 @@ if __name__ == "__main__":
 		metavar=('team_id')
 	)
 
+	# automatically add all functions from the Graph class to this test program
+	for f in dir(Graph):
+		if not f.startswith('_') and callable(getattr(Graph, f)):
+			q = getattr(Graph, f)
+			try:
+				print("{function}{params} == {arg_count}".format(
+					function=f,
+					params=q.func_code.co_varnames[1:][:-1],
+					arg_count=q.func_code.co_argcount - 1
+				))
+				parser.add_argument(
+					'--' + f,
+					help=q.__doc__,
+					nargs=q.func_code.co_argcount - 1,
+					metavar=(q.func_code.co_varnames[1:][:-1])
+				)
+			except Exception as e:
+				# print("FAILED: " + str(e))
+				pass
 	args = parser.parse_args()
 
 	if args.endpoints:
@@ -157,6 +176,25 @@ if __name__ == "__main__":
 			loglevel=args.verbose)
 
 		try:
+
+			# for arg in vars(args):
+			# 	try:
+			# 		a = getattr(args, arg)
+			# 		f = getattr(g, arg)
+			# 		if callable(f) and a is not None:
+			# 			print("@ executing: {method}({params})".format(
+			# 				method=arg,
+			# 				params=', '.join(a))
+			# 			)
+			# 			f(a)
+			# 			print("@ finished: {method}({params})".format(
+			# 				method=arg,
+			# 				params=', '.join(a))
+			# 			)
+			# 	except Exception as e:
+			# 		print("Error: " + str(e))
+			# 		pass			
+
 			if args.azure:
 				print(json.dumps(json.loads(g.get_azure_domains()), indent=4, sort_keys=True))
 

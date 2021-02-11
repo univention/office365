@@ -37,7 +37,7 @@ class Graph(AzureHandler):
         self.name = name
         self.connection_alias = connection_alias
         # load the token file from disk and parses it into a json object
-        token_file_as_json = load_token_file(self.connection_alias)
+        # token_file_as_json = load_token_file(self.connection_alias)
         # self.logger.debug(json.dumps(token_file_as_json, indent=4))
 
         config = {
@@ -105,6 +105,9 @@ class Graph(AzureHandler):
             'Authorization': 'Bearer ' + result['access_token']
         }
 
+        super(Graph, self).__init__(ucr, name, connection_alias)
+
+
     def create_random_pw(self):
         return super(Graph, self).create_random_pw()
 
@@ -134,37 +137,6 @@ class Graph(AzureHandler):
 
         return GraphError(message)
 
-    def list_users(self, objectid=None, ofilter=None):
-        return super(Graph, self).list_users(self, objectid, ofilter)
-
-    def get_users_direct_groups(self, user_id):
-        return super(Graph, self).get_users_direct_groups(self, user_id)
-
-    def list_groups(self, objectid=None, ofilter=None):
-        '''https://docs.microsoft.com/en-US/graph/api/group-list
-        lists by default all groups. Filters are not implemented at the moment,
-        because microsoft will provide such in future versions of the graph
-        API, which is already accessible as `beta`. We have the choice to use
-        the beta endpoint or implement the filtering in python for now.
-        '''
-        response = requests.get(
-            'https://graph.microsoft.com/v1.0/groups',
-            headers=self.headers
-        )
-        if (200 == response.status_code):
-            return response.content
-        else:
-            raise self._generate_error_message(response)
-
-    def invalidate_all_tokens_for_user(self, user_id):
-        return super(Graph, self).invalidate_all_tokens_for_user(self, user_id)
-
-    def reset_user_password(self, user_id):
-        return super(Graph, self).reset_user_password(self, user_id)
-
-    def create_user(self, attributes):
-        return super(Graph, self).create_user(self, attributes)
-
     def create_invitation(self, invitedUserEmailAddress, inviteRedirectUrl):
         ''' returns: a user object of type `Guest` '''
         response = requests.post(
@@ -183,29 +155,29 @@ class Graph(AzureHandler):
         else:
             raise self._generate_error_message(response)
 
-    def create_group(self, name, description=""):
-        ''' https://docs.microsoft.com/de-de/graph/api/group-post-groups '''
-        response = requests.post(
-            "https://graph.microsoft.com/v1.0/groups",
-            headers=self.headers,
-            data=json.dumps(
-                {
-                    'displayName': quote(name),
-                    'description': quote(description),
-                    'mailEnabled': False,
-                    'mailNickname': name.translate(
-                        ''.maketrans(
-                            {' ': '_-_'}),  # translate ' ' to '_-_' and
-                        '@()\\[]";:.<>,'),  # delete illegal chars (see doc)
-                    'securityEnabled': True
-                }
-            )
-        )
+    # def create_group(self, name, description=""):
+    #     ''' https://docs.microsoft.com/de-de/graph/api/group-post-groups '''
+    #     response = requests.post(
+    #         "https://graph.microsoft.com/v1.0/groups",
+    #         headers=self.headers,
+    #         data=json.dumps(
+    #             {
+    #                 'displayName': quote(name),
+    #                 'description': quote(description),
+    #                 'mailEnabled': False,
+    #                 'mailNickname': name.translate(
+    #                     ''.maketrans(
+    #                         {' ': '_-_'}),  # translate ' ' to '_-_' and
+    #                     '@()\\[]";:.<>,'),  # delete illegal chars (see doc)
+    #                 'securityEnabled': True
+    #             }
+    #         )
+    #     )
 
-        if (201 == response.status_code):  # group was created
-            return response.content
-        else:
-            raise self._generate_error_message(response)
+    #     if (201 == response.status_code):  # group was created
+    #         return response.content
+    #     else:
+    #         raise self._generate_error_message(response)
 
     def get_azure_domains(self):
         from univention.office365.azure_auth import resource_url
@@ -230,69 +202,6 @@ class Graph(AzureHandler):
             return response.content
         else:
             raise self._generate_error_message(response)
-
-    def modify_user(self, object_id, modifications):
-        return super(Graph, self).modify_user(self, object_id, modifications)
-
-    def modify_group(self, object_id, modifications):
-        return super(Graph, self).modify_group(self, object_id, modifications)
-
-    def delete_user(self, object_id):
-        return super(Graph, self).delete_user(self, object_id)
-
-    def delete_group(self, object_id):
-        return super(Graph, self).delete_group(self, object_id)
-
-    def member_of_groups(self, object_id, resource_collection="users"):
-        return super(Graph, self).member_of_groups(self, object_id, resource_collection)
-
-    def member_of_objects(self, object_id, resource_collection="users"):
-        return super(Graph, self).member_of_objects(self, object_id, resource_collection)
-
-    def resolve_object_ids(self, object_ids, object_types=None):
-        return super(Graph, self).resolve_object_ids(self, object_ids, object_types)
-
-    def get_groups_direct_members(self, group_id):
-        return super(Graph, self).get_groups_direct_members(self, group_id)
-
-    def add_objects_to_azure_group(self, group_id, object_ids):
-        return super(Graph, self).add_objects_to_azure_group(self, group_id, object_ids)
-
-    def delete_group_member(self, group_id, member_id):
-        return super(Graph, self).delete_group_member(self, group_id, member_id)
-
-    def add_license(self, user_id, sku_id, deactivate_plans=None):
-        return super(Graph, self).add_license(self, user_id, sku_id, deactivate_plans)
-
-    def remove_license(self, user_id, sku_id):
-        return super(Graph, self).remove_license(self, user_id, sku_id)
-
-    def list_subscriptions(self, object_id=None, ofilter=None):
-        return super(Graph, self).list_subscriptions(self, object_id, ofilter)
-
-    def get_enabled_subscriptions(self):
-        return super(Graph, self).get_enabled_subscriptions(self)
-
-    def list_domains(self, domain_name=None):
-        return super(Graph, self).list_domains(self, domain_name)
-
-    def list_adconnection_details(self):
-        return super(Graph, self).list_adconnection_details(self)
-
-    def list_verified_domains(self):
-        return super(Graph, self).list_verified_domains(self)
-
-    def get_verified_domain_from_disk(self):
-        return super(Graph, self).get_verified_domain_from_disk(self)
-
-    def deactivate_user(self, object_id, rename=False):
-        return super(Graph, self).deactivate_user(self, object_id, rename)
-
-    def deactivate_group(self, object_id):
-        return super(Graph, self).deactivate_group(self, object_id)
-
-    def directory_object_urls_to_object_ids(self, urls):
-        return super(Graph, self).directory_object_urls_to_object_ids(self, urls)
 
     # Microsoft Teams
     def create_team(self, name, description=""):

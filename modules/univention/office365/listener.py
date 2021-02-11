@@ -112,7 +112,10 @@ class Office365Listener(object):
 
 		self.not_migrated_to_v3 = self.ucr.is_false('office365/migrate/adconnectionalias')
 
-		self.ah = AzureHandler(self.ucr, name, self.adconnection_alias)
+		# TODO make sure this works, then remove the following (commented) line
+		# self.ah = AzureHandler(self.ucr, name, self.adconnection_alias)
+
+		self.ah = Graph(self.ucr, name, self.adconnection_alias)
 
 	@property
 	def verified_domains(self):
@@ -848,3 +851,5 @@ class Office365Listener(object):
 		Encode ldap UniventionOffice365Data
 		"""
 		return base64.b64encode(zlib.compress(json.dumps(data)))
+
+# vim: filetype=python noexpandtab tabstop=4 shiftwidth=4 softtabstop=4

@@ -728,3 +728,5 @@ class AzureHandler(object):
 			except KeyError as exc:
 				raise UnkownTypeError, UnkownTypeError("Attribute '{}' not in azure_attribute_types mapping.".format(k), chained_exc=exc), sys.exc_info()[2]
 		return res
+
+# vim: filetype=python noexpandtab tabstop=4 shiftwidth=4 softtabstop=4
