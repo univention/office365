@@ -73,7 +73,7 @@ oauth2_auth_url = "https://login.microsoftonline.com/{adconnection}/oauth2/autho
 oauth2_token_url = "https://login.microsoftonline.com/{adconnection_id}/oauth2/token"
 oauth2_token_issuer = "https://sts.windows.net/{adconnection_id}/"
 federation_metadata_url = "https://login.microsoftonline.com/{adconnection_id}/federationmetadata/2007-06/federationmetadata.xml"
-resource_url = "https://graph.microsoft.com"
+resource_url = "https://graph.windows.net"
 
 adconnection_alias_ucrv = 'office365/adconnection/alias/'
 adconnection_wizard_ucrv = 'office365/adconnection/wizard'

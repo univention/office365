@@ -44,7 +44,6 @@ from univention.office365.api.exceptions import GraphError
 from univention.office365.api.graph_auth import get_all_aliases_from_ucr, get_all_available_endpoints
 
 if __name__ == "__main__":
-	# logging.basicConfig(level=logging.DEBUG)
 
 	ucr = ConfigRegistry()
 	ucr.load()
@@ -144,6 +143,7 @@ if __name__ == "__main__":
 	elif args.aliases:
 		print(json.dumps(get_all_aliases_from_ucr(ucr), indent=4, sort_keys=True))
 	elif args.graph:
+		logging.basicConfig(level=args.verbose)
 		g = Graph(
 			ucr=ucr,
 			name=str(__file__),
