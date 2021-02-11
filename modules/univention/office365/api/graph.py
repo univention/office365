@@ -69,9 +69,9 @@ class Graph(AzureHandler):
 
         # TODO: remove these commented out lines - they are currently
         # be used for testing against the old login mechanism
-        # self.auth = AzureAuth(name, self.connection_alias)
+        self.auth = AzureAuth(name, self.connection_alias)
         # initialized = self.auth.is_initialized(self.connection_alias)
-        # self.token = self.auth.get_access_token()
+        self.token = self.auth.get_access_token()
 
         # prepare the http headers, which we are going to send with any request
         self.headers = {

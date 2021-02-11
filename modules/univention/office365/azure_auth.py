@@ -73,7 +73,7 @@ oauth2_auth_url = "https://login.microsoftonline.com/{adconnection}/oauth2/autho
 oauth2_token_url = "https://login.microsoftonline.com/{adconnection_id}/oauth2/token"
 oauth2_token_issuer = "https://sts.windows.net/{adconnection_id}/"
 federation_metadata_url = "https://login.microsoftonline.com/{adconnection_id}/federationmetadata/2007-06/federationmetadata.xml"
-resource_url = "https://graph.windows.net"
+resource_url = "https://graph.microsoft.com"
 
 adconnection_alias_ucrv = 'office365/adconnection/alias/'
 adconnection_wizard_ucrv = 'office365/adconnection/wizard'
@@ -134,8 +134,8 @@ class AzureADConnectionHandler(object):
 			confdir = self.get_conf_path('CONFDIR', alias)
 			initialized = AzureAuth.is_initialized(alias)
 			status = 'initialized' if initialized else 'uninitialized'
-            if (only_initialized == False || initialized)
-                res.append((alias, status, confdir))
+			if (only_initialized is False or initialized):
+				res.append((alias, status, confdir))
 		return res
 
 	@classmethod
