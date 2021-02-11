@@ -1,3 +1,5 @@
+import msal
+
 import datetime
 import logging
 import json
@@ -34,31 +36,55 @@ class Graph(AzureHandler):
         self.ucr = ucr
         self.name = name
         self.connection_alias = connection_alias
-
-        # # load the token file from disk and parses it into a json object
-        # token_file_as_json = load_token_file(self.connection_alias)
+        # load the token file from disk and parses it into a json object
+        token_file_as_json = load_token_file(self.connection_alias)
         # self.logger.debug(json.dumps(token_file_as_json, indent=4))
+
+        config = {
+            "authority": "https://login.microsoftonline.com/3e7d9eb5-c3a1-4cfc-892e-a8ec29e45b77",
+            "client_id": "ebbfd1a2-4245-4ef7-b2f9-268da103d890",
+            "scope": ["https://graph.microsoft.com/.default"],
+            "secret": "P9s.PWGBWGL.XHH~srT1~hf1lEn.Nqk1_1",
+            "endpoint": "https://graph.microsoft.com/v1.0/users"
+        }
+        # Create a preferably long-lived app instance which maintains a token
+        # cache.
+        self.app = msal.ConfidentialClientApplication(
+            config["client_id"],
+            authority=config["authority"],
+            client_credential=config["secret"]
+        )
+
+        # Firstly, looks up a token from cache Since we are looking for token
+        # for the current app, NOT for an end user, notice we give account
+        # parameter as None.
+        result = self.app.acquire_token_silent(config["scope"], account=None)
+
+        if not result:
+            logging.info("No suitable token exists in cache. Let's get a new one from AAD.")
+            result = self.app.acquire_token_for_client(scopes=config["scope"])
+
+        # print("!!!! RESULT {result} ".format(result=result))
+        valid_until = datetime.datetime.fromtimestamp(int(result["expires_in"]))
+
+        if "access_token" in result:
+            self.token = result["access_token"]
+        else:
+            raise GraphError("Could not acquire a token from microsoft")
 
         # # assign the value from the `access_token` field to the class variable
         # self.token = token_file_as_json['access_token']
 
-        # # if the access token has expired (is too old), it is automatically
-        # # tried to renew it. We use the old API calls for that, so that this
-        # # is guaranteed to stay compatible for now.
-        # valid_until = datetime.datetime.fromtimestamp(
-        #     int(token_file_as_json.get("access_token_exp_at", 0))
-        # )
-
-        # # write some information about the token in use into the log file
-        # self.logger.info(
-        #     "The token for `{alias}` is valid until `{timestamp}` and it looks"
-        #     " similar to: `{starts}-trimmed-{ends}`".format(
-        #         starts=self.token[:10],
-        #         ends=self.token[-10:],
-        #         alias=self.connection_alias,
-        #         timestamp=valid_until
-        #     )
-        # )
+        # write some information about the token in use into the log file
+        self.logger.info(
+            "The token for `{alias}` is valid until `{timestamp}` and it looks"
+            " similar to: `{starts}-trimmed-{ends}`".format(
+                starts=self.token[:10],
+                ends=self.token[-10:],
+                alias=self.connection_alias,
+                timestamp=valid_until
+            )
+        )
 
         # if (datetime.datetime.now() > valid_until):
         #     self.logger.info("Access token has expired. We will try to renew it.")
@@ -69,15 +95,14 @@ class Graph(AzureHandler):
 
         # TODO: remove these commented out lines - they are currently
         # be used for testing against the old login mechanism
-        self.auth = AzureAuth(name, self.connection_alias)
+        # self.auth = AzureAuth(name, self.connection_alias)
         # initialized = self.auth.is_initialized(self.connection_alias)
-        self.token = self.auth.get_access_token()
+        # self.token = self.auth.get_access_token()
 
         # prepare the http headers, which we are going to send with any request
         self.headers = {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer {token}'.format(token=self.token),
-            'User-Agent': 'ucs-microsoft365/1.0'  # not strictly needed
+            'Authorization': 'Bearer ' + result['access_token']
         }
 
     def create_random_pw(self):
@@ -116,7 +141,20 @@ class Graph(AzureHandler):
         return super(Graph, self).get_users_direct_groups(self, user_id)
 
     def list_groups(self, objectid=None, ofilter=None):
-        return super(Graph, self).list_groups(self, objectid, ofilter)
+        '''https://docs.microsoft.com/en-US/graph/api/group-list
+        lists by default all groups. Filters are not implemented at the moment,
+        because microsoft will provide such in future versions of the graph
+        API, which is already accessible as `beta`. We have the choice to use
+        the beta endpoint or implement the filtering in python for now.
+        '''
+        response = requests.get(
+            'https://graph.microsoft.com/v1.0/groups',
+            headers=self.headers
+        )
+        if (200 == response.status_code):
+            return response.content
+        else:
+            raise self._generate_error_message(response)
 
     def invalidate_all_tokens_for_user(self, user_id):
         return super(Graph, self).invalidate_all_tokens_for_user(self, user_id)
@@ -134,8 +172,8 @@ class Graph(AzureHandler):
             headers=self.headers,
             data=json.dumps(
                 {
-                    'invitedUserEmailAddress': quote(invitedUserEmailAddress),
-                    'inviteRedirectUrl': quote(inviteRedirectUrl)
+                    'invitedUserEmailAddress': quote(invitedUserEmailAddress, safe='@'),
+                    'inviteRedirectUrl': quote(inviteRedirectUrl, safe=':/')
                 }
             )
         )
@@ -186,7 +224,8 @@ class Graph(AzureHandler):
         ''' https://docs.microsoft.com/en-US/graph/api/user-get '''
         response = requests.get(
             "https://graph.microsoft.com/v1.0/me",
-            headers=self.headers)
+            headers=self.headers
+        )
         if (200 == response.status_code):
             return response.content
         else:

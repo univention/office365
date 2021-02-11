@@ -1,0 +1,3 @@
+[submodule "modules/msal"]
+	path = modules/msal
+	url = https://github.com/AzureAD/microsoft-authentication-library-for-python

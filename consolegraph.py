@@ -110,6 +110,12 @@ if __name__ == "__main__":
 	)
 
 	parser.add_argument(
+		'--groups',
+		help='lists all groups accessible through the account',
+		action="store_true"
+	)
+
+	parser.add_argument(
 		'--azure',
 		help='make the call against the azure API',
 		action="store_true"
@@ -156,6 +162,9 @@ if __name__ == "__main__":
 
 			if args.me:
 				print(json.dumps(json.loads(g.get_me()), indent=4, sort_keys=True))
+
+			if args.groups:
+				print(json.dumps(json.loads(g.list_groups()), indent=4, sort_keys=True))
 
 			if args.create_team:
 				name = args.create_team[0]
