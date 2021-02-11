@@ -35,6 +35,10 @@ import univention.admin.uexceptions
 translation = univention.admin.localization.translation('univention-admin-handlers-office365')
 _ = translation.translate
 
+class Office365_User(UDM_Objects):
+	udm_modules = ('users/user', )
+	udm_filter = '(objectClass=univentionOffice365)'
+	use_objects = False
 
 class univentionOffice365ProfileSyntax(UDM_Objects):
 	empty_value = True

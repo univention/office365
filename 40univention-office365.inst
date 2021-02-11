@@ -341,6 +341,31 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set overwriteTab=0 \
 	--set disableUDMWeb=0 || die
 
+udm settings/extended_attribute create "$@" --ignore_exists \
+	--position "$ea_base" \
+	--set name="UniventionMicrosoft365TeamAdmins" \
+	--set CLIName="UniventionMicrosoft365Admins" \
+	--set shortDescription="Microsoft 365 Team Administratoren" \
+	--set translationShortDescription='"de_DE" "Microsoft 365 Team Administrators"' \
+	--set longDescription="Defines Microsoft 365 User Admins" \
+	--set translationLongDescription='"de_DE" "Definiert Microsoft 365 Administratoren"' \
+	--set module="groups/group" \
+	--set tabAdvanced=0 \
+	--set tabName="Microsoft 365" \
+	--set tabPosition=4 \
+	--set translationTabName='"de_DE" "Microsoft 365"' \
+	--set syntax=Office365_User \
+	--set default="" \
+	--set multivalue=1 \
+	--set valueRequired=0 \
+	--set mayChange=1 \
+	--set doNotSearch=0 \
+	--set objectClass=univentionOffice365 \
+	--set ldapMapping=univentionMicrosoft365TeamAdmins \
+	--set deleteObjectClass=0 \
+	--set overwriteTab=0 \
+	--set disableUDMWeb=0 || die
+
 # New installation - no joinscript has ever run
 if ! joinscript_check_any_version_executed; then
 	/usr/share/univention-office365/scripts/manage_adconnections create defaultADconnection --makedefault
