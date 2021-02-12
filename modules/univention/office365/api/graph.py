@@ -24,13 +24,15 @@ class Graph(AzureHandler):
         self.initialized = False
         self.logger = logging.getLogger()
         self.logger.level = loglevel
-        self.logger.addHandler(logging.StreamHandler(sys.stdout))
+        # self.logger.addHandler(logging.StreamHandler(sys.stdout))
 
         if (self.logger.level == logging.DEBUG):
             logging.basicConfig(level=logging.DEBUG)
             requests_log = logging.getLogger("requests.packages.urllib3")
             requests_log.setLevel(logging.DEBUG)
             requests_log.propagate = True
+            requests_log.addHandler(logging.StreamHandler(sys.stdout))
+            # requests.settings.verbose = sys.stderr
 
         # load the univention config registry for testing...
         self.ucr = ucr
@@ -102,7 +104,8 @@ class Graph(AzureHandler):
         # prepare the http headers, which we are going to send with any request
         self.headers = {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + result['access_token']
+            'Authorization': 'Bearer ' + result['access_token'],
+            'User-Agent': 'Univention Microsoft 365 Connector'
         }
 
         super(Graph, self).__init__(ucr, name, connection_alias)
@@ -115,26 +118,30 @@ class Graph(AzureHandler):
         if isinstance(response, str):
             message = response
         elif isinstance(response, requests.Response):
+            message = "HTTP response status: {num}\n".format(
+                num=response.status_code
+            )
+
             if hasattr(response, 'headers'):
-                message = "HTTP response header: {header}".format(
-                    header=str(response.headers))
-            else:
-                message = "HTTP response status: {num}".format(
-                    num=response.status_code)
-
-            if hasattr(response, 'content'):
-                message += response.content
-
+                message += (
+                    "> request url: {req_url}\n"
+                    "> request header: {req_headers}\n"
+                    "> request body: {req_body}\n"
+                    "> response header: {headers}\n"
+                    "> response body: {body}\n"
+                ).format(
+                    req_url=str(response.request.url),
+                    req_headers=json.dumps(dict(response.request.headers), indent=2),
+                    req_body=str(response.request.body),
+                    headers=json.dumps(dict(response.headers), indent=2),
+                    body=str(response.content)
+                )
         elif response is None:
             message = "The response was of type `None`"
         else:
             message('unexpected error')
 
-        self.logger.debug('HTTP request headers: {header}'.format(
-            header=json.dumps(self.headers, indent=4)))
-        self.logger.debug('Token file: {json}'.format(
-            json=json.dumps(load_token_file(self.connection_alias), indent=4)))
-
+        self.logger.debug(message)
         return GraphError(message)
 
     def create_invitation(self, invitedUserEmailAddress, inviteRedirectUrl):
@@ -204,18 +211,23 @@ class Graph(AzureHandler):
             raise self._generate_error_message(response)
 
     # Microsoft Teams
-    def create_team(self, name, description=""):
-        ''' https://docs.microsoft.com/de-de/graph/api/team-post '''
-        response = requests.put(
-            "https://graph.microsoft.com/v1.0/groups/9c14ee2f-f926-4a3b-80e2-7ed63deb22c8/teams",
+    def create_team(self, name, description="", owner=None):
+        ''' https://docs.microsoft.com/en-US/graph/api/team-post '''
+        response = requests.post(
+            "https://graph.microsoft.com/v1.0/teams",
             headers=self.headers,
             data=json.dumps(
                 {
                     'template@odata.bind':
                         "https://graph.microsoft.com/v1.0/teamsTemplates('standard')",
 
-                    'displayName': quote(name),
-                    'description': quote(description),
+                    'displayName': name,
+                    'description': description,
+
+                    "roles": ["owner"],
+                    "user@odata.bind": "https://graph.microsoft.com/v1.0/users('{userid}')".format(
+                        userid=owner
+                    )
                 }
             )
         )
