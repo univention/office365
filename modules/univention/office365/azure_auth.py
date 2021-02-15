@@ -70,7 +70,7 @@ SAML_SETUP_SCRIPT_PATH = "/var/lib/univention-office365/saml_setup{adconnection_
 ADCONNECTION_CONF_BASEPATH = "/etc/univention-office365"
 
 oauth2_auth_url = "https://login.microsoftonline.com/{adconnection}/oauth2/authorize?{params}"
-oauth2_token_url = "https://login.microsoftonline.com/{adconnection_id}/oauth2/token"
+oauth2_token_url = "https://login.microsoftonline.com/{adconnection_id}/oauth2/v2.0/token"
 oauth2_token_issuer = "https://sts.windows.net/{adconnection_id}/"
 federation_metadata_url = "https://login.microsoftonline.com/{adconnection_id}/federationmetadata/2007-06/federationmetadata.xml"
 resource_url = "https://graph.windows.net"
@@ -465,11 +465,11 @@ class AzureAuth(object):
 		return ids["domain"]
 
 	def get_access_token(self):
-		if not self._access_token:
-			logger.debug("Loading token from disk...")
-			tokens = self.load_tokens(self.adconnection_alias)
-			self._access_token = tokens.get("access_token")
-			self._access_token_exp_at = datetime.datetime.fromtimestamp(int(tokens.get("access_token_exp_at") or 0))
+		#if not self._access_token:
+		#	logger.debug("Loading token from disk...")
+		#	tokens = self.load_tokens(self.adconnection_alias)
+		#	self._access_token = tokens.get("access_token")
+		#	self._access_token_exp_at = datetime.datetime.fromtimestamp(int(tokens.get("access_token_exp_at") or 0))
 		if not self._access_token_exp_at or datetime.datetime.now() > self._access_token_exp_at:
 			logger.debug("Token expired, retrieving now one from azure...")
 			self._access_token = self.retrieve_access_token()
@@ -619,29 +619,34 @@ class AzureAuth(object):
 		assertion = self._get_client_assertion()
 
 		post_form = {
-			'resource': resource_url,
 			'client_id': self.client_id,
 			'client_assertion_type': 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
 			'client_assertion': assertion,
 			'grant_type': 'client_credentials',
 			'redirect_uri': self.reply_url,
-			'scope': SCOPE
+			'scope': ['https://graph.microsoft.com/.default'],
 		}
-		url = oauth2_token_url.format(adconnection_id=self.adconnection_id)
 
+		url = oauth2_token_url.format(adconnection_id=self.adconnection_id)
+		print(post_form)
+		print(url)
 		logger.debug("POST to URL=%r with data=%r", url, post_form)
 		response = requests.post(url, data=post_form, verify=True, proxies=self.proxies)
+		print(response)
+		# print(response.json())
+		logger.info(json.dumps(response.json(), indent=4, sort_keys=True))
 		if response.status_code != 200:
 			logger.exception("Error retrieving token (status %r), response: %r", response.status_code, response.__dict__)
 			raise TokenError(_("Error retrieving authentication token from Azure for AD connection {adconnection}.").format(adconnection=self.adconnection_alias), response=response, adconnection_alias=self.adconnection_alias)
 		at = response.json
+		print(response.json())
 		if callable(at):  # requests version compatibility
 			at = at()
 		logger.debug("response: %r", at)
 		if "access_token" in at and at["access_token"]:
 			self._access_token = at["access_token"]
-			self._access_token_exp_at = datetime.datetime.fromtimestamp(int(at["expires_on"]))
-			self.store_tokens(adconnection_alias=self.adconnection_alias, access_token=at["access_token"], access_token_exp_at=at["expires_on"])
+			self._access_token_exp_at = datetime.datetime.fromtimestamp(int(at["ext_expires_in"]))
+			self.store_tokens(adconnection_alias=self.adconnection_alias, access_token=at["access_token"], access_token_exp_at=at["ext_expires_in"])
 			return at["access_token"]
 		else:
 			logger.exception("Response didn't contain an access_token. response: %r", response)
@@ -759,10 +764,10 @@ pause
 		sp_query_string = "?spentityid=urn:federation:MicrosoftOnline"
 		sp_link = "https://{}/simplesamlphp/saml2/idp/SSOService.php{}".format(ucr["ucs/server/sso/fqdn"], sp_query_string)
 		ucr_update(ucr, {
-			"ucs/web/overview/entries/service/office365/description": "Single Sign-On login for Microsoft Microsoft 365",
+			"ucs/web/overview/entries/service/office365/description": "Single Sign-On login for Microsoft 365",
 			"ucs/web/overview/entries/service/office365/label": "Microsoft 365 Login",
 			"ucs/web/overview/entries/service/office365/link": sp_link,
-			"ucs/web/overview/entries/service/office365/description/de": "Single-Sign-On Link für Microsoft Microsoft 365",
+			"ucs/web/overview/entries/service/office365/description/de": "Single-Sign-On Link für Microsoft 365",
 			"ucs/web/overview/entries/service/office365/label/de": "Microsoft 365 Login",
 			"ucs/web/overview/entries/service/office365/priority": "50",
 			"ucs/web/overview/entries/service/office365/icon": "/office365.png"

@@ -38,73 +38,26 @@ class Graph(AzureHandler):
         self.ucr = ucr
         self.name = name
         self.connection_alias = connection_alias
-        # load the token file from disk and parses it into a json object
-        # token_file_as_json = load_token_file(self.connection_alias)
-        # self.logger.debug(json.dumps(token_file_as_json, indent=4))
 
-        config = {
-            "authority": "https://login.microsoftonline.com/3e7d9eb5-c3a1-4cfc-892e-a8ec29e45b77",
-            "client_id": "ebbfd1a2-4245-4ef7-b2f9-268da103d890",
-            "scope": ["https://graph.microsoft.com/.default"],
-            "secret": "P9s.PWGBWGL.XHH~srT1~hf1lEn.Nqk1_1",
-            "endpoint": "https://graph.microsoft.com/v1.0/users"
-        }
-        # Create a preferably long-lived app instance which maintains a token
-        # cache.
-        self.app = msal.ConfidentialClientApplication(
-            config["client_id"],
-            authority=config["authority"],
-            client_credential=config["secret"]
-        )
-
-        # Firstly, looks up a token from cache Since we are looking for token
-        # for the current app, NOT for an end user, notice we give account
-        # parameter as None.
-        result = self.app.acquire_token_silent(config["scope"], account=None)
-
-        if not result:
-            logging.info("No suitable token exists in cache. Let's get a new one from AAD.")
-            result = self.app.acquire_token_for_client(scopes=config["scope"])
-
-        # print("!!!! RESULT {result} ".format(result=result))
-        valid_until = datetime.datetime.fromtimestamp(int(result["expires_in"]))
-
-        if "access_token" in result:
-            self.token = result["access_token"]
-        else:
-            raise GraphError("Could not acquire a token from microsoft")
-
-        # # assign the value from the `access_token` field to the class variable
-        # self.token = token_file_as_json['access_token']
+        self.auth = AzureAuth(name, self.connection_alias)
+        # initialized = self.auth.is_initialized(self.connection_alias)
+        # self.token = self.auth.get_access_token()
+        self.token = self.auth.retrieve_access_token()
 
         # write some information about the token in use into the log file
         self.logger.info(
-            "The token for `{alias}` is valid until `{timestamp}` and it looks"
+            "The token for `{alias}` looks"
             " similar to: `{starts}-trimmed-{ends}`".format(
                 starts=self.token[:10],
                 ends=self.token[-10:],
                 alias=self.connection_alias,
-                timestamp=valid_until
             )
         )
-
-        # if (datetime.datetime.now() > valid_until):
-        #     self.logger.info("Access token has expired. We will try to renew it.")
-        #     self.token = AzureAuth(
-        #         self.name,  # unique name in codebase making it easy to spot
-        #         self.connection_alias
-        #     ).retrieve_access_token()
-
-        # TODO: remove these commented out lines - they are currently
-        # be used for testing against the old login mechanism
-        # self.auth = AzureAuth(name, self.connection_alias)
-        # initialized = self.auth.is_initialized(self.connection_alias)
-        # self.token = self.auth.get_access_token()
 
         # prepare the http headers, which we are going to send with any request
         self.headers = {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + result['access_token'],
+            'Authorization': 'Bearer {}'.format(self.token),
             'User-Agent': 'Univention Microsoft 365 Connector'
         }
 
@@ -114,6 +67,12 @@ class Graph(AzureHandler):
     def create_random_pw(self):
         return super(Graph, self).create_random_pw()
 
+    def _try_to_prettify(self, json_string):
+        try:
+            return json.dumps(json.loads(json_string), indent=2)
+        except json.JSONDecodeError:
+            return json_string
+
     def _generate_error_message(self, response):
         if isinstance(response, str):
             message = response
@@ -121,27 +80,26 @@ class Graph(AzureHandler):
             message = "HTTP response status: {num}\n".format(
                 num=response.status_code
             )
-
             if hasattr(response, 'headers'):
                 message += (
-                    "> request url: {req_url}\n"
-                    "> request header: {req_headers}\n"
-                    "> request body: {req_body}\n"
-                    "> response header: {headers}\n"
-                    "> response body: {body}\n"
+                    "> request url: {req_url}\n\n"
+                    "> request header: {req_headers}\n\n"
+                    "> request body: {req_body}\n\n"
+                    "> response header: {headers}\n\n"
+                    "> response body: {body}\n\n"
                 ).format(
                     req_url=str(response.request.url),
                     req_headers=json.dumps(dict(response.request.headers), indent=2),
-                    req_body=str(response.request.body),
+                    req_body=self._try_to_prettify(response.request.body),
                     headers=json.dumps(dict(response.headers), indent=2),
-                    body=str(response.content)
+                    body=self._try_to_prettify(response.content)
                 )
         elif response is None:
             message = "The response was of type `None`"
         else:
             message('unexpected error')
 
-        self.logger.debug(message)
+        # self.logger.debug(message)
         return GraphError(message)
 
     def create_invitation(self, invitedUserEmailAddress, inviteRedirectUrl):
@@ -186,14 +144,22 @@ class Graph(AzureHandler):
     #     else:
     #         raise self._generate_error_message(response)
 
-    def get_azure_domains(self):
-        from univention.office365.azure_auth import resource_url
-        self.auth = AzureAuth("TEST", self.connection_alias)
-        # self.uris = self._get_azure_uris(self.auth.adconnection_id)
-        graph_base_url = "{0}/{1}".format(resource_url, self.auth.adconnection_id)
+    def get_azure_users(self):
         response = requests.get(
-            "{base_url}/domains?api-version=1.6".format(base_url=graph_base_url),
+            "https://graph.windows.net/{application_id}/users?api-version=1.6".format(
+                application_id=self.auth.adconnection_id
+            ),
             headers=self.headers)
+        if (200 == response.status_code):
+            return response.content
+        else:
+            raise self._generate_error_message(response)
+
+    def get_graph_users(self):
+        response = requests.get(
+            "https://graph.microsoft.com/v1.0/users",
+            headers=self.headers
+        )
         if (200 == response.status_code):
             return response.content
         else:
@@ -220,14 +186,17 @@ class Graph(AzureHandler):
                 {
                     'template@odata.bind':
                         "https://graph.microsoft.com/v1.0/teamsTemplates('standard')",
-
                     'displayName': name,
                     'description': description,
-
-                    "roles": ["owner"],
-                    "user@odata.bind": "https://graph.microsoft.com/v1.0/users('{userid}')".format(
-                        userid=owner
-                    )
+                    "members": [
+                        {
+                            "@odata.type":"#microsoft.graph.aadUserConversationMember",
+                            "roles": ["owner"],
+                            "user@odata.bind": "https://graph.microsoft.com/v1.0/users('{userid}')".format(
+                                userid=owner
+                            )
+                        }
+                    ]
                 }
             )
         )
