@@ -19,11 +19,11 @@ from univention.office365.azure_auth import AzureAuth
 
 
 class Graph(AzureHandler):
-    def __init__(self, ucr, name, connection_alias, loglevel=logging.INFO):
+    def __init__(self, ucr, name, connection_alias, logger=logging.getLogger()):
         # initialize logging..
         self.initialized = False
-        self.logger = logging.getLogger()
-        self.logger.level = loglevel
+        self.logger = logger
+        # self.logger = logging.getLogger()
         # self.logger.addHandler(logging.StreamHandler(sys.stdout))
 
         if (self.logger.level == logging.DEBUG):
@@ -76,7 +76,9 @@ class Graph(AzureHandler):
     def _generate_error_message(self, response):
         if isinstance(response, str):
             message = response
+
         elif isinstance(response, requests.Response):
+            print("OOOOOO {f}".format(f=response.headers))
             message = "HTTP response status: {num}\n".format(
                 num=response.status_code
             )
@@ -90,9 +92,9 @@ class Graph(AzureHandler):
                 ).format(
                     req_url=str(response.request.url),
                     req_headers=json.dumps(dict(response.request.headers), indent=2),
-                    req_body=self._try_to_prettify(response.request.body),
+                    req_body=self._try_to_prettify(response.request.body or "-NONE-"),
                     headers=json.dumps(dict(response.headers), indent=2),
-                    body=self._try_to_prettify(response.content)
+                    body=self._try_to_prettify(response.content or "-NONE-")
                 )
         elif response is None:
             message = "The response was of type `None`"
@@ -103,7 +105,10 @@ class Graph(AzureHandler):
         return GraphError(message)
 
     def create_invitation(self, invitedUserEmailAddress, inviteRedirectUrl):
-        ''' returns: a user object of type `Guest` '''
+        ''' https://docs.microsoft.com/en-us/graph/api/invitation-post
+            returns: a user object of type `Guest`
+        '''
+
         response = requests.post(
             "https://graph.microsoft.com/v1.0/invitations",
             headers=self.headers,
@@ -121,7 +126,7 @@ class Graph(AzureHandler):
             raise self._generate_error_message(response)
 
     def create_group(self, name, description=""):
-        ''' https://docs.microsoft.com/de-de/graph/api/group-post-groups '''
+        ''' https://docs.microsoft.com/en-us/graph/api/group-post-groups '''
         response = requests.post(
             "https://graph.microsoft.com/v1.0/groups",
             headers=self.headers,
@@ -144,7 +149,7 @@ class Graph(AzureHandler):
         else:
             raise self._generate_error_message(response)
 
-    def get_azure_users(self):
+    def list_azure_users(self):
         response = requests.get(
             "https://graph.windows.net/{application_id}/users?api-version=1.6".format(
                 application_id=self.auth.adconnection_id
@@ -155,7 +160,7 @@ class Graph(AzureHandler):
         else:
             raise self._generate_error_message(response)
 
-    def get_graph_users(self):
+    def list_graph_users(self):
         response = requests.get(
             "https://graph.microsoft.com/v1.0/users",
             headers=self.headers
@@ -166,7 +171,7 @@ class Graph(AzureHandler):
             raise self._generate_error_message(response)
 
     def get_me(self):
-        ''' https://docs.microsoft.com/en-US/graph/api/user-get '''
+        ''' https://docs.microsoft.com/en-us/graph/api/user-get '''
         response = requests.get(
             "https://graph.microsoft.com/v1.0/me",
             headers=self.headers
@@ -177,7 +182,7 @@ class Graph(AzureHandler):
             raise self._generate_error_message(response)
 
     def list_groups(self, objectid="", filter=""):
-        ''' https://docs.microsoft.com/en-US/graph/api/group-list '''
+        ''' https://docs.microsoft.com/en-us/graph/api/group-list '''
         ''' we keep objectid for backward compatibility for now '''
         response = requests.get(
             "https://graph.microsoft.com/v1.0/groups?filter={filter}".format(
@@ -191,7 +196,7 @@ class Graph(AzureHandler):
 
     # Microsoft Teams
     def create_team(self, name, description="", owner=None):
-        ''' https://docs.microsoft.com/en-US/graph/api/team-post '''
+        ''' https://docs.microsoft.com/en-us/graph/api/team-post '''
         response = requests.post(
             "https://graph.microsoft.com/v1.0/teams",
             headers=self.headers,
@@ -223,7 +228,7 @@ class Graph(AzureHandler):
 
     def create_team_from_group(self, object_id):  # object_id is similar to cb57b853-be97-457c-8232-491dd82f5940
         '''
-        https://docs.microsoft.com/de-de/graph/api/team-put-teams?view=graph-rest-beta
+        https://docs.microsoft.com/en-us/graph/api/team-put-teams?view=graph-rest-beta
         @TODO: the name of this endpoint will change at one point in time. Regular tests are necessary.
         '''
         response = requests.post(
@@ -247,6 +252,7 @@ class Graph(AzureHandler):
             raise self._generate_error_message(response)
 
     def delete_team(self, object_id):
+        """ https://docs.microsoft.com/en-us/graph/api/group-delete """
         # links to the `delete group` page in the API doc on the MS website
         return self.delete_group(self, object_id)
 
@@ -312,7 +318,7 @@ class Graph(AzureHandler):
         else:
             raise self._generate_error_message(response)
 
-    def list_all_teams(self):
+    def list_teams(self):
         '''
         https://docs.microsoft.com/en-us/graph/teams-list-all-teams
         To list all teams in an organization (tenant), you find all groups that
