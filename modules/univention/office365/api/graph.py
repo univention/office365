@@ -70,7 +70,7 @@ class Graph(AzureHandler):
     def _try_to_prettify(self, json_string):
         try:
             return json.dumps(json.loads(json_string), indent=2)
-        except json.JSONDecodeError:
+        except ValueError:
             return json_string
 
     def _generate_error_message(self, response):
