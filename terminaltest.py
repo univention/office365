@@ -80,11 +80,14 @@ if __name__ == "__main__":
 		),
 		epilog=(
 			"Usage examples:"
-			"\n\t{program} -g azuretestdomain\t\t\t"
+			"\n\t{program} -g {alias}\t\t\t\t"
 			"  \t# requests only a new access token"
-			"\n\t{program} -g azuretestdomain --function [argument(s)]"
+			"\n\t{program} -g {alias} --function [argument(s)]"
 			"  \t# requests access token and calls the function"
-		).format(program=sys.argv[0]),
+		).format(
+			program=sys.argv[0],
+			alias=get_all_aliases_from_ucr(ucr)[0]
+		),
 		formatter_class=RawTextHelpFormatter  # required for \n in epilog
 	)
 
