@@ -1,3 +1,5 @@
+import msal
+
 import datetime
 import logging
 import json
@@ -5,150 +7,88 @@ import requests
 import sys
 
 try:
-    from urllib.parse import quote
-    from urllib.parse import urlencode
+    from urllib.parse import quote, urlencode
 except ImportError:
-    from urllib import quote
-    from urllib import urlencode
+    from urllib import quote, urlencode
 
 
 from univention.office365.api.exceptions import GraphError
-from univention.office365.api.graph_auth import load_token_file
+from univention.office365.api.graph_auth import load_token_file, get_client_assertion
 from univention.office365.azure_handler import AzureHandler
 from univention.office365.azure_auth import AzureAuth
 
 
 class Graph(AzureHandler):
-    def __init__(self, ucr, name, connection_alias, loglevel=logging.INFO):
+    def __init__(self, ucr, name, connection_alias, logger=logging.getLogger()):
         # initialize logging..
         self.initialized = False
-        self.logger = logging.getLogger()
-        self.logger.level = loglevel
-        self.logger.addHandler(logging.StreamHandler(sys.stdout))
+        self.logger = logger
+        # self.logger = logging.getLogger()
+        # self.logger.addHandler(logging.StreamHandler(sys.stdout))
 
         if (self.logger.level == logging.DEBUG):
             logging.basicConfig(level=logging.DEBUG)
             requests_log = logging.getLogger("requests.packages.urllib3")
             requests_log.setLevel(logging.DEBUG)
             requests_log.propagate = True
+            requests_log.addHandler(logging.StreamHandler(sys.stdout))
+            # requests.settings.verbose = sys.stderr
 
         # load the univention config registry for testing...
         self.ucr = ucr
         self.name = name
         self.connection_alias = connection_alias
 
-        # load the token file from disk and parses it into a json object
-        token_file_as_json = load_token_file(self.connection_alias)
-        self.logger.debug(json.dumps(token_file_as_json, indent=4))
-
-        # assign the value from the `access_token` field to the class variable
-        # self.token = token_file_as_json['access_token']
-
-        # if the access token has expired (is too old), it is automatically
-        # tried to renew it. We use the old API calls for that, so that this
-        # is guaranteed to stay compatible for now.
-        valid_until = datetime.datetime.fromtimestamp(
-            int(token_file_as_json.get("access_token_exp_at", 0))
-        )
+        self.access_token = self._login(connection_alias)
 
 
-        # if (datetime.datetime.now() > valid_until):
-        #     self.logger.info("Access token has expired. We will try to renew it.")
-        #     self.token = AzureAuth(
-        #         self.name,  # unique name in codebase making it easy to spot
-        #         self.connection_alias
-        #     ).retrieve_access_token()
-
-        self.access_token = self._login(
-            token_file_as_json['application_id'],
-            token_file_as_json['directory_id'],
-            token_file_as_json['access_token']
-        )
-
-        self.token = self.access_token['token']
         # write some information about the token in use into the log file
         self.logger.info(
-            "The token for `{alias}` is valid until `{timestamp}` and it looks"
+            "The token for `{alias}` looks"
             " similar to: `{starts}-trimmed-{ends}`".format(
                 starts=self.token[:10],
                 ends=self.token[-10:],
                 alias=self.connection_alias,
-                timestamp=valid_until
             )
         )
-
-        # TODO: remove these commented out lines - they are currently
-        # be used for testing against the old login mechanism
-        # self.auth = AzureAuth(name, self.connection_alias)
-        # initialized = self.auth.is_initialized(self.connection_alias)
-        # self.token = self.auth.get_access_token()
 
         # prepare the http headers, which we are going to send with any request
         self.headers = {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer {token}'.format(token=self.token),
-            'User-Agent': 'ucs-microsoft365/1.0'  # not strictly needed
+            'Authorization': 'Bearer {}'.format(self.token),
+            'User-Agent': 'Univention Microsoft 365 Connector'
         }
+
+        super(Graph, self).__init__(ucr, name, connection_alias)
+
 
     def create_random_pw(self):
         return super(Graph, self).create_random_pw()
 
-    def _generate_error_message(self, response):
-        if(hasattr(self, 'headers')):
-            self.logger.debug('HTTP request headers: {header}'.format(
-                header=json.dumps(self.headers, indent=4)
-            ))
+    def _try_to_prettify(self, json_string):
+        try:
+            return json.dumps(json.loads(json_string), indent=2)
+        except ValueError:
+            return json_string
 
-        if isinstance(response, str):
-            message = response
-        elif isinstance(response, requests.Response):
-            if hasattr(response, 'headers'):
-                message = "HTTP response header: {header}".format(
-                    header=str(response.headers))
-            else:
-                message = "HTTP response status: {num}".format(
-                    num=response.status_code)
-
-            if hasattr(response, 'content'):
-                message += response.content
-
-        elif response is None:
-            message = "The response was of type `None`"
-        else:
-            message('unexpected error')
-
-        self.logger.debug('Token file: {json}'.format(
-            json=json.dumps(load_token_file(self.connection_alias), indent=4)))
-
-        return GraphError(message)
-
-    def _login(self, application_id, directory_id, session_token):
+    def _login(self, connection_alias):
         # https://login.microsoftonline.com/3e7d9eb5-c3a1-4cfc-892e-a8ec29e45b77/oauth2/v2.0/token
+        token_file_as_json = load_token_file(connection_alias)
+
+        endpoint = "https://login.microsoftonline.com/{directory_id}/oauth2/token".format(
+            directory_id=token_file_as_json['directory_id']
+        )
+
         response = requests.post(
-            "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token".format(
-                tenant=directory_id
-            ),
-
-            # {'client_assertion_type':
-            # 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
-            # 'redirect_uri':
-            # u'https://10.200.29.86/univention/command/office365/authorize',
-            # 'client_assertion':
-            # 'eyJ4NXQiOiAiK3FFekROdW9QeG9PTE5CRVNlanFINXZTc1NNPSIsICJhbGciOiAiUlMyNTYifQ.eyJhdWQiOiAiaHR0cHM6Ly9sb2dpbi5taWNyb3NvZnRvbmxpbmUuY29tLzNlN2Q5ZWI1LWMzYTEtNGNmYy04OTJlLWE4ZWMyOWU0NWI3Ny9vYXV0aDIvdjIuMC90b2tlbiIsICJpc3MiOiAiZmJiNmMzNWYtNGY3YS00MTJkLTkxMDktMmFiYTI5MjVhODM2IiwgImp0aSI6ICJlZmRlOWZiNS04OWMzLTQzMzktYjMzNS04MzYyNjNkMzc1NjgiLCAiZXhwIjogMTYxMzM5NTM4MSwgIm5iZiI6IDE2MTMzOTQ0ODEsICJzdWIiOiAiZmJiNmMzNWYtNGY3YS00MTJkLTkxMDktMmFiYTI5MjVhODM2In0.MEJLxDf_zJR-F-L0tnqKv8f6XhnbUH1tCIyB8U4GeYUFXSgm8mUUZ_4CqSvhaGhm1QfRoJSWNIT2Bf6NBm7EnTX5OWiVypf4oAEZ06I2TqKS2OpE0OEMUjjqBmujYbdgwemBUOG_N5lee-7PFj2TrPQQ3apW1IR-_7ZBcGu7q1XOpvVmRF_R1Tcf7G4eqkrCk-etkJ70GfA3EyXz7VLUFsYNPOYpzv_gUUTup5QgZVuVnqxhkgLWXr1Uw9SMi9XbUgjlJh7YQkAHKi4edZj-0p8PlR9OAaSy1GYoFPp1j7Nd0e8_zcEd47E0fnUellNMIRzqs9zabT3YyfFZ7AjhWw',
-            # 'client_id': u'fbb6c35f-4f7a-412d-9109-2aba2925a836', 'scope':
-            # ['https://graph.microsoft.com/.default'], 'grant_type':
-            # 'client_credentials'}
-
-            # https://login.microsoftonline.com/3e7d9eb5-c3a1-4cfc-892e-a8ec29e45b77/oauth2/v2.0/token
-
-            headers={ "Content-Type": "application/x-www-form-urlencoded" },
+            endpoint,
+            headers={'Content-Type': 'application/x-www-form-urlencoded'},
             data={
-                    'client_id': application_id,
-                    'client_assertion_type': 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
-                    'client_assertion': self._get_client_assertion(),
-                    'grant_type': 'client_credentials',
-                    'scope': ['https://graph.microsoft.com/.default']
-                }
+                'client_id': token_file_as_json['application_id'],
+                'client_assertion_type': 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+                'client_assertion': get_client_assertion(endpoint, connection_alias),
+                'grant_type': 'client_credentials',
+                'scope': ['https://graph.microsoft.com/.default']
+            }
         )
 
         if (201 == response.status_code):  # a new user was created
@@ -156,39 +96,42 @@ class Graph(AzureHandler):
         else:
             raise self._generate_error_message(response)
 
-    def list_users(self, objectid=None, ofilter=None):
-        return super(Graph, self).list_users(self, objectid, ofilter)
+    def _generate_error_message(self, response):
+        if isinstance(response, str):
+            message = response
 
-    def get_users_direct_groups(self, user_id):
-        return super(Graph, self).get_users_direct_groups(self, user_id)
-
-    def list_groups(self, objectid=None, ofilter=None):
-        '''https://docs.microsoft.com/en-US/graph/api/group-list
-        lists by default all groups. Filters are not implemented at the moment,
-        because microsoft will provide such in future versions of the graph
-        API, which is already accessible as `beta`. We have the choice to use
-        the beta endpoint or implement the filtering in python for now.
-        '''
-        response = requests.get(
-            'https://graph.microsoft.com/v1.0/groups',
-            headers=self.headers
-        )
-        if (200 == response.status_code):
-            return response.content
+        elif isinstance(response, requests.Response):
+            print("OOOOOO {f}".format(f=response.headers))
+            message = "HTTP response status: {num}\n".format(
+                num=response.status_code
+            )
+            if hasattr(response, 'headers'):
+                message += (
+                    "> request url: {req_url}\n\n"
+                    "> request header: {req_headers}\n\n"
+                    "> request body: {req_body}\n\n"
+                    "> response header: {headers}\n\n"
+                    "> response body: {body}\n\n"
+                ).format(
+                    req_url=str(response.request.url),
+                    req_headers=json.dumps(dict(response.request.headers), indent=2),
+                    req_body=self._try_to_prettify(response.request.body or "-NONE-"),
+                    headers=json.dumps(dict(response.headers), indent=2),
+                    body=self._try_to_prettify(response.content or "-NONE-")
+                )
+        elif response is None:
+            message = "The response was of type `None`"
         else:
-            raise self._generate_error_message(response)
+            message('unexpected error')
 
-    def invalidate_all_tokens_for_user(self, user_id):
-        return super(Graph, self).invalidate_all_tokens_for_user(self, user_id)
-
-    def reset_user_password(self, user_id):
-        return super(Graph, self).reset_user_password(self, user_id)
-
-    def create_user(self, attributes):
-        return super(Graph, self).create_user(self, attributes)
+        # self.logger.debug(message)
+        return GraphError(message)
 
     def create_invitation(self, invitedUserEmailAddress, inviteRedirectUrl):
-        ''' returns: a user object of type `Guest` '''
+        ''' https://docs.microsoft.com/en-us/graph/api/invitation-post
+            returns: a user object of type `Guest`
+        '''
+
         response = requests.post(
             "https://graph.microsoft.com/v1.0/invitations",
             headers=self.headers,
@@ -206,7 +149,7 @@ class Graph(AzureHandler):
             raise self._generate_error_message(response)
 
     def create_group(self, name, description=""):
-        ''' https://docs.microsoft.com/de-de/graph/api/group-post-groups '''
+        ''' https://docs.microsoft.com/en-us/graph/api/group-post-groups '''
         response = requests.post(
             "https://graph.microsoft.com/v1.0/groups",
             headers=self.headers,
@@ -229,21 +172,29 @@ class Graph(AzureHandler):
         else:
             raise self._generate_error_message(response)
 
-    def get_azure_domains(self):
-        from univention.office365.azure_auth import resource_url
-        self.auth = AzureAuth("TEST", self.connection_alias)
-        # self.uris = self._get_azure_uris(self.auth.adconnection_id)
-        graph_base_url = "{0}/{1}".format(resource_url, self.auth.adconnection_id)
+    def list_azure_users(self):
         response = requests.get(
-            "{base_url}/domains?api-version=1.6".format(base_url=graph_base_url),
+            "https://graph.windows.net/{application_id}/users?api-version=1.6".format(
+                application_id=self.auth.adconnection_id
+            ),
             headers=self.headers)
         if (200 == response.status_code):
             return response.content
         else:
             raise self._generate_error_message(response)
 
+    def list_graph_users(self):
+        response = requests.get(
+            "https://graph.microsoft.com/v1.0/users",
+            headers=self.headers
+        )
+        if (200 == response.status_code):
+            return response.content
+        else:
+            raise self._generate_error_message(response)
+
     def get_me(self):
-        ''' https://docs.microsoft.com/en-US/graph/api/user-get '''
+        ''' https://docs.microsoft.com/en-us/graph/api/user-get '''
         response = requests.get(
             "https://graph.microsoft.com/v1.0/me",
             headers=self.headers
@@ -253,94 +204,54 @@ class Graph(AzureHandler):
         else:
             raise self._generate_error_message(response)
 
-    def modify_user(self, object_id, modifications):
-        return super(Graph, self).modify_user(self, object_id, modifications)
-
-    def modify_group(self, object_id, modifications):
-        return super(Graph, self).modify_group(self, object_id, modifications)
-
-    def delete_user(self, object_id):
-        return super(Graph, self).delete_user(self, object_id)
-
-    def delete_group(self, object_id):
-        return super(Graph, self).delete_group(self, object_id)
-
-    def member_of_groups(self, object_id, resource_collection="users"):
-        return super(Graph, self).member_of_groups(self, object_id, resource_collection)
-
-    def member_of_objects(self, object_id, resource_collection="users"):
-        return super(Graph, self).member_of_objects(self, object_id, resource_collection)
-
-    def resolve_object_ids(self, object_ids, object_types=None):
-        return super(Graph, self).resolve_object_ids(self, object_ids, object_types)
-
-    def get_groups_direct_members(self, group_id):
-        return super(Graph, self).get_groups_direct_members(self, group_id)
-
-    def add_objects_to_azure_group(self, group_id, object_ids):
-        return super(Graph, self).add_objects_to_azure_group(self, group_id, object_ids)
-
-    def delete_group_member(self, group_id, member_id):
-        return super(Graph, self).delete_group_member(self, group_id, member_id)
-
-    def add_license(self, user_id, sku_id, deactivate_plans=None):
-        return super(Graph, self).add_license(self, user_id, sku_id, deactivate_plans)
-
-    def remove_license(self, user_id, sku_id):
-        return super(Graph, self).remove_license(self, user_id, sku_id)
-
-    def list_subscriptions(self, object_id=None, ofilter=None):
-        return super(Graph, self).list_subscriptions(self, object_id, ofilter)
-
-    def get_enabled_subscriptions(self):
-        return super(Graph, self).get_enabled_subscriptions(self)
-
-    def list_domains(self, domain_name=None):
-        return super(Graph, self).list_domains(self, domain_name)
-
-    def list_adconnection_details(self):
-        return super(Graph, self).list_adconnection_details(self)
-
-    def list_verified_domains(self):
-        return super(Graph, self).list_verified_domains(self)
-
-    def get_verified_domain_from_disk(self):
-        return super(Graph, self).get_verified_domain_from_disk(self)
-
-    def deactivate_user(self, object_id, rename=False):
-        return super(Graph, self).deactivate_user(self, object_id, rename)
-
-    def deactivate_group(self, object_id):
-        return super(Graph, self).deactivate_group(self, object_id)
-
-    def directory_object_urls_to_object_ids(self, urls):
-        return super(Graph, self).directory_object_urls_to_object_ids(self, urls)
+    def list_groups(self, objectid="", filter=""):
+        ''' https://docs.microsoft.com/en-us/graph/api/group-list '''
+        ''' we keep objectid for backward compatibility for now '''
+        response = requests.get(
+            "https://graph.microsoft.com/v1.0/groups?filter={filter}".format(
+                filter=filter
+            ), headers=self.headers,
+        )
+        if (200 == response.status_code):
+            return response.content
+        else:
+            raise self._generate_error_message(response)
 
     # Microsoft Teams
-    def create_team(self, name, description=""):
-        ''' https://docs.microsoft.com/de-de/graph/api/team-post '''
-        response = requests.put(
-            "https://graph.microsoft.com/v1.0/groups/9c14ee2f-f926-4a3b-80e2-7ed63deb22c8/teams",
+    def create_team(self, name, description="", owner=None):
+        ''' https://docs.microsoft.com/en-us/graph/api/team-post '''
+        response = requests.post(
+            "https://graph.microsoft.com/v1.0/teams",
             headers=self.headers,
             data=json.dumps(
                 {
                     'template@odata.bind':
                         "https://graph.microsoft.com/v1.0/teamsTemplates('standard')",
-
-                    'displayName': quote(name),
-                    'description': quote(description),
+                    'displayName': name,
+                    'description': description,
+                    "members": [
+                        {
+                            "@odata.type":"#microsoft.graph.aadUserConversationMember",
+                            "roles": ["owner"],
+                            "user@odata.bind": "https://graph.microsoft.com/v1.0/users('{userid}')".format(
+                                userid=owner
+                            )
+                        }
+                    ]
                 }
             )
         )
 
         if (202 == response.status_code):
-            return response.content
+            # the response body is empty in this case, interesting fields are
+            # Location and Content-Location as they contain the new teams id
+            return dict(response.headers)
         else:
             raise self._generate_error_message(response)
 
     def create_team_from_group(self, object_id):  # object_id is similar to cb57b853-be97-457c-8232-491dd82f5940
         '''
-        https://docs.microsoft.com/de-de/graph/api/team-put-teams?view=graph-rest-beta
+        https://docs.microsoft.com/en-us/graph/api/team-put-teams?view=graph-rest-beta
         @TODO: the name of this endpoint will change at one point in time. Regular tests are necessary.
         '''
         response = requests.post(
@@ -364,6 +275,7 @@ class Graph(AzureHandler):
             raise self._generate_error_message(response)
 
     def delete_team(self, object_id):
+        """ https://docs.microsoft.com/en-us/graph/api/group-delete """
         # links to the `delete group` page in the API doc on the MS website
         return self.delete_group(self, object_id)
 
@@ -429,7 +341,7 @@ class Graph(AzureHandler):
         else:
             raise self._generate_error_message(response)
 
-    def list_all_teams(self):
+    def list_teams(self):
         '''
         https://docs.microsoft.com/en-us/graph/teams-list-all-teams
         To list all teams in an organization (tenant), you find all groups that
