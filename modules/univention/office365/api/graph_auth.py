@@ -104,20 +104,14 @@ def _get_client_assertion(oauth_token_endpoint, ssl_fingerprint, key_data, appli
         signature=signature
     )
 
-def get_client_assertion(oauth_endpoint, connection_alias, config_basepath="/etc/univention-office365"):
-    # token_file_as_json = load_token_file(connection_alias)
-    # token_file_as_json['application_id'],
-    # token_file_as_json['directory_id'],
-    # token_file_as_json['access_token']
 
-    with open(os.path.join(config_basepath, connection_alias, "ids.json"), 'r') as f_ids,\
-         open(os.path.join(config_basepath, connection_alias, "cert.fp"), 'r') as f_ssl_fingerprint,\
+def get_client_assertion(oauth_endpoint, connection_alias, application_id, config_basepath="/etc/univention-office365"):
+    with open(os.path.join(config_basepath, connection_alias, "cert.fp"), 'r') as f_ssl_fingerprint,\
          open(os.path.join(config_basepath, connection_alias, "key.pem"), 'r') as f_ssl_key:
 
-        ids = json.load(f_ids)
         return _get_client_assertion(
             oauth_endpoint,
             f_ssl_fingerprint.read(),
             f_ssl_key.read(),
-            ids['client_id']
+            application_id
         )

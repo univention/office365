@@ -39,7 +39,9 @@ class Graph(AzureHandler):
         self.name = name
         self.connection_alias = connection_alias
 
-        self.access_token = self._login(connection_alias)
+        # self.access_token = self._login(connection_alias)
+        self.access_token = json.loads(self._login(connection_alias))
+        self.token = self.access_token['access_token']
 
 
         # write some information about the token in use into the log file
@@ -75,7 +77,15 @@ class Graph(AzureHandler):
         # https://login.microsoftonline.com/3e7d9eb5-c3a1-4cfc-892e-a8ec29e45b77/oauth2/v2.0/token
         token_file_as_json = load_token_file(connection_alias)
 
-        endpoint = "https://login.microsoftonline.com/{directory_id}/oauth2/token".format(
+        # TODO: compatibility between azure and graph vvv
+
+        # endpoint = "https://login.microsoftonline.com/{directory_id}/oauth2/token".format(
+        #     directory_id=token_file_as_json['directory_id']
+        # )
+
+        # with the new graph endpoint the directory_id becomes optional
+        # https://docs.microsoft.com/en-us/graph/migrate-azure-ad-graph-request-differences#basic-requests
+        endpoint = "https://login.microsoftonline.com/{directory_id}/oauth2/v2.0/token".format(
             directory_id=token_file_as_json['directory_id']
         )
 
@@ -85,13 +95,17 @@ class Graph(AzureHandler):
             data={
                 'client_id': token_file_as_json['application_id'],
                 'client_assertion_type': 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
-                'client_assertion': get_client_assertion(endpoint, connection_alias),
+                'client_assertion': get_client_assertion(
+                    endpoint,
+                    connection_alias,
+                    token_file_as_json['application_id']
+                ),
                 'grant_type': 'client_credentials',
                 'scope': ['https://graph.microsoft.com/.default']
             }
         )
 
-        if (201 == response.status_code):  # a new user was created
+        if (200 == response.status_code):  # a new user was created
             return response.content
         else:
             raise self._generate_error_message(response)
@@ -101,7 +115,7 @@ class Graph(AzureHandler):
             message = response
 
         elif isinstance(response, requests.Response):
-            print("OOOOOO {f}".format(f=response.headers))
+            # print("OOOOOO {f}".format(f=response.headers))
             message = "HTTP response status: {num}\n".format(
                 num=response.status_code
             )
