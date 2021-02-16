@@ -30,9 +30,9 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-
 import sys
 import logging
+import inspect
 import json
 import argparse
 
@@ -40,167 +40,168 @@ from argparse import RawTextHelpFormatter
 from univention.config_registry import ConfigRegistry
 
 from univention.office365.api.graph import Graph
-from univention.office365.api.exceptions import GraphError
 from univention.office365.api.graph_auth import get_all_aliases_from_ucr, get_all_available_endpoints
 
-if __name__ == "__main__":
 
+def try_to_prettyprint(msg, indent=4):
+	try:  # try to pretty print JSON from a string
+		print(
+			json.dumps(
+				json.loads(msg),
+				indent=indent,
+				sort_keys=False
+			)
+		)
+	except TypeError:  # maybe this is not a string, but already JSON?
+		try:
+			print(
+				json.dumps(
+					msg,
+					indent=indent,
+					sort_keys=False
+				)
+			)
+		except ValueError:  # print as plain text otherwise
+			print(msg)
+
+
+if __name__ == "__main__":
+	''' short 'flags' are hard coded while long opts are used to call functions
+	and are dynamically derived from the class. Additions to the class
+	automatically advance the amount of options this program offers.  '''
+
+	# load the univention config registry, used to acquire some default values
 	ucr = ConfigRegistry()
 	ucr.load()
 
 	parser = argparse.ArgumentParser(
-		description="Test for the Microsoft Graph API library integration",
-		epilog="Usage example:\n"
-		"\t{program} -g azuretestdomain --me".format(program=sys.argv[0]),
-		formatter_class=RawTextHelpFormatter
-	)
-
-	parser.add_argument(
-		'-v',
-		'--verbose',
-		help="set the verbosity/debug level for the logger:"
-		"\n{notset}\tNOTSET"
-		"\n{error}\tERROR"
-		"\n{warning}\tWARNING"
-		"\n{info}\tINFO"
-		"\n{debug}\tDEBUG".format(
-			notset=logging.NOTSET,
-			error=logging.ERROR,
-			warning=logging.WARNING,
-			info=logging.INFO,
-			debug=logging.DEBUG
+		description=(
+			"Test for the Microsoft Graph API library integration"
 		),
-		type=int,
-		choices=[
-			logging.NOTSET,
-			logging.ERROR,
-			logging.WARNING,
-			logging.INFO,
-			logging.DEBUG
-		],
-		default=logging.ERROR
+		epilog=(
+			"Usage examples:"
+			"\n\t{program} -g azuretestdomain\t\t\t"
+			"  \t# requests only a new access token"
+			"\n\t{program} -g azuretestdomain --function [argument(s)]"
+			"  \t# requests access token and calls the function"
+		).format(program=sys.argv[0]),
+		formatter_class=RawTextHelpFormatter  # required for \n in epilog
 	)
 
 	parser.add_argument(
 		"-g",
-		"--graph",
-		help="test microsoft graph library calls against this `alias` (required)",
-		choices=get_all_aliases_from_ucr(ucr)
+		choices=get_all_aliases_from_ucr(ucr),
+		help="test Microsoft graph library calls against this `alias` (required)"
 	)
 
 	parser.add_argument(
 		'-a',
-		'--aliases',
-		help="list all aliases",
-		action="store_true"
+		action="store_true",
+		help="list all aliases"
 	)
 
 	parser.add_argument(
 		'-e',
-		'--endpoints',
-		help="list all endpoints",
-		action="store_true"
+		action="store_true",
+		help="list all endpoints"
 	)
 
 	parser.add_argument(
-		'--me',
-		help='display `me` endpoint (very simple call, good for debugging'
-		'authentication problems)',
-		action="store_true"
+		'-d',
+		type=str.upper,  # ignore case, so that 'error' as well as 'ERROR' work
+		default=logging.ERROR,
+		choices=[
+			logging.getLevelName(n)
+			for n in range(logging.NOTSET, logging.CRITICAL + 10, 10)
+		], help="set the debug level for the logger."
 	)
 
-	parser.add_argument(
-		'--groups',
-		help='lists all groups accessible through the account',
-		action="store_true"
-	)
+	# Now add all functions from the Graph class to this test program. If help
+	# texts for functions are missing it is, because the functions do not have
+	# a proper python docstring. Nothing needs to be hard-coded here any more.
+	all_methods = filter(lambda x: not x[0].startswith('_'), [
+		m for m in inspect.getmembers(Graph, predicate=inspect.ismethod)])
 
-	parser.add_argument(
-		'--azure_users',
-		help='list all users with azure (https://graph.windows.net/{application_id}/users?api-version=1.6)',
-		action="store_true"
-	)
+	for f in all_methods:
+		arguments = f[1].func_code.co_varnames[1:][:-1]
+		try:
+			if len(arguments) <= 1:  # only 'self'
+				parser.add_argument(
+					'--' + f[0],
+					help=inspect.cleandoc(f[1].__doc__ or ""),
+					action="store_true"
+				)
+			else:  # a method with parameters
+				parser.add_argument(
+					'--' + f[0],
+					help=inspect.cleandoc(f[1].__doc__ or ""),
+					nargs=len(arguments),
+					metavar=(arguments)
+				)
+		except Exception as e:
+			print(
+				"Method parser failed for function '{function}{arguments}'"
+				" with {argcount} arguments: {error}".format(
+					error=str(e),
+					function=f[0],
+					arguments=arguments,
+					argcount=len(arguments)
+				))
+			continue
 
-	parser.add_argument(
-		"--graph_users",
-		help="list all users with graph (https://graph.microsoft.com/v1.0/users)",
-		action="store_true"
-	)
+	args = parser.parse_args()  # do not delete this line accidentally!
 
-	parser.add_argument(
-		'--create_invitation',
-		help='create an invitation (a user object marked as `guest`)',
-		nargs=2,
-		metavar=('invitedUserEmailAddress', 'inviteRedirectUrl')
-	)
-
-	parser.add_argument(
-		'--create_team',
-		help='create a new team',
-		nargs=3,
-		metavar=('name', 'description', 'owner_id')
-	)
-
-	parser.add_argument(
-		'--list_team_members',
-		help='list team members',
-		nargs=1,
-		metavar=('team_id')
-	)
-
-	args = parser.parse_args()
-
-	if args.endpoints:
+	if args.e:
 		print(json.dumps(get_all_available_endpoints(ucr), indent=4, sort_keys=True))
-	elif args.aliases:
+
+	elif args.a:
 		print(json.dumps(get_all_aliases_from_ucr(ucr), indent=4, sort_keys=True))
-	elif args.graph:
-		logging.basicConfig(level=args.verbose)
+
+	elif args.g:
+		logging.basicConfig(level=args.d)
+
+		logger = logging.getLogger(__file__)
+		logger.level = getattr(logging, args.d.upper())
+
 		g = Graph(
 			ucr=ucr,
 			name=str(__file__),
-			connection_alias=args.graph,
-			loglevel=args.verbose)
+			connection_alias=args.g,
+			logger=logger
+		)  # the instantiation of the class requests a new access token
 
-		try:
-			if args.azure_users:
-				print(json.dumps(json.loads(g.get_azure_users()), indent=4, sort_keys=True))
+		arguments = [
+			k for k, v in vars(args).iteritems()
+			if v not in [None, False] and len(k) > 1
+		]  # iterates over all arguments and skips flags with the length of 1
 
-			if args.graph_users:
-				print(json.dumps(json.loads(g.get_graph_users()), indent=4, sort_keys=True))
+		# Note, that this implementation does not respect default values, which the
+		# API functions may have. Instead all parameters must be specified
+		# explicitly. There is no need for that now, but this might become
+		# interesting in future in order to test default values.
+		for arg in arguments:
 
-			if args.me:
-				print(json.dumps(json.loads(g.get_me()), indent=4, sort_keys=True))
+			a = getattr(args, arg)
+			assert(a is not None)
 
-			if args.groups:
-				print(json.dumps(json.loads(g.list_groups()), indent=4, sort_keys=True))
+			f = getattr(g, arg)
+			assert(callable(f))  # we assume, that the function is callable.
 
-			if args.create_team:
-				name = args.create_team[0]
-				desc = args.create_team[1]
-				owner = args.create_team[2]
-				print('creating team: {name}, owned by {owner} - {desc}'.format(
-					name=name,
-					desc=desc,
-					owner=owner)
+			# check if function has parameters or not
+			if (isinstance(a, bool)):
+				logger.info("@ executing: {method}()".format(method=arg))
+				try_to_prettyprint(f())  # call a function without parameters
+				logger.info("@ finished: {method}()".format(method=arg))
+			else:  # means here: hasattr(a, '__iter__'), because a is a list
+				logger.info("@ executing: {method}({params})".format(
+					method=arg,
+					params=a)
 				)
-				print(json.dumps(g.create_team(name, desc, owner), indent=4, sort_keys=True))
-
-			if args.create_invitation:
-				mail = args.create_invitation[0]
-				url = args.create_invitation[1]
-				print('creating invitation for: {mail} - {url}'.format(mail=mail, url=url))
-				g.create_invitation(mail, url)
-
-			if args.list_team_members:
-				team_id = args.list_team_members[0]
-				print('listing team members of {team_id}'.format(team_id=team_id))
-				g.list_team_members(team_id)
-
-		except GraphError as e:
-			print("!! Graph Error occured: {msg}".format(msg=str(e)))
-		except Exception as e:
-			print("!! Unexpected Error occured: {msg}".format(msg=str(e)))
+				try_to_prettyprint(f(*a))  # call a function with parameters
+				logger.info("@ finished: {method}({params})".format(
+					method=arg,
+					params=a)
+				)
 	else:
 		parser.print_help()
 
