@@ -6,8 +6,10 @@ import sys
 
 try:
     from urllib.parse import quote
+    from urllib.parse import urlencode
 except ImportError:
     from urllib import quote
+    from urllib import urlencode
 
 
 from univention.office365.api.exceptions import GraphError
@@ -35,30 +37,20 @@ class Graph(AzureHandler):
         self.name = name
         self.connection_alias = connection_alias
 
-        # # load the token file from disk and parses it into a json object
-        # token_file_as_json = load_token_file(self.connection_alias)
-        # self.logger.debug(json.dumps(token_file_as_json, indent=4))
+        # load the token file from disk and parses it into a json object
+        token_file_as_json = load_token_file(self.connection_alias)
+        self.logger.debug(json.dumps(token_file_as_json, indent=4))
 
-        # # assign the value from the `access_token` field to the class variable
+        # assign the value from the `access_token` field to the class variable
         # self.token = token_file_as_json['access_token']
 
-        # # if the access token has expired (is too old), it is automatically
-        # # tried to renew it. We use the old API calls for that, so that this
-        # # is guaranteed to stay compatible for now.
-        # valid_until = datetime.datetime.fromtimestamp(
-        #     int(token_file_as_json.get("access_token_exp_at", 0))
-        # )
+        # if the access token has expired (is too old), it is automatically
+        # tried to renew it. We use the old API calls for that, so that this
+        # is guaranteed to stay compatible for now.
+        valid_until = datetime.datetime.fromtimestamp(
+            int(token_file_as_json.get("access_token_exp_at", 0))
+        )
 
-        # # write some information about the token in use into the log file
-        # self.logger.info(
-        #     "The token for `{alias}` is valid until `{timestamp}` and it looks"
-        #     " similar to: `{starts}-trimmed-{ends}`".format(
-        #         starts=self.token[:10],
-        #         ends=self.token[-10:],
-        #         alias=self.connection_alias,
-        #         timestamp=valid_until
-        #     )
-        # )
 
         # if (datetime.datetime.now() > valid_until):
         #     self.logger.info("Access token has expired. We will try to renew it.")
@@ -67,11 +59,29 @@ class Graph(AzureHandler):
         #         self.connection_alias
         #     ).retrieve_access_token()
 
+        self.access_token = self._login(
+            token_file_as_json['application_id'],
+            token_file_as_json['directory_id'],
+            token_file_as_json['access_token']
+        )
+
+        self.token = self.access_token['token']
+        # write some information about the token in use into the log file
+        self.logger.info(
+            "The token for `{alias}` is valid until `{timestamp}` and it looks"
+            " similar to: `{starts}-trimmed-{ends}`".format(
+                starts=self.token[:10],
+                ends=self.token[-10:],
+                alias=self.connection_alias,
+                timestamp=valid_until
+            )
+        )
+
         # TODO: remove these commented out lines - they are currently
         # be used for testing against the old login mechanism
-        self.auth = AzureAuth(name, self.connection_alias)
+        # self.auth = AzureAuth(name, self.connection_alias)
         # initialized = self.auth.is_initialized(self.connection_alias)
-        self.token = self.auth.get_access_token()
+        # self.token = self.auth.get_access_token()
 
         # prepare the http headers, which we are going to send with any request
         self.headers = {
@@ -84,6 +94,11 @@ class Graph(AzureHandler):
         return super(Graph, self).create_random_pw()
 
     def _generate_error_message(self, response):
+        if(hasattr(self, 'headers')):
+            self.logger.debug('HTTP request headers: {header}'.format(
+                header=json.dumps(self.headers, indent=4)
+            ))
+
         if isinstance(response, str):
             message = response
         elif isinstance(response, requests.Response):
@@ -102,12 +117,44 @@ class Graph(AzureHandler):
         else:
             message('unexpected error')
 
-        self.logger.debug('HTTP request headers: {header}'.format(
-            header=json.dumps(self.headers, indent=4)))
         self.logger.debug('Token file: {json}'.format(
             json=json.dumps(load_token_file(self.connection_alias), indent=4)))
 
         return GraphError(message)
+
+    def _login(self, application_id, directory_id, session_token):
+        # https://login.microsoftonline.com/3e7d9eb5-c3a1-4cfc-892e-a8ec29e45b77/oauth2/v2.0/token
+        response = requests.post(
+            "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token".format(
+                tenant=directory_id
+            ),
+
+            # {'client_assertion_type':
+            # 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+            # 'redirect_uri':
+            # u'https://10.200.29.86/univention/command/office365/authorize',
+            # 'client_assertion':
+            # 'eyJ4NXQiOiAiK3FFekROdW9QeG9PTE5CRVNlanFINXZTc1NNPSIsICJhbGciOiAiUlMyNTYifQ.eyJhdWQiOiAiaHR0cHM6Ly9sb2dpbi5taWNyb3NvZnRvbmxpbmUuY29tLzNlN2Q5ZWI1LWMzYTEtNGNmYy04OTJlLWE4ZWMyOWU0NWI3Ny9vYXV0aDIvdjIuMC90b2tlbiIsICJpc3MiOiAiZmJiNmMzNWYtNGY3YS00MTJkLTkxMDktMmFiYTI5MjVhODM2IiwgImp0aSI6ICJlZmRlOWZiNS04OWMzLTQzMzktYjMzNS04MzYyNjNkMzc1NjgiLCAiZXhwIjogMTYxMzM5NTM4MSwgIm5iZiI6IDE2MTMzOTQ0ODEsICJzdWIiOiAiZmJiNmMzNWYtNGY3YS00MTJkLTkxMDktMmFiYTI5MjVhODM2In0.MEJLxDf_zJR-F-L0tnqKv8f6XhnbUH1tCIyB8U4GeYUFXSgm8mUUZ_4CqSvhaGhm1QfRoJSWNIT2Bf6NBm7EnTX5OWiVypf4oAEZ06I2TqKS2OpE0OEMUjjqBmujYbdgwemBUOG_N5lee-7PFj2TrPQQ3apW1IR-_7ZBcGu7q1XOpvVmRF_R1Tcf7G4eqkrCk-etkJ70GfA3EyXz7VLUFsYNPOYpzv_gUUTup5QgZVuVnqxhkgLWXr1Uw9SMi9XbUgjlJh7YQkAHKi4edZj-0p8PlR9OAaSy1GYoFPp1j7Nd0e8_zcEd47E0fnUellNMIRzqs9zabT3YyfFZ7AjhWw',
+            # 'client_id': u'fbb6c35f-4f7a-412d-9109-2aba2925a836', 'scope':
+            # ['https://graph.microsoft.com/.default'], 'grant_type':
+            # 'client_credentials'}
+
+            # https://login.microsoftonline.com/3e7d9eb5-c3a1-4cfc-892e-a8ec29e45b77/oauth2/v2.0/token
+
+            headers={ "Content-Type": "application/x-www-form-urlencoded" },
+            data={
+                    'client_id': application_id,
+                    'client_assertion_type': 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+                    'client_assertion': self._get_client_assertion(),
+                    'grant_type': 'client_credentials',
+                    'scope': ['https://graph.microsoft.com/.default']
+                }
+        )
+
+        if (201 == response.status_code):  # a new user was created
+            return response.content
+        else:
+            raise self._generate_error_message(response)
 
     def list_users(self, objectid=None, ofilter=None):
         return super(Graph, self).list_users(self, objectid, ofilter)

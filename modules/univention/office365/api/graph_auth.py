@@ -15,23 +15,23 @@ def load_token_file(alias, config_basepath="/etc/univention-office365"):
     may be easier to understand.
     '''
 
-    token_file = os.path.join(config_basepath, alias, "token.json")
-    if (os.path.exists(token_file)):
-        with open(token_file, 'r') as f:
-            token_json = json.load(f)
-            if all([
-                "access_token" in token_json,
-                "access_token_exp_at" in token_json,
-                "consent_given" in token_json,
-                token_json["consent_given"]
-            ]):
-                return token_json
-            else:
-                raise TokenFileInvalid(
-                    "An enabled connection has an unusuable access token:"
-                    "{!r}".format(token_json))
-    else:
-        raise TokenFileNotFound()
+    with open(os.path.join(config_basepath, alias, "ids.json"), 'r') as f_ids, \
+         open(os.path.join(config_basepath, alias, "token.json"), 'r') as f_token:
+
+        ids_json = json.load(f_ids)
+        token_json = json.load(f_token)
+        if all([
+            "access_token" in token_json,
+            "access_token_exp_at" in token_json,
+            "client_id" in ids_json
+        ]):
+            token_json['application_id'] = ids_json['client_id']  # name has changed with graph!
+            token_json['directory_id'] = ids_json['adconnection_id']  # also known as 'tenant id'
+            return token_json
+        else:
+            raise TokenFileInvalid(
+                "An enabled connection has an unusuable access token:"
+                "{!r}".format(token_json))
 
 
 def get_all_aliases_from_ucr(ucr):
