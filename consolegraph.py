@@ -184,7 +184,7 @@ if __name__ == "__main__":
 					desc=desc,
 					owner=owner)
 				)
-				g.create_team(name, desc, owner)
+				print(json.dumps(g.create_team(name, desc, owner), indent=4, sort_keys=True))
 
 			if args.create_invitation:
 				mail = args.create_invitation[0]

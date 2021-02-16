@@ -120,29 +120,29 @@ class Graph(AzureHandler):
         else:
             raise self._generate_error_message(response)
 
-    # def create_group(self, name, description=""):
-    #     ''' https://docs.microsoft.com/de-de/graph/api/group-post-groups '''
-    #     response = requests.post(
-    #         "https://graph.microsoft.com/v1.0/groups",
-    #         headers=self.headers,
-    #         data=json.dumps(
-    #             {
-    #                 'displayName': quote(name),
-    #                 'description': quote(description),
-    #                 'mailEnabled': False,
-    #                 'mailNickname': name.translate(
-    #                     ''.maketrans(
-    #                         {' ': '_-_'}),  # translate ' ' to '_-_' and
-    #                     '@()\\[]";:.<>,'),  # delete illegal chars (see doc)
-    #                 'securityEnabled': True
-    #             }
-    #         )
-    #     )
+    def create_group(self, name, description=""):
+        ''' https://docs.microsoft.com/de-de/graph/api/group-post-groups '''
+        response = requests.post(
+            "https://graph.microsoft.com/v1.0/groups",
+            headers=self.headers,
+            data=json.dumps(
+                {
+                    'displayName': quote(name),
+                    'description': quote(description),
+                    'mailEnabled': False,
+                    'mailNickname': name.translate(
+                        ''.maketrans(
+                            {' ': '_-_'}),  # translate ' ' to '_-_' and
+                        '@()\\[]";:.<>,'),  # delete illegal chars (see doc)
+                    'securityEnabled': True
+                }
+            )
+        )
 
-    #     if (201 == response.status_code):  # group was created
-    #         return response.content
-    #     else:
-    #         raise self._generate_error_message(response)
+        if (201 == response.status_code):  # group was created
+            return response.content
+        else:
+            raise self._generate_error_message(response)
 
     def get_azure_users(self):
         response = requests.get(
@@ -176,6 +176,19 @@ class Graph(AzureHandler):
         else:
             raise self._generate_error_message(response)
 
+    def list_groups(self, objectid="", filter=""):
+        ''' https://docs.microsoft.com/en-US/graph/api/group-list '''
+        ''' we keep objectid for backward compatibility for now '''
+        response = requests.get(
+            "https://graph.microsoft.com/v1.0/groups?filter={filter}".format(
+                filter=filter
+            ), headers=self.headers,
+        )
+        if (200 == response.status_code):
+            return response.content
+        else:
+            raise self._generate_error_message(response)
+
     # Microsoft Teams
     def create_team(self, name, description="", owner=None):
         ''' https://docs.microsoft.com/en-US/graph/api/team-post '''
@@ -202,7 +215,9 @@ class Graph(AzureHandler):
         )
 
         if (202 == response.status_code):
-            return response.content
+            # the response body is empty in this case, interesting fields are
+            # Location and Content-Location as they contain the new teams id
+            return dict(response.headers)
         else:
             raise self._generate_error_message(response)
 
