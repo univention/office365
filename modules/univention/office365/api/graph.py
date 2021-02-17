@@ -1,5 +1,3 @@
-import msal
-
 import datetime
 import logging
 import json
@@ -13,18 +11,27 @@ except ImportError:
 
 
 from univention.office365.api.exceptions import GraphError
-from univention.office365.api.graph_auth import load_token_file, get_client_assertion
+from univention.office365.api.graph_auth import get_client_assertion, load_token_file
 from univention.office365.azure_handler import AzureHandler
 from univention.office365.azure_auth import AzureAuth
 
 
 class Graph(AzureHandler):
     def __init__(self, ucr, name, connection_alias, logger=logging.getLogger()):
-        # initialize logging..
-        self.initialized = False
+        '''
+        This initialisation function is parameter compatible with the former
+        `azure_handler.py` class and can be used as a drop-in-replacement for
+        it. It still relies on the AzureHandlers functionality and acts as a
+        compatibility layer, while it simultaneously allows the incremental
+        reimplementation of functions on top of it, or in other words
+        'overwrite functions' until all calls have been migrated, then remove
+        the base class `AzureHandler`.
+        '''
+
+        self.ucr = ucr
+        self.name = name
+        self.connection_alias = connection_alias
         self.logger = logger
-        # self.logger = logging.getLogger()
-        # self.logger.addHandler(logging.StreamHandler(sys.stdout))
 
         if (self.logger.level == logging.DEBUG):
             logging.basicConfig(level=logging.DEBUG)
@@ -34,22 +41,16 @@ class Graph(AzureHandler):
             requests_log.addHandler(logging.StreamHandler(sys.stdout))
             # requests.settings.verbose = sys.stderr
 
-        # load the univention config registry for testing...
-        self.ucr = ucr
-        self.name = name
-        self.connection_alias = connection_alias
-
         # self.access_token = self._login(connection_alias)
-        self.access_token = json.loads(self._login(connection_alias))
-        self.token = self.access_token['access_token']
-
+        self.access_token_json = json.loads(self._login(connection_alias))
+        self.token = self.access_token_json['access_token']
 
         # write some information about the token in use into the log file
         self.logger.info(
             "The token for `{alias}` looks"
             " similar to: `{starts}-trimmed-{ends}`".format(
-                starts=self.token[:10],
-                ends=self.token[-10:],
+                starts=self.access_token_json['access_token'][:10],
+                ends=self.access_token_json['access_token'][-10:],
                 alias=self.connection_alias,
             )
         )
@@ -57,12 +58,20 @@ class Graph(AzureHandler):
         # prepare the http headers, which we are going to send with any request
         self.headers = {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer {}'.format(self.token),
+            'Authorization': 'Bearer {}'.format(self.access_token_json['access_token']),
             'User-Agent': 'Univention Microsoft 365 Connector'
         }
 
+        # initialize backward compatibility with Azure...
         super(Graph, self).__init__(ucr, name, connection_alias)
-
+        if (not hasattr(self, 'auth')):  # TODO check if still necessary
+            logger.warn(
+                "Implementation changed!"
+                "The base class initialisation did not set self.auth."
+                "Trying to fix that problem by adding necessary values."
+            )
+            self.auth = AzureAuth(name, self.connection_alias)
+            self.token = self.auth.get_access_token()
 
     def create_random_pw(self):
         return super(Graph, self).create_random_pw()
@@ -115,7 +124,6 @@ class Graph(AzureHandler):
             message = response
 
         elif isinstance(response, requests.Response):
-            # print("OOOOOO {f}".format(f=response.headers))
             message = "HTTP response status: {num}\n".format(
                 num=response.status_code
             )

@@ -43,9 +43,7 @@ def load_token_file(alias, config_basepath="/etc/univention-office365"):
 
 
 def get_all_aliases_from_ucr(ucr):
-    '''
-    find all initialized connections according to the univention config registry...
-    '''
+    ''' finds all initialized connections according to the univention config registry '''
 
     return [x[0].split('/')[-1] for x in filter(
         lambda x: all([
@@ -53,18 +51,6 @@ def get_all_aliases_from_ucr(ucr):
             x[1] == 'initialized'
         ]), ucr.items())
     ]
-
-
-def get_all_available_endpoints(ucr, config_basepath=None):
-    '''
-    returns a dict with the name of each `alias` and the endpoint in form of
-    a plain json file. Basic checks are performed.
-    '''
-
-    endpoints = {}
-    for a in get_all_aliases_from_ucr(ucr):
-        endpoints[a] = load_token_file(a)
-    return endpoints
 
 
 def _get_client_assertion(oauth_token_endpoint, ssl_fingerprint, key_data, application_id):
