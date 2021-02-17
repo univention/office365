@@ -40,7 +40,8 @@ from argparse import RawTextHelpFormatter
 from univention.config_registry import ConfigRegistry
 
 from univention.office365.api.graph import Graph
-from univention.office365.api.graph_auth import get_all_aliases_from_ucr, get_all_available_endpoints
+from univention.office365.api.graph_auth import get_all_aliases_from_ucr
+from univention.office365.api.exceptions import GraphError
 
 
 def try_to_prettyprint(msg, indent=4):
@@ -94,19 +95,14 @@ if __name__ == "__main__":
 	parser.add_argument(
 		"-g",
 		choices=get_all_aliases_from_ucr(ucr),
-		help="test Microsoft graph library calls against this `alias` (required)"
+		help="test Microsoft graph library calls against this `alias` (required)",
+		default=(get_all_aliases_from_ucr(ucr)[0])
 	)
 
 	parser.add_argument(
 		'-a',
 		action="store_true",
-		help="list all aliases"
-	)
-
-	parser.add_argument(
-		'-e',
-		action="store_true",
-		help="list all endpoints"
+		help=inspect.cleandoc(get_all_aliases_from_ucr.__doc__ or "")
 	)
 
 	parser.add_argument(
@@ -126,20 +122,37 @@ if __name__ == "__main__":
 		m for m in inspect.getmembers(Graph, predicate=inspect.ismethod)])
 
 	for f in all_methods:
-		arguments = f[1].func_code.co_varnames[1:][:-1]
+		arg_count = f[1].func_code.co_argcount - 1
+		arguments = f[1].func_code.co_varnames[1:arg_count + 1]
+
+		# print(
+		# 	"function {func} has {co_argcount} arguments with defaults: {defaults}".format(
+		# 		func=f[0],
+		# 		co_argcount=arg_count,
+		# 		defaults=f[1].__defaults__
+		# 	)
+		# )
+
 		try:
-			if len(arguments) <= 1:  # only 'self'
+			if arg_count == 0:  # only 'self'
 				parser.add_argument(
 					'--' + f[0],
 					help=inspect.cleandoc(f[1].__doc__ or ""),
 					action="store_true"
 				)
 			else:  # a method with parameters
+				defaults = []
+				# help_defaults = ""
+				# if f[1].__defaults__ is not None:
+					# defaults = [None] * (arg_count - len(f[1].__defaults__)) + (f[1].__defaults__)
+				# help_defaults = ", defaults to: " + str(list(f[1].__defaults__ or []))
+				help_defaults = ", defaults to: " + str(list(f[1].__defaults__ or []))
+				# print(str(defaults))
 				parser.add_argument(
 					'--' + f[0],
-					help=inspect.cleandoc(f[1].__doc__ or ""),
-					nargs=len(arguments),
-					metavar=(arguments)
+					help=inspect.cleandoc(f[1].__doc__ or "") + help_defaults,
+					nargs=arg_count,
+					metavar=arguments
 				)
 		except Exception as e:
 			print(
@@ -148,20 +161,20 @@ if __name__ == "__main__":
 					error=str(e),
 					function=f[0],
 					arguments=arguments,
-					argcount=len(arguments)
+					argcount=arg_count
 				))
 			continue
 
-	args = parser.parse_args()  # do not delete this line accidentally!
+	try:
+		args = parser.parse_args()  # do not delete this line accidentally!
+	except Exception as e:
+		print("Error of type {type}: {error}".format(error=str(e), type=type(e)))
 
-	if args.e:
-		print(json.dumps(get_all_available_endpoints(ucr), indent=4, sort_keys=True))
-
-	elif args.a:
+	if args.a:
 		print(json.dumps(get_all_aliases_from_ucr(ucr), indent=4, sort_keys=True))
 
 	elif args.g:
-		logging.basicConfig(level=args.d)
+		logging.basicConfig(stream=sys.stderr, level=args.d)
 
 		logger = logging.getLogger(__file__)
 		logger.level = getattr(logging, args.d.upper())
@@ -191,19 +204,20 @@ if __name__ == "__main__":
 			assert(callable(f))  # we assume, that the function is callable.
 
 			# check if function has parameters or not
-			if (isinstance(a, bool)):
-				logger.info("@ executing: {method}()".format(method=arg))
-				try_to_prettyprint(f())  # call a function without parameters
+			try:
+				if (isinstance(a, bool)):
+					logger.info("@ executing: {method}()".format(method=arg))
+					try_to_prettyprint(f())  # call a function without parameters
+				else:  # means here: hasattr(a, '__iter__'), because a is a list
+					logger.info("@ executing: {method}({params})".format(method=arg, params=a))
+					try_to_prettyprint(f(*a))  # call a function with parameters
+
 				logger.info("@ finished: {method}()".format(method=arg))
-			else:  # means here: hasattr(a, '__iter__'), because a is a list
-				logger.info("@ executing: {method}({params})".format(
+			except GraphError as e:
+				logger.error(" {type} In '{method}': {error}".format(
+					type=type(e).__name__,
 					method=arg,
-					params=a)
-				)
-				try_to_prettyprint(f(*a))  # call a function with parameters
-				logger.info("@ finished: {method}({params})".format(
-					method=arg,
-					params=a)
+					error=str(e))
 				)
 	else:
 		parser.print_help()

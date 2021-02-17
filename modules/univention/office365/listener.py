@@ -37,6 +37,7 @@ import json
 import zlib
 from ldap.filter import filter_format
 
+from univention.office365.api.graph import Graph
 from univention.office365.azure_handler import AzureHandler, AddLicenseError, ResourceNotFoundError
 from univention.office365.azure_auth import AzureAuth, adconnection_alias_ucrv, default_adconnection_alias_ucrv
 from univention.office365.logging2udebug import get_logger
@@ -112,7 +113,8 @@ class Office365Listener(object):
 
 		self.not_migrated_to_v3 = self.ucr.is_false('office365/migrate/adconnectionalias')
 
-		self.ah = AzureHandler(self.ucr, name, self.adconnection_alias)
+		# self.ah = AzureHandler(self.ucr, name, self.adconnection_alias)
+		self.ah = Graph(self.ucr, name, self.adconnection_alias)
 
 	@property
 	def verified_domains(self):

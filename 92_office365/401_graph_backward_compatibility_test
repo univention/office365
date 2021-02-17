@@ -10,8 +10,6 @@ import os
 import logging
 import argparse
 import unittest
-import random
-import string
 
 import univention.testing.ucr as testing_ucr
 
@@ -21,6 +19,8 @@ from univention.office365.api.exceptions import GraphError
 
 from univention.office365.azure_handler import AzureHandler as Azure
 from univention.office365.azure_auth import AzureError
+
+from helpers.random_strings import create_random_string_with_prefix
 
 
 class TestTeamsAPICompatibility(unittest.TestCase):
@@ -52,23 +52,13 @@ class TestTeamsAPICompatibility(unittest.TestCase):
                 )
         self.assertIsNotNone(self.graph, msg="Graph class was not loaded.")
 
-    def _create_random_string(length, prefix=''):
-        '''
-        creates a simple random string with uppercase letters and numbers in
-        a given length. These strings should be easily distinguishable from
-        other objects a user may have created and thus allow a bulk-removal
-        of all test data.
-        '''
-        return prefix + ''.join(random.choice(
-            string.ascii_uppercase + string.digits) for _ in range(length))
-
     def test_create_group(self):
         '''
         The basic functionality should work implementation independently, but
         if this test fails it means that the results from both calls differd.
         '''
-        name = self._create_random_string('_' + self.__name__ + '_')
-        desc = self._create_random_string('_' + self.__name__ + '_')
+        name = create_random_string_with_prefix('_' + self.__name__ + '_')
+        desc = create_random_string_with_prefix('_' + self.__name__ + '_')
 
         self.assertEqual(
             self.graph.create_group(name, desc),
@@ -81,8 +71,8 @@ class TestTeamsAPICompatibility(unittest.TestCase):
         We expect to be able to create the same group twice. It should then
         have different group_ids though.
         '''
-        name = self._create_random_string('_' + self.__name__ + '_')
-        desc = self._create_random_string('_' + self.__name__ + '_')
+        name = create_random_string_with_prefix('_' + self.__name__ + '_')
+        desc = create_random_string_with_prefix('_' + self.__name__ + '_')
 
         self.assertEqual(
             self.graph.create_group(name, desc),
@@ -100,7 +90,7 @@ class TestTeamsAPICompatibility(unittest.TestCase):
         illegal chars. The implementation is supposed to translate or delete
         them.
         '''
-        name = self._create_random_string(
+        name = create_random_string_with_prefix(
             '_' + self.__name__ + '_' + '@()\\[]";:.<>, ')
 
         self.assertEqual(
