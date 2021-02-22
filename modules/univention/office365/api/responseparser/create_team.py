@@ -3,7 +3,6 @@ import re
 
 
 def get_team_id(response):
-    return re.search(
-        r'/teams/(?P<teamId>[^/]*)/operations/(?P<operationId>.*)',
-        response['location']
-    )['teamId']
+    # raise Exception(response['Location'])
+    # return re.search("teams\('([^']+)'\)", response['Location']).group(1)
+    return re.search("teams\('([^']+)'\)", response['Location']).group(1) or None

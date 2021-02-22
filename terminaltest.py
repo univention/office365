@@ -44,7 +44,7 @@ from univention.office365.api.graph_auth import get_all_aliases_from_ucr
 from univention.office365.api.exceptions import GraphError
 
 
-def try_to_prettyprint(msg, indent=4):
+def try_to_prettyprint(msg, indent=8):
 	try:  # try to pretty print JSON from a string
 		print(
 			json.dumps(
@@ -125,14 +125,6 @@ if __name__ == "__main__":
 		arg_count = f[1].func_code.co_argcount - 1
 		arguments = f[1].func_code.co_varnames[1:arg_count + 1]
 
-		# print(
-		# 	"function {func} has {co_argcount} arguments with defaults: {defaults}".format(
-		# 		func=f[0],
-		# 		co_argcount=arg_count,
-		# 		defaults=f[1].__defaults__
-		# 	)
-		# )
-
 		try:
 			if arg_count == 0:  # only 'self'
 				parser.add_argument(
@@ -142,12 +134,7 @@ if __name__ == "__main__":
 				)
 			else:  # a method with parameters
 				defaults = []
-				# help_defaults = ""
-				# if f[1].__defaults__ is not None:
-					# defaults = [None] * (arg_count - len(f[1].__defaults__)) + (f[1].__defaults__)
-				# help_defaults = ", defaults to: " + str(list(f[1].__defaults__ or []))
 				help_defaults = ", defaults to: " + str(list(f[1].__defaults__ or []))
-				# print(str(defaults))
 				parser.add_argument(
 					'--' + f[0],
 					help=inspect.cleandoc(f[1].__doc__ or "") + help_defaults,
@@ -177,7 +164,7 @@ if __name__ == "__main__":
 		logging.basicConfig(stream=sys.stderr, level=args.d)
 
 		logger = logging.getLogger(__file__)
-		logger.level = getattr(logging, args.d.upper())
+		logger.setLevel(getattr(logging, args.d.upper()))
 
 		g = Graph(
 			ucr=ucr,
@@ -198,7 +185,12 @@ if __name__ == "__main__":
 		for arg in arguments:
 
 			a = getattr(args, arg)
-			assert(a is not None)
+
+			# if (getattr(args, arg) is not None):
+			# 	a = filter(lambda x: x is not '', getattr(args, arg))
+			# 	if len(a) == 0:
+			# 		a = True
+			# assert(a is not None)
 
 			f = getattr(g, arg)
 			assert(callable(f))  # we assume, that the function is callable.
@@ -206,7 +198,7 @@ if __name__ == "__main__":
 			# check if function has parameters or not
 			try:
 				if (isinstance(a, bool)):
-					logger.info("@ executing: {method}()".format(method=arg))
+					logger.info("@ executing: {method}(void)".format(method=arg))
 					try_to_prettyprint(f())  # call a function without parameters
 				else:  # means here: hasattr(a, '__iter__'), because a is a list
 					logger.info("@ executing: {method}({params})".format(method=arg, params=a))
@@ -214,11 +206,12 @@ if __name__ == "__main__":
 
 				logger.info("@ finished: {method}()".format(method=arg))
 			except GraphError as e:
-				logger.error(" {type} In '{method}': {error}".format(
-					type=type(e).__name__,
-					method=arg,
-					error=str(e))
-				)
+				logger.exception(e)
+				# logger.exception(" {type} In '{method}': {error}".format(
+				# 	type=type(e).__name__,
+				# 	method=arg,
+				# 	error=str(e))
+				# )
 	else:
 		parser.print_help()
 

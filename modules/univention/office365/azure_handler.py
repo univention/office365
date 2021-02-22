@@ -140,15 +140,38 @@ def get_service_plan_names(ucr):
 class ApiError(AzureError):
 	def __init__(self, response, *args, **kwargs):
 		msg = "Communication error."
+		if isinstance(response, requests.Response):
+			msg += "HTTP response status: {num}\n".format(
+			    num=response.status_code
+			)
 		if hasattr(response, "json"):
 			j = response.json
 			if callable(j):  # requests version compatibility
 				j = j()
 			msg = j["odata.error"]["message"]["value"]
 			self.json = j
+			msg += (
+				"> request url: {req_url}\n\n"
+				"> request header: {req_headers}\n\n"
+				"> request body: {req_body}\n\n"
+				"> response header: {headers}\n\n"
+				"> response body: {body}\n\n"
+			).format(
+				req_url=str(response.request.url),
+				req_headers=json.dumps(dict(response.request.headers), indent=2),
+				req_body=self._try_to_prettify(response.request.body or "-NONE-"),
+				headers=json.dumps(dict(response.headers), indent=2),
+				body=self._try_to_prettify(response.content or "-NONE-")
+			)
 		self.response = response
 		logger.error(msg)
 		super(ApiError, self).__init__(msg, *args, **kwargs)
+
+	def _try_to_prettify(self, json_string):
+		try:
+			return json.dumps(json.loads(json_string), indent=2)
+		except ValueError:
+			return json_string
 
 
 class ResourceNotFoundError(ApiError):
@@ -176,6 +199,9 @@ class AzureHandler(object):
 		self.uris = _get_azure_uris(self.auth.adconnection_id)
 		self.service_plan_names = get_service_plan_names(self.ucr)
 		logger.info("service_plan_names=%r", self.service_plan_names)
+
+	def getAzureLogger(self):
+		return logger
 
 	def call_api(self, method, url, data=None, retry=0):
 		request_id = str(uuid.uuid4())
