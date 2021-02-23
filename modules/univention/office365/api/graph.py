@@ -294,7 +294,7 @@ class Graph(AzureHandler):
                     'description': description,
                     "members": [
                         {
-                            "@odata.type":"#microsoft.graph.aadUserConversationMember",
+                            "@odata.type": "#microsoft.graph.aadUserConversationMember",
                             "roles": ["owner"],
                             "user@odata.bind": "https://graph.microsoft.com/v1.0/users('{userid}')".format(
                                 userid=owner
@@ -364,14 +364,15 @@ class Graph(AzureHandler):
         if (201 == response.status_code):
             return json.dumps(dict(response.headers))
         if (202 == response.status_code):
-             # @NOTE I always get 202 if it works, but that differs from what is documented
+            # @NOTE I always get 202 if it works, but that differs from what is documented
             return json.dumps(dict(response.headers))
         else:
             raise self._generate_error_message(response)
 
     def create_team_from_group_current(self, object_id):  # object_id is similar to cb57b853-be97-457c-8232-491dd82f5940
-        ''' https://docs.microsoft.com/en-us/graph/api/team-put-teams '''
-        ''' but this does not work with "Cannot migrate this group, id: 364ff58b-b67a-4a74-8f6d-ac3e9ff7db38, access type: '''
+        ''' https://docs.microsoft.com/en-us/graph/api/team-put-teams but this
+        does not work with "Cannot migrate this group, id:
+        364ff58b-b67a-4a74-8f6d-ac3e9ff7db38, access type: [...] '''
         response = requests.put(
             "https://graph.microsoft.com/v1.0/groups/{object_id}/team".format(
                 object_id=object_id
@@ -513,12 +514,12 @@ class Graph(AzureHandler):
             "https://graph.microsoft.com/v1.0/users",
             headers=self.headers,
             data=json.dumps(
-                 {
+                {
                     "accountEnabled": True,
                     "displayName": username,
                     "mailNickname": username,
                     "userPrincipalName": email,
-                    "passwordProfile" : {
+                    "passwordProfile": {
                         "forceChangePasswordNextSignIn": True,
                         "password": password
                     }
@@ -533,7 +534,6 @@ class Graph(AzureHandler):
     def list_teams(self):
         ''' https://docs.microsoft.com/en-us/graph/api/group-list '''
         ''' this is a simplification which we should try to keep up to date with the API '''
-
 
         # TODO: pagination missing. We should possibly call
         #       super(...).call_api, but the HTTP headers are then wrong.

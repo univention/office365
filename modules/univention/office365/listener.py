@@ -113,8 +113,8 @@ class Office365Listener(object):
 
 		self.not_migrated_to_v3 = self.ucr.is_false('office365/migrate/adconnectionalias')
 
-		# self.ah = AzureHandler(self.ucr, name, self.adconnection_alias)
-		self.ah = Graph(self.ucr, name, self.adconnection_alias)
+		self.ah = AzureHandler(self.ucr, name, self.adconnection_alias)
+		# self.ah = Graph(self.ucr, name, self.adconnection_alias)
 
 	@property
 	def verified_domains(self):
