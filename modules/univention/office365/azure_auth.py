@@ -759,10 +759,10 @@ pause
 		sp_query_string = "?spentityid=urn:federation:MicrosoftOnline"
 		sp_link = "https://{}/simplesamlphp/saml2/idp/SSOService.php{}".format(ucr["ucs/server/sso/fqdn"], sp_query_string)
 		ucr_update(ucr, {
-			"ucs/web/overview/entries/service/office365/description": "Single Sign-On login for Microsoft Microsoft 365",
+			"ucs/web/overview/entries/service/office365/description": "Single Sign-On login for Microsoft 365",
 			"ucs/web/overview/entries/service/office365/label": "Microsoft 365 Login",
 			"ucs/web/overview/entries/service/office365/link": sp_link,
-			"ucs/web/overview/entries/service/office365/description/de": "Single-Sign-On Link für Microsoft Microsoft 365",
+			"ucs/web/overview/entries/service/office365/description/de": "Single-Sign-On Link für Microsoft 365",
 			"ucs/web/overview/entries/service/office365/label/de": "Microsoft 365 Login",
 			"ucs/web/overview/entries/service/office365/priority": "50",
 			"ucs/web/overview/entries/service/office365/icon": "/office365.png"

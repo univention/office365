@@ -36,7 +36,7 @@
 # logger = get_logger(logger_name, short_name, udebug_facility)
 #
 # logger_name: the name of the logger (see python logging)
-# short_name: a sting that will be prepended to all messages
+# short_name: a string that will be prepended to all messages
 # udebug_facility: the facility to log to with univention debug, defaults
 #   to ud.LISTENER
 #
