@@ -40,8 +40,18 @@ from argparse import RawTextHelpFormatter
 from univention.config_registry import ConfigRegistry
 
 from univention.office365.api.graph import Graph
-from univention.office365.api.graph_auth import get_all_aliases_from_ucr
 from univention.office365.api.exceptions import GraphError
+
+
+def get_all_aliases_from_ucr(ucr):
+	''' finds all initialized connections according to the univention config registry '''
+
+	return [x[0].split('/')[-1] for x in filter(
+		lambda x: all([
+			x[0].startswith("office365/adconnection/alias/"),
+			x[1] == 'initialized'
+		]), ucr.items())
+	]
 
 
 def try_to_prettyprint(msg, indent=8):

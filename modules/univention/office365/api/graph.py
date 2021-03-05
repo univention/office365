@@ -12,8 +12,7 @@ except ImportError:
 
 
 from univention.office365.api.exceptions import GraphError
-from univention.office365.api.graph_auth import load_token_file
-from univention.office365.certificate_helper import get_client_assertion_from_alias
+from univention.office365.certificate_helper import get_client_assertion_from_alias, load_token_file
 from univention.office365.azure_handler import AzureHandler
 from univention.office365.azure_auth import AzureAuth
 

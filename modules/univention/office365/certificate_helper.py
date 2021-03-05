@@ -5,6 +5,8 @@ import json
 import uuid
 import base64
 
+from univention.office365.api.exceptions import TokenFileInvalid
+
 
 def get_client_assertion(oauth_token_endpoint, ssl_fingerprint, key_data, application_id):
     def _get_assertion_blob(header, payload):
@@ -63,3 +65,33 @@ def get_client_assertion_from_alias(
             f_ssl_key.read(),
             application_id
         )
+
+
+def load_token_file(alias, config_basepath="/etc/univention-office365"):
+    '''
+    The Microsoft 365 Configuration Wizard places configuration files under
+    /etc/univention-office365. In these we find all necessary data to create an
+    access_token, which can then be used to access graph endpoints of both types
+    Graph and Azure. The naming of some IDs has changed however and this helper
+    function is there, so that it becomes obvious in which file which IDs can
+    be found and how they were called in the past and how they are called now.
+    '''
+
+    with open(os.path.join(config_basepath, alias, "ids.json"), 'r') as f_ids, \
+         open(os.path.join(config_basepath, alias, "token.json"), 'r') as f_token:
+
+        ids_json = json.load(f_ids)
+        token_json = json.load(f_token)
+        if all([
+            "access_token" in token_json,
+            "access_token_exp_at" in token_json,
+            "client_id" in ids_json
+        ]):
+            token_json['application_id'] = ids_json['client_id']  # name has changed with graph!
+            token_json['directory_id'] = ids_json['adconnection_id']  # also known as 'tenant id'
+            return token_json
+        else:
+            raise TokenFileInvalid(
+                "An enabled connection has an unusuable access token:"
+                "{!r}".format(token_json))
+
