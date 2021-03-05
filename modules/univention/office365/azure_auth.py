@@ -57,6 +57,7 @@ from univention.office365.logging2udebug import get_logger
 from univention.office365.udm_helper import UDMHelper
 from univention.config_registry.frontend import ucr_update
 from univention.config_registry import ConfigRegistry, handler_set, handler_unset
+from univention.office365.api_helper import get_http_proxies
 
 
 _ = Translation('univention-office365').translate
@@ -368,7 +369,7 @@ class AzureAuth(object):
 		self._access_token = None
 		self._access_token_exp_at = None
 		if self.proxies is None:
-			self.__class__.proxies = self.get_http_proxies()
+			self.__class__.proxies = get_http_proxies(ucr, logger)
 
 	@classmethod
 	def is_initialized(cls, adconnection_alias=None):
@@ -421,39 +422,6 @@ class AzureAuth(object):
 	@staticmethod
 	def store_tokens(adconnection_alias=None, **kwargs):
 		JsonStorage(AzureADConnectionHandler.get_conf_path('TOKEN_FILE', adconnection_alias)).write(**kwargs)
-
-	@staticmethod
-	def get_http_proxies():
-		res = dict()
-		# 1. proxy settings from environment
-		for req_key, env_key in [
-			('http', 'HTTP_PROXY'), ('http', 'http_proxy'), ('https', 'HTTPS_PROXY'), ('https', 'https_proxy')
-		]:
-			try:
-				res[req_key] = os.environ[env_key]
-			except KeyError:
-				pass
-		# 2. settings from system wide UCR proxy settings
-		for req_key, ucrv in [('http', 'proxy/http'), ('https', 'proxy/https')]:
-			if ucr[ucrv]:
-				res[req_key] = ucr[ucrv]
-		# 3. settings from office365 UCR proxy settings
-		for req_key, ucrv in [('http', 'office365/proxy/http'), ('https', 'office365/proxy/https')]:
-			if ucr[ucrv] and ucr[ucrv] == 'ignore':
-				try:
-					del res[req_key]
-				except KeyError:
-					pass
-			elif ucr[ucrv]:
-				res[req_key] = ucr[ucrv]
-		# remove password from log output
-		res_redacted = res.copy()
-		for k, v in res_redacted.items():
-			password = re.findall(r'http.?://\w+:(\w+)@.*', v)
-			if password:
-				res_redacted[k] = v.replace(password[0], '*****', 1)
-		logger.info('proxy settings: %r', res_redacted)
-		return res
 
 	@classmethod
 	def get_domain(cls, adconnection_alias=None):
@@ -535,7 +503,7 @@ class AzureAuth(object):
 			# the certificates with which the tokens were signed can be downloaded from the federation metadata document
 			# https://msdn.microsoft.com/en-us/library/azure/dn195592.aspx
 			if cls.proxies is None:
-				cls.proxies = cls.get_http_proxies()
+				cls.proxies = get_http_proxies(ucr, logger)
 			try:
 				fed = requests.get(federation_metadata_url.format(adconnection_id=adconnection_id), proxies=cls.proxies)
 			except RequestException as exc:
