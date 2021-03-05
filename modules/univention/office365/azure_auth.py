@@ -58,6 +58,7 @@ from univention.office365.udm_helper import UDMHelper
 from univention.config_registry.frontend import ucr_update
 from univention.config_registry import ConfigRegistry, handler_set, handler_unset
 from univention.office365.api_helper import get_http_proxies
+from univention.office365.certificate_helper import get_client_assertion
 
 
 _ = Translation('univention-office365').translate
@@ -584,7 +585,13 @@ class AzureAuth(object):
 		gets a new access token from microsoft and stores the result in a file
 		named after the alias of the connection.
 		'''
-		assertion = self._get_client_assertion()
+
+		assertion = get_client_assertion(
+			oauth2_token_url.format(adconnection_id=self.adconnection_id),
+			self._load_certificate_fingerprint(),
+			self._get_key_file_data(),
+			self.client_id
+		)
 
 		post_form = {
 			'resource': resource_url,
@@ -615,58 +622,15 @@ class AzureAuth(object):
 			logger.exception("Response didn't contain an access_token. response: %r", response)
 			raise TokenError(_("Error retrieving authentication token from Azure for AD connection {adconnection}.").format(adconnection=self.adconnection_alias), response=response, adconnection_alias=self.adconnection_alias)
 
-	def _get_client_assertion(self):
-		def _load_certificate_fingerprint():
-			with open(AzureADConnectionHandler.get_conf_path('SSL_CERT_FP', self.adconnection_alias), "r") as fd:
-				fp = fd.read()
-			return fp.strip()
+	def _load_certificate_fingerprint(self):
+		with open(AzureADConnectionHandler.get_conf_path('SSL_CERT_FP', self.adconnection_alias), "r") as fd:
+			fp = fd.read()
+		return fp.strip()
 
-		def _get_assertion_blob(header, payload):
-			header_string = json.dumps(header).encode('utf-8')
-			encoded_header = base64.urlsafe_b64encode(header_string).decode('utf-8').strip('=')
-			payload_string = json.dumps(payload).encode('utf-8')
-			encoded_payload = base64.urlsafe_b64encode(payload_string).decode('utf-8').strip('=')
-			return '{0}.{1}'.format(encoded_header, encoded_payload)  # <base64-encoded-header>.<base64-encoded-payload>
-
-		def _get_key_file_data():
-			with open(AzureADConnectionHandler.get_conf_path('SSL_KEY', self.adconnection_alias), "rb") as pem_file:
-				key_data = pem_file.read()
-			return key_data
-
-		def _get_signature(message):
-			key_data = _get_key_file_data()
-
-			priv_key = rsa.PrivateKey.load_pkcs1(key_data)
-			_signature = rsa.sign(message.encode('utf-8'), priv_key, 'SHA-256')
-			encoded_signature = base64.urlsafe_b64encode(_signature)
-			encoded_signature_string = encoded_signature.decode('utf-8').strip('=')
-			return encoded_signature_string
-
-		client_assertion_header = {
-			'alg': 'RS256',
-			'x5t': _load_certificate_fingerprint(),
-		}
-
-		# thanks to Vittorio Bertocci for this:
-		# http://www.cloudidentity.com/blog/2015/02/06/requesting-an-aad-token-with-a-certificate-without-adal/
-		not_before = int(time.time()) - 300  # -5min to allow time diff between us and the server
-		exp_time = int(time.time()) + 600  # 10min
-		client_assertion_payload = {
-			'sub': self.client_id,
-			'iss': self.client_id,
-			'jti': str(uuid.uuid4()),
-			'exp': exp_time,
-			'nbf': not_before,
-			'aud': oauth2_token_url.format(adconnection_id=self.adconnection_id)
-		}
-
-		assertion_blob = _get_assertion_blob(client_assertion_header, client_assertion_payload)
-		signature = _get_signature(assertion_blob)
-
-		# <base64-encoded-header>.<base64-encoded-payload>.<base64-encoded-signature>
-		client_assertion = '{0}.{1}'.format(assertion_blob, signature)
-
-		return client_assertion
+	def _get_key_file_data(self):
+		with open(AzureADConnectionHandler.get_conf_path('SSL_KEY', self.adconnection_alias), "rb") as pem_file:
+			key_data = pem_file.read()
+		return key_data
 
 	@classmethod
 	def write_saml_setup_script(cls, adconnection_alias=None):

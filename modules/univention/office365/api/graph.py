@@ -3,6 +3,7 @@ import logging
 import json
 import requests
 import sys
+import time
 
 try:
     from urllib.parse import quote, urlencode
@@ -11,7 +12,8 @@ except ImportError:
 
 
 from univention.office365.api.exceptions import GraphError
-from univention.office365.api.graph_auth import get_client_assertion, load_token_file
+from univention.office365.api.graph_auth import load_token_file
+from univention.office365.certificate_helper import get_client_assertion_from_alias
 from univention.office365.azure_handler import AzureHandler
 from univention.office365.azure_auth import AzureAuth
 
@@ -80,21 +82,18 @@ class Graph(AzureHandler):
             self.auth = AzureAuth(name, self.connection_alias)
             self.token = self.auth.get_access_token()
 
-    def create_random_pw(self):
-        return super(Graph, self).create_random_pw()
-
     def _try_to_prettify(self, json_string):
         try:
             return json.dumps(json.loads(json_string), indent=2)
         except ValueError:
             return json_string
 
-    def _generate_error_message(self, response):
+    def _generate_error_message(self, response, message=''):
         if isinstance(response, str):
-            message = response
+            message += response
 
         elif isinstance(response, requests.Response):
-            message = "HTTP response status: {num}\n".format(
+            message += "HTTP response status: {num}\n".format(
                 num=response.status_code
             )
             if hasattr(response, 'headers'):
@@ -112,11 +111,10 @@ class Graph(AzureHandler):
                     body=self._try_to_prettify(response.content or "-NONE-")
                 )
         elif response is None:
-            message = "The response was of type `None`"
+            message += "The response was of type `None`"
         else:
-            message('unexpected error')
+            message += 'unexpected error'
 
-        # self.logger.debug(message)
         return GraphError(message)
 
     def _login(self, connection_alias):
@@ -142,7 +140,7 @@ class Graph(AzureHandler):
             data={
                 'client_id': token_file_as_json['application_id'],
                 'client_assertion_type': 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
-                'client_assertion': get_client_assertion(
+                'client_assertion': get_client_assertion_from_alias(
                     endpoint,
                     connection_alias,
                     token_file_as_json['application_id']
