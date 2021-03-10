@@ -88,17 +88,17 @@ class Test_TeamsAPI(unittest.TestCase):
         password = '123' + create_random_string_with_prefix(8) + '@#$'
         mailaddr = create_random_string_with_prefix(8) + '@office365.dev-univention.de'
         new_user = self.graph.add_user(username, mailaddr, password)
-        return json.loads(new_user)
+        self.assertEqual(1, len(new_user))
+        return new_user
 
-    def _wait_for_microsoft(self):
-        time.sleep(10)  # this is bad
+    def _wait_for_microsoft(self, timeout=10):
+        time.sleep(timeout)  # this is bad
 
     def _create_sample_team(self):
         name = create_random_string_with_prefix(20)
         team = self.graph.create_team(name, self.owner)
-
-        new_team_json = json.loads(team)
-        return get_team_id(new_team_json)
+        self.assertEqual(len(team), 1)
+        return get_team_id(team[0])
 
     def test_create_team(self):
         team_id = self._create_sample_team()
@@ -114,20 +114,19 @@ class Test_TeamsAPI(unittest.TestCase):
             self.owner,
             create_random_string_with_prefix(1000)
         )
+        self.assertEqual(len(team), 1)
 
         self._wait_for_microsoft()
 
-        new_team_json = json.loads(team)
-        team_id = get_team_id(new_team_json)
+        team_id = get_team_id(team[0])
 
         team_object = self.graph.get_team(team_id)
-        team_object_json = json.loads(team_object)
-
+        self.assertEqual(len(team_object), 1)
         self.assertEqual(
-            256, len(team_object_json['displayName']),
+            256, len(team_object[0]['displayName']),
             'team name shorter/truncated.')
         self.assertEqual(
-            1000, len(team_object_json['description']),
+            1000, len(team_object[0]['description']),
             'team description too short/truncated.')
 
     def test_create_team_with_no_owner(self):
@@ -166,23 +165,34 @@ class Test_TeamsAPI(unittest.TestCase):
 
         response = self.graph.add_team_member(
             team_id,
-            new_user['id']
+            new_user[0]['id']
         )
-        self.assertEqual(new_user['displayName'], json.loads(response)['displayName'])
+        self.assertEqual(len(response), 1)
+        self.assertEqual(
+            new_user[0]['displayName'],
+            response[0]['displayName']
+        )
 
     def test_list_team_members(self):
         new_user = self._create_random_user()
         team_id = self._create_sample_team()
         self._wait_for_microsoft()
-        self.graph.add_team_member(team_id, new_user['id'])
-        team_members = json.loads(self.graph.list_team_members(team_id))
-        self.assertEqual(
-            new_user['id'],
-            team_members["value"][0]["userId"],
+        self.graph.add_team_member(team_id, new_user[0]['id'])
+        self._wait_for_microsoft()
+        team_members = self.graph.list_team_members(team_id)
+        self.assertGreater(team_members, 0)
+
+        member_ids = map(lambda x: x['userId'], team_members[0])
+        self.assertTrue(
+            new_user[0]['id'] in member_ids,
             'A new user and a new team was created. The user has been added to'
             ' the team, the teams members have been listed and we expected to'
             ' a single element in the list of team members. But the element did'
-            ' not have the users id to it. That is caused this assertion error.')
+            ' not have the users id to it. That is caused this assertion error.'
+            ' assertion: {user_id} & {members}'.format(
+                user_id=new_user[0]['id'],
+                members=member_ids
+            ))
 
     def test_delete_team_member(self):
         new_user = self._create_random_user()
@@ -190,9 +200,9 @@ class Test_TeamsAPI(unittest.TestCase):
 
         self._wait_for_microsoft()
 
-        team_member_object = self.graph.add_team_member(team_id, new_user['id'])
-        team_member_json = json.loads(team_member_object)
-        team_member_id = team_member_json['id']
+        team_member_object = self.graph.add_team_member(team_id, new_user[0]['id'])
+        self.assertEqual(len(team_member_object), 1)
+        team_member_id = team_member_object[0]['id']
 
         self._wait_for_microsoft()
 
@@ -201,19 +211,18 @@ class Test_TeamsAPI(unittest.TestCase):
     def test_create_team_from_group(self):
         name = create_random_string_with_prefix(5, "test_create_team_from_group")
 
-        new_group = json.dumps(dict(self.graph.create_group(name)), indent=4)
-        new_group_json = json.loads(new_group)
-        new_group_id = new_group_json['objectId']
-
-        self._wait_for_microsoft()
+        new_group = self.graph.create_group(name)
+        self.assertGreater(len(new_group), 0)
+        self.assertIn('objectId', new_group)
+        new_group_id = new_group['objectId']
+        self._wait_for_microsoft(60)
 
         self.graph.add_group_owner(new_group_id, self.owner)
-
         self._wait_for_microsoft()
 
         new_team = self.graph.create_team_from_group(new_group_id)
-        new_team_json = json.loads(new_team)
-        team_id = get_team_id(new_team_json)
+        self.assertEqual(len(new_team), 1)
+        team_id = get_team_id(new_team[0])
         self.assertIsNotNone(
             team_id,
             'We could not determine the new teams id after creating one'
@@ -235,9 +244,9 @@ class Test_TeamsAPI(unittest.TestCase):
 
     def test_list_teams(self):
         self.graph.create_team(create_random_string_with_prefix(20), self.owner, "")
-        teams = json.loads(self.graph.list_teams())
-        self.assertTrue(
-            len(teams) > 0,
+        teams = self.graph.list_teams()
+        self.assertGreater(
+            len(teams), 0,
             'one team has been created, but the `list_all_teams` returns zero.'
         )
 

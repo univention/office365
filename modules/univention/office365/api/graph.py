@@ -6,15 +6,15 @@ import sys
 import time
 
 try:
-    from urllib.parse import quote, urlencode
+    from urllib.parse import quote
 except ImportError:
-    from urllib import quote, urlencode
+    from urllib import quote
 
 
 from univention.office365.api.exceptions import GraphError
 from univention.office365.certificate_helper import get_client_assertion_from_alias, load_token_file
+from univention.office365.api_helper import get_http_proxies
 from univention.office365.azure_handler import AzureHandler
-from univention.office365.azure_auth import AzureAuth
 
 '''
 The Graph class is kept compatible with the former `azure_handler.py` class and
@@ -27,13 +27,18 @@ then remove the base class `AzureHandler`.
 One main idea in this class is, that there is only one http code for a
 successful call and many different error values. The first check after each API
 call is therefore a check for a successful return code and that can be found
-in the microsoft documentation under `Response` for each endpoint.
+in the Microsoft documentation under `Response` for each endpoint.
 '''
 
 
 class Graph(AzureHandler):
     def __init__(self, ucr, name, connection_alias, logger=logging.getLogger()):
-        self.ucr = ucr
+        ''' constructor; signature compatible with azure_handler
+            :param ucr: an initialized instance of the univention config registry
+            :param name:  an arbitrary name which will appear in all error messages
+            :param connection_alias: a connection configuration from /etc/univention-office365/
+            :param logger: (optional) an initialized logger
+        '''
         self.name = name
         self.connection_alias = connection_alias
         self.logger = logger
@@ -46,9 +51,9 @@ class Graph(AzureHandler):
             requests_log.addHandler(logging.StreamHandler(sys.stdout))
             # requests.settings.verbose = sys.stderr
 
-        # self.access_token = self._login(connection_alias)
+        # proxies must be set before any attempt to call the API
+        self.proxies = get_http_proxies(ucr, self.logger)
         self.access_token_json = json.loads(self._login(connection_alias))
-
         # write some information about the token in use into the log file
         self.logger.info(
             "the token for `{alias}` looks"
@@ -58,36 +63,148 @@ class Graph(AzureHandler):
                 alias=self.connection_alias,
             )
         )
-
         # prepare the http headers, which we are going to send with any request
         self.headers = {
-            'Content-Type': 'application/json',
             'Authorization': 'Bearer {}'.format(self.access_token_json['access_token']),
             'User-Agent': 'Univention Microsoft 365 Connector'
         }
 
-        # TODO: test both token types combined in one (see 'scope' in _login)
-
-        # initialize backward compatibility with Azure...
+        # We also initialize the base class, so that it becomes usable...
         super(Graph, self).__init__(ucr, name, connection_alias)
-        # self.token = self.access_token_json['access_token']
+        # within the baseclass we apply the log level as well...
         super(Graph, self).getAzureLogger().setLevel(self.logger.level)
+        # we expect the baseclass to set 'auth'. If the implementation ever
+        # changes we will be warned.
         if (not hasattr(self, 'auth')):  # TODO check if still necessary
             self.logger.warn(
                 "Implementation changed!"
                 "The base class initialisation did not set self.auth."
                 "Trying to fix that problem by adding necessary values."
             )
-            self.auth = AzureAuth(name, self.connection_alias)
-            self.token = self.auth.get_access_token()
 
-    def call_api(self, method, url, data=None, retry=0):
+    def _call_graph_api(self, method, url, data=None, retry=1, expected_status=[]):
+        ''' private function to avoid code duplication; adds support for
+            pagination, proxy handling and automatic retries after server errors
+
+            :param method:
+            GET|POST|PATCH|PUT|DELETE|...
+
+            :param url:
+            string in the form protocol://tld.example.com/path/[file]?params
+
+            :param data:
+            a json-object or dict to be used as payload
+
+            :return:
+            Either a json object or an exception of type APIError
+        '''
+
+        values = []  # holds data from pagination
+        while url and retry:  # as long as retries are left and url is set to a next page link
+            self.logger.info("Next url: {url}".format(url=url))
+
+            # parameters to pass to requests classes function 'method'
+            args = dict(
+                headers=self.headers,
+                proxies=self.proxies
+            )
+
+            # only if we are sending any data, it will be of type json and
+            # needs a header with the correct content-type. The data is
+            # serialized to a string...
+            if method.upper() in ["PATCH", "POST"] and data:
+                args['headers']['Content-Type'] = "application/json"
+                if isinstance(data, dict):
+                    args['json'] = data
+                elif isinstance(data, str):
+                    args['json'] = json.loads(data)
+                else:
+                    self.logger.info((
+                        'request data of unsupported data type {datatype} are'
+                        'passed without any sanity check and should better be'
+                        'avoided').format(
+                            datatype=type(data)
+                    ))
+                    args['data'] = data
+
+            response = requests.request(
+                method=method,
+                url=url,
+                verify=True,
+                **args
+            )
+
+            # check for a server error: which may be only temporary
+            if 500 <= response.status_code <= 599:
+                if retry:
+                    raise self._generate_error_message(response)
+                else:
+                    self.logger.warning(
+                        "Microsoft Graph returned a server error, which"
+                        " could be temporarily. We will retry the same call"
+                        " in ten seconds again."
+                    )
+                    time.sleep(10)
+                    retry = retry - 1
+                    continue  # restart the loop with the same url again
+
+            elif response.status_code not in expected_status:
+                raise self._generate_error_message(response)
+
+            elif not response.content:
+                # an empty response is usually not an error and if the relevant
+                # data are not in the body, they can usually be found in the
+                # reponse headers...
+                return [dict(response.headers)]
+
+            else:
+                try:
+                    response_json = response.json()
+
+                    # if there is support for pages, there is usually a 'value'
+                    # and a @odata.context and/or @odata.nextLink
+                    if 'value' in response_json:
+                        values.append(response_json['value'])
+                    else:
+                        values.append(response_json)
+
+                    # implement pagination: as long as further pages follow, we
+                    # want to request these and as long as url is set, this loop
+                    # will append to the `values` array
+                    if 'odata.nextLink' in response_json:
+                        url = response_json.get("odata.nextLink")
+                        continue  # continue the loop with the next url
+                    else:
+                        break  # explicitly break the loop, because we are done
+
+                except ValueError as exc:
+                    raise self._generate_error_message(
+                        response,
+                        "Response payload was not parseable by the json parser: {error}".format(
+                            error=str(exc)
+                        )
+                    )
+
+        # the loop ends here. That means, that there were no further urls
+        # returned for pagination. The result will now be an accumulated
+        # `List` of all call results.
+        return values
+
+    def call_azure_api(self, method, url, data=None, retry=0):
         '''
         This function overwrites the underlaying call_api function for
         demonstration purposes. It is meant to replace the call_api function
         in the azure_handler class and had the original function as its
         starting point. The refactoring made it clearer what this function
         does and does not do.
+
+        From that it was understood, that this function:
+
+        * creates the correct http header for requests against azure
+        * support for proxy servers
+        * implements pagination
+        * implements retry after 10 seconds if error code is 5xx
+        * implements basic sanity checks and catches error codes
 
         :param method:
         GET|POST|PATCH|PUT|DELETE|...
@@ -110,16 +227,16 @@ class Graph(AzureHandler):
         import uuid
         request_id = str(uuid.uuid4())
         headers = {
-                'User-Agent': 'ucs-office365/1.0',
-                'Authorization': 'Bearer {}'.format(self.auth.get_access_token()),
-                'Accept': 'application/json',
-                'client-request-id': request_id,
-                'return-client-request-id': 'true',
+            'User-Agent': 'ucs-office365/1.0',
+            'Authorization': 'Bearer {}'.format(self.auth.get_access_token()),
+            'Accept': 'application/json',
+            'client-request-id': request_id,
+            'return-client-request-id': 'true',
         }
 
         retries = 0
         values = []  # holds data from pagination
-        while url and retries <= retry:
+        while url:
             self.logger.info("Next url: {url}".format(url=url))
 
             # parameters to pass to requests classes function 'method'
@@ -127,7 +244,7 @@ class Graph(AzureHandler):
                 url=url,
                 headers=headers,
                 verify=True,
-                proxies=self.auth.proxies
+                proxies=self.proxies
             )
 
             # only if we are sending any data, it will be of type json and
@@ -155,9 +272,7 @@ class Graph(AzureHandler):
 
             # check for a server error: which may be only temporary
             elif 500 <= response.status_code <= 599:
-                if retries > retry:
-                    raise self._generate_error_message(response)
-                else:
+                if retry > 0:
                     self.logger.warning(
                         "Microsoft Graph returned a server error, which"
                         " could be temporarily. We will retry the same call"
@@ -167,6 +282,10 @@ class Graph(AzureHandler):
                     retries = retries + 1
 
                     continue  # restart the loop with the same url again
+                else:
+                    raise self._generate_error_message(
+                        response, 'Giving up on Error 5xx.'
+                    )
 
             elif callable(response.json):
                 try:
@@ -212,6 +331,18 @@ class Graph(AzureHandler):
             return json_string
 
     def _generate_error_message(self, response, message=''):
+        '''
+            The Graph API (as well as the Azure API) is consistent in that way,
+            that both return a small number of success values as http response
+            status code and a larger number of possible error messages, which
+            are much more consistent across different endpoints. This function
+            is there to take advantage of that fact and it provides all the
+            informations required to fix any problen: all request headers and
+            the request body alongside with the responses counterparts.
+
+            @return an Exception of type GraphError
+        '''
+
         if isinstance(response, str):
             message += response
 
@@ -241,23 +372,28 @@ class Graph(AzureHandler):
         return GraphError(message)
 
     def _login(self, connection_alias):
-        # https://login.microsoftonline.com/3e7d9eb5-c3a1-4cfc-892e-a8ec29e45b77/oauth2/v2.0/token
+        '''
+            COMPATIBLITY NOTE / CHANGES BETWEEN 'Graph' AND 'Azure'
+
+            With minor adjustments this function has also been able to get a token
+            from azure with the following endpoint:
+                endpoint = "https://login.microsoftonline.com/{directory_id}/oauth2/token".format(
+                    directory_id=token_file_as_json['directory_id']
+                )
+
+            with the new graph endpoint the directory_id becomes optional, source:
+            https://docs.microsoft.com/en-us/graph/migrate-azure-ad-graph-request-differences#basic-requests
+
+            the 'scope' parameter has to be adjusted in order to use Azure
+        '''
         token_file_as_json = load_token_file(connection_alias)
-
-        # TODO: compatibility between azure and graph vvv
-
-        # endpoint = "https://login.microsoftonline.com/{directory_id}/oauth2/token".format(
-        #     directory_id=token_file_as_json['directory_id']
-        # )
-
-        # with the new graph endpoint the directory_id becomes optional
-        # https://docs.microsoft.com/en-us/graph/migrate-azure-ad-graph-request-differences#basic-requests
 
         endpoint = "https://login.microsoftonline.com/{directory_id}/oauth2/v2.0/token".format(
             directory_id=token_file_as_json['directory_id']
         )
 
-        response = requests.post(
+        response = requests.request(
+            'POST',
             endpoint,
             headers={'Content-Type': 'application/x-www-form-urlencoded'},
             data={
@@ -270,7 +406,8 @@ class Graph(AzureHandler):
                 ),
                 'grant_type': 'client_credentials',
                 'scope': ['https://graph.microsoft.com/.default']
-            }
+            },
+            proxies=self.proxies
         )
 
         if (200 == response.status_code):  # a new user was created
@@ -283,131 +420,97 @@ class Graph(AzureHandler):
             returns: a user object of type `Guest`
         '''
 
-        response = requests.post(
-            "https://graph.microsoft.com/v1.0/invitations",
-            headers=self.headers,
-            data=json.dumps(
+        return self._call_graph_api(
+            method='POST',
+            url='https://graph.microsoft.com/v1.0/invitations',
+            data=dict(
                 {
                     'invitedUserEmailAddress': quote(invitedUserEmailAddress, safe='@'),
                     'inviteRedirectUrl': quote(inviteRedirectUrl, safe=':/')
                 }
-            )
+            ),
+            expected_status=[201]
         )
-
-        if (201 == response.status_code):  # a new user was created
-            return response.content
-        else:
-            raise self._generate_error_message(response)
-
-    # def create_group(self, name, description=""):
-    #     ''' https://docs.microsoft.com/en-us/graph/api/group-post-groups '''
-    #     response = requests.post(
-    #         "https://graph.microsoft.com/v1.0/groups",
-    #         headers=self.headers,
-    #         data=json.dumps(
-    #             {
-    #                 'displayName': quote(name),
-    #                 'description': quote(description),
-    #                 'mailEnabled': False,
-    #                 'mailNickname': name.translate(
-    #                     ''.maketrans(
-    #                         {' ': '_-_'}),  # translate ' ' to '_-_' and
-    #                     '@()\\[]";:.<>,'),  # delete illegal chars (see doc)
-    #                 'securityEnabled': True
-    #             }
-    #         )
-    #     )
-
-    #     if (201 == response.status_code):  # group was created
-    #         return response.content
-    #     else:
-    #         raise self._generate_error_message(response)
 
     def list_azure_users(self):
-        response = requests.get(
-            "https://graph.windows.net/{application_id}/users?api-version=1.6".format(
+        '''
+            this function calls the Azure API with a Graph access token. According
+            to the documentation it should be doable somehow. As we do not need
+            this function at the moment, it is kept here as a reminder and possible
+            starting point if that becomes relevant in future.
+        '''
+        return self._call_graph_api(
+            method='GET',
+            url='https://graph.windows.net/{application_id}/users?api-version=1.6'.format(
                 application_id=self.auth.adconnection_id
             ),
-            headers=self.headers)
-        if (200 == response.status_code):
-            return response.content
-        else:
-            raise self._generate_error_message(response)
+            expected_status=[200]
+        )
 
     def list_graph_users(self):
-        response = requests.get(
-            "https://graph.microsoft.com/v1.0/users",
-            headers=self.headers
+        ''' https://docs.microsoft.com/en-us/graph/api/user-list
+        '''
+
+        return self._call_graph_api(
+            'GET', 'https://graph.microsoft.com/v1.0/users',
+            expected_status=[200]
         )
-        if (200 == response.status_code):
-            return response.content
-        else:
-            raise self._generate_error_message(response)
 
     def get_me(self):
-        ''' https://docs.microsoft.com/en-us/graph/api/user-get '''
-        response = requests.get(
-            "https://graph.microsoft.com/v1.0/me",
-            headers=self.headers
+        ''' https://docs.microsoft.com/en-us/graph/api/user-get
+        '''
+
+        return self._call_graph_api(
+            'GET', 'https://graph.microsoft.com/v1.0/me',
+            expected_status=[200]
         )
-        if (200 == response.status_code):
-            return response.content
-        else:
-            raise self._generate_error_message(response)
 
     def get_user(self, user_id):
-        ''' https://docs.microsoft.com/en-us/graph/api/user-get '''
-        response = requests.get(
-            "https://graph.microsoft.com/v1.0/users/{user_id}".format(
+        ''' https://docs.microsoft.com/en-us/graph/api/user-get
+        '''
+
+        return self._call_graph_api(
+            'GET', 'https://graph.microsoft.com/v1.0/users/{user_id}'.format(
                 user_id=user_id
             ),
-            headers=self.headers
+            expected_status=[200]
         )
-        if (200 == response.status_code):
-            return response.content
-        else:
-            raise self._generate_error_message(response)
 
     def get_group(self, group_id, selection=None):
-        ''' https://docs.microsoft.com/en-us/graph/api/user-get '''
+        ''' https://docs.microsoft.com/en-us/graph/api/user-get
+        '''
 
         if selection is None or selection == '':
             selection = ""
         else:
             selection = "?$select={selection}".format(selection=selection)
 
-        response = requests.get(
-            "https://graph.microsoft.com/v1.0/groups/{group_id}{select}".format(
+        return self._call_graph_api(
+            'GET', 'https://graph.microsoft.com/v1.0/groups/{group_id}{select}'.format(
                 group_id=group_id,
                 select=selection
             ),
-            headers=self.headers
+            expected_status=[200]
         )
-        if (200 == response.status_code):
-            return response.content
-        else:
-            raise self._generate_error_message(response)
 
     def get_team(self, group_id):
-        ''' https://docs.microsoft.com/en-us/graph/api/team-get '''
-        response = requests.get(
-            "https://graph.microsoft.com/v1.0/teams/{group_id}".format(
+        ''' https://docs.microsoft.com/en-us/graph/api/team-get
+        '''
+
+        return self._call_graph_api(
+            'GET', 'https://graph.microsoft.com/v1.0/teams/{group_id}'.format(
                 group_id=group_id
-            ), headers=self.headers
+            ),
+            expected_status=[200]
         )
 
-        if (200 == response.status_code):
-            return response.content
-        else:
-            raise self._generate_error_message(response)
-
-    # Microsoft Teams
     def create_team(self, name, owner, description=""):
-        ''' https://docs.microsoft.com/en-us/graph/api/team-post '''
-        response = requests.post(
-            "https://graph.microsoft.com/v1.0/teams",
-            headers=self.headers,
-            data=json.dumps(
+        ''' https://docs.microsoft.com/en-us/graph/api/team-post
+        '''
+
+        return self._call_graph_api(
+            'POST', 'https://graph.microsoft.com/v1.0/teams',
+            data=dict(
                 {
                     'template@odata.bind':
                         "https://graph.microsoft.com/v1.0/teamsTemplates('standard')",
@@ -423,83 +526,72 @@ class Graph(AzureHandler):
                         }
                     ]
                 }
-            )
+            ),
+            expected_status=[202]
         )
 
-        if (202 == response.status_code):
-            # the response body is empty in this case, interesting fields are
-            # Location and Content-Location as they contain the new teams id
-            return json.dumps(dict(response.headers))
-        else:
-            raise self._generate_error_message(response)
-
     def add_group_owner(self, group_id, owner_id):
-        ''' https://docs.microsoft.com/en-us/graph/api/group-post-owners '''
-        response = requests.post(
-            "https://graph.microsoft.com/v1.0/groups/{group_id}/owners/$ref".format(
+        ''' https://docs.microsoft.com/en-us/graph/api/group-post-owners
+        '''
+
+        return self._call_graph_api(
+            'POST', 'https://graph.microsoft.com/v1.0/groups/{group_id}/owners/$ref'.format(
                 group_id=group_id
             ),
-            headers=self.headers,
-            data=json.dumps(
+            data=dict(
                 {
                     "@odata.id": "https://graph.microsoft.com/v1.0/users/{owner_id}".format(
                         owner_id=owner_id
                     )
                 }
-            )
+            ),
+            expected_status=[
+                204,  # 204 means success and has an empty content body according to MS
+                400   # 400 means, that the user already been added.
+            ]
         )
-
-        if (204 == response.status_code):
-            return json.dumps({"owner": owner_id})  # 204 means success and has an empty content body according to MS
-        if (400 == response.status_code):
-            return json.dumps({"owner": owner_id})  # 400 means, that the user already been added.
-        else:
-            raise self._generate_error_message(response)
 
     def create_team_from_group(self, object_id):
+        ''' https://docs.microsoft.com/en-us/graph/api/team-put-teams?view=graph-rest-beta
+
+            @TODO: The name of this endpoint will change at one point in time.
+                   Regular tests are necessary, because this uses the beta API
+
+            @dependencies: this function requires some edit-group function in order
+            to add the owner to the group
         '''
-        https://docs.microsoft.com/en-us/graph/api/team-put-teams?view=graph-rest-beta
 
-        @TODO: the name of this endpoint will change at one point in time.
-        Regular tests are necessary.
+        return self._call_graph_api(
+            'POST',
+            'https://graph.microsoft.com/beta/teams',
+            data={
+                "template@odata.bind":
+                    "https://graph.microsoft.com/beta/teamsTemplates('standard')",
 
-        @dependencies: this function requires some edit-group function in order
-        to add the owner to the group
-        '''
-        response = requests.post(
-            "https://graph.microsoft.com/beta/teams",
-            headers=self.headers,
-            data=json.dumps(
-                {
-                    "template@odata.bind":
-                        "https://graph.microsoft.com/beta/teamsTemplates('standard')",
-
-                    "group@odata.bind":
-                        "https://graph.microsoft.com/v1.0/groups('{object_id}')".format(
-                            object_id=object_id
-                        )
-                }
-            )
+                "group@odata.bind":
+                    "https://graph.microsoft.com/v1.0/groups('{object_id}')".format(
+                        object_id=object_id
+                    )
+            },
+            expected_status=[
+                201,  # the documented success value is never returned in tests
+                202   # instead there is 202 if it works
+            ]
         )
 
-        if (201 == response.status_code):
-            return json.dumps(dict(response.headers))
-        if (202 == response.status_code):
-            # @NOTE I always get 202 if it works, but that differs from what is documented
-            return json.dumps(dict(response.headers))
-        else:
-            raise self._generate_error_message(response)
-
     def create_team_from_group_current(self, object_id):  # object_id is similar to cb57b853-be97-457c-8232-491dd82f5940
-        ''' https://docs.microsoft.com/en-us/graph/api/team-put-teams but this
-        does not work with "Cannot migrate this group, id:
-        364ff58b-b67a-4a74-8f6d-ac3e9ff7db38, access type: [...] '''
-        response = requests.put(
-            "https://graph.microsoft.com/v1.0/groups/{object_id}/team".format(
+        ''' https://docs.microsoft.com/en-us/graph/api/team-put-teams
+
+            but this does not work with "Cannot migrate this group, id:
+            364ff58b-b67a-4a74-8f6d-ac3e9ff7db38, access type: [...]
+        '''
+
+        return self._call_graph_api(
+            'PUT',
+            'https://graph.microsoft.com/v1.0/groups/{object_id}/team'.format(
                 object_id=object_id
             ),
-            headers=self.headers,
-            data=json.dumps(
+            data=dict(
                 {
                     "memberSettings": {
                         "allowCreatePrivateChannels": True,
@@ -514,93 +606,80 @@ class Graph(AzureHandler):
                         "giphyContentRating": "strict"
                     }
                 }
-            )
+            ),
+            expected_status=[201]
         )
-
-        if (201 == response.status_code):
-            return response.content  # `201 created` and a team object in the body
-        else:
-            raise self._generate_error_message(response)
 
     def delete_team(self, group_id):
-        '''
-        https://docs.microsoft.com/en-us/graph/api/group-delete
+        ''' https://docs.microsoft.com/en-us/graph/api/group-delete
 
-        @Note: It was considered to use the delete_group function from the base
-        class, but the function does currently not delete groups. Instead it
-        renames them. @REQUIREMENT We need a proper delete function for teams.
+            @Note: It was considered to use the delete_group function from the
+            base class, but the function does currently not delete groups.
+            Instead it renames them. @REQUIREMENT We need a proper delete
+            function for teams.
 
-        Be careful though, because this function can now be used to delete
-        teams as well as groups and that was successfully tested. An additional
-        application permission is necessary: Group.ReadWrite.All
+            Be careful though, because this function can now be used to delete
+            teams as well as groups and that was successfully tested. An
+            additional application permission is necessary: Group.ReadWrite.All
         '''
-        response = requests.delete(
-            "https://graph.microsoft.com/v1.0/groups/{group_id}".format(
+
+        return self._call_graph_api(
+            'DELETE',
+            'https://graph.microsoft.com/v1.0/groups/{group_id}'.format(
                 group_id=group_id),
-            headers=self.headers
+            expected_status=[204]
         )
-
-        if (204 == response.status_code):
-            return {"status_code": response.reason}  # returns `200 Created`
-        else:
-            raise self._generate_error_message(response)
 
     def archive_team(self, team_id):
-        ''' https://docs.microsoft.com/en-us/graph/api/team-archive '''
+        ''' https://docs.microsoft.com/en-us/graph/api/team-archive
 
-        response = requests.post(
-            "https://graph.microsoft.com/v1.0/teams/{team_id}/archive".format(
+            Note, that the `shouldSetSpoSiteReadOnlyForMembers` parameter is
+            not supported in the application context.
+        '''
+
+        return self._call_graph_api(
+            'POST',
+            'https://graph.microsoft.com/v1.0/teams/{team_id}/archive'.format(
                 team_id=team_id
             ),
-            headers=self.headers
-            # Note: > 'The shouldSetSpoSiteReadOnlyForMembers parameter is not
-            #       > supported in the application context.'
+            expected_status=[202]
         )
-
-        if (202 == response.status_code):  # a new user was created
-            return {"status_code": response.reason}  # returns `202 Accepted`
-        else:
-            raise self._generate_error_message(response)
 
     def unarchive_team(self, team_id):
         ''' https://docs.microsoft.com/en-us/graph/api/team-unarchive
             @returns: a http header with the `Location` of the restored team
         '''
 
-        response = requests.post(
-            "https://graph.microsoft.com/v1.0/teams/{team_id}/unarchive".format(
+        return self._call_graph_api(
+            'POST',
+            'https://graph.microsoft.com/v1.0/teams/{team_id}/unarchive'.format(
                 team_id=team_id
-            ), headers=self.headers
+            ),
+            expected_status=[202]
         )
-
-        if (202 == response.status_code):  # a new user was created
-            return json.dumps(dict(response.headers))
-        else:
-            raise self._generate_error_message(response)
 
     def list_team_members(self, team_id):
-        ''' https://docs.microsoft.com/en-us/graph/api/team-list-members '''
-        response = requests.get(
-            "https://graph.microsoft.com/v1.0/teams/{team_id}/members".format(
+        ''' https://docs.microsoft.com/en-us/graph/api/team-list-members
+        '''
+
+        return self._call_graph_api(
+            'GET',
+            'https://graph.microsoft.com/v1.0/teams/{team_id}/members'.format(
                 team_id=team_id),
-            headers=self.headers
+            expected_status=[200]
         )
 
-        if (200 == response.status_code):
-            return response.content
-        else:
-            raise self._generate_error_message(response)
-
     def add_team_member(self, team_id, user_id):
-        ''' https://docs.microsoft.com/en-us/graph/api/team-post-members '''
-        ''' Application Permission `TeamMember.ReadWrite.All` is needed '''
+        ''' https://docs.microsoft.com/en-us/graph/api/team-post-members
+            Application Permission `TeamMember.ReadWrite.All` is needed
+        '''
 
-        response = requests.post(
-            "https://graph.microsoft.com/v1.0/teams/{object_id}/members".format(
+        return self._call_graph_api(
+            'POST',
+            'https://graph.microsoft.com/v1.0/teams/{object_id}/members'.format(
                 object_id=team_id
             ),
-            headers=self.headers,
-            data=json.dumps(
+            data=dict(
                 {
                     "roles": ["owner"],
                     "@odata.type": "#microsoft.graph.aadUserConversationMember",
@@ -608,106 +687,55 @@ class Graph(AzureHandler):
                         "https://graph.microsoft.com/v1.0/users('{user_id}')".format(
                             user_id=user_id)
                 }
-            )
+            ),
+            expected_status=[201]
         )
-
-        if (201 == response.status_code):
-            return response.content
-        else:
-            raise self._generate_error_message(response)
 
     def delete_team_member(self, team_id, membership_id):
-        ''' https://docs.microsoft.com/en-us/graph/api/team-post-members '''
-        response = requests.delete(
-            "https://graph.microsoft.com/v1.0/teams/{team_id}/members/{membership_id}".format(
+        ''' https://docs.microsoft.com/en-us/graph/api/team-post-members
+        '''
+
+        return self._call_graph_api(
+            'DELETE',
+            'https://graph.microsoft.com/v1.0/teams/{team_id}/members/{membership_id}'.format(
                 team_id=team_id,
                 membership_id=membership_id),
-            headers=self.headers
+            expected_status=[204]
         )
-
-        if (204 == response.status_code):
-            return {"status_code": response.reason}  # returns `204 No Content`
-        else:
-            raise self._generate_error_message(response)
 
     def add_user(self, username, email, password):
-        response = requests.post(
-            "https://graph.microsoft.com/v1.0/users",
-            headers=self.headers,
-            data=json.dumps(
-                {
-                    "accountEnabled": True,
-                    "displayName": username,
-                    "mailNickname": username,
-                    "userPrincipalName": email,
-                    "passwordProfile": {
-                        "forceChangePasswordNextSignIn": True,
-                        "password": password
-                    }
+        ''' https://docs.microsoft.com/en-us/graph/api/user-post-users
+        '''
+
+        return self._call_graph_api(
+            'POST',
+            'https://graph.microsoft.com/v1.0/users',
+            data={
+                "accountEnabled": True,
+                "displayName": username,
+                "mailNickname": username,
+                "userPrincipalName": email,
+                "passwordProfile": {
+                    "forceChangePasswordNextSignIn": True,
+                    "password": password
                 }
-            )
+            },
+            expected_status=[201]
         )
-        if (201 == response.status_code):
-            return response.content  # returns a user object in the response body
-        else:
-            raise self._generate_error_message(response)
 
     def list_teams(self):
-        ''' https://docs.microsoft.com/en-us/graph/api/group-list '''
-        ''' this is a simplification which we should try to keep up to date with the API '''
+        ''' https://docs.microsoft.com/en-us/graph/api/group-list
+            this is a simplification which we should try to keep up to date with the API
+        '''
+        return self._call_graph_api(
+            'GET',
+            'https://graph.microsoft.com/v1.0/groups?$select=id,displayName,resourceProvisioningOptions',
+            expected_status=[200]
+        )[0]
+        return filter(lambda x: 'Team' in x['resourceProvisioningOptions'], self._call_graph_api(
+            'GET',
+            'https://graph.microsoft.com/v1.0/groups?$select=id,displayName,resourceProvisioningOptions',
+            expected_status=[200]
+        ))
 
-        # TODO: pagination missing. We should possibly call
-        #       super(...).call_api, but the HTTP headers are then wrong.
-        response = requests.get(
-            "https://graph.microsoft.com/v1.0/groups?$select=id,displayName,resourceProvisioningOptions".format(
-            ), headers=self.headers,
-        )
-        if (200 == response.status_code):
-            return json.dumps([{
-                'id': x['id'],
-                'displayName': x['displayName']
-            } for x in json.loads(response.content)['value']
-                if 'Team' in x['resourceProvisioningOptions']])
-        else:
-            raise self._generate_error_message(response)
-
-    # def list_teams(self):
-    #     '''
-    #     https://docs.microsoft.com/en-us/graph/teams-list-all-teams
-    #     To list all teams in an organization (tenant), you find all groups that
-    #     have teams, and then get information for each team.
-
-    #     @TODO: the name of this endpoint will change at one point in time. Regular tests are necessary.
-    #     '''
-    #     # step 1: find all groups having teams within...
-    #     response = requests.get(
-    #         "https://graph.microsoft.com/beta/groups?$filter=resourceProvisioningOptions/Any(x:x eq 'Team')",
-    #         headers=self.headers)
-
-    #     # sanity check
-    #     if (200 != response.status_code):
-    #         raise self._generate_error_message(response)
-
-    #     response_json = json.loads(response.content)
-
-    #     # sanity check
-    #     # if response_json['@odata.context'] == "https://graph.microsoft.com/beta/$metadata#groups":
-    #     #     raise self._generate_error_message(response)
-
-    #     retval = {}
-
-    #     for group in response_json['value']:
-
-    #         # sanity check
-    #         if 'Team' not in group['resourceProvisioningOptions']:
-    #             raise self._generate_error_message(response)
-
-    #         team = json.loads(self.get_team(group['id']))
-    #         # sanity check
-    #         if 'isArchived' not in team:
-    #             raise self._generate_error_message(response)
-
-    #         # append team to the return value json...
-    #         retval.update(team)
-
-    #     return json.dumps(retval)
+# vim: filetype=python expandtab tabstop=4 shiftwidth=4 softtabstop=4
