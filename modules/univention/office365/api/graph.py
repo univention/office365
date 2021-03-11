@@ -30,6 +30,8 @@ call is therefore a check for a successful return code and that can be found
 in the Microsoft documentation under `Response` for each endpoint.
 '''
 
+# TODO: (re)move call_azure_api
+# TODO: pagination: make 
 
 class Graph(AzureHandler):
     def __init__(self, ucr, name, connection_alias, logger=logging.getLogger()):
@@ -68,7 +70,7 @@ class Graph(AzureHandler):
                 "Trying to fix that problem by adding necessary values."
             )
 
-    def _call_graph_api(self, method, url, data=None, retry=1, headers={}, expected_status=[], ):
+    def _call_graph_api(self, method, url, data=None, retry=1, headers={}, expected_status=[]):
         ''' private function to avoid code duplication; adds support for
             pagination, proxy handling and automatic retries after server errors
 
@@ -85,7 +87,7 @@ class Graph(AzureHandler):
             Either a json object or an exception of type APIError
         '''
 
-        values = []  # holds data from pagination
+        values = {}  # holds data from pagination
         while url and retry:  # as long as retries are left and url is set to a next page link
             self.logger.info("Next url: {url}".format(url=url))
 
@@ -124,6 +126,7 @@ class Graph(AzureHandler):
 
             elif 401 == response.status_code:
                 self._login(self.connection_alias)
+                continue  # and retry with the new credentials
 
             elif response.status_code not in expected_status:
                 raise self._generate_error_message(response)
@@ -132,24 +135,21 @@ class Graph(AzureHandler):
                 # an empty response is usually not an error and if the relevant
                 # data are not in the body, they can usually be found in the
                 # reponse headers...
-                return [dict(response.headers)]
+                return dict(response.headers)
 
             else:
                 try:
                     response_json = response.json()
+                    values.update(response_json)
 
-                    # if there is support for pages, there is usually a 'value'
-                    # and a @odata.context and/or @odata.nextLink
-                    if 'value' in response_json:
-                        values.append(response_json['value'])
-                    else:
-                        values.append(response_json)
+                    # raise self._generate_error_message(response)
 
                     # implement pagination: as long as further pages follow, we
                     # want to request these and as long as url is set, this loop
                     # will append to the `values` array
-                    if 'odata.nextLink' in response_json:
-                        url = response_json.get("odata.nextLink")
+                    if '@odata.nextLink' in response_json:
+                        url = response_json.get("@odata.nextLink")
+                        self.logger.debug('Next page: {url}'.format(url=url))
                         continue  # continue the loop with the next url
                     else:
                         break  # explicitly break the loop, because we are done
@@ -413,7 +413,7 @@ class Graph(AzureHandler):
             'POST',
             endpoint,
             headers={'Content-Type': 'application/x-www-form-urlencoded'},
-            data=json.dumps({
+            data={  # NOTE do not use json.dumps here, because this is a different content-type!
                 'client_id': token_file_as_json['application_id'],
                 'client_assertion_type': 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
                 'client_assertion': get_client_assertion_from_alias(
@@ -423,25 +423,22 @@ class Graph(AzureHandler):
                 ),
                 'grant_type': 'client_credentials',
                 'scope': ['https://graph.microsoft.com/.default']
-            }),
+            },
             expected_status=[200]
         )
-
-        assert(len(response) == 1)  # one 'page' of values returned
-        response_json = response[0]
 
         # Note, that the Azure API has had a field with the same name
         # 'expires_on' in its result, whereas we calculate the value for it
         # here locally...
 
         expires_on = datetime.datetime.now() + datetime.timedelta(
-            seconds=response_json['expires_in']
+            seconds=response['expires_in']
         )
-        response_json['expires_on'] = expires_on.strftime('%Y-%m-%dT%H:%M:%S')
+        response['expires_on'] = expires_on.strftime('%Y-%m-%dT%H:%M:%S')
         with open(fn_access_token_cache, 'w') as f:
-            f.write(json.dumps(response_json))
+            f.write(json.dumps(response))
 
-        return response_json
+        return response
 
     def create_invitation(self, invitedUserEmailAddress, inviteRedirectUrl):
         ''' https://docs.microsoft.com/en-us/graph/api/invitation-post
@@ -760,19 +757,23 @@ class Graph(AzureHandler):
             expected_status=[201]
         )
 
-    def list_teams(self):
+    def list_teams(self, page_size=500):
         ''' https://docs.microsoft.com/en-us/graph/api/group-list
             this is a simplification which we should try to keep up to date with the API
+
+            the returned object uses pagination and the value can be found in
+            the 'value' field. It is of type List and can be itarted, e.g.:
+
+                for team in api.list_teams['value']
         '''
         return self._call_graph_api(
             'GET',
-            'https://graph.microsoft.com/v1.0/groups?$select=id,displayName,resourceProvisioningOptions',
+            'https://graph.microsoft.com/v1.0/groups?'
+            '$select=id,displayName,resourceProvisioningOptions&'
+            '$top={page_size}'.format(
+                page_size=page_size
+            ),
             expected_status=[200]
-        )[0]
-        return filter(lambda x: 'Team' in x['resourceProvisioningOptions'], self._call_graph_api(
-            'GET',
-            'https://graph.microsoft.com/v1.0/groups?$select=id,displayName,resourceProvisioningOptions',
-            expected_status=[200]
-        ))
+        )
 
 # vim: filetype=python expandtab tabstop=4 shiftwidth=4 softtabstop=4
