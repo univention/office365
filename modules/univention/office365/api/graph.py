@@ -53,21 +53,7 @@ class Graph(AzureHandler):
 
         # proxies must be set before any attempt to call the API
         self.proxies = get_http_proxies(ucr, self.logger)
-        self.access_token_json = json.loads(self._login(connection_alias))
-        # write some information about the token in use into the log file
-        self.logger.info(
-            "the token for `{alias}` looks"
-            " similar to: `{starts}-trimmed-{ends}`".format(
-                starts=self.access_token_json['access_token'][:10],
-                ends=self.access_token_json['access_token'][-10:],
-                alias=self.connection_alias,
-            )
-        )
-        # prepare the http headers, which we are going to send with any request
-        self.headers = {
-            'Authorization': 'Bearer {}'.format(self.access_token_json['access_token']),
-            'User-Agent': 'Univention Microsoft 365 Connector'
-        }
+        self.access_token_json = self._login(connection_alias)
 
         # We also initialize the base class, so that it becomes usable...
         super(Graph, self).__init__(ucr, name, connection_alias)
@@ -82,7 +68,7 @@ class Graph(AzureHandler):
                 "Trying to fix that problem by adding necessary values."
             )
 
-    def _call_graph_api(self, method, url, data=None, retry=1, expected_status=[]):
+    def _call_graph_api(self, method, url, data=None, retry=1, headers={}, expected_status=[], ):
         ''' private function to avoid code duplication; adds support for
             pagination, proxy handling and automatic retries after server errors
 
@@ -103,35 +89,23 @@ class Graph(AzureHandler):
         while url and retry:  # as long as retries are left and url is set to a next page link
             self.logger.info("Next url: {url}".format(url=url))
 
-            # parameters to pass to requests classes function 'method'
-            args = dict(
-                headers=self.headers,
-                proxies=self.proxies
-            )
+            # prepare the http headers, which we are going to send with any request
+            headers.update({'User-Agent': 'Univention Microsoft 365 Connector'})
+            if hasattr(self, 'access_token_json'):
+                headers.update({'Authorization': 'Bearer {}'.format(self.access_token_json['access_token'])})
 
-            # only if we are sending any data, it will be of type json and
-            # needs a header with the correct content-type. The data is
-            # serialized to a string...
-            if method.upper() in ["PATCH", "POST"] and data:
-                args['headers']['Content-Type'] = "application/json"
-                if isinstance(data, dict):
-                    args['json'] = data
-                elif isinstance(data, str):
-                    args['json'] = json.loads(data)
-                else:
-                    self.logger.info((
-                        'request data of unsupported data type {datatype} are'
-                        'passed without any sanity check and should better be'
-                        'avoided').format(
-                            datatype=type(data)
-                    ))
-                    args['data'] = data
+            # if isinstance(data, str):  # convert str to json
+            #     data = json.loads(data)
+            # if isinstance(data, dict):  # convert str to json
+            #     data = json.loads(data)
 
             response = requests.request(
                 method=method,
                 url=url,
                 verify=True,
-                **args
+                headers=headers,
+                data=data,
+                proxies=self.proxies
             )
 
             # check for a server error: which may be only temporary
@@ -147,6 +121,9 @@ class Graph(AzureHandler):
                     time.sleep(10)
                     retry = retry - 1
                     continue  # restart the loop with the same url again
+
+            elif 401 == response.status_code:
+                self._login(self.connection_alias)
 
             elif response.status_code not in expected_status:
                 raise self._generate_error_message(response)
@@ -371,6 +348,28 @@ class Graph(AzureHandler):
 
         return GraphError(message)
 
+    def _check_token_validity(self, token):
+        # it would be nicer to use the Date field from the response.header
+        # instead of datetime.now(), but the level of abstraction does not
+        # easily allow that here.
+        expires_on = datetime.datetime.strptime(token['expires_on'], "%Y-%m-%dT%H:%M:%S")
+        # newer python versions will simplify this with:
+        # expires_on = datetime.fromisoformat(token['expires_on'])
+
+        # write some information about the token in use into the log file
+        self.logger.info(
+            'The access token for `{alias}` looks'
+            ' similar to: `{starts}-trimmed-{ends}`.'
+            ' It is valid until {expires_on}'.format(
+                starts=token['access_token'][:10],
+                ends=token['access_token'][-10:],
+                alias=self.connection_alias,
+                expires_on=expires_on
+            )
+        )
+
+        return (datetime.datetime.now() < expires_on)
+
     def _login(self, connection_alias):
         '''
             COMPATIBLITY NOTE / CHANGES BETWEEN 'Graph' AND 'Azure'
@@ -386,17 +385,35 @@ class Graph(AzureHandler):
 
             the 'scope' parameter has to be adjusted in order to use Azure
         '''
+        fn_access_token_cache = "/etc/univention-office365/{alias}/access_token_graph.json.tmp".format(
+            alias=connection_alias
+        )
+        try:
+            with open(fn_access_token_cache, 'r') as f:
+                access_token = json.loads(f.read())
+                if self._check_token_validity(access_token):
+                    self.logger.debug("Using cached access token, because it is still valid.")
+                    return access_token
+        except Exception as e:
+            self.logger.info(
+                'The access token cache is empty or inaccessible.'
+                ' A new access token will be acquired. Error: {error}'.format(
+                    error=str(e)
+                )
+            )
+            pass
+
         token_file_as_json = load_token_file(connection_alias)
 
         endpoint = "https://login.microsoftonline.com/{directory_id}/oauth2/v2.0/token".format(
             directory_id=token_file_as_json['directory_id']
         )
 
-        response = requests.request(
+        response = self._call_graph_api(
             'POST',
             endpoint,
             headers={'Content-Type': 'application/x-www-form-urlencoded'},
-            data={
+            data=json.dumps({
                 'client_id': token_file_as_json['application_id'],
                 'client_assertion_type': 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
                 'client_assertion': get_client_assertion_from_alias(
@@ -406,14 +423,25 @@ class Graph(AzureHandler):
                 ),
                 'grant_type': 'client_credentials',
                 'scope': ['https://graph.microsoft.com/.default']
-            },
-            proxies=self.proxies
+            }),
+            expected_status=[200]
         )
 
-        if (200 == response.status_code):  # a new user was created
-            return response.content
-        else:
-            raise self._generate_error_message(response)
+        assert(len(response) == 1)  # one 'page' of values returned
+        response_json = response[0]
+
+        # Note, that the Azure API has had a field with the same name
+        # 'expires_on' in its result, whereas we calculate the value for it
+        # here locally...
+
+        expires_on = datetime.datetime.now() + datetime.timedelta(
+            seconds=response_json['expires_in']
+        )
+        response_json['expires_on'] = expires_on.strftime('%Y-%m-%dT%H:%M:%S')
+        with open(fn_access_token_cache, 'w') as f:
+            f.write(json.dumps(response_json))
+
+        return response_json
 
     def create_invitation(self, invitedUserEmailAddress, inviteRedirectUrl):
         ''' https://docs.microsoft.com/en-us/graph/api/invitation-post
@@ -429,6 +457,7 @@ class Graph(AzureHandler):
                     'inviteRedirectUrl': quote(inviteRedirectUrl, safe=':/')
                 }
             ),
+            headers={'Content-Type': 'application/json'},
             expected_status=[201]
         )
 
@@ -510,7 +539,7 @@ class Graph(AzureHandler):
 
         return self._call_graph_api(
             'POST', 'https://graph.microsoft.com/v1.0/teams',
-            data=dict(
+            data=json.dumps(
                 {
                     'template@odata.bind':
                         "https://graph.microsoft.com/v1.0/teamsTemplates('standard')",
@@ -527,6 +556,7 @@ class Graph(AzureHandler):
                     ]
                 }
             ),
+            headers={'Content-Type': 'application/json'},
             expected_status=[202]
         )
 
@@ -538,13 +568,14 @@ class Graph(AzureHandler):
             'POST', 'https://graph.microsoft.com/v1.0/groups/{group_id}/owners/$ref'.format(
                 group_id=group_id
             ),
-            data=dict(
+            data=json.dumps(
                 {
                     "@odata.id": "https://graph.microsoft.com/v1.0/users/{owner_id}".format(
                         owner_id=owner_id
                     )
                 }
             ),
+            headers={'Content-Type': 'application/json'},
             expected_status=[
                 204,  # 204 means success and has an empty content body according to MS
                 400   # 400 means, that the user already been added.
@@ -564,7 +595,7 @@ class Graph(AzureHandler):
         return self._call_graph_api(
             'POST',
             'https://graph.microsoft.com/beta/teams',
-            data={
+            data=json.dumps({
                 "template@odata.bind":
                     "https://graph.microsoft.com/beta/teamsTemplates('standard')",
 
@@ -572,7 +603,8 @@ class Graph(AzureHandler):
                     "https://graph.microsoft.com/v1.0/groups('{object_id}')".format(
                         object_id=object_id
                     )
-            },
+            }),
+            headers={'Content-Type': 'application/json'},
             expected_status=[
                 201,  # the documented success value is never returned in tests
                 202   # instead there is 202 if it works
@@ -591,7 +623,7 @@ class Graph(AzureHandler):
             'https://graph.microsoft.com/v1.0/groups/{object_id}/team'.format(
                 object_id=object_id
             ),
-            data=dict(
+            data=json.dumps(
                 {
                     "memberSettings": {
                         "allowCreatePrivateChannels": True,
@@ -607,6 +639,7 @@ class Graph(AzureHandler):
                     }
                 }
             ),
+            headers={'Content-Type': 'application/json'},
             expected_status=[201]
         )
 
@@ -642,6 +675,7 @@ class Graph(AzureHandler):
             'https://graph.microsoft.com/v1.0/teams/{team_id}/archive'.format(
                 team_id=team_id
             ),
+            headers={'Content-Type': 'application/json'},
             expected_status=[202]
         )
 
@@ -655,6 +689,7 @@ class Graph(AzureHandler):
             'https://graph.microsoft.com/v1.0/teams/{team_id}/unarchive'.format(
                 team_id=team_id
             ),
+            headers={'Content-Type': 'application/json'},
             expected_status=[202]
         )
 
@@ -679,7 +714,7 @@ class Graph(AzureHandler):
             'https://graph.microsoft.com/v1.0/teams/{object_id}/members'.format(
                 object_id=team_id
             ),
-            data=dict(
+            data=json.dumps(
                 {
                     "roles": ["owner"],
                     "@odata.type": "#microsoft.graph.aadUserConversationMember",
@@ -688,6 +723,7 @@ class Graph(AzureHandler):
                             user_id=user_id)
                 }
             ),
+            headers={'Content-Type': 'application/json'},
             expected_status=[201]
         )
 
@@ -710,7 +746,7 @@ class Graph(AzureHandler):
         return self._call_graph_api(
             'POST',
             'https://graph.microsoft.com/v1.0/users',
-            data={
+            data=json.dumps({
                 "accountEnabled": True,
                 "displayName": username,
                 "mailNickname": username,
@@ -719,7 +755,8 @@ class Graph(AzureHandler):
                     "forceChangePasswordNextSignIn": True,
                     "password": password
                 }
-            },
+            }),
+            headers={'Content-Type': 'application/json'},
             expected_status=[201]
         )
 
