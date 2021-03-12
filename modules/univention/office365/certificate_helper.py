@@ -95,3 +95,4 @@ def load_token_file(alias, config_basepath="/etc/univention-office365"):
                 "An enabled connection has an unusuable access token:"
                 "{!r}".format(token_json))
 
+# vim: filetype=python expandtab tabstop=4 shiftwidth=4 softtabstop=4
