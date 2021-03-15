@@ -1,6 +1,8 @@
 40univention-office365.inst usr/lib/univention-install/
 60univention-office365.uinst usr/lib/univention-uninstall/
 modules/univention/office365/*.py usr/share/pyshared/univention/office365/
+modules/univention/office365/api/*.py usr/share/pyshared/univention/office365/api/
+modules/univention/office365/api/responseparser/*.py usr/share/pyshared/univention/office365/responseparser/
 modules/univention/syntax.d/*.py usr/share/univention-office365/syntax.d/
 modules/univention/handler.d/*.py usr/share/univention-office365/handler.d/
 office365-user.py usr/lib/univention-directory-listener/system/
