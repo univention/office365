@@ -203,7 +203,7 @@ class AzureHandler(object):
 	def getAzureLogger(self):
 		return logger
 
-	def call_api_new(self, method, url, data=None, retry=0):
+	def call_api(self, method, url, data=None, retry=0):
 		'''
 			This function overwrites the underlaying call_api function for
 			demonstration purposes. It is meant to replace the call_api
@@ -233,110 +233,6 @@ class AzureHandler(object):
 			Either a json object or an exception of type APIError
 		'''
 
-		if not (url.startswith('https://') or url.startswith('http://')):
-			from urlparse import urljoin
-			url = urljoin(self.auth.resource_url, url)
-
-		import uuid
-		request_id = str(uuid.uuid4())
-		headers = {
-			'User-Agent': 'ucs-office365/1.0',
-			'Authorization': 'Bearer {}'.format(self.auth.get_access_token()),
-			'Accept': 'application/json',
-			'client-request-id': request_id,
-			'return-client-request-id': 'true',
-		}
-
-		retries = 0
-		values = []  # holds data from pagination
-		while url:
-			self.logger.info("Next url: {url}".format(url=url))
-
-			# parameters to pass to requests classes function 'method'
-			args = dict(
-				url=url,
-				headers=headers,
-				verify=True,
-				proxies=self.proxies
-			)
-
-			# only if we are sending any data, it will be of type json and
-			# needs a header with the correct content-type. The data is
-			# serialized to a string...
-			if method.upper() in ["PATCH", "POST"] and data:
-				args['headers']['Content-Type'] = "application/json"
-				args["data"] = json.dumps(data)
-
-			response = requests.request(method, **args)
-
-			# some sanity checks:
-			# any branch should end with an explicit flow control statement.
-			if response is None:
-				raise self._generate_error_message(response)
-
-			elif not response.request.body and method.upper() in ["DELETE", "PATCH", "PUT"]:
-				# we do expect an empty response if one of these HTTP methods was used.
-				return {}
-
-			elif method.upper() == "POST" and "members" in url:
-				# no/empty response expected (add_objects_to_azure_group())
-				return {}
-
-			# check for a server error: which may be only temporary
-			elif 500 <= response.status_code <= 599:
-				if retry > 0:
-					self.logger.warning(
-						"Microsoft Graph returned a server error, which"
-						" could be temporarily. We will retry the same call"
-						" in ten seconds again."
-					)
-					time.sleep(10)
-					retries = retries + 1
-
-					continue  # restart the loop with the same url again
-				else:
-					raise self._generate_error_message(
-						response, 'Giving up on Error 5xx.'
-					)
-
-			elif callable(response.json):
-				try:
-					response_json = response.json()
-
-					if 'value' in response_json:
-						# accumulate the batches
-						values.extend(response_json['value'])
-
-					# implement pagination: as long as further pages follow, we
-					# want to request these and as long as url is set, this loop
-					# will append to the `values` array
-					url = response_json.get("odata.nextLink")
-					if url:
-						if url.startswith('https://') or url.startswith('http://'):
-							url += "&api-version=1.6"
-						else:
-							url = self.uris['baseUrl'] + '/' + url + "&api-version=1.6"
-						continue  # restart the loop with the next url
-
-					else:
-						raise self._generate_error_message(response)
-				except ValueError as exc:
-					raise self._generate_error_message(
-						response,
-						"Response payload was not parseable by the json parser: {error}".format(
-							error=str(exc)
-						)
-					)
-			else:
-				raise self._generate_error_message(response)
-
-		# the loop ends here. That means, that there were no further urls
-		# returned for pagination. The result will now be an accumulated
-		# list of all call results.
-		response_json["value"] = values
-		return response_json
-
-	def call_api(self, method, url, data=None, retry=0):
 		request_id = str(uuid.uuid4())
 		headers = {
 			"User-Agent": "ucs-office365/1.0",
