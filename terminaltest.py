@@ -30,6 +30,7 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
+import os
 import sys
 import logging
 import inspect
@@ -44,14 +45,12 @@ from univention.office365.api.exceptions import GraphError
 
 
 def get_all_aliases_from_ucr(ucr):
-	''' finds all initialized connections according to the univention config registry '''
+	'''
+	finds all aliases even if they are not in the univention-config-registry
+	'''
 
-	return [x[0].split('/')[-1] for x in filter(
-		lambda x: all([
-			x[0].startswith("office365/adconnection/alias/"),
-			x[1] == 'initialized'
-		]), ucr.items())
-	]
+	alias_path = '/etc/univention-office365'
+	return [o for o in os.listdir(alias_path) if os.path.isdir(os.path.join(alias_path, o))]
 
 
 def try_to_prettyprint(msg, indent=8):

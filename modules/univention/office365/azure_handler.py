@@ -150,7 +150,7 @@ class ApiError(AzureError):
 				j = j()
 			msg = j["odata.error"]["message"]["value"]
 			self.json = j
-			msg += (
+			logger.debug((
 				"> request url: {req_url}\n\n"
 				"> request header: {req_headers}\n\n"
 				"> request body: {req_body}\n\n"
@@ -162,7 +162,7 @@ class ApiError(AzureError):
 				req_body=self._try_to_prettify(response.request.body or "-NONE-"),
 				headers=json.dumps(dict(response.headers), indent=2),
 				body=self._try_to_prettify(response.content or "-NONE-")
-			)
+			))
 		self.response = response
 		logger.error(msg)
 		super(ApiError, self).__init__(msg, *args, **kwargs)

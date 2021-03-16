@@ -239,9 +239,11 @@ class Graph(AzureHandler):
             else:
                 try:
                     response_json = response.json()
-                    values.update(response_json)
 
-                    # raise self._generate_error_message(response)
+                    if 'value' in values:
+                        values['value'].extend(response_json['value'])
+                    else:
+                        values = response_json
 
                     # implement pagination: as long as further pages follow, we
                     # want to request these and as long as url is set, this loop
