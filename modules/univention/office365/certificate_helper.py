@@ -77,22 +77,12 @@ def load_token_file(alias, config_basepath="/etc/univention-office365"):
     be found and how they were called in the past and how they are called now.
     '''
 
-    with open(os.path.join(config_basepath, alias, "ids.json"), 'r') as f_ids, \
-         open(os.path.join(config_basepath, alias, "token.json"), 'r') as f_token:
-
+    with open(os.path.join(config_basepath, alias, "ids.json"), 'r') as f_ids:
         ids_json = json.load(f_ids)
-        token_json = json.load(f_token)
-        if all([
-            "access_token" in token_json,
-            "access_token_exp_at" in token_json,
-            "client_id" in ids_json
-        ]):
-            token_json['application_id'] = ids_json['client_id']  # name has changed with graph!
-            token_json['directory_id'] = ids_json['adconnection_id']  # also known as 'tenant id'
-            return token_json
-        else:
-            raise TokenFileInvalid(
-                "An enabled connection has an unusuable access token:"
-                "{!r}".format(token_json))
+
+        ids_json['application_id'] = ids_json['client_id']  # name has changed with graph!
+        ids_json['directory_id'] = ids_json['adconnection_id']  # also known as 'tenant id'
+
+        return ids_json
 
 # vim: filetype=python expandtab tabstop=4 shiftwidth=4 softtabstop=4

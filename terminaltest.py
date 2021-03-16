@@ -44,7 +44,7 @@ from univention.office365.api.graph import Graph
 from univention.office365.api.exceptions import GraphError
 
 
-def get_all_aliases_from_ucr(ucr):
+def get_all_aliases():
 	'''
 	finds all aliases even if they are not in the univention-config-registry
 	'''
@@ -96,22 +96,22 @@ if __name__ == "__main__":
 			"  \t# requests access token and calls the function"
 		).format(
 			program=sys.argv[0],
-			alias=get_all_aliases_from_ucr(ucr)[0]
+			alias=get_all_aliases()[0]
 		),
 		formatter_class=RawTextHelpFormatter  # required for \n in epilog
 	)
 
 	parser.add_argument(
 		"-g",
-		choices=get_all_aliases_from_ucr(ucr),
+		choices=get_all_aliases(),
 		help="test Microsoft graph library calls against this `alias` (required)",
-		default=(get_all_aliases_from_ucr(ucr)[0])
+		default=(get_all_aliases()[0])
 	)
 
 	parser.add_argument(
 		'-a',
 		action="store_true",
-		help=inspect.cleandoc(get_all_aliases_from_ucr.__doc__ or "")
+		help=inspect.cleandoc(get_all_aliases.__doc__ or "")
 	)
 
 	parser.add_argument(
@@ -167,7 +167,7 @@ if __name__ == "__main__":
 		print("Error of type {type}: {error}".format(error=str(e), type=type(e)))
 
 	if args.a:
-		print(json.dumps(get_all_aliases_from_ucr(ucr), indent=4, sort_keys=True))
+		print(json.dumps(get_all_aliases(), indent=4, sort_keys=True))
 
 	elif args.g:
 		logging.basicConfig(stream=sys.stderr, level=args.d)

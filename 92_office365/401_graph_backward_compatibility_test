@@ -38,10 +38,10 @@ class TestTeamsAPICompatibility(unittest.TestCase):
                 self.logger.debug("trying to load {alias}...".format(alias=alias))
                 self.graph = Graph(
                     ucr=self.ucr,
-                    name=__name__,
+                    name='TestTeamsAPICompGraph',
                     connection_alias=alias
                 )
-                self.azure = Azure(self.ucr, __name__, alias)
+                self.azure = Azure(self.ucr, "TestTeamsAPICompAzure", alias)
                 self.logger.debug("trying to load {alias}...success".format(alias=alias))
                 return  # if both succeeds we are happy and use that
             except Exception as e:
@@ -54,16 +54,19 @@ class TestTeamsAPICompatibility(unittest.TestCase):
 
     def test_create_group(self):
         '''
+        Azure: {} != Graph: {}
+
         The basic functionality should work implementation independently, but
-        if this test fails it means that the results from both calls differd.
+        if this test fails it means that the results from both calls differd:
         '''
-        name = create_random_string_with_prefix('_' + self.__name__ + '_')
-        desc = create_random_string_with_prefix('_' + self.__name__ + '_')
+        name = create_random_string_with_prefix(8, '_test_create_group_name_')
+        desc = create_random_string_with_prefix(8, '_test_create_group_desc_')
+
+        g = self.graph.create_group(name, desc)
+        a = self.azure.create_group(name, desc)
 
         self.assertEqual(
-            self.graph.create_group(name, desc),
-            self.azure.create_group(name, desc),
-            self.test_create_group.__doc__
+            a, g, self.test_create_group.__doc__.format(a, g)
         )
 
     def test_create_group_twice(self):
@@ -71,8 +74,8 @@ class TestTeamsAPICompatibility(unittest.TestCase):
         We expect to be able to create the same group twice. It should then
         have different group_ids though.
         '''
-        name = create_random_string_with_prefix('_' + self.__name__ + '_')
-        desc = create_random_string_with_prefix('_' + self.__name__ + '_')
+        name = create_random_string_with_prefix(8, '_test_create_group_twice_')
+        desc = create_random_string_with_prefix(8, '_test_create_group_twice_')
 
         self.assertEqual(
             self.graph.create_group(name, desc),
@@ -91,7 +94,7 @@ class TestTeamsAPICompatibility(unittest.TestCase):
         them.
         '''
         name = create_random_string_with_prefix(
-            '_' + self.__name__ + '_' + '@()\\[]";:.<>, ')
+            8, '_test_create_group_with_illegal_chars_' + '@()\\[]";:.<>, ')
 
         self.assertEqual(
             self.graph.create_group(name),

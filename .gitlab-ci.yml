@@ -5,12 +5,14 @@ build-package:
   script:
     - apt-get -q --assume-yes build-dep .
     - dpkg-buildpackage
+    - mkdir -f _build
+    - mv ../*.deb ../*.buildinfo ../*.tar.gz ../*.dsc ../*.changes _build
   artifacts:
     paths:
-      - "../*.deb"
-      - "../*.buildinfo"
-      - "../*.tar.gz"
-      - "../*.dsc"
-      - "../*.changes"
+      - "_build/*.deb"
+      - "_build/*.buildinfo"
+      - "_build/*.tar.gz"
+      - "_build/*.dsc"
+      - "_build/*.changes"
 
 # vim: filetype=yaml expandtab tabstop=2 shiftwidth=2 softtabstop=2
