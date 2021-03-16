@@ -44,6 +44,7 @@ from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler,
 from univention.office365.listener import Office365Listener, NoAllocatableSubscriptions, attributes_system, get_adconnection_filter
 from univention.office365.udm_helper import UDMHelper
 from univention.office365.logging2udebug import get_logger
+from univention.office365.api_helper import get_http_proxies
 
 listener.configRegistry.load()
 attributes_anonymize = list()
@@ -177,7 +178,7 @@ logger.info("attributes to never sync: %r", attributes_never)
 logger.info("attributes to statically set in AAD: %r", attributes_static)
 logger.info("attributes to sync: %r", attributes_sync)
 logger.info("attributes to sync from multiple sources: %r", attributes_multiple_azure2ldap)
-AzureAuth.get_http_proxies()  # log proxy settings
+get_http_proxies(listener.configRegistry, logger)  # log proxy settings
 
 
 def load_old(old):
