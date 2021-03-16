@@ -5,7 +5,7 @@ build-package:
   script:
     - apt-get -q --assume-yes build-dep .
     - dpkg-buildpackage
-    - mkdir -f _build
+    - mkdir -p _build
     - mv ../*.deb ../*.buildinfo ../*.tar.gz ../*.dsc ../*.changes _build
   artifacts:
     paths:
