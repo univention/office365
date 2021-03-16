@@ -67,7 +67,7 @@ def get_client_assertion_from_alias(
         )
 
 
-def load_token_file(alias, config_basepath="/etc/univention-office365"):
+def load_ids_file(alias, config_basepath="/etc/univention-office365"):
     '''
     The Microsoft 365 Configuration Wizard places configuration files under
     /etc/univention-office365. In these we find all necessary data to create an

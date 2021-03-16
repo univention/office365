@@ -12,7 +12,7 @@ except ImportError:
 
 
 from univention.office365.api.exceptions import GraphError
-from univention.office365.certificate_helper import get_client_assertion_from_alias, load_token_file
+from univention.office365.certificate_helper import get_client_assertion_from_alias, load_ids_file
 from univention.office365.api_helper import get_http_proxies
 from univention.office365.azure_handler import AzureHandler
 
@@ -107,7 +107,7 @@ class Graph(AzureHandler):
                 )
             )
 
-        token_file_as_json = load_token_file(connection_alias)
+        token_file_as_json = load_ids_file(connection_alias)
 
         endpoint = "https://login.microsoftonline.com/{directory_id}/oauth2/v2.0/token".format(
             directory_id=token_file_as_json['directory_id']
