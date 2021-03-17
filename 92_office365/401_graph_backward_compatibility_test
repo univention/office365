@@ -7,6 +7,7 @@
 ##   - univention-office365
 
 import os
+import json
 import logging
 import argparse
 import unittest
@@ -17,7 +18,7 @@ from univention.office365.api.graph import Graph
 from univention.office365.certificate_helper import get_all_aliases
 from univention.office365.api.exceptions import GraphError
 
-from univention.office365.azure_handler import AzureHandler as Azure
+from univention.office365.azure_handler import ApiError, AzureHandler as Azure
 from univention.office365.azure_auth import AzureError
 
 from helpers.random_strings import create_random_string_with_prefix
@@ -25,6 +26,12 @@ from helpers.random_strings import create_random_string_with_prefix
 
 class TestTeamsAPICompatibility(unittest.TestCase):
     def setUp(self):
+        '''
+            initializes an instance of the Graph class and one for
+            AzureHandler. Calls can then be executed against either of both and
+            incompatibilities can be indentified.
+        '''
+
         self.ucr = testing_ucr.UCSTestConfigRegistry()
         self.ucr.load()
         self.logger = logging.getLogger()
@@ -41,9 +48,13 @@ class TestTeamsAPICompatibility(unittest.TestCase):
                     name='TestTeamsAPICompGraph',
                     connection_alias=alias
                 )
-                self.azure = Azure(self.ucr, "TestTeamsAPICompAzure", alias)
+                self.azure = Azure(
+                    ucr=self.ucr,
+                    name="TestTeamsAPICompAzure",
+                    adconnection_alias=alias
+                )
                 self.logger.debug("trying to load {alias}...success".format(alias=alias))
-                break  # if both succeeds we are happy and use that
+                break  # if both succeed we are happy and leave the loop
             except Exception as e:
                 self.logger.error(
                     "Could not load endpoint '{alias}': {error}".format(
@@ -56,62 +67,44 @@ class TestTeamsAPICompatibility(unittest.TestCase):
 
     def test_create_group(self):
         '''
-        Azure: {} != Graph: {}
+            Assertion:
 
-        The basic functionality should work implementation independently, but
-        if this test fails it means that the results from both calls differd:
+            Azure: {}
+
+            Graph: {}
+
+            The basic functionality should work implementation independently,
+            but if this test fails it means that the results from both calls
+            differd:
         '''
-        name = create_random_string_with_prefix(8, '_test_create_group_name_')
+
+        name_graph = create_random_string_with_prefix(8, '_test_create_group_name_')
+        name_azure = create_random_string_with_prefix(8, '_test_create_group_name_')
         desc = create_random_string_with_prefix(8, '_test_create_group_desc_')
 
-        g = self.graph.create_group(name, desc)
-        a = self.azure.create_group(name, desc)
+        g = dict(self.graph.create_group(name_graph, desc))
+        a = dict(self.azure.create_group(name_azure, desc))
 
         self.assertEqual(
-            a, g, self.test_create_group.__doc__.format(a, g)
-        )
-
-    def test_create_group_twice(self):
-        '''
-        We expect to be able to create the same group twice. It should then
-        have different group_ids though.
-        '''
-        name = create_random_string_with_prefix(8, '_test_create_group_twice_')
-        desc = create_random_string_with_prefix(8, '_test_create_group_twice_')
-
-        self.assertEqual(
-            self.graph.create_group(name, desc),
-            self.azure.create_group(name, desc)
+            g['displayName'], name_graph,
+            self.test_create_group.__doc__.format(a, g)
         )
         self.assertEqual(
-            self.graph.create_group(name, desc),
-            self.azure.create_group(name, desc),
-            self.test_create_group.__doc__
-        )
-
-    def test_create_group_with_illegal_chars(self):
-        '''
-        This test is supposed to succeed in creating a group even if it contains
-        illegal chars. The implementation is supposed to translate or delete
-        them.
-        '''
-        name = create_random_string_with_prefix(
-            8, '_test_create_group_with_illegal_chars_' + '@()\\[]";:.<>, ')
-
-        self.assertEqual(
-            self.graph.create_group(name),
-            self.azure.create_group(name),
-            self.test_create_group.__doc__
+            a['displayName'], name_azure,
+            self.test_create_group.__doc__.format(a, g)
         )
 
     def test_create_group_fail_because_no_name(self):
-        ''' try to break things by creating a group without a name '''
+        '''
+            try to break things by creating a group without a name
+        '''
+
         try:
             self.graph.create_group(''),
-        except GraphError:
+        except ApiError, GraphError:
             try:
                 self.azure.create_group('')
-            except AzureError:
+            except ApiError:
                 return  # success: both calls failed
             else:
                 pass

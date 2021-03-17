@@ -230,7 +230,8 @@ class AzureHandler(object):
 			is used for serialization)
 
 			:return:
-			Either a json object or an exception of type APIError
+			Either a json object, a requests.models.Response object or an
+			Exception of type APIError
 		'''
 
 		request_id = str(uuid.uuid4())
@@ -368,6 +369,12 @@ class AzureHandler(object):
 		obj = self._list_objects(object_type=object_type, ofilter="{key} eq '{value}'".format(**obj_id))
 		if obj["value"]:
 			logger.info("%s %r exists (%s), modifying it.", object_type, obj["value"][0]["displayName"], self.adconnection_alias)
+
+
+
+			import traceback
+			traceback.print_stack()
+			raise Exception("Problem: {} {}".format(type(g), type(a)))
 
 			return self._modify_objects(
 				object_type=object_type,

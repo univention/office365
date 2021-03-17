@@ -224,6 +224,7 @@ class Graph(AzureHandler):
                     continue  # restart the loop with the same url again
 
             elif 401 == response.status_code:
+                retry = retry - 1
                 self._login(self.connection_alias)
                 continue  # and retry with the new credentials
 
