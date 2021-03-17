@@ -1,4 +1,4 @@
-univention-office365 (2.0.2-106) unstable; urgency=low
+univention-office365 (2.0.2-107) unstable; urgency=low
 
   * Bug 52840 - Encapsulate Graph API functionality to work with Microsoft 365
     Teams

@@ -639,7 +639,7 @@ class Graph(AzureHandler):
             expected_status=[201]
         )
 
-    def list_teams(self, page_size=500):
+    def list_teams(self):
         ''' https://docs.microsoft.com/en-us/graph/api/group-list
             this is a simplification which we should try to keep up to date with the API
 
@@ -652,10 +652,7 @@ class Graph(AzureHandler):
         return self._call_graph_api(
             'GET',
             'https://graph.microsoft.com/v1.0/groups?'
-            '$select=id,displayName,resourceProvisioningOptions&'
-            '$top={page_size}'.format(
-                page_size=page_size
-            ),
+            '$select=id,displayName,resourceProvisioningOptions',
             expected_status=[200]
         )
 
