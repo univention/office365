@@ -370,12 +370,6 @@ class AzureHandler(object):
 		if obj["value"]:
 			logger.info("%s %r exists (%s), modifying it.", object_type, obj["value"][0]["displayName"], self.adconnection_alias)
 
-
-
-			import traceback
-			traceback.print_stack()
-			raise Exception("Problem: {} {}".format(type(g), type(a)))
-
 			return self._modify_objects(
 				object_type=object_type,
 				object_id=obj["value"][0]["objectId"],
