@@ -17,17 +17,17 @@ from univention.office365.api_helper import get_http_proxies
 from univention.office365.azure_handler import AzureHandler
 
 '''
-The Graph class is kept compatible with the former `azure_handler.py` class and
-can be used as a drop-in-replacement for it. It still relies on the
-AzureHandlers functionality and acts as a compatibility layer, while it
-simultaneously allows the incremental reimplementation of functions on top of
-it, or in other words 'overwrite functions' until all calls have been migrated,
-then remove the base class `AzureHandler`.
+    The Graph class is kept compatible with the former `azure_handler.py` class and
+    can be used as a drop-in-replacement for it. It still relies on the
+    AzureHandlers functionality and acts as a compatibility layer, while it
+    simultaneously allows the incremental reimplementation of functions on top of
+    it, or in other words 'overwrite functions' until all calls have been migrated,
+    then remove the base class `AzureHandler`.
 
-One main idea in this class is, that there is only one http code for a
-successful call and many different error values. The first check after each API
-call is therefore a check for a successful return code and that can be found
-in the Microsoft documentation under `Response` for each endpoint.
+    One main idea in this class is, that there is only one http code for a
+    successful call and many different error values. The first check after each API
+    call is therefore a check for a successful return code and that can be found
+    in the Microsoft documentation under `Response` for each endpoint.
 '''
 
 

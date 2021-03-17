@@ -67,14 +67,25 @@ def get_client_assertion_from_alias(
         )
 
 
+def get_all_aliases():
+    '''
+        finds all aliases even if they are not in the
+        univention-config-registry or enabled.
+    '''
+
+    alias_path = '/etc/univention-office365'
+    return [o for o in os.listdir(alias_path) if os.path.isdir(os.path.join(alias_path, o))]
+
+
 def load_ids_file(alias, config_basepath="/etc/univention-office365"):
     '''
-    The Microsoft 365 Configuration Wizard places configuration files under
-    /etc/univention-office365. In these we find all necessary data to create an
-    access_token, which can then be used to access graph endpoints of both types
-    Graph and Azure. The naming of some IDs has changed however and this helper
-    function is there, so that it becomes obvious in which file which IDs can
-    be found and how they were called in the past and how they are called now.
+        The Microsoft 365 Configuration Wizard places configuration files under
+        /etc/univention-office365. In these we find all necessary data to
+        create an access_token, which can then be used to access graph
+        endpoints of both types Graph and Azure. The naming of some IDs has
+        changed however and this helper function is there, so that it becomes
+        obvious in which file which IDs can be found and how they were called
+        in the past and how they are called now.
     '''
 
     with open(os.path.join(config_basepath, alias, "ids.json"), 'r') as f_ids:

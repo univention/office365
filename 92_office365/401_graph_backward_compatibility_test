@@ -14,7 +14,7 @@ import unittest
 import univention.testing.ucr as testing_ucr
 
 from univention.office365.api.graph import Graph
-from univention.office365.api.graph_auth import get_all_aliases_from_ucr
+from univention.office365.certificate_helper import get_all_aliases
 from univention.office365.api.exceptions import GraphError
 
 from univention.office365.azure_handler import AzureHandler as Azure
@@ -29,8 +29,8 @@ class TestTeamsAPICompatibility(unittest.TestCase):
         self.ucr.load()
         self.logger = logging.getLogger()
 
-        self.aliases = get_all_aliases_from_ucr(self.ucr)
-        self.assertGreater(len(self.aliases), 0, "No endpoints found.")
+        self.aliases = get_all_aliases()
+        self.assertGreater(len(self.aliases), 0, "No aliases found.")
 
         self.graph = None
         for alias in self.aliases:
@@ -43,14 +43,16 @@ class TestTeamsAPICompatibility(unittest.TestCase):
                 )
                 self.azure = Azure(self.ucr, "TestTeamsAPICompAzure", alias)
                 self.logger.debug("trying to load {alias}...success".format(alias=alias))
-                return  # if both succeeds we are happy and use that
+                break  # if both succeeds we are happy and use that
             except Exception as e:
                 self.logger.error(
                     "Could not load endpoint '{alias}': {error}".format(
                         alias=alias, error=str(e)
                     )
                 )
+
         self.assertIsNotNone(self.graph, msg="Graph class was not loaded.")
+        self.assertIsNotNone(self.azure, msg="Azure class was not loaded.")
 
     def test_create_group(self):
         '''

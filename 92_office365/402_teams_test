@@ -17,7 +17,7 @@ import time
 import univention.testing.ucr as testing_ucr
 
 from univention.office365.api.graph import Graph
-from univention.office365.api.graph_auth import get_all_aliases_from_ucr
+from univention.office365.certificate_helper import get_all_aliases
 from univention.office365.api.responseparser.create_team import get_team_id
 from univention.office365.api.exceptions import GraphError
 from helpers.random_strings import create_random_string_with_prefix
@@ -32,8 +32,8 @@ class Test_TeamsAPI(unittest.TestCase):
         self.ucr.load()
         self.logger = logging.getLogger()
 
-        self.aliases = get_all_aliases_from_ucr(self.ucr)
-        self.assertGreater(len(self.aliases), 0, "No endpoints found.")
+        self.aliases = get_all_aliases()
+        self.assertGreater(len(self.aliases), 0, "No aliases found.")
 
         self.graph = None
         for alias in self.aliases:
@@ -52,6 +52,7 @@ class Test_TeamsAPI(unittest.TestCase):
                         alias=alias, error=str(e)
                     )
                 )
+
         self.assertIsNotNone(self.graph, msg="Graph class was not loaded.")
 
         # some attempts to get a user-id with the correct plans assigned to
