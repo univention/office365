@@ -205,33 +205,45 @@ class AzureHandler(object):
 
 	def call_api(self, method, url, data=None, retry=0):
 		'''
-			This function overwrites the underlaying call_api function for
-			demonstration purposes. It is meant to replace the call_api
-			function in the azure_handler class and had the original function
-			as its starting point. The refactoring made it clearer what this
-			function does and does not do.
+		SUMMARY
+		-------
 
-			From that it was understood, that this function:
+		This function:
 
-			* creates the correct http header for requests against azure
-			* support for proxy servers
-			* implements pagination
-			* implements retry after 10 seconds if error code is 5xx
-			* implements basic sanity checks and catches error codes
+		* creates the correct http header for requests against azure
+		* support for proxy servers
+		* implements pagination
+		* implements retry after 10 seconds if error code is 5xx
+		* implements basic sanity checks and catches error codes
 
-			:param method:
+		ATTRIBUTES
+		----------
+
+		method : str
 			GET|POST|PATCH|PUT|DELETE|...
 
-			:param url:
-			string in the form protocol://tld.example.com/path/[file]?params
+		url : str
+			string in the form
+			protocol://tld.example.com/path/[file]?params
 
-			:param data:
-			a json-object (or dict) to be used as payload (json.dumps
-			is used for serialization)
+		data : dict
+			a json-object (or dict) to be used as payload (json.dumps is
+			used for serialization)
 
-			:return:
-			Either a json object, a requests.models.Response object or an
-			Exception of type APIError
+		RAISES
+		------
+
+		ResourceNotFoundError
+			the request returned 404 or an object was not found
+
+		APIError
+			every other error
+
+		RETURNS
+		-------
+
+		Either a json object, a requests.models.Response object or an
+		Exception of type APIError
 		'''
 
 		request_id = str(uuid.uuid4())

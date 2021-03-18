@@ -173,20 +173,38 @@ class Graph(AzureHandler):
     # the single most important function
 
     def _call_graph_api(self, method, url, data=None, retry=3, headers={}, expected_status=[]):
-        ''' private function to avoid code duplication; adds support for
-            pagination, proxy handling and automatic retries after server errors
+        ''' SUMMARY
+            -------
 
-            :param method:
-            GET|POST|PATCH|PUT|DELETE|...
+            private function to avoid code duplication and make all calls
+            generic. It adds support for pagination, proxy handling and
+            automatic retries after different server errors, if necessary.
 
-            :param url:
-            string in the form protocol://tld.example.com/path/[file]?params
+            ATTRIBUTES
+            ----------
 
-            :param data:
-            a json-object or dict to be used as payload
+            method : str
+                GET|POST|PATCH|PUT|DELETE|...
 
-            :return:
-            Either a json object or an exception of type GraphError
+            url : str
+                string in the form protocol://tld.example.com/path/[file]?params
+
+            data : dict
+                a json-object or dict to be used as payload
+
+            RAISES
+            ------
+
+            GraphError
+                A gerneric error with all necessary information for debugging.
+                All erros returned by this function have use the (private)
+                _generate_error_message function to format the error message
+                in a readable way.
+
+            RETURNS
+            -------
+
+            a Dict with the return values from the Micrsoft server
         '''
 
         values = {}  # holds data from pagination
@@ -282,8 +300,7 @@ class Graph(AzureHandler):
     # error handling starts here...
 
     def _generate_error_message(self, response, message=''):
-        '''
-            The Graph API (as well as the Azure API) is consistent in that way,
+        ''' The Graph API (as well as the Azure API) is consistent in that way,
             that both return a small number of success values as http response
             status code and a larger number of possible error messages, which
             are much more consistent across different endpoints. This function
@@ -350,17 +367,27 @@ class Graph(AzureHandler):
         )
 
     def list_azure_users(self):
-        '''
-            this function calls the Azure API with a Graph access token. According
-            to the documentation it should be doable somehow. As we do not need
-            this function at the moment, it is kept here as a reminder and possible
-            starting point if that becomes relevant in future.
+        ''' NOTE: This function should only be used for testing!
+            This function calls the Azure API with a Graph access token.
+            According to the documentation it should be doable somehow. As we
+            do not need this function at the moment, it is kept here as a
+            reminder and possible starting point if that becomes relevant in
+            future, when we start implementing backwards compatiblity.
         '''
         return self._call_graph_api(
             method='GET',
             url='https://graph.windows.net/{application_id}/users?api-version=1.6'.format(
                 application_id=self.auth.adconnection_id
             ),
+            expected_status=[200]
+        )
+
+    def list_graph_users(self):
+        ''' https://docs.microsoft.com/en-us/graph/api/user-list
+        '''
+
+        return self._call_graph_api(
+            'GET', 'https://graph.microsoft.com/v1.0/users',
             expected_status=[200]
         )
 
@@ -464,11 +491,15 @@ class Graph(AzureHandler):
     def create_team_from_group(self, object_id):
         ''' https://docs.microsoft.com/en-us/graph/api/team-put-teams?view=graph-rest-beta
 
-            @TODO: The name of this endpoint will change at one point in time.
-                   Regular tests are necessary, because this uses the beta API
+            This functions does not really convert a group into a team, because
+            the created team will be another object with another id. It is also
+            possible to call this function multiple times on the same group.
 
-            @dependencies: this function requires some edit-group function in order
-            to add the owner to the group
+            TODO
+            ----
+
+            The name of this endpoint will change at one point in time, because
+            it is currently in beta. The URL will change at some point in time.
         '''
 
         return self._call_graph_api(
@@ -493,7 +524,9 @@ class Graph(AzureHandler):
     def create_team_from_group_current(self, object_id):  # object_id is similar to cb57b853-be97-457c-8232-491dd82f5940
         ''' https://docs.microsoft.com/en-us/graph/api/team-put-teams
 
-            but this does not work with "Cannot migrate this group, id:
+            Here is the non-beta endpont version of the create_team_from_group
+            function with limited functionality. It does e.g. not work with
+            "Cannot migrate this group, id:
             364ff58b-b67a-4a74-8f6d-ac3e9ff7db38, access type: [...]
         '''
 
@@ -525,10 +558,16 @@ class Graph(AzureHandler):
     def delete_team(self, group_id):
         ''' https://docs.microsoft.com/en-us/graph/api/group-delete
 
-            @Note: It was considered to use the delete_group function from the
-            base class, but the function does currently not delete groups.
-            Instead it renames them. @REQUIREMENT We need a proper delete
-            function for teams.
+            NOTE
+            ----
+
+            It was considered to use the delete_group function from the base
+            class, but the function does currently not delete groups.  Instead
+            it renames them. The implementation of this function was thus added
+            as a requirement to clean up after each test execution.
+
+            WARNING
+            -------
 
             Be careful though, because this function can now be used to delete
             teams as well as groups and that was successfully tested. An
@@ -545,8 +584,20 @@ class Graph(AzureHandler):
     def archive_team(self, team_id):
         ''' https://docs.microsoft.com/en-us/graph/api/team-archive
 
-            Note, that the `shouldSetSpoSiteReadOnlyForMembers` parameter is
-            not supported in the application context.
+            This function sets a team `inactive`.
+
+            NOTE
+            ----
+            The `shouldSetSpoSiteReadOnlyForMembers` parameter is not supported
+            in the application context.
+
+            RAISES
+            ------
+            GraphError if unsuccessful
+
+            RETURNS
+            -------
+            Nothing if successful.
         '''
 
         return self._call_graph_api(
@@ -560,7 +611,12 @@ class Graph(AzureHandler):
 
     def unarchive_team(self, team_id):
         ''' https://docs.microsoft.com/en-us/graph/api/team-unarchive
-            @returns: a http header with the `Location` of the restored team
+
+            This function reactivates a team.
+
+            RETURNS
+            -------
+            A http header with the `Location` of the restored team
         '''
 
         return self._call_graph_api(
@@ -585,7 +641,11 @@ class Graph(AzureHandler):
 
     def add_team_member(self, team_id, user_id):
         ''' https://docs.microsoft.com/en-us/graph/api/team-post-members
-            Application Permission `TeamMember.ReadWrite.All` is needed
+
+            PERMISSIONS
+            -----------
+            Application
+                TeamMember.ReadWrite.All
         '''
 
         return self._call_graph_api(
@@ -608,6 +668,11 @@ class Graph(AzureHandler):
 
     def delete_team_member(self, team_id, membership_id):
         ''' https://docs.microsoft.com/en-us/graph/api/team-post-members
+
+            PERMISSIONS
+            -----------
+            Application
+                User.ReadWrite.All
         '''
 
         return self._call_graph_api(
@@ -642,8 +707,10 @@ class Graph(AzureHandler):
     def delete_user(self, user_id):
         ''' https://docs.microsoft.com/en-us/graph/api/user-delete
 
-            NOTE: This function requires the application permission
-                  User.ReadWrite.All
+            PERMISSIONS
+            -----------
+            Application
+                User.ReadWrite.All
         '''
 
         return self._call_graph_api(
@@ -657,12 +724,16 @@ class Graph(AzureHandler):
 
     def list_teams(self):
         ''' https://docs.microsoft.com/en-us/graph/api/group-list
-            this is a simplification which we should try to keep up to date with the API
 
-            the returned object uses pagination and the value can be found in
-            the 'value' field. It is of type List and can be itarted, e.g.:
+            Summary
+            -------
 
-                for team in api.list_teams['value']
+            this is a simplification which we should try to keep up to date
+            with the API. This function could potentially return a very long
+            array and its performance can be tuned with the `$top` parameter
+            in the future, which allows pagination with more items per page
+            and a maximum of 999 at the time of writing this comment. More
+            info here: https://docs.microsoft.com/en-us/graph/paging
         '''
 
         return self._call_graph_api(

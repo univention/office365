@@ -5,8 +5,6 @@ import json
 import uuid
 import base64
 
-from univention.office365.api.exceptions import TokenFileInvalid
-
 
 def get_client_assertion(oauth_token_endpoint, ssl_fingerprint, key_data, application_id):
     def _get_assertion_blob(header, payload):
