@@ -39,6 +39,11 @@ class TestTeamsAPICompatibility(unittest.TestCase):
         self.aliases = get_all_aliases()
         self.assertGreater(len(self.aliases), 0, "No aliases found.")
 
+        # whenever we create a user, group or team, we want to delete it after
+        # the test execution again. For the tearDown method we will store
+        # a list of created users in the following List:
+        self.test_groups = []
+
         self.graph = None
         for alias in self.aliases:
             try:
@@ -65,6 +70,14 @@ class TestTeamsAPICompatibility(unittest.TestCase):
         self.assertIsNotNone(self.graph, msg="Graph class was not loaded.")
         self.assertIsNotNone(self.azure, msg="Azure class was not loaded.")
 
+    def tearDown(self):
+        for group in self.test_groups:
+            try:
+                self.graph.delete_team(group)
+            except GraphError:
+                self.logger.warning("unable to delete group with id {}".format(group))
+                pass
+
     def test_create_group(self):
         '''
             Assertion:
@@ -83,7 +96,10 @@ class TestTeamsAPICompatibility(unittest.TestCase):
         desc = create_random_string_with_prefix(8, '_test_create_group_desc_')
 
         g = dict(self.graph.create_group(name_graph, desc))
+        self.test_groups.append(g['id'])
+
         a = dict(self.azure.create_group(name_azure, desc))
+        self.test_groups.append(a['id'])
 
         self.assertEqual(
             g['displayName'], name_graph,
@@ -101,7 +117,8 @@ class TestTeamsAPICompatibility(unittest.TestCase):
 
         try:
             self.graph.create_group(''),
-        except ApiError, GraphError:
+        except ApiError:
+            # will become GraphError after this got reimplemented with Graph
             try:
                 self.azure.create_group('')
             except ApiError:

@@ -35,6 +35,13 @@ class Test_TeamsAPI(unittest.TestCase):
         self.aliases = get_all_aliases()
         self.assertGreater(len(self.aliases), 0, "No aliases found.")
 
+        # whenever we create a user, group or team, we want to delete it after
+        # the test execution again. For the tearDown method we will store
+        # a list of created users in the following List:
+        self.test_users = []
+        self.test_groups = []
+        self.test_teams = []
+
         self.graph = None
         for alias in self.aliases:
             try:
@@ -67,8 +74,25 @@ class Test_TeamsAPI(unittest.TestCase):
         #     self.owner = self.new_user['objectId']
         self.owner = "2a5926ba-d37e-4f4b-adc0-fc3e3b10f72a"
 
-    def teardown(self):
-        self.graph.delete_user(self.owner)
+    def tearDown(self):
+        for user in self.test_users:
+            try:
+                self.graph.delete_user(user)
+            except GraphError:
+                self.logger.warning("unable to delete user with id {}".format(user))
+                pass
+        for group in self.test_groups:
+            try:
+                self.graph.delete_team(group)
+            except GraphError:
+                self.logger.warning("unable to delete group with id {}".format(group))
+                pass
+        for team in self.test_teams:
+            try:
+                self.graph.delete_team(team)
+            except GraphError:
+                self.logger.warning("unable to delete team with id {}".format(team))
+                pass
 
     def _create_random_user(self):
         '''
@@ -79,6 +103,11 @@ class Test_TeamsAPI(unittest.TestCase):
         password = '123' + create_random_string_with_prefix(8) + '@#$'
         mailaddr = create_random_string_with_prefix(8) + '@office365.dev-univention.de'
         new_user = self.graph.add_user(username, mailaddr, password)
+
+        # store the users id for later in the tearDown of the test to be able
+        # to delete it again...
+        self.test_users.append(new_user['id'])
+
         return new_user
 
     def _wait_for_microsoft(self, timeout=10):
@@ -87,7 +116,16 @@ class Test_TeamsAPI(unittest.TestCase):
     def _create_sample_team(self):
         name = create_random_string_with_prefix(20)
         team = self.graph.create_team(name, self.owner)
-        return get_team_id(team)
+
+        # parse the team_id out of the request (this is inconsistent in teams
+        # API that with other API calls against graph, where the return value
+        # is a JSON)
+        team_id = get_team_id(team)
+
+        # store team_id to be able to delete it later in tearDown
+        self.test_teams.append(team_id)
+
+        return team_id
 
     def test_create_team(self):
         team_id = self._create_sample_team()

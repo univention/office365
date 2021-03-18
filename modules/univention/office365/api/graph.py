@@ -128,7 +128,8 @@ class Graph(AzureHandler):
                 'grant_type': 'client_credentials',
                 'scope': ['https://graph.microsoft.com/.default']
             },
-            expected_status=[200]
+            expected_status=[200],
+            retry=0
         )
 
         # it would be nicer to use the Date field from the response.header
@@ -171,7 +172,7 @@ class Graph(AzureHandler):
     # ==========================================================================
     # the single most important function
 
-    def _call_graph_api(self, method, url, data=None, retry=1, headers={}, expected_status=[]):
+    def _call_graph_api(self, method, url, data=None, retry=3, headers={}, expected_status=[]):
         ''' private function to avoid code duplication; adds support for
             pagination, proxy handling and automatic retries after server errors
 
@@ -185,11 +186,11 @@ class Graph(AzureHandler):
             a json-object or dict to be used as payload
 
             :return:
-            Either a json object or an exception of type APIError
+            Either a json object or an exception of type GraphError
         '''
 
         values = {}  # holds data from pagination
-        while url and retry:  # as long as retries are left and url is set to a next page link
+        while url and url != "":  # as long as retries are left and url is set to a next page link
             self.logger.info("Next url: {url}".format(url=url))
 
             # prepare the http headers, which we are going to send with any request
@@ -221,12 +222,20 @@ class Graph(AzureHandler):
                     )
                     time.sleep(10)
                     retry = retry - 1
-                    continue  # restart the loop with the same url again
+                    if retry > 0:
+                        continue  # restart the loop with the same url again
+                    else:
+                        raise self._generate_error_message(response, "Still a server error 500.")
 
             elif 401 == response.status_code:
                 retry = retry - 1
-                self._login(self.connection_alias)
-                continue  # and retry with the new credentials
+                self.logger.debug("retries left: {retry}".format(retry=retry))
+                if retry > 0:
+                    # retry a login ,then try the call again
+                    self._login(self.connection_alias)
+                    continue  # and retry with the new credentials
+                else:
+                    raise self._generate_error_message(response, "Unable to (re-)login")
 
             elif response.status_code not in expected_status:
                 raise self._generate_error_message(response)
@@ -352,15 +361,6 @@ class Graph(AzureHandler):
             url='https://graph.windows.net/{application_id}/users?api-version=1.6'.format(
                 application_id=self.auth.adconnection_id
             ),
-            expected_status=[200]
-        )
-
-    def list_graph_users(self):
-        ''' https://docs.microsoft.com/en-us/graph/api/user-list
-        '''
-
-        return self._call_graph_api(
-            'GET', 'https://graph.microsoft.com/v1.0/users',
             expected_status=[200]
         )
 
@@ -637,6 +637,22 @@ class Graph(AzureHandler):
             }),
             headers={'Content-Type': 'application/json'},
             expected_status=[201]
+        )
+
+    def delete_user(self, user_id):
+        ''' https://docs.microsoft.com/en-us/graph/api/user-delete
+
+            NOTE: This function requires the application permission
+                  User.ReadWrite.All
+        '''
+
+        return self._call_graph_api(
+            'DELETE',
+            'https://graph.microsoft.com/v1.0/users/{user_id}'.format(
+                user_id=user_id
+            ),
+            headers={'Content-Type': 'application/json'},
+            expected_status=[204]
         )
 
     def list_teams(self):

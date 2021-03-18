@@ -1,1 +1,3 @@
-# this file may not be empty for git
+'''
+    This folder generally contains exceptions from the basic rules.
+'''
