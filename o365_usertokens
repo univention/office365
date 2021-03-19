@@ -77,10 +77,19 @@ if __name__ == '__main__':
 	modified_users = 0
 
 	# base period, after which user tokens get invalidated
-	base_reset_period = ucr.get("office365/tokens/base_reset_period", 60)
+	try:
+		base_reset_period = int(ucr.get("office365/tokens/base_reset_period", 60))
+	except ValueError as e:
+		logger.error("UCRv office365/tokens/base_reset_period must contain an integer")
+		exit(1)
+
 	# randomize the reset period for some days, so not everyone will be reset at the same time
 	# should also reduce runtime of script and azure API calls, as fewer modifications are necessary
-	reset_period_modifier = ucr.get("office365/tokens/reset_period_modifier", 15)
+	try:
+		reset_period_modifier = int(ucr.get("office365/tokens/reset_period_modifier", 15))
+	except ValueError as e:
+		logger.error("UCRv office365/tokens/reset_period_modifier must contain an integer")
+		exit(1)
 
 	base = ucr["ldap/base"]
 	try:

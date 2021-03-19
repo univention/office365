@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-111) unstable; urgency=medium
+
+  * Bug #52960: Fix UCR value parsing in o365_usertokens script
+
+ -- Erik Damrose <damrose@univention.de>  Fri, 19 Mar 2021 13:42:17 +0100
+
 univention-office365 (2.0.2-110) unstable; urgency=low
 
   * Bug 52840 - Encapsulate Graph API functionality to work with Microsoft 365
