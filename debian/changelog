@@ -1,3 +1,10 @@
+univention-office365 (2.0.2-113) unstable; urgency=low
+
+  * Bug #52840: Fixed test, added sleep to give the Microsoft server enough
+    time
+
+ -- Max Christian Pohle <pohle@univention.de>  Fri, 19 Mar 2021 16:25:02 +0100
+
 univention-office365 (2.0.2-112) unstable; urgency=medium
 
   * Bug #52960: Fix UCR value parsing in o365_usertokens script

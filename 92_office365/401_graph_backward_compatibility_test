@@ -7,7 +7,7 @@
 ##   - univention-office365
 
 import os
-import json
+import time
 import logging
 import argparse
 import unittest
@@ -19,7 +19,6 @@ from univention.office365.certificate_helper import get_all_aliases
 from univention.office365.api.exceptions import GraphError
 
 from univention.office365.azure_handler import ApiError, AzureHandler as Azure
-from univention.office365.azure_auth import AzureError
 
 from helpers.random_strings import create_random_string_with_prefix
 
@@ -71,12 +70,19 @@ class TestTeamsAPICompatibility(unittest.TestCase):
         self.assertIsNotNone(self.azure, msg="Azure class was not loaded.")
 
     def tearDown(self):
+        # after creating a group it can take some time until it is available as
+        # an object and can be deleted again
+        self._wait_for_microsoft(60)
+
         for group in self.test_groups:
             try:
                 self.graph.delete_team(group)
             except GraphError:
                 self.logger.warning("unable to delete group with id {}".format(group))
                 pass
+
+    def _wait_for_microsoft(self, timeout=10):
+        time.sleep(timeout)  # this is bad
 
     def test_create_group(self):
         '''
