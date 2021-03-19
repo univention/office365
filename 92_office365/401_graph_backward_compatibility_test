@@ -96,10 +96,10 @@ class TestTeamsAPICompatibility(unittest.TestCase):
         desc = create_random_string_with_prefix(8, '_test_create_group_desc_')
 
         g = dict(self.graph.create_group(name_graph, desc))
-        self.test_groups.append(g['id'])
+        self.test_groups.append(g['objectId'])
 
         a = dict(self.azure.create_group(name_azure, desc))
-        self.test_groups.append(a['id'])
+        self.test_groups.append(a['objectId'])
 
         self.assertEqual(
             g['displayName'], name_graph,
