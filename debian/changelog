@@ -1,4 +1,4 @@
-univention-office365 (2.0.2-111) unstable; urgency=medium
+univention-office365 (2.0.2-112) unstable; urgency=medium
 
   * Bug #52960: Fix UCR value parsing in o365_usertokens script
 

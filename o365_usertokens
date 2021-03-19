@@ -124,6 +124,9 @@ if __name__ == '__main__':
 				except (zlib.error, TypeError):
 					logger.error("Error decoding o365data for user %s", ldap_user[1]["uid"][0])
 					adconnection_objects = {}
+				except KeyError:
+					logger.error("Error: user %s is not correctly synced to Azure (missing univentionOffice365Data attribute)", ldap_user[1]["uid"][0])
+					continue
 
 				for alias, values in adconnection_objects.items():
 					ah = AzureHandler(ucr, name="tokens", adconnection_alias=alias)
