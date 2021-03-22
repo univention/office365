@@ -15,7 +15,6 @@ import unittest
 import univention.testing.ucr as testing_ucr
 
 from univention.office365.api.graph import Graph
-from univention.office365.certificate_helper import get_all_aliases
 from univention.office365.api.exceptions import GraphError
 
 from univention.office365.azure_handler import ApiError, AzureHandler as Azure
@@ -31,12 +30,13 @@ class TestTeamsAPICompatibility(unittest.TestCase):
             incompatibilities can be indentified.
         '''
 
+        # the alias has to be one, which has the correct permissions assigned
+        # to it.
+        self.alias = 'o365domain'
+
         self.ucr = testing_ucr.UCSTestConfigRegistry()
         self.ucr.load()
         self.logger = logging.getLogger()
-
-        self.aliases = get_all_aliases()
-        self.assertGreater(len(self.aliases), 0, "No aliases found.")
 
         # whenever we create a user, group or team, we want to delete it after
         # the test execution again. For the tearDown method we will store
@@ -44,28 +44,19 @@ class TestTeamsAPICompatibility(unittest.TestCase):
         self.test_groups = []
 
         self.graph = None
-        for alias in self.aliases:
-            try:
-                self.logger.debug("trying to load {alias}...".format(alias=alias))
-                self.graph = Graph(
-                    ucr=self.ucr,
-                    name='TestTeamsAPICompGraph',
-                    connection_alias=alias
-                )
-                self.azure = Azure(
-                    ucr=self.ucr,
-                    name="TestTeamsAPICompAzure",
-                    adconnection_alias=alias
-                )
-                self.logger.debug("trying to load {alias}...success".format(alias=alias))
-                break  # if both succeed we are happy and leave the loop
-            except Exception as e:
-                self.logger.error(
-                    "Could not load endpoint '{alias}': {error}".format(
-                        alias=alias, error=str(e)
-                    )
-                )
-
+        self.logger.debug("Loading Graph with alias '{alias}'...".format(
+            alias=self.alias)
+        )
+        self.graph = Graph(
+            ucr=self.ucr,
+            name='TestTeamsAPICompGraph',
+            connection_alias=self.alias
+        )
+        self.azure = Azure(
+            ucr=self.ucr,
+            name="TestTeamsAPICompAzure",
+            adconnection_alias=self.alias
+        )
         self.assertIsNotNone(self.graph, msg="Graph class was not loaded.")
         self.assertIsNotNone(self.azure, msg="Azure class was not loaded.")
 

@@ -40,9 +40,18 @@ import argparse
 from argparse import RawTextHelpFormatter
 from univention.config_registry import ConfigRegistry
 
-from univention.office365.certificate_helper import get_all_aliases
 from univention.office365.api.graph import Graph
 from univention.office365.api.exceptions import GraphError
+
+
+def get_all_aliases():
+	'''
+		finds all aliases even if they are not in the univention config
+		registry or initizlized.
+	'''
+
+	alias_path = '/etc/univention-office365'
+	return [o for o in os.listdir(alias_path) if os.path.isdir(os.path.join(alias_path, o))]
 
 
 def try_to_prettyprint(msg, indent=8):

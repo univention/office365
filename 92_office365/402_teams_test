@@ -17,7 +17,6 @@ import time
 import univention.testing.ucr as testing_ucr
 
 from univention.office365.api.graph import Graph
-from univention.office365.certificate_helper import get_all_aliases
 from univention.office365.api.responseparser.create_team import get_team_id
 from univention.office365.api.exceptions import GraphError
 from helpers.random_strings import create_random_string_with_prefix
@@ -28,12 +27,16 @@ from helpers.office365_test_helpers import azure_user_args
 class Test_TeamsAPI(unittest.TestCase):
 
     def setUp(self):
+
+        # the alias has to be one, which has the correct permissions assigned
+        # to it. The owner is a user, which has the permission to create
+        # teams, that means assignedPlan has "service": "TeamspaceAPI" to it.
+        self.alias = 'o365domain'
+        self.owner = "2a5926ba-d37e-4f4b-adc0-fc3e3b10f72a"
+
         self.ucr = testing_ucr.UCSTestConfigRegistry()
         self.ucr.load()
         self.logger = logging.getLogger()
-
-        self.aliases = get_all_aliases()
-        self.assertGreater(len(self.aliases), 0, "No aliases found.")
 
         # whenever we create a user, group or team, we want to delete it after
         # the test execution again. For the tearDown method we will store
@@ -43,36 +46,15 @@ class Test_TeamsAPI(unittest.TestCase):
         self.test_teams = []
 
         self.graph = None
-        for alias in self.aliases:
-            try:
-                self.logger.debug("trying to load {alias}...".format(alias=alias))
-                self.graph = Graph(
-                    ucr=self.ucr,
-                    name=__name__,
-                    connection_alias=alias
-                )
-                self.logger.debug("trying to load {alias}...success".format(alias=alias))
-                break  # if this succeeds we are happy and use it
-            except Exception as e:
-                self.logger.error(
-                    "Could not load endpoint '{alias}': {error}".format(
-                        alias=alias, error=str(e)
-                    )
-                )
-
+        self.logger.debug("Loading Graph with alias '{alias}'...".format(
+            alias=self.alias)
+        )
+        self.graph = Graph(
+            ucr=self.ucr,
+            name=__name__,
+            connection_alias=self.alias
+        )
         self.assertIsNotNone(self.graph, msg="Graph class was not loaded.")
-
-        # some attempts to get a user-id with the correct plans assigned to
-        # become an owner...
-        #     args = azure_user_args(self.graph, minimal=True)
-        #     args['usageLocation'] = "DE"
-        #     self.new_user = self.graph.create_user(args)
-        #     subscriptions_online = self.graph.get_enabled_subscriptions()
-        #     self.graph.add_license(self.new_user['objectId'], "6fd2c87f-b296-42f0-b197-1e91e994b900")  # add TeamspaceAPI
-        #     raise Exception(json.dumps(subscriptions_online, indent=4))
-        #     print("NEW USER: " + str(json.dumps(self.new_user, indent=4)))
-        #     self.owner = self.new_user['objectId']
-        self.owner = "2a5926ba-d37e-4f4b-adc0-fc3e3b10f72a"
 
     def tearDown(self):
         for user in self.test_users:

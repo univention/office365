@@ -65,16 +65,6 @@ def get_client_assertion_from_alias(
         )
 
 
-def get_all_aliases():
-    '''
-        finds all aliases even if they are not in the
-        univention-config-registry or enabled.
-    '''
-
-    alias_path = '/etc/univention-office365'
-    return [o for o in os.listdir(alias_path) if os.path.isdir(os.path.join(alias_path, o))]
-
-
 def load_ids_file(alias, config_basepath="/etc/univention-office365"):
     '''
         The Microsoft 365 Configuration Wizard places configuration files under
