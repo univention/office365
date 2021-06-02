@@ -513,6 +513,7 @@ class Office365Listener(object):
 					securityEnabled=True
 				)
 				azure_group = self.ah.modify_group(object_id, attributes)
+                                # TODO: add teams stuff here
 		except ResourceNotFoundError:
 			logger.warn("Office365Listener.modify_group() azure group doesn't exist (anymore), creating it instead.")
 			azure_group = self.create_group_from_new(new)
