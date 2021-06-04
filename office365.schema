@@ -50,6 +50,19 @@ attributetype ( 1.3.6.1.4.1.10176.4000.107
 	EQUALITY caseExactIA5Match
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
 
+attributetype ( 1.3.6.1.4.1.10176.4000.108
+	NAME 'univentionMicrosoft365Team'
+	DESC 'Defines if group or team'
+	EQUALITY integerMatch
+	SINGLE-VALUE
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )
+
+attributetype ( 1.3.6.1.4.1.10176.4000.109
+	NAME 'univentionMicrosoft365GroupOwners'
+	DESC 'Defines group owners'
+	EQUALITY distinguishedNameMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.12)
+
 objectclass ( 1.3.6.1.4.1.10176.4000.100
 	NAME 'univentionOffice365'
 	DESC 'Data for the Microsoft 365 provisioning service'
@@ -57,7 +70,8 @@ objectclass ( 1.3.6.1.4.1.10176.4000.100
 	MAY ( univentionOffice365Enabled $ univentionOffice365ObjectID $
 	    univentionOffice365Data $ univentionOffice365userPrincipalName $
 	    univentionOffice365ProfileLink $ univentionOffice365TokenResetDate $
-	    univentionOffice365ADConnectionAlias
+	    univentionOffice365ADConnectionAlias $ univentionMicrosoft365Team $
+	    univentionMicrosoft365GroupOwners
 	) )
 
 attributetype ( 1.3.6.1.4.1.10176.4000.201

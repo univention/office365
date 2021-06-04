@@ -37,18 +37,31 @@ import zlib
 
 _ = Translation('univention-admin-handlers-office365').translate
 msg_require_mail = _("Microsoft 365 users must have a primary e-mail address specified.")
+msg_require_owner = _("In order to create a Microsoft 365 team from a group, at least one group/team owner has to be specified.")
+
+
+def str2bool(val):
+	try:
+		return bool(int(val))
+	except TypeError:
+		# None
+		return False
+
+
+class Microsoft365GroupHook(simpleHook):
+	type = "Microsoft365GroupHook"
+
+	def hook_ldap_pre_create(self, module):
+		if str2bool(module.get("UniventionMicrosoft365Team")) and not module.get("UniventionMicrosoft365GroupOwners"):
+			raise univention.admin.uexceptions.valueError(msg_require_owner)
+
+	def hook_ldap_pre_modify(self, module):
+		if str2bool(module.get("UniventionMicrosoft365Team")) and not module.get("UniventionMicrosoft365GroupOwners"):
+			raise univention.admin.uexceptions.valueError(msg_require_owner)
 
 
 class Office365ADConnectionsHook(simpleHook):
 	type = "Office365ADConnectionsHook"
-
-	@staticmethod
-	def str2bool(val):
-		try:
-			return bool(int(val))
-		except TypeError:
-			# None
-			return False
 
 	def hook_open(self, module):
 		object_id = module.get("UniventionOffice365ObjectID")
@@ -115,9 +128,9 @@ class Office365ADConnectionsHook(simpleHook):
 		return ml
 
 	def hook_ldap_pre_create(self, module):
-		if self.str2bool(module.get("UniventionOffice365Enabled")) and not module.get("mailPrimaryAddress"):
+		if str2bool(module.get("UniventionOffice365Enabled")) and not module.get("mailPrimaryAddress"):
 			raise univention.admin.uexceptions.valueError(msg_require_mail)
 
 	def hook_ldap_pre_modify(self, module):
-		if self.str2bool(module.get("UniventionOffice365Enabled")) and not module.get("mailPrimaryAddress"):
+		if str2bool(module.get("UniventionOffice365Enabled")) and not module.get("mailPrimaryAddress"):
 			raise univention.admin.uexceptions.valueError(msg_require_mail)

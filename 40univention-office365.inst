@@ -33,7 +33,7 @@
 
 ## joinscript api: bindpwdfile
 
-VERSION=7
+VERSION=8
 
 . /usr/share/univention-join/joinscripthelper.lib
 . /usr/share/univention-lib/all.sh
@@ -167,7 +167,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set translationTabName='"de_DE" "Microsoft 365"' \
 	--set module="users/user" \
 	--set module="settings/usertemplate" \
-	--set syntax=boolean \
+	--set syntax=univention.admin.syntax.boolean \
 	--set default=0 \
 	--set multivalue=0 \
 	--set valueRequired=0 \
@@ -340,6 +340,58 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set deleteObjectClass=0 \
 	--set overwriteTab=0 \
 	--set disableUDMWeb=1 || die
+
+udm settings/extended_attribute create "$@" --ignore_exists \
+	--position "$ea_base" \
+	--set name="UniventionMicrosoft365Team" \
+	--set CLIName="UniventionMicrosoft365Team" \
+	--set shortDescription="Microsoft 365 Team" \
+	--set translationShortDescription='"de_DE" "Microsoft 365 Team"' \
+	--set longDescription="If this attribute is true, the group is a Microsoft 365 Team" \
+	--set translationLongDescription='"de_DE" "Wenn dieser Wert wahr ist, ist diese Gruppe ein Microsoft 365 Team"' \
+	--set module="groups/group" \
+	--set tabAdvanced=0 \
+	--set tabName="Microsoft 365" \
+	--set tabPosition=4 \
+	--set translationTabName='"de_DE" "Microsoft 365"' \
+	--set syntax=boolean \
+	--set hook="Microsoft365GroupHook" \
+	--set default="" \
+	--set multivalue=0 \
+	--set valueRequired=0 \
+	--set mayChange=1 \
+	--set doNotSearch=0 \
+	--set objectClass=univentionOffice365 \
+	--set ldapMapping=univentionMicrosoft365Team \
+	--set deleteObjectClass=0 \
+	--set overwriteTab=0 \
+	--set disableUDMWeb=0 || die
+
+udm settings/extended_attribute create "$@" --ignore_exists \
+	--position "$ea_base" \
+	--set name="UniventionMicrosoft365GroupOwners" \
+	--set CLIName="UniventionMicrosoft365GroupOwners" \
+	--set shortDescription="Microsoft 365 group/team owners" \
+	--set translationShortDescription='"de_DE" "Microsoft 365 Gruppen/Team Besitzer"' \
+	--set longDescription="Defines Microsoft 365 group/team owners" \
+	--set translationLongDescription='"de_DE" "Definiert Microsoft 365 Gruppen/Team Besitzer"' \
+	--set module="groups/group" \
+	--set tabAdvanced=0 \
+	--set tabName="Microsoft 365" \
+	--set tabPosition=6 \
+	--set translationTabName='"de_DE" "Microsoft 365"' \
+	--set syntax=Office365_User \
+	--set default="" \
+	--set multivalue=1 \
+	--set valueRequired=0 \
+	--set mayChange=1 \
+	--set doNotSearch=0 \
+	--set objectClass=univentionOffice365 \
+	--set ldapMapping=univentionMicrosoft365GroupOwners \
+	--set deleteObjectClass=0 \
+	--set overwriteTab=0 \
+	--set disableUDMWeb=0 || die
+
 
 # New installation - no joinscript has ever run
 if ! joinscript_check_any_version_executed; then

@@ -88,44 +88,10 @@ msgstr ""
 "Der empfangene Token für Azure AD Connection {adconnection} ist ungültig. Bitte führen Sie den"
 " Einrichtungsassistent erneut aus."
 
-#~ msgid ""
-#~ "Could not read certificate. Please make sure the joinscript 40univention-"
-#~ "office365.inst is executed successfully or execute it again."
-#~ msgstr ""
-#~ "Konnte Zertifikat nicht lesen. Bitte stellen Sie sicher, dass das Joinskript"
-#~ " 40univention-office365.inst erfolgreich ausgeführt wurde oder führen Sie es"
-#~ " erneut aus."
+#: office365_user_ADConnections_hook.py:39
+msgid "Microsoft 365 users must have a primary e-mail address specified."
+msgstr "Microsoft 365 Benutzer müssen eine primäre E-Mail-Adresse besitzen."
 
-#~ msgid ""
-#~ "Error downloading certificates from Azure. Please run the wizard again."
-#~ msgstr ""
-#~ "Fehler beim herunterladen der Zertifikate nicht von Azure. Bitte führen Sie "
-#~ "den Einrichtungsassistent erneut aus."
-
-#~ msgid "Error reading certificates from Azure. Please run the wizard again."
-#~ msgstr ""
-#~ "Fehler beim lesen von Azures Zertifikaten. Bitte führen Sie den "
-#~ "Einrichtungsassistent erneut aus."
-
-#~ msgid "Error reading token received from Azure. Please run the wizard again."
-#~ msgstr ""
-#~ "Fehler beim lesen von Azures Token. Bitte führen Sie den "
-#~ "Einrichtungsassistent erneut aus."
-
-#~ msgid "Error retrieving authentication token from Azure."
-#~ msgstr "Fehler beim Abrufen eines Authentifizierungs-Tokens von Azure."
-
-#~ msgid "Office 365 users must have a primary e-mail address specified."
-#~ msgstr "Office 365 Benutzer müssen eine primäre E-Mail-Adresse besitzen."
-
-#~ msgid ""
-#~ "The configuration is incomplete and misses some data. Please run the wizard "
-#~ "again."
-#~ msgstr ""
-#~ "Die Konfiguration ist unvollständig, da einige Daten fehlen. Bitte führen "
-#~ "Sie den Einrichtungsassistent erneut aus."
-
-#~ msgid "The received token is not valid. Please run the wizard again."
-#~ msgstr ""
-#~ "Der erhaltene Token ist ungültig. Bitte führen Sie den Einrichtungsassistent"
-#~ " erneut aus."
+#: office365_user_ADConnections_hook.py:40
+msgid "In order to create a Microsoft 365 team from a group, at least one group/team owner has to be specified."
+msgstr "Um ein Microsoft 365 Team aus einer Gruppe zu erstellen wird mindestens ein Gruppen-Besitzer benötigt."

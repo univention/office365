@@ -36,6 +36,13 @@ translation = univention.admin.localization.translation('univention-admin-handle
 _ = translation.translate
 
 
+class Office365_User(UDM_Objects):
+	udm_modules = ('users/user', )
+	# TODO mdb_equality_candidates: (univentionOffice365Enabled) not indexed
+	udm_filter = '(&(objectClass=univentionOffice365)(univentionOffice365Enabled=1)(univentionOffice365Data=*))'
+	use_objects = False
+
+
 class univentionOffice365ProfileSyntax(UDM_Objects):
 	empty_value = True
 	udm_modules = ('office365/profile', )
