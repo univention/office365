@@ -513,7 +513,6 @@ class Office365Listener(object):
 					securityEnabled=True
 				)
 				azure_group = self.ah.modify_group(object_id, attributes)
-                                # TODO: add teams stuff here
 		except ResourceNotFoundError:
 			logger.warn("Office365Listener.modify_group() azure group doesn't exist (anymore), creating it instead.")
 			azure_group = self.create_group_from_new(new)
@@ -618,6 +617,9 @@ class Office365Listener(object):
 				deleted = self.delete_empty_group(object_id, udm_group)
 				if deleted:
 					return None
+
+		if 'univentionMicrosoft365TeamAdmins' in modification_attributes:
+			self.ah.create_team_from_group(object_id=object_id)
 
 		# modify other attributes
 		modifications = dict([(mod_attr, new[mod_attr]) for mod_attr in modification_attributes])

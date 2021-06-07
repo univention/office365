@@ -10,6 +10,10 @@ try:
 except ImportError:
     from urllib import quote
 
+try:
+    from string import maketrans
+except ImportError:
+    from str import maketrans
 
 from univention.office365.api.exceptions import GraphError
 from univention.office365.certificate_helper import get_client_assertion_from_alias, load_ids_file
@@ -437,6 +441,45 @@ class Graph(AzureHandler):
                 group_id=group_id
             ),
             expected_status=[200]
+        )
+
+    def create_group(self, name, description="", owners=[], members=[]):
+        ''' https://docs.microsoft.com/en-us/graph/api/group-post-groups
+
+        '''
+
+        # the following list of illegal chars was taken from the microsoft
+        # documentation...
+        illegal = '@()\\[]";:.<>,'
+
+        if not isinstance(owners, list):
+            owners = [owners]
+
+        if not isinstance(members, list):
+            members = [members]
+
+        return self._call_graph_api(
+            'POST', 'https://graph.microsoft.com/v1.0/groups',
+            data=json.dumps(
+                {
+                    'displayName': quote(name),
+                    'description': quote(description),
+                    'mailEnabled': False,
+                    'mailNickname': filter(
+                        lambda x: x not in illegal,  # delete these chars
+                        name.replace(' ', '_-_')     # translate ' ' to '_-_'
+                    ),
+                    'securityEnabled': True,
+                    "members@odata.bind":
+                        map(lambda x: "https://graph.microsoft.com/v1.0/users/" + x, members)
+                        if len(members) > 0 else None,
+                    "owners@odata.bind":
+                        map(lambda x: "https://graph.microsoft.com/v1.0/users/" + x, owners)
+                        if len(owners) > 0 else None
+                }
+            ),
+            headers={'Content-Type': 'application/json'},
+            expected_status=[201]
         )
 
     def create_team(self, name, owner, description=""):
