@@ -619,7 +619,20 @@ class Office365Listener(object):
 					return None
 
 		if 'univentionMicrosoft365TeamAdmins' in modification_attributes:
-			self.ah.create_team_from_group(object_id=object_id)
+			logger.warn('trying to add an owner to a team')
+			while(1):
+				try:
+					self.ah.add_group_owner(
+						object_id=object_id,
+						modification_attributes['univentionMicrosoft365TeamAdmins']
+					)
+					self.ah.create_team_from_group(object_id=object_id)
+					break
+				except GraphError:
+					sleep(30)
+					retry += 30
+					if(retry > 150):
+						break
 
 		# modify other attributes
 		modifications = dict([(mod_attr, new[mod_attr]) for mod_attr in modification_attributes])

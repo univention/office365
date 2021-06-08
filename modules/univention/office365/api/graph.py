@@ -509,7 +509,7 @@ class Graph(AzureHandler):
             expected_status=[202]
         )
 
-    def add_group_owner(self, group_id, owner_id):
+    def add_group_owner(self, group_id, owner_ids):
         ''' https://docs.microsoft.com/en-us/graph/api/group-post-owners
         '''
 
@@ -519,9 +519,11 @@ class Graph(AzureHandler):
             ),
             data=json.dumps(
                 {
-                    "@odata.id": "https://graph.microsoft.com/v1.0/users/{owner_id}".format(
-                        owner_id=owner_id
-                    )
+                    "@odata.id": map(
+                        lambda x: "https://graph.microsoft.com/v1.0/users/{owner_id}".format(
+                            owner_id=x
+                        ), owner_ids
+                    ) if len(owner_ids) > 0 else None
                 }
             ),
             headers={'Content-Type': 'application/json'},
