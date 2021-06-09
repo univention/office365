@@ -56,6 +56,7 @@ attributes_system = set((
 	"shadowMax",
 	"univentionOffice365Enabled",
 	"univentionOffice365ADConnectionAlias",
+        "univentionMicrosoft365TeamAdmins",
 	"userexpiry",
 	"userPassword",
 ))  # set literals unknown in python 2.6
