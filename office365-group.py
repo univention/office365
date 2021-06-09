@@ -33,6 +33,7 @@
 from __future__ import absolute_import
 
 import base64
+import syslog
 import copy
 import json
 import os
@@ -44,6 +45,7 @@ from univention.office365.listener import Office365Listener, get_adconnection_fi
 from univention.office365.udm_helper import UDMHelper
 from univention.office365.logging2udebug import get_logger
 
+syslog.syslog("THIS COULD WORK")
 
 logger = get_logger("office365", "o365")
 listener.configRegistry.load()
@@ -66,7 +68,13 @@ elif initialized_adconnections:
 else:
 	filter = '(objectClass=deactivatedOffice365GroupListener)'
 	logger.warn("office 365 group listener deactivated (no initialized adconnections)")
-attributes = ["cn", "description", "uniqueMember"]
+
+attributes = [
+	"cn", "description", "uniqueMember",
+	"univentionMicrosoft365Team",
+	"univentionMicrosoft365GroupOwners"
+]
+
 modrdn = "1"
 
 OFFICE365_OLD_JSON = os.path.join("/var/lib/univention-office365", "office365-group_old_dn")
@@ -76,6 +84,7 @@ attributes_copy = copy.deepcopy(attributes)  # when handler() runs, all kinds of
 
 
 def load_old(old):
+	syslog.syslog(syslog.LOG_ALERT, "load_old(...)")
 	try:
 		with open(OFFICE365_OLD_JSON, "r") as fp:
 			old = json.load(fp)
@@ -87,6 +96,7 @@ def load_old(old):
 
 
 def save_old(old):
+	syslog.syslog(syslog.LOG_ALERT, "save_old(...)")
 	old["krb5Key"] = base64.b64encode(old["krb5Key"][0])
 	with open(OFFICE365_OLD_JSON, "w+") as fp:
 		os.chmod(OFFICE365_OLD_JSON, S_IRUSR | S_IWUSR)
@@ -94,11 +104,13 @@ def save_old(old):
 
 
 def setdata(key, value):
+	syslog.syslog(syslog.LOG_ALERT, "setdata(...)")
 	global ldap_cred
 	ldap_cred[key] = value
 
 
 def initialize():
+	syslog.syslog(syslog.LOG_ALERT, "initialize()")
 	if not listener.configRegistry.is_true("office365/groups/sync", False):
 		raise RuntimeError("Microsoft 365 App: syncing of groups is deactivated by UCR.")
 
@@ -111,12 +123,14 @@ def clean():
 	Remove  univentionOffice365ObjectID and univentionOffice365Data from all
 	user objects.
 	"""
+	syslog.syslog(syslog.LOG_ALERT, "clean()")
 	adconnection_filter = get_adconnection_filter(listener.configRegistry, adconnection_aliases)
 	logger.info("Removing Microsoft 365 ObjectID and Data from all users (adconnection_filter=%r)...", adconnection_filter)
 	UDMHelper.clean_udm_objects("groups/group", listener.configRegistry["ldap/base"], ldap_cred, adconnection_filter)
 
 
 def handler(dn, new, old, command):
+	syslog.syslog(syslog.LOG_ALERT, "{name}.handler() command: {command} dn: {dn}".format(name=name, command=command, dn=dn))
 	logger.debug("%s.handler() command: %r dn: %r", name, command, dn)
 	if not listener.configRegistry.is_true("office365/groups/sync", False):
 		return
@@ -137,6 +151,7 @@ def handler(dn, new, old, command):
 	# NEW group
 	#
 	if new and not old:
+		syslog.syslog(syslog.LOG_ALERT, "NEW group")
 		logger.debug("new and not old -> NEW (%s)", dn)
 		for conn in initialized_adconnections:
 			ol = Office365Listener(listener, name, dict(listener=attributes_copy), ldap_cred, dn, conn)
@@ -148,6 +163,8 @@ def handler(dn, new, old, command):
 	# DELETE group
 	#
 	if old and not new:
+		syslog.syslog(syslog.LOG_ALERT, "DELETE group")
+
 		logger.debug("old and not new -> DELETE (%s)", dn)
 		for conn in initialized_adconnections:
 			ol = Office365Listener(listener, name, dict(listener=attributes_copy), ldap_cred, dn, conn)
@@ -158,10 +175,23 @@ def handler(dn, new, old, command):
 	# MODIFY group
 	#
 	if old and new:
+		syslog.syslog(syslog.LOG_ALERT, "MODIFY group")
+
 		logger.debug("old and new -> MODIFY (%s)", dn)
 		for conn in initialized_adconnections:
 			ol = Office365Listener(listener, name, dict(listener=attributes_copy), ldap_cred, dn, conn)
+			syslog.syslog(syslog.LOG_ALERT, "MODIFY group: %s" % conn)
+			syslog.syslog(syslog.LOG_ALERT, "MODIFY old: %s" % old)
+			syslog.syslog(syslog.LOG_ALERT, "MODIFY new: %s" % new)
+
+			new_owners = set(new.get('univentionMicrosoft365GroupOwners', [])).difference(
+				set(old.get('univentionMicrosoft365GroupOwners', []))
+			)
+
+			syslog.syslog(syslog.LOG_ALERT, "New Team Owners: %s" % str(new_owners))
+
 			if ol.udm.udm_groups_with_azure_users(dn):
+				syslog.syslog(syslog.LOG_ALERT, "PATH1")
 				azure_group = ol.modify_group(old, new)
 				# save Azure objectId in UDM object
 				try:
@@ -173,12 +203,15 @@ def handler(dn, new, old, command):
 				ol.set_adconnection_object_id(udm_group, object_id)
 				logger.info("Modified group %r (%r).", old["cn"][0], conn)
 			else:
+				syslog.syslog(syslog.LOG_ALERT, "PATH2")
 				logger.debug("Modified group %r has no members in %r.", new["cn"][0], conn)
 				# Handle case where no active user is left in the group and any nested group
 				if (
 					conn in new.get("univentionOffice365ADConnectionAlias", []) or
-					conn in old.get("univentionOffice365ADConnectionAlias", [])
+					conn in old.get("univentionOffice365ADConnectionAlias", []) or
+					len(new_owners) > 0
 				):
+					syslog.syslog(syslog.LOG_ALERT, "PASSED IF")
 					azure_group = ol.modify_group(old, new)
 					# save Azure objectId in UDM object
 					try:
@@ -190,5 +223,8 @@ def handler(dn, new, old, command):
 					ol.set_adconnection_object_id(udm_group, object_id)
 					logger.info("Modified group %r (%r).", old["cn"][0], conn)
 
+				syslog.syslog(syslog.LOG_ALERT, "CONTINUE...")
 				continue
 		return
+
+# vim: noexpandtab sts=8 ts=8 sw=8

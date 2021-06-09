@@ -35,6 +35,7 @@ import re
 import base64
 import json
 import zlib
+import syslog
 from ldap.filter import filter_format
 
 from univention.office365.api.graph import Graph
@@ -479,6 +480,8 @@ class Office365Listener(object):
 		return True
 
 	def modify_group(self, old, new):
+		syslog.syslog(syslog.LOG_ALERT, 'irgendwas mit gruppen')
+
 		modification_attributes = self._diff_old_new(self.attrs["listener"], old, new)
 		logger.debug("dn=%r modification_attributes=%r (%s)", self.dn, modification_attributes, self.adconnection_alias)
 
@@ -618,22 +621,6 @@ class Office365Listener(object):
 				deleted = self.delete_empty_group(object_id, udm_group)
 				if deleted:
 					return None
-
-		if 'univentionMicrosoft365TeamAdmins' in modification_attributes:
-			logger.warn('trying to add an owner to a team')
-			while(1):
-				try:
-					self.ah.add_group_owner(
-						object_id=object_id,
-						modification_attributes['univentionMicrosoft365TeamAdmins']
-					)
-					self.ah.create_team_from_group(object_id=object_id)
-					break
-				except GraphError:
-					sleep(30)
-					retry += 30
-					if(retry > 150):
-						break
 
 		# modify other attributes
 		modifications = dict([(mod_attr, new[mod_attr]) for mod_attr in modification_attributes])
@@ -867,3 +854,5 @@ class Office365Listener(object):
 		Encode ldap UniventionOffice365Data
 		"""
 		return base64.b64encode(zlib.compress(json.dumps(data)))
+
+# vim: noexpandtab sts=8 ts=8 sw=8
