@@ -297,20 +297,31 @@ class Manifest(object):
 		self.manifest["oauth2AllowImplicitFlow"] = True
 		self.manifest["oauth2AllowIdTokenImplicitFlow"] = True
 
-		# Permission: Azure Active Directory Graph; Permission Name: Directory.ReadWrite.All, Type: Application
-		permission = {"id": "78c8a3c8-a07e-4b9e-af1b-b5ccab50a175", "type": "Role"}
+		permissions = {
+			# Permission: Azure Active Directory Graph
+			"00000002-0000-0000-c000-000000000000": {"resourceAppId": "00000002-0000-0000-c000-000000000000",
+				"resourceAccess": [
+					# Permission Name: Directory.ReadWrite.All, Type: Application
+					{"id": "78c8a3c8-a07e-4b9e-af1b-b5ccab50a175", "type": "Role"}]},
+			# Permission: Microsoft Graph
+			"00000003-0000-0000-c000-000000000000": {"resourceAppId": "00000003-0000-0000-c000-000000000000",
+				"resourceAccess": [
+					# Permission Name: Group.ReadWrite.All, Type: Application
+					{"id": "62a82d76-70ea-41e2-9197-370581804d09", "type": "Role"},
+					# Permission Name: User.ReadWrite.All, Type: Application
+					{"id": "741f803b-c850-494e-b5df-cde7c675a1ca", "type": "Role"},
+					# Permission Name: TeamMember.ReadWrite.All, Type: Application
+					{"id": "0121dc95-1b9f-4aed-8bac-58c5ac466691", "type": "Role"}]}}
 
-		# AppID ..02-000..: Azure Active Directory Graph API
-		rAppId = {"resourceAppId": "00000002-0000-0000-c000-000000000000"}
-		if not self.manifest["requiredResourceAccess"].count(rAppId):
-			rAppId.update({"resourceAccess": [permission]})
-			self.manifest["requiredResourceAccess"].insert(0, rAppId)
-		else:
-			for access in self.manifest["requiredResourceAccess"]:
-				if access["resourceAppId"] != "00000002-0000-0000-c000-000000000000":
-					continue
-				if not access["resourceAccess"].count(permission):
-					access["resourceAccess"].append(permission)
+		apps = permissions.keys()
+		for appid in permissions.keys():
+			for access in self.manifest['requiredResourceAccess']:
+				if appid == access['resourceAppId']:
+					# append permissions without duplicates
+					[access["resourceAccess"].append(p) for p in permissions[appid]["resourceAccess"] if p not in access["resourceAccess"]]
+					apps.remove(appid)
+		for appid in apps:
+			self.manifest['requiredResourceAccess'].append(permissions[appid])
 
 
 class JsonStorage(object):

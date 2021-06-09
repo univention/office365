@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-116) unstable; urgency=medium
+
+  * Bug #48389: Append new microsoft graph permissions during wizard setup
+
+ -- Julia Bremer <bremer@univention.de>  Thu, 10 Jun 2021 07:53:26 +0200
+
 univention-office365 (2.0.2-115) unstable; urgency=medium
 
   * Bug #53397: added UMC integration and LDAP schema for teams
