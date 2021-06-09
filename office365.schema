@@ -58,8 +58,8 @@ attributetype ( 1.3.6.1.4.1.10176.4000.108
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )
 
 attributetype ( 1.3.6.1.4.1.10176.4000.109
-	NAME 'univentionMicrosoft365TeamAdmins'
-	DESC 'Defines Administrative Users for Teams'
+	NAME 'univentionMicrosoft365GroupOwners'
+	DESC 'Defines group owners'
 	EQUALITY distinguishedNameMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.12)
 
@@ -71,7 +71,7 @@ objectclass ( 1.3.6.1.4.1.10176.4000.100
 	    univentionOffice365Data $ univentionOffice365userPrincipalName $
 	    univentionOffice365ProfileLink $ univentionOffice365TokenResetDate $
 	    univentionOffice365ADConnectionAlias $ univentionMicrosoft365Team $
-	    univentionMicrosoft365TeamAdmins
+	    univentionMicrosoft365GroupOwners
 	) )
 
 attributetype ( 1.3.6.1.4.1.10176.4000.201

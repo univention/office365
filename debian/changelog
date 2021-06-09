@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-115) unstable; urgency=medium
+
+  * Bug #53397: added UMC integration and LDAP schema for teams
+
+ -- Felix Botner <botner@univention.de>  Fri, 04 Jun 2021 15:10:42 +0200
+
 univention-office365 (2.0.2-114) unstable; urgency=low
 
   * Bug #52840: Fixed test, added sleep to give the Microsoft server enough
