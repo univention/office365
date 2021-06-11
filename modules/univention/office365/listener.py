@@ -115,7 +115,7 @@ class Office365Listener(object):
 
 		self.not_migrated_to_v3 = self.ucr.is_false('office365/migrate/adconnectionalias')
 
-                self.ah = Graph(self.ucr, name, self.adconnection_alias, logger)
+		self.ah = Graph(self.ucr, name, self.adconnection_alias, logger)
 
 	@property
 	def verified_domains(self):
@@ -331,6 +331,7 @@ class Office365Listener(object):
 
 	def create_groups(self, dn, new):
 		if self.udm.udm_groups_with_azure_users(dn):
+			syslog.syslog(syslog.LOG_ALERT, "ABOUT TO CREATE GROUP WITH USERS")
 			new_group = self.create_group_from_new(new)
 			# save Azure objectId in UDM object
 			udm_group = self.udm.get_udm_group(dn)
@@ -338,6 +339,15 @@ class Office365Listener(object):
 			logger.info("Created group with displayName: %r (%r) adconnection: %s", new_group["displayName"], new_group["objectId"], self.adconnection_alias)
 
 	def create_group(self, name, description, group_dn, add_members=True):
+		syslog.syslog(syslog.LOG_ALERT, "CREATE GROUP called")
+
+		# if add_members:
+		udm_target_group = self.udm.get_udm_group(group_dn)
+		udm_target_group_users = set(udm_target_group["users"])
+		syslog.syslog(syslog.LOG_ALERT, str(udm_target_group.attributes))
+		# self.ah.create_group(name, description, owners, udm_target_group_users)
+
+
 		self.ah.create_group(name, description)
 
 		new_group = self.find_aad_group_by_name(name)
@@ -478,6 +488,27 @@ class Office365Listener(object):
 			self.delete_empty_group(nested_parent_group_id)
 
 		return True
+
+	def create_group_and_team():
+		syslog.syslog(syslog.LOG_ALERT, 'create_group_and_team: not implemented yet.')
+		if 'univentionMicrosoft365TeamAdmins' in modifications:
+			# TODO: this code path is not reached, why?
+			logger.warn('trying to add an owner to a team')
+			syslog.syslog('trying to add an owner to a team')
+			while(1):
+				try:
+					self.ah.add_group_owner(
+						object_id=object_id,
+						owner_ids=modification_attributes['univentionMicrosoft365TeamAdmins']
+					)
+					self.ah.create_team_from_group(object_id=object_id)
+					break
+				except GraphError:
+					sleep(30)
+					retry += 30
+					if(retry > 150):
+						break
+
 
 	def modify_group(self, old, new):
 		syslog.syslog(syslog.LOG_ALERT, 'irgendwas mit gruppen')

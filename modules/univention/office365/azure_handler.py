@@ -462,24 +462,6 @@ class AzureHandler(object):
 	def modify_group(self, object_id, modifications):
 		if "uniqueMember" in modifications:
 			raise RuntimeError("Attribute uniqueMember must be dealt with in listener (adconnection_alias=%r).", self.adconnection_alias)
-		if 'univentionMicrosoft365TeamAdmins' in modifications:
-			# TODO: this code path is not reached, why?
-			logger.warn('trying to add an owner to a team')
-			syslog.syslog('trying to add an owner to a team')
-			while(1):
-				try:
-					self.ah.add_group_owner(
-						object_id=object_id,
-						owner_ids=modification_attributes['univentionMicrosoft365TeamAdmins']
-					)
-					self.ah.create_team_from_group(object_id=object_id)
-					break
-				except GraphError:
-					sleep(30)
-					retry += 30
-					if(retry > 150):
-						break
-
 		return self._modify_objects(object_type="group", object_id=object_id, modifications=modifications)
 
 	def _delete_objects(self, object_type, object_id):

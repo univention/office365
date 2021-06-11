@@ -147,39 +147,57 @@ def handler(dn, new, old, command):
 	adconnection_aliases_new = set(new.get('univentionOffice365ADConnectionAlias', []))
 	logger.info('adconnection_alias_old=%r adconnection_alias_new=%r', adconnection_aliases_old, adconnection_aliases_new)
 
-	#
-	# NEW group
-	#
-	if new and not old:
-		syslog.syslog(syslog.LOG_ALERT, "NEW group")
-		logger.debug("new and not old -> NEW (%s)", dn)
-		for conn in initialized_adconnections:
+	# initialize all connections first (log into the microsoft server).
+	# Save all successful connection in a list of available connections and
+	# display errors for fauly connections...
+	active_connections = []
+
+	for conn in initialized_adconnections:
+		syslog.syslog(syslog.LOG_ALERT, "Next attempt: %s" % conn)
+		try:
 			ol = Office365Listener(listener, name, dict(listener=attributes_copy), ldap_cred, dn, conn)
+			active_connections.append(ol)
+			syslog.syslog(syslog.LOG_ALERT, "Connection estamblished: %s" % conn)
+		except Exception as e:
+			syslog.syslog(syslog.LOG_ALERT, "Connection failed: %s" % conn)
+			syslog.syslog(syslog.LOG_INFO, str(e))
+			logger.warn("connection initialized, but currently unavailble: %s" % conn)
+			logger.debug(e)
+			pass
+
+	if(0 == len(active_connections)):
+		syslog.syslog(
+			syslog.LOG_ALERT,
+			"The office connector has no working connections."
+			" None of these were able to connect: %s" % initialized_adconnections
+		)
+		return
+
+	for ol in active_connections:
+		#
+		# NEW group
+		#
+		if new and not old:
+			syslog.syslog(syslog.LOG_ALERT, "NEW group")
+			logger.debug("new and not old -> NEW (%s)", dn)
 			ol.create_groups(dn, new)
-		logger.debug("done (%s)", dn)
-		return
+			logger.debug("done (%s)", dn)
 
-	#
-	# DELETE group
-	#
-	if old and not new:
-		syslog.syslog(syslog.LOG_ALERT, "DELETE group")
-
-		logger.debug("old and not new -> DELETE (%s)", dn)
-		for conn in initialized_adconnections:
-			ol = Office365Listener(listener, name, dict(listener=attributes_copy), ldap_cred, dn, conn)
+		#
+		# DELETE group
+		#
+		elif old and not new:
+			syslog.syslog(syslog.LOG_ALERT, "DELETE group")
+			logger.debug("old and not new -> DELETE (%s)", dn)
 			ol.delete_group(old)
-		return
 
-	#
-	# MODIFY group
-	#
-	if old and new:
-		syslog.syslog(syslog.LOG_ALERT, "MODIFY group")
+		#
+		# MODIFY group
+		#
+		elif old and new:
+			syslog.syslog(syslog.LOG_ALERT, "MODIFY group")
 
-		logger.debug("old and new -> MODIFY (%s)", dn)
-		for conn in initialized_adconnections:
-			ol = Office365Listener(listener, name, dict(listener=attributes_copy), ldap_cred, dn, conn)
+			logger.debug("old and new -> MODIFY (%s)", dn)
 			syslog.syslog(syslog.LOG_ALERT, "MODIFY group: %s" % conn)
 			syslog.syslog(syslog.LOG_ALERT, "MODIFY old: %s" % old)
 			syslog.syslog(syslog.LOG_ALERT, "MODIFY new: %s" % new)
