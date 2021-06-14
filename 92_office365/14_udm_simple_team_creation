@@ -1,0 +1,43 @@
+#!/usr/share/ucs-test/runner python
+## -*- coding: utf-8 -*-
+## desc: create user in azure, check Data attribute
+## tags: [apptest]
+## exposure: dangerous
+## packages:
+##   - univention-office365
+
+import univention.testing.strings as uts
+import univention.testing.ucr as ucr_test
+import univention.testing.udm as udm_test
+
+from helpers.office365_test_helpers import udm_user_args
+
+
+with udm_test.UCSTestUDM() as udm:
+	with ucr_test.UCSTestConfigRegistry() as ucr:
+		ucr.load()
+
+		user_args = udm_user_args(ucr)
+		user_args["set"]["UniventionOffice365Enabled"] = 1
+		print("*** Creating user ***")
+		user_dn, username = udm.create_user(check_for_drs_replication=True, **user_args)
+		group_args = dict(
+			name=uts.random_string(),
+			set=dict(
+				UniventionMicrosoft365Team=1,
+			),
+		)
+
+		print("*** Creating Microsoft Team without Owner - should fail ***")
+		try:
+			group_dn = udm.create_group(check_for_drs_replication=True, **group_args)
+		except udm_test.UCSTestUDM_CreateUDMObjectFailed as e:
+			if 'owner' not in e.__str__():
+				raise
+			print("*** Creating Microsoft Team without Owner - failed as expected ***")
+
+		group_args['set']['UniventionMicrosoft365GroupOwners'] = user_dn
+		group_args['name'] = uts.random_string()
+		print(group_args)
+		print("*** Creating Microsoft Team with Owner ***")
+		group_dn = udm.create_group(check_for_drs_replication=True, **group_args)
