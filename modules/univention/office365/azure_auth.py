@@ -306,6 +306,8 @@ class Manifest(object):
 			# Permission: Microsoft Graph
 			"00000003-0000-0000-c000-000000000000": {"resourceAppId": "00000003-0000-0000-c000-000000000000",
 				"resourceAccess": [
+					# Permission Name: Directory.ReadWrite.All, Type: Application
+					{"id": "19dbc75e-c2e2-444c-a770-ec69d8559fc7", "type": "Role"},
 					# Permission Name: Group.ReadWrite.All, Type: Application
 					{"id": "62a82d76-70ea-41e2-9197-370581804d09", "type": "Role"},
 					# Permission Name: User.ReadWrite.All, Type: Application

@@ -1,4 +1,4 @@
-univention-office365 (2.0.2-116) unstable; urgency=medium
+univention-office365 (2.0.2-117) unstable; urgency=medium
 
   * Bug #48389: Append new microsoft graph permissions during wizard setup
 

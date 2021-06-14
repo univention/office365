@@ -143,6 +143,8 @@ The added Azure Active Directory Graph API permissions are:
 Permission Name: Directory.ReadWrite.All, Type: Application
 {"id": "78c8a3c8-a07e-4b9e-af1b-b5ccab50a175", "type": "Role"}]},
 The added Microsoft Graph permissions are:
+# Permission Name: Directory.ReadWrite.All, Type: Application
+{"id": "19dbc75e-c2e2-444c-a770-ec69d8559fc7", "type": "Role"},
 # Permission Name: Group.ReadWrite.All, Type: Application
 {"id": "62a82d76-70ea-41e2-9197-370581804d09", "type": "Role"},
 # Permission Name: User.ReadWrite.All, Type: Application
