@@ -339,14 +339,17 @@ class Office365Listener(object):
 			logger.info("Created group with displayName: %r (%r) adconnection: %s", new_group["displayName"], new_group["objectId"], self.adconnection_alias)
 
 	def create_group(self, name, description, group_dn, add_members=True):
-		syslog.syslog(syslog.LOG_ALERT, "CREATE GROUP called")
+		syslog.syslog(syslog.LOG_ALERT, "1. CREATE GROUP called")
 
 		# if add_members:
 		udm_target_group = self.udm.get_udm_group(group_dn)
+		syslog.syslog(syslog.LOG_ALERT, "2. CREATE GROUP called")
 		udm_target_group_users = set(udm_target_group["users"])
-		syslog.syslog(syslog.LOG_ALERT, str(udm_target_group.attributes))
+		syslog.syslog(syslog.LOG_ALERT, "3. CREATE GROUP called")
+		syslog.syslog(syslog.LOG_ALERT, "ATTRIBUTES: " + str(dir(udm_target_group)))
+		syslog.syslog(syslog.LOG_ALERT, "ATTRIBUTES: " + str(udm_target_group_users))
+		syslog.syslog(syslog.LOG_ALERT, "4. CREATE GROUP called")
 		# self.ah.create_group(name, description, owners, udm_target_group_users)
-
 
 		self.ah.create_group(name, description)
 
@@ -360,6 +363,15 @@ class Office365Listener(object):
 	def create_group_from_new(self, new):
 		desc = new.get("description", [""])[0] or None
 		name = new["cn"][0]
+
+		members = new['uniqueMember']
+		owners = new['univentionMicrosoft365GroupOwners']
+		# TODO: these lists must be translated from ldap paths to microsoft
+		#       user immutable ids, but eventually not here. And: Really?
+		#       maybe we can skip this, if we create a new group/team together
+		#       with owners only.
+		syslog.syslog(syslog.LOG_ALERT, "create_group_from_new: " + str(new))
+
 		return self.create_group(name, desc, self.dn)
 
 	def create_group_from_ldap(self, groupdn, add_members=True):
