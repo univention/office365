@@ -167,7 +167,26 @@ if __name__ == "__main__":
 	except Exception as e:
 		print("Error of type {type}: {error}".format(error=str(e), type=type(e)))
 
-	if args.a:
+	if 1 == len(sys.argv):
+		# Special case: Program was called without an argument. We assume, that
+		# the person using it has forgotten how to use it and show this quick
+		# intro.
+		print(
+			"Use `%s -a` to list all available pre-configured connections, also known as"
+			" `connection-aliases` and usually configured via `/etc/univention-office365/`." % sys.argv[0]
+		)
+		print("")
+		print(
+			"Call this program with `%s -g <connection>` to use a specific connection."
+			" Without further arguments that is enough to test which connection works"
+			" and which does not and it gives hints why it does not."  % sys.argv[0]
+		)
+		print("")
+		print("If `-g` is skipped this program defaults to: `%s`." % args.g)
+		print("")
+		print("Use `%s --help` to list all functions which can be called using the connection." % sys.argv[0])
+
+	elif args.a:
 		print(json.dumps(get_all_aliases(), indent=4, sort_keys=True))
 
 	elif args.g:

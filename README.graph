@@ -341,3 +341,26 @@ A team object with the same id (`./terminaltest.py --get_team 573ae468-5a74-4e74
 It becomes clear, that a team and a group are different object types, even
 though they can share the same Id.
 
+
+## Getting started with `terminaltest.py`
+
+If calling terminaltest.py leads to an error like `Application with identifier
+'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx' was not found in the directory` that is
+probably the case, because a wrong connection was automatically pre-selected.
+Check which connections exist on your system and choose another, like so:
+
+```
+root@master:~/office365# ./terminaltest.py -a
+[
+    "o365domain",
+    "u-azure-test-de",
+    "defaultADconnection",
+    "azuretestdomain",
+    "o365-dev-univention-de"
+]
+root@master:~/office365# ./terminaltest.py -g azuretestdomain
+DEBUG:office365:adconnection_alias='azuretestdomain'
+DEBUG:office365:adconnection_alias='azuretestdomain'
+INFO:office365:proxy settings: {}
+INFO:office365:service_plan_names=['SHAREPOINTWAC', 'SHAREPOINTWAC_DEVELOPER', 'OFFICESUBSCRIPTION', 'OFFICEMOBILE_SUBSCRIPTION', 'SHAREPOINTWAC_EDU']
+```
