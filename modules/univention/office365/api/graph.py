@@ -305,7 +305,7 @@ class Graph(AzureHandler):
             status code and a larger number of possible error messages, which
             are much more consistent across different endpoints. This function
             is there to take advantage of that fact and it provides all the
-            informations required to fix any problen: all request headers and
+            informations required to fix any problem: all request headers and
             the request body alongside with the responses counterparts.
 
             @return an Exception of type GraphError
