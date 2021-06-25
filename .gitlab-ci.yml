@@ -15,4 +15,16 @@ build-package:
       - "_build/*.dsc"
       - "_build/*.changes"
 
+deploy_testing:
+  stage: deploy
+  script:
+    - echo "Deploy to omar"
+    - find /
+  environment:
+    name: testing
+    url: https://apt.knut.univention.de/
+  when: manual
+#  rules:
+#    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
 # vim: filetype=yaml expandtab tabstop=2 shiftwidth=2 softtabstop=2
