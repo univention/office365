@@ -33,11 +33,7 @@ build_package:
     - mv ../*.tar.gz ../*.dsc ../*.deb ../*.buildinfo ../*.changes _build/
   artifacts:
     paths:
-      - "_build/*.deb"
-      - "_build/*.buildinfo"
-      - "_build/*.tar.gz"
-      - "_build/*.dsc"
-      - "_build/*.changes"
+      - _build/
 
 run_ucslint:
   stage: test
@@ -69,7 +65,7 @@ repo_admin:
     - chmod 0600 "$SSH_PRIVATE_KEY"
   script:
     - |
-      echo ssh -i "$SSH_PRIVATE_KEY" \
+      ssh -i "$SSH_PRIVATE_KEY" \
         -o BatchMode=yes \
         -l build omar.knut.univention.de \
         repo_admin.py \
@@ -100,7 +96,7 @@ build-package-ng:
     - chmod 0600 "$SSH_PRIVATE_KEY"
   script:
     - |
-      echo ssh -i "$SSH_PRIVATE_KEY" \
+      ssh -i "$SSH_PRIVATE_KEY" \
         -o BatchMode=yes \
         -l build \
         dimma.knut.univention.de \

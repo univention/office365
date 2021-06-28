@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-118) unstable; urgency=low
+
+  * Issue #555: Added gitlab-ci pipeline
+
+ -- Max Christian Pohle <pohle@univention.de>  Mon, 28 Jun 2021 16:43:50 +0200
+
 univention-office365 (2.0.2-117) unstable; urgency=medium
 
   * Bug #48389: Append new microsoft graph permissions during wizard setup
