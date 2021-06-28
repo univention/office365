@@ -57,9 +57,9 @@ deploy_with_repong:
   only:
     - $BRANCH
   rules:
-    - if: "$CI_COMMIT_MESSAGE =~ /skip-build/ || $pipeline =~ /skip-build/"
+    - if: '$CI_COMMIT_MESSAGE =~ /skip-build/ || $pipeline =~ /skip-build/'
       when: never
-    - if: '$CI_COMMIT_BRANCH == $BRANCH'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
       changes:
         - debian/changelog
       when: on_success
@@ -83,6 +83,4 @@ deploy_with_repong:
     url: https://apt.knut.univention.de/
   when: manual
 
-#  rules:
-#    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 # vim: filetype=yaml expandtab tabstop=2 shiftwidth=2 softtabstop=2
