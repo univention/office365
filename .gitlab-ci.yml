@@ -64,6 +64,7 @@ deploy_with_repong:
   #       - debian/changelog
   #     when: on_success
   before_script:
+    - find /
     - chmod 0600 "$SSH_PRIVATE_KEY"
   script:
     - echo ssh -o BatchMode=yes -i "$SSH_PRIVATE_KEY" -l build omar.knut.univention.de "repo_admin.py -G $CI_REPOSITORY_URL -p $PACKAGE -b $BRANCH -P . -s $SCOPE -r ${UCS_RELEASE}-0-0"
