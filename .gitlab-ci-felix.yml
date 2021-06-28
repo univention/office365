@@ -40,7 +40,7 @@ debian:
     - dpkg-buildpackage
     - rm -rf deb
     - mkdir deb
-    - mv ../*.deb ../*.buildinfo ../*.tar.gz ../*.dsc ../*.changes
+    - mv ../*.deb ../*.buildinfo ../*.tar.gz ../*.dsc ../*.changes ./deb/
   artifacts:
     paths:
       - deb
