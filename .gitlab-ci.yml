@@ -1,3 +1,9 @@
+stages:
+  - test
+  - build
+  - staging
+  - deploy
+
 variables:
   PACKAGE: univention-office365
   UCS_VERSION: "448"
@@ -17,6 +23,7 @@ variables:
   GIT_DEPTH: "3"
 
 build_package:
+  stage: build
   image: $IMAGE_UCSDEV
   before_script:
     - apt-get -q --assume-yes build-dep .
@@ -44,7 +51,7 @@ run_ucslint:
       junit: ucslint.xml
 
 repo_admin:
-  stage: Staging
+  stage: staging
   variables:
     GIT_STRATEGY: none  # disables `git clone` altogether
   image:
@@ -74,7 +81,7 @@ repo_admin:
           -r ${UCS_RELEASE}-0-0
 
 build-package-ng:
-  stage: Deploy
+  stage: deploy
   needs:
     - job: repo_admin
       artifacts: false
