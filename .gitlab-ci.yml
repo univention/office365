@@ -67,17 +67,17 @@ deploy_with_repong:
     - chmod 0600 "$SSH_PRIVATE_KEY"
   script:
     - echo ssh -o BatchMode=yes -i "$SSH_PRIVATE_KEY" -l build omar.knut.univention.de "repo_admin.py -G $CI_REPOSITORY_URL -p $PACKAGE -b $BRANCH -P . -s $SCOPE -r ${UCS_RELEASE}-0-0"
-    -| echo ssh -i "$SSH_PRIVATE_KEY" \
-           -o BatchMode=yes \
-           -l build \
-           dimma.knut.univention.de \
-           build-package-ng \
-               --no-pbuilder-update \
-               -P ucs \
-               -p $PACKAGE \
-               -r $ERRATA \
-               -s $SCOPE
-
+    - |
+      echo ssh -i "$SSH_PRIVATE_KEY" \
+             -o BatchMode=yes \
+             -l build \
+             dimma.knut.univention.de \
+             build-package-ng \
+                 --no-pbuilder-update \
+                 -P ucs \
+                 -p $PACKAGE \
+                 -r $ERRATA \
+                 -s $SCOPE
   environment:
     name: testing
     url: https://apt.knut.univention.de/
