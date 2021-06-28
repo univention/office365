@@ -104,7 +104,7 @@ build-package-ng:
           --no-pbuilder-update \
           -P ucs \
           -p $PACKAGE \
-          -s $SCOPE
+          -s $SCOPE \
           -r ${UCS_RELEASE}-0-0
 
 # vim: filetype=yaml expandtab tabstop=2 shiftwidth=2 softtabstop=2
