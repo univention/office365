@@ -64,6 +64,7 @@ deploy_with_repong:
   #     when: on_success
   before_script:
     - echo "Der ssh private key liegt unter $SSH_PRIVATE_KEY"
+    - env
     - chmod 0600 "$SSH_PRIVATE_KEY"
   script:
     - |
