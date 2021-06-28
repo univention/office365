@@ -57,8 +57,8 @@ deploy_with_repong:
   only:
     - $BRANCH
   rules:
-    - if: '$CI_COMMIT_MESSAGE =~ /skip-build/ || $pipeline =~ /skip-build/'
-      when: never
+    # - if: '$CI_COMMIT_MESSAGE =~ /skip-build/ || $pipeline =~ /skip-build/'
+    #   when: never
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
       changes:
         - debian/changelog
