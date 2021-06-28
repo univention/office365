@@ -68,7 +68,7 @@ repo_admin:
         -o BatchMode=yes \
         -l build omar.knut.univention.de \
         repo_admin.py \
-          -G $CI_PROJECT_URL \
+          -G $CI_REPOSITORY_URL \
           -p $PACKAGE \
           -b $BRANCH \
           -P . \
