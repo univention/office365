@@ -43,25 +43,21 @@ run_ucslint:
     reports:
       junit: ucslint.xml
 
-# we have artifacts build and checked with ucslint, but repo_admin.py will
-# not use these and 
-deploy_with_repong:
-  stage: deploy
-  interruptible: true
+repo_admin:
+  stage: Staging
+  when: never
   variables:
-    GIT_STRATEGY: none
+    GIT_STRATEGY: none  # disables `git clone` altogether
   image:
     name: $IMAGE_SSH
     entrypoint: [""]
-  # only:
-  #   - $BRANCH
-  # rules:
-  #   - if: '$CI_COMMIT_MESSAGE =~ /skip-build/ || $pipeline =~ /skip-build/'
-  #     when: never
-  #   - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
-  #     changes:
-  #       - debian/changelog
-  #     when: on_success
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /skip-build/ || $pipeline =~ /skip-build/'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - debian/changelog
+      when: manual
   before_script:
     - echo "Der ssh private key liegt unter $SSH_PRIVATE_KEY"
     - env
@@ -72,12 +68,23 @@ deploy_with_repong:
         -o BatchMode=yes \
         -l build omar.knut.univention.de \
         repo_admin.py \
-          -G $CI_REPOSITORY_URL \
+          -G $CI_PROJECT_URL \
           -p $PACKAGE \
           -b $BRANCH \
           -P . \
           -s $SCOPE \
           -r ${UCS_RELEASE}-0-0
+
+build-package-ng:
+  stage: Deploy
+  variables:
+    GIT_STRATEGY: none  # disables `git clone` altogether
+  image:
+    name: $IMAGE_SSH
+    entrypoint: [""]
+  before_script:
+    - chmod 0600 "$SSH_PRIVATE_KEY"
+  script:
     - |
       echo ssh -i "$SSH_PRIVATE_KEY" \
         -o BatchMode=yes \
@@ -89,9 +96,5 @@ deploy_with_repong:
           -p $PACKAGE \
           -s $SCOPE
           -r ${UCS_RELEASE}-0-0
-  environment:
-    name: testing
-    url: https://apt.knut.univention.de/
-  when: manual
 
 # vim: filetype=yaml expandtab tabstop=2 shiftwidth=2 softtabstop=2
