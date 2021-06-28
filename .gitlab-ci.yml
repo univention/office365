@@ -62,8 +62,6 @@ repo_admin:
   before_script:
     - chmod 0600 "$SSH_PRIVATE_KEY"
     - md5sum $SSH_PRIVATE_KEY
-    - ls -l $SSH_PRIVATE_KEY
-    - file $SSH_PRIVATE_KEY
   script:
     - |
       set -x && ssh -i "$SSH_PRIVATE_KEY" \
@@ -95,6 +93,7 @@ build-package-ng:
         - debian/changelog
   before_script:
     - chmod 0600 "$SSH_PRIVATE_KEY"
+    - md5sum $SSH_PRIVATE_KEY
   script:
     - |
       set -x && ssh -i "$SSH_PRIVATE_KEY" \
