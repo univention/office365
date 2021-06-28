@@ -45,19 +45,17 @@ run_ucslint:
 
 repo_admin:
   stage: Staging
-  when: never
   variables:
     GIT_STRATEGY: none  # disables `git clone` altogether
   image:
     name: $IMAGE_SSH
     entrypoint: [""]
   rules:
-    - if: '$CI_COMMIT_MESSAGE =~ /skip-build/ || $pipeline =~ /skip-build/'
+    - if: "$CI_COMMIT_MESSAGE =~ /skip-build/ || $pipeline =~ /skip-build/"
       when: never
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       changes:
         - debian/changelog
-      when: manual
   before_script:
     - echo "Der ssh private key liegt unter $SSH_PRIVATE_KEY"
     - env
@@ -77,6 +75,9 @@ repo_admin:
 
 build-package-ng:
   stage: Deploy
+  needs:
+    - job: repo_admin
+      artifacts: false
   variables:
     GIT_STRATEGY: none  # disables `git clone` altogether
   image:
