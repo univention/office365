@@ -90,6 +90,12 @@ build-package-ng:
   image:
     name: $IMAGE_SSH
     entrypoint: [""]
+  rules:
+    - if: "$CI_COMMIT_MESSAGE =~ /skip-build/ || $pipeline =~ /skip-build/"
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - debian/changelog
   before_script:
     - chmod 0600 "$SSH_PRIVATE_KEY"
   script:
