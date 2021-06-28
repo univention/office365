@@ -3,7 +3,6 @@ variables:
   UCS_VERSION: "448"
   UCS_RELEASE: "4.4"
   BRANCH: "4.4"
-  ERRATA: "4.4-8"
   SCOPE: "office365"
   LANG: "C.UTF-8"
   DEBIAN_FRONTEND: noninteractive
@@ -64,21 +63,31 @@ deploy_with_repong:
   #       - debian/changelog
   #     when: on_success
   before_script:
-    - find /
+    - echo "Der ssh private key liegt unter $SSH_PRIVATE_KEY"
     - chmod 0600 "$SSH_PRIVATE_KEY"
   script:
-    - echo ssh -o BatchMode=yes -i "$SSH_PRIVATE_KEY" -l build omar.knut.univention.de "repo_admin.py -G $CI_REPOSITORY_URL -p $PACKAGE -b $BRANCH -P . -s $SCOPE -r ${UCS_RELEASE}-0-0"
     - |
       echo ssh -i "$SSH_PRIVATE_KEY" \
-             -o BatchMode=yes \
-             -l build \
-             dimma.knut.univention.de \
-             build-package-ng \
-                 --no-pbuilder-update \
-                 -P ucs \
-                 -p $PACKAGE \
-                 -r $ERRATA \
-                 -s $SCOPE
+        -o BatchMode=yes \
+        -l build omar.knut.univention.de \
+        repo_admin.py \
+          -G $CI_REPOSITORY_URL \
+          -p $PACKAGE \
+          -b $BRANCH \
+          -P . \
+          -s $SCOPE \
+          -r ${UCS_RELEASE}-0-0
+    - |
+      echo ssh -i "$SSH_PRIVATE_KEY" \
+        -o BatchMode=yes \
+        -l build \
+        dimma.knut.univention.de \
+        build-package-ng \
+          --no-pbuilder-update \
+          -P ucs \
+          -p $PACKAGE \
+          -s $SCOPE
+          -r ${UCS_RELEASE}-0-0
   environment:
     name: testing
     url: https://apt.knut.univention.de/
