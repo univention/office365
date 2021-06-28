@@ -60,12 +60,10 @@ repo_admin:
       changes:
         - debian/changelog
   before_script:
-    - echo "Der ssh private key liegt unter $SSH_PRIVATE_KEY"
-    - env
     - chmod 0600 "$SSH_PRIVATE_KEY"
   script:
     - |
-      ssh -i "$SSH_PRIVATE_KEY" \
+      set -x && ssh -i "$SSH_PRIVATE_KEY" \
         -o BatchMode=yes \
         -l build omar.knut.univention.de \
         repo_admin.py \
@@ -96,7 +94,7 @@ build-package-ng:
     - chmod 0600 "$SSH_PRIVATE_KEY"
   script:
     - |
-      ssh -i "$SSH_PRIVATE_KEY" \
+      set -x && ssh -i "$SSH_PRIVATE_KEY" \
         -o BatchMode=yes \
         -l build \
         dimma.knut.univention.de \
