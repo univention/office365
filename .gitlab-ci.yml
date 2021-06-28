@@ -1,12 +1,30 @@
-# simple package builder
+variables:
+  PACKAGE: univention-office365
+  UCS_VERSION: "448"
+  UCS_RELEASE: "4.4"
+  BRANCH: "4.4"
+  ERRATA: "4.4-8"
+  SCOPE: "office365"
+  LANG: "C.UTF-8"
+  DEBIAN_FRONTEND: noninteractive
+  CI_REGISTRY: docker-registry.knut.univention.de
+  IMAGE_UCSDEV: $CI_REGISTRY/phahn/ucs-devbase:$UCS_VERSION
+  IMAGE_UCSLINT: $CI_REGISTRY/ucslint:$UCS_VERSION
+  IMAGE_SSH: $CI_REGISTRY/knut/ssh
+  DOCKER_HOST: tcp://docker:2375/
+  DOCKER_DRIVER: overlay2
+  GIT_STRATEGY: fetch
+  GIT_SUBMODULE_STRATEGY: none
+  GIT_DEPTH: "3"
 
-build-package:
-  image: docker-registry.knut.univention.de/phahn/ucs-devbase
-  script:
+build_package:
+  image: $IMAGE_UCSDEV
+  before_script:
     - apt-get -q --assume-yes build-dep .
+  script:
     - dpkg-buildpackage
-    - mkdir -p _build
-    - mv ../*.deb ../*.buildinfo ../*.tar.gz ../*.dsc ../*.changes _build
+    - mkdir -p _build/
+    - mv ../*.tar.gz ../*.dsc ../*.deb ../*.buildinfo ../*.changes _build/
   artifacts:
     paths:
       - "_build/*.deb"
@@ -15,16 +33,56 @@ build-package:
       - "_build/*.dsc"
       - "_build/*.changes"
 
-deploy_testing:
-  stage: deploy
+run_ucslint:
+  stage: test
+  image:
+    name: $IMAGE_UCSLINT
+    entrypoint: [""]
   script:
-    - echo "Deploy to omar"
-    - find /
+    - ucslint -j ucslint.xml -x 20
+  artifacts:
+    reports:
+      junit: ucslint.xml
+
+# we have artifacts build and checked with ucslint, but repo_admin.py will
+# not use these and 
+deploy_with_repong:
+  stage: deploy
+  interruptible: true
+  variables:
+    GIT_STRATEGY: none
+  image:
+    name: $IMAGE_SSH
+    entrypoint: [""]
+  only:
+    - $BRANCH
+  rules:
+    - if: "$CI_COMMIT_MESSAGE =~ /skip-build/ || $pipeline =~ /skip-build/"
+      when: never
+    - if: '$CI_COMMIT_BRANCH == $BRANCH'
+      changes:
+        - debian/changelog
+      when: on_success
+  before_script:
+    - chmod 0600 "$SSH_PRIVATE_KEY"
+  script:
+    - echo ssh -o BatchMode=yes -i "$SSH_PRIVATE_KEY" -l build omar.knut.univention.de "repo_admin.py -G $CI_REPOSITORY_URL -p $PACKAGE -b $BRANCH -P . -s $SCOPE -r ${UCS_RELEASE}-0-0"
+    -| echo ssh -i "$SSH_PRIVATE_KEY" \
+           -o BatchMode=yes \
+           -l build \
+           dimma.knut.univention.de \
+           build-package-ng \
+               --no-pbuilder-update \
+               -P ucs \
+               -p $PACKAGE \
+               -r $ERRATA \
+               -s $SCOPE
+
   environment:
     name: testing
     url: https://apt.knut.univention.de/
   when: manual
+
 #  rules:
 #    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-
 # vim: filetype=yaml expandtab tabstop=2 shiftwidth=2 softtabstop=2
