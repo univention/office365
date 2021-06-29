@@ -1,4 +1,4 @@
-univention-office365 (2.0.2-123) unstable; urgency=low
+univention-office365 (2.0.2-124) unstable; urgency=low
 
   * Issue #555: Added gitlab-ci pipeline
 

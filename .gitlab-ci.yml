@@ -100,11 +100,6 @@ build-package-ng:
         -o BatchMode=yes \
         -l build \
         dimma.knut.univention.de \
-        build-package-ng \
-          --no-pbuilder-update \
-          -P ucs \
-          -p $PACKAGE \
-          -s $SCOPE \
-          -r ${UCS_RELEASE}-0-0
+        b44-scope office365 univention-office365
 
 # vim: filetype=yaml expandtab tabstop=2 shiftwidth=2 softtabstop=2
