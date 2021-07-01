@@ -75,3 +75,29 @@ complain with the error message: `ssh unknown key format`.
 
 A future proof solution is to append a newline after SSH key, because that will
 still work, even when the bug is fixed in Gitlab.
+
+# Decision making
+
+
+
+## should repo_admin and build-package-ng run in individual stages?
+
+:heavy_check_mark: Pro:
+
+- resembles the manual workflow.
+- shortens the log for each command.
+- Either of these steps could fail. It is easier to see which one.
+- do one thing and do it right.
+- allows manual restarts of individual steps.
+
+:x: Contra:
+
+- the pipeline gets longer
+- we see no use in it for possible future developments, that jobs could run in
+  parallel in the staging or deploy stage.
+
+
+
+
+
+
