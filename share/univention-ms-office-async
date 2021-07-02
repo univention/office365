@@ -71,9 +71,10 @@ class AsyncJobs():
 		return sorted(glob.glob(os.path.join(self.data_dir, '*.json')))
 
 	def delete_job(self, job):
-		if os.path.exists(job):
-			self.logger.info('Job {}: removing'.format(job))
-			#os.remove(job)
+		if not self.args.no_delete:
+			if os.path.exists(job):
+				self.logger.info('Job {}: removing'.format(job))
+				os.remove(job)
 
 	def verify_job(self, job):
 		self.func = None
@@ -146,6 +147,7 @@ def main():
 	description = '%(prog)s runs async jobs for the ms office listener (reads json files from {})'.format(DATA_DIR)
 	parser = ArgumentParser(usage=usage, description=description)
 	parser.add_argument('--once', action='store_true', help='Only once and then quit (otherwise will loop forever).')
+	parser.add_argument('--no-delete', action='store_true', help='Do not delete job files.')
 	args = parser.parse_args()
 	ucr = ConfigRegistry()
 	ucr.load()

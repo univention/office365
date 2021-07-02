@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-128) unstable; urgency=medium
+
+  * Issue #554: Added univention-ms-office-async
+
+ -- Felix Botner <botner@univention.de>  Fri, 02 Jul 2021 14:25:51 +0200
+
 univention-office365 (2.0.2-127) unstable; urgency=medium
 
   * Issue #554: Added univention-ms-office-async
