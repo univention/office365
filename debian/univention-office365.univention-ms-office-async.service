@@ -1,0 +1,16 @@
+[Unit]
+Description=Univention MS Office async daemon
+After=univention-directory-listener.service
+ConditionPathExists=/var/univention-join/joined
+StartLimitBurst=0
+StartLimitIntervalSec=0
+
+[Service]
+ExecStart=/usr/share/univention-office365/univention-ms-office-async
+Restart=always
+RestartSec=15s
+#StandardOutput=append:/var/log/univention/listener.log
+#StandardError=append:/var/log/univention/listener.log
+
+[Install]
+WantedBy=multi-user.target

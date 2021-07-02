@@ -1,0 +1,174 @@
+#!/usr/bin/python2.7
+# -*- coding: utf-8 -*-
+#
+# Univention App Center
+#  univention-appcenter-listener-converter
+#
+# Copyright 2018-2021 Univention GmbH
+#
+# https://www.univention.de/
+#
+# All rights reserved.
+#
+# The source code of this program is made available
+# under the terms of the GNU Affero General Public License version 3
+# (GNU AGPL V3) as published by the Free Software Foundation.
+#
+# Binary versions of this program provided by Univention to you as
+# well as other copyrighted, protected or trademarked materials like
+# Logos, graphics, fonts, specific documentations and configurations,
+# cryptographic keys etc. are subject to a license agreement between
+# you and Univention and not subject to the GNU AGPL V3.
+#
+# In the case you use this program under the terms of the GNU AGPL V3,
+# the program is provided in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public
+# License with the Debian GNU/Linux or Univention distribution in file
+# /usr/share/common-licenses/AGPL-3; if not, see
+# <https://www.gnu.org/licenses/>.
+
+from __future__ import print_function
+
+import glob
+import json
+import os
+import sys
+import time
+
+from argparse import ArgumentParser
+
+from univention.lib.locking import get_lock, release_lock
+from univention.listener.handler_logging import get_logger
+from univention.config_registry import ConfigRegistry
+
+from univention.office365.api.graph import Graph
+from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
+
+
+DATA_DIR = '/var/lib/univention-office365/async'
+
+
+class AsyncJobs():
+
+	def __init__(self, ucr, data_dir, logger, args):
+		self.ucr = ucr
+		self.data_dir = data_dir
+		self.logger = logger
+		self.args = args
+		self.initialized_adconnections = {}
+
+	def get_ad_connections(self):
+		for adconnection_alias in AzureADConnectionHandler.get_adconnection_aliases():
+			if AzureAuth.is_initialized(adconnection_alias):
+				self.initialized_adconnections[adconnection_alias] = Graph(self.ucr, "univention-ms-office-async", adconnection_alias)
+				self.logger.debug(self.initialized_adconnections)
+
+	def find_jobs(self):
+		return sorted(glob.glob(os.path.join(self.data_dir, '*.json')))
+
+	def delete_job(self, job):
+		if os.path.exists(job):
+			self.logger.info('Job {}: removing'.format(job))
+			#os.remove(job)
+
+	def verify_job(self, job):
+		self.func = None
+		self.dumped = None
+		try:
+			self.dumped = json.load(open(job))
+		except ValueError as err:
+			self.logger.error('Job {}: failed to parse json {}'.format(job, err))
+			self.delete_job(job)
+			return False
+		if not self.dumped.get('function_name') or not self.dumped.get('ad_connection_alias'):
+			self.logger.error('Job {}: no function_name or ad_connection_alias'.format(job))
+			self.delete_job(job)
+			return False
+		if not self.dumped['ad_connection_alias'] in self.initialized_adconnections:
+			self.get_ad_connections()
+			if not self.dumped['ad_connection_alias'] in self.initialized_adconnections:
+				self.logger.error('Job {}: invalid connection alias {}'.format(job, self.dumped['ad_connection_alias']))
+				self.delete_job(job)
+				return False
+		self.func = getattr(self.initialized_adconnections[self.dumped['ad_connection_alias']], self.dumped.get('function_name'), None)
+		if not self.func:
+			self.logger.error('Job {}: invalid function name {}'.format(job, self.dumped.get('function_name')))
+			self.delete_job(job)
+			return False
+		return True
+
+	def execute_jobs(self, job):
+		if self.verify_job(job):
+			self.logger.info('Job {}: running {}({}) with connection alias {}'.format(
+				job,
+				self.dumped.get('function_name'),
+				self.dumped.get('parameters'),
+				self.dumped['ad_connection_alias'],
+			))
+			try:
+				self.func(**self.dumped.get('parameters'))
+			except Exception as err:
+				self.logger.exception(err)
+				return False
+		else:
+			return False
+		return True
+
+	def async_jobs(self):
+		self.logger.info('')
+		self.logger.info('Started')
+		self.logger.info('')
+		while True:
+			jobs = self.find_jobs()
+			for job in jobs:
+				self.logger.debug('Job {}: found'.format(job))
+				if self.execute_jobs(job):
+					self.logger.info('Job {}: successful'.format(job))
+					self.delete_job(job)
+				else:
+					self.logger.error('Job {}: failed'.format(job))
+					self.logger.debug('Job {}: data {}'.format(job, self.dumped))
+			if self.args.once:
+				self.logger.info('')
+				self.logger.info('Goodbye ...')
+				self.logger.info('')
+				sys.exit(0)
+			self.logger.debug('Sleeping ...')
+			time.sleep(30)
+
+
+def main():
+	usage = '%(prog)s'
+	description = '%(prog)s runs async jobs for the ms office listener (reads json files from {})'.format(DATA_DIR)
+	parser = ArgumentParser(usage=usage, description=description)
+	parser.add_argument('--once', action='store_true', help='Only once and then quit (otherwise will loop forever).')
+	args = parser.parse_args()
+	ucr = ConfigRegistry()
+	ucr.load()
+	logger = get_logger('ms-office-async.log')
+	lock = None
+	try:
+		for i in range(10):
+			lock = get_lock('univention-ms-office-async', nonblocking=True)
+			if lock:
+				break
+			else:
+				logger.debug('waiting for lock')
+				print('waiting for lock')
+				time.sleep(1)
+		else:
+			print('Could not get lock, another process is running, exiting', file=sys.stderr)
+			logger.error('Could not get lock, another process is running, exiting')
+			sys.exit(1)
+		AsyncJobs(ucr, DATA_DIR, logger, args).async_jobs()
+	finally:
+		if lock:
+			release_lock(lock)
+
+
+if __name__ == '__main__':
+	main()

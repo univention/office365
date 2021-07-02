@@ -21,3 +21,4 @@ office365-wsgi.conf etc/apache2/sites-available/
 office365-wsgi.py usr/share/univention-office365/scripts/
 migrate_to_adconnectionalias usr/share/univention-office365/scripts/
 check_for_empty_groups usr/share/univention-office365/scripts/
+share/univention-ms-office-async usr/share/univention-office365/

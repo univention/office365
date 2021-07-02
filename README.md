@@ -205,6 +205,28 @@ office365-group.py --/                         |                          |
 listener.py, azure_handler.py and azure_auth.py are written so that they can be used outside the listener code.
 When modifying code, please keep the separation of where which objects are used.
 
+## Async daemon
+
+Some azure calls need a try-sleep-retry (graph.create_group, retry(graph.add_group_owner), retry(graph.create_team_from_group)). To not block the listener at this point we have a async daemon for special azure calls *univention-ms-office-async* (share/univention-ms-office-async).
+
+Started via *univention-ms-office-async.service* this daemon checks */var/lib/univention-office365/async* for json files with following format:
+```
+{
+  "function_name": "convert_from_group_to_team",
+  "ad_connection_alias": "alias1",
+  "parameters": [
+     "param1": "value1",
+     "param2": "value2",
+  ]
+}
+```
+If the file can be verified (e.g. function exists or ad_connection_alias is available) *function_name* with the kwarg parameters *parameters* is executed on the connection *ad_connection_alias*. If the job can't be verified or is successful the job is removed.
+
+The daemon is just:
+* while loop
+* find jobs
+* execute jobs
+* wait(30)
 
 # Test coverage
 

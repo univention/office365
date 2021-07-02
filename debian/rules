@@ -46,5 +46,8 @@ override_dh_auto_install:
 	univention-l10n-install de
 	dh_auto_install
 
+override_dh_systemd_enable:
+	dh_systemd_enable --name=univention-ms-office-async
+
 %:
-	dh $@ --with 'python_support'
+	dh $@ --with 'python_support' --with systemd
