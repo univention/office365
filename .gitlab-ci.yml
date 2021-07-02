@@ -21,6 +21,8 @@ variables:
   GIT_STRATEGY: fetch
   GIT_SUBMODULE_STRATEGY: none
   GIT_DEPTH: "3"
+  IMPORT_HOST: "omar.knut.univention.de"
+  BUILD_HOST: "dimma.knut.univention.de"
 
 build_package:
   stage: build
@@ -66,7 +68,8 @@ repo_admin:
     - |
       set -x && ssh -i "$SSH_PRIVATE_KEY" \
         -o BatchMode=yes \
-        -l build omar.knut.univention.de \
+        -l build \
+        $IMPORT_HOST \
         repo_admin.py \
           -G $CI_REPOSITORY_URL \
           -p $PACKAGE \
@@ -99,7 +102,12 @@ build-package-ng:
       set -x && ssh -i "$SSH_PRIVATE_KEY" \
         -o BatchMode=yes \
         -l build \
-        dimma.knut.univention.de \
-        b44-scope office365 univention-office365
+        $BUILD_HOST \
+        build-package-ng \
+          --no-pbuilder-update \
+          -P ucs \
+          -p $PACKAGE \
+          -s $SCOPE \
+
 
 # vim: filetype=yaml expandtab tabstop=2 shiftwidth=2 softtabstop=2
