@@ -175,6 +175,14 @@ The downside of the client credentials flow is, that some operations on the AAD 
 
 Now that we can authenticate, we can synchronize the selected users and groups with the Azure directory and manage the users licenses. "Synchronization" will be one-way: only from UCS to Azure AD. It should include the users minimal contact data and the groups that the users are in. It is possible to configure through UCRVs which attributes are synchronized and which not. It can also be configured if attributes should be anonymized.
 
+
+# Dependencies / Constraints
+
+## Teams
+In order to create Teams, at least one group owner must be set.
+To convert a group into a team, the group must be of type MS365, not security group. The doc says so, but the API allows creating of a team from a security group
+To create a team, all group owners must have a license that includes Teams.
+
 # Implementation
 
 ## Implementation State

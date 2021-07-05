@@ -15,6 +15,9 @@ from univention.office365.api.exceptions import GraphError
 from univention.office365.certificate_helper import get_client_assertion_from_alias, load_ids_file
 from univention.office365.api_helper import get_http_proxies
 from univention.office365.azure_handler import AzureHandler
+from univention.office365.logging2udebug import get_logger
+
+logger = get_logger("office365", "o365")
 
 '''
     The Graph class is kept compatible with the former `azure_handler.py` class and
@@ -36,7 +39,7 @@ class Graph(AzureHandler):
     # ==========================================================================
     # initalization
 
-    def __init__(self, ucr, name, connection_alias, logger=logging.getLogger()):
+    def __init__(self, ucr, name, connection_alias, logger=logger):
         ''' constructor; signature compatible with azure_handler
             :param ucr: an initialized instance of the univention config registry
             :param name:  an arbitrary name which will appear in all error messages
@@ -47,22 +50,13 @@ class Graph(AzureHandler):
         self.connection_alias = connection_alias
         self.logger = logger
 
-        if (self.logger.level == logging.DEBUG):
-            logging.basicConfig(level=logging.DEBUG)
-            requests_log = logging.getLogger("requests.packages.urllib3")
-            requests_log.setLevel(logging.DEBUG)
-            requests_log.propagate = True
-            requests_log.addHandler(logging.StreamHandler(sys.stdout))
-            # requests.settings.verbose = sys.stderr
-
         # proxies must be set before any attempt to call the API
         self.proxies = get_http_proxies(ucr, self.logger)
+        # TODO: Why is this only done here?
         self.access_token_json = self._login(connection_alias)
 
         # We also initialize the base class, so that it becomes usable...
         super(Graph, self).__init__(ucr, name, connection_alias)
-        # within the baseclass we apply the log level as well...
-        super(Graph, self).getAzureLogger().setLevel(self.logger.level)
         # we expect the baseclass to set 'auth'. If the implementation ever
         # changes we will be warned.
         if (not hasattr(self, 'auth')):  # TODO at some point: remove this code
@@ -209,7 +203,8 @@ class Graph(AzureHandler):
 
         values = {}  # holds data from pagination
         while url and url != "":  # as long as retries are left and url is set to a next page link
-            self.logger.info("Next url: {url}".format(url=url))
+            msg = self._fprints_hide_pw(data, "GraphAPI: {method} {url}".format(method=method, url=url))
+            self.logger.debug(msg)
 
             # prepare the http headers, which we are going to send with any request
             # the access_token should have been initialized in the constructor.
@@ -227,6 +222,13 @@ class Graph(AzureHandler):
                 data=data,
                 proxies=self.proxies
             )
+
+            self.logger.info(
+                "status: %r (%s) (%s %s)",
+                response.status_code,
+                "OK" if 200 <= response.status_code <= 299 else "FAIL",
+                method.upper(),
+                url)
 
             # check for a server error: which may be only temporary
             if 500 <= response.status_code <= 599:
@@ -489,25 +491,20 @@ class Graph(AzureHandler):
         )
 
     def create_team_from_group(self, object_id):
-        ''' https://docs.microsoft.com/en-us/graph/api/team-put-teams?view=graph-rest-beta
+        ''' https://docs.microsoft.com/en-us/graph/api/team-put-teams
 
-            This functions does not really convert a group into a team, because
-            the created team will be another object with another id. It is also
-            possible to call this function multiple times on the same group.
-
-            TODO
-            ----
-
-            The name of this endpoint will change at one point in time, because
-            it is currently in beta. The URL will change at some point in time.
+            Create a new team under a group.
+            If the group was created less than 15 minutes ago, it's possible for the Create team call to fail
+            with a 404 error code due to replication delays. The recommended pattern is to retry the Create team
+            call three times, with a 10 second delay between calls.
         '''
 
         return self._call_graph_api(
             'POST',
-            'https://graph.microsoft.com/beta/teams',
+            'https://graph.microsoft.com/v1.0/teams',
             data=json.dumps({
                 "template@odata.bind":
-                    "https://graph.microsoft.com/beta/teamsTemplates('standard')",
+                    "https://graph.microsoft.com/v1.0/teamsTemplates('standard')",
 
                 "group@odata.bind":
                     "https://graph.microsoft.com/v1.0/groups('{object_id}')".format(
@@ -655,7 +652,6 @@ class Graph(AzureHandler):
             ),
             data=json.dumps(
                 {
-                    "roles": ["owner"],
                     "@odata.type": "#microsoft.graph.aadUserConversationMember",
                     "user@odata.bind":
                         "https://graph.microsoft.com/v1.0/users('{user_id}')".format(
@@ -664,6 +660,52 @@ class Graph(AzureHandler):
             ),
             headers={'Content-Type': 'application/json'},
             expected_status=[201]
+        )
+
+    def add_group_member(self, group_id, object_id):
+        '''
+        https://docs.microsoft.com/en-us/graph/api/resources/teams-api-overview?view=graph-rest-1.0
+        "To add members and owners to a team, change the membership of the group with the same ID."
+
+        https://docs.microsoft.com/en-us/graph/api/group-post-members?view=graph-rest-1.0&tabs=http
+
+        :param group_id: azure object id of group object
+        :param object_id: azure object id of user object to add to the group
+        :return: 2xx if okay, 400 if user already is member, 404 if object to be added does not exist
+        '''
+        return self._call_graph_api(
+            'POST',
+            'https://graph.microsoft.com/v1.0/groups/{group_id}/members/$ref'.format(
+                group_id=group_id
+            ),
+            data=json.dumps(
+                {
+                    "@odata.id":
+                        "https://graph.microsoft.com/v1.0/directoryObjects/{object_id}".format(
+                            object_id=object_id)
+                }
+            ),
+            headers={'Content-Type': 'application/json'},
+            expected_status=[204]
+        )
+
+    def remove_group_member(self, group_id, object_id):
+        '''
+        https://docs.microsoft.com/en-us/graph/api/resources/teams-api-overview?view=graph-rest-1.0
+        "To add/remove members and owners to a team, change the membership of the group with the same ID."
+
+        https://docs.microsoft.com/en-us/graph/api/group-delete-members?view=graph-rest-1.0&tabs=http
+        :param group_id: azure object id of group object
+        :param object_id: azure object id of user object to remove from the group
+        :return: 204 no content
+        '''
+        return self._call_graph_api(
+            'DELETE',
+            'https://graph.microsoft.com/v1.0/groups/{group_id}/members/{object_id}/$ref'.format(
+                group_id=group_id,
+                object_id=object_id
+            ),
+            expected_status=[204]
         )
 
     def delete_team_member(self, team_id, membership_id):
@@ -743,4 +785,20 @@ class Graph(AzureHandler):
             expected_status=[200]
         )
 
+    def convert_from_group_to_team(self, group_objectid, owner_objectids):
+        # set owner
+        for owner in owner_objectids:
+            self.logger.debug("convert_from_group_to_team: add owner %r", owner)
+            self.add_group_owner(group_objectid, owner)
+        # convert to team
+        # TODO: catch univention.office365.api.exceptions.GraphError: HTTP response status: 409, if group is already converted to a team
+        # ErrorMessage : {\"errors\":[{\"message\":\"The group is already provisioned\....
+        # TODO: POC; make call async instead of waiting
+        self.logger.debug("wait 40")
+        time.sleep(40)
+        try:
+            self.create_team_from_group(group_objectid)
+        except GraphError as e:
+            self.logger.debug("error on create team, %r", e)
+        return
 # vim: filetype=python expandtab tabstop=4 shiftwidth=4 softtabstop=4

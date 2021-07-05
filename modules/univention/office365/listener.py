@@ -44,6 +44,8 @@ from univention.office365.logging2udebug import get_logger
 from univention.office365.udm_helper import UDMHelper
 from univention.office365.subscriptions import SubscriptionProfile
 
+from univention.office365.api.exceptions import GraphError
+
 attributes_system = set((
 	"krb5KDCFlags",
 	"krb5PasswordEnd",
@@ -54,6 +56,7 @@ attributes_system = set((
 	"shadowExpire",
 	"shadowLastChange",
 	"shadowMax",
+	"univentionMicrosoft365Team",
 	"univentionOffice365Enabled",
 	"univentionOffice365ADConnectionAlias",
 	"userexpiry",
@@ -113,7 +116,7 @@ class Office365Listener(object):
 
 		self.not_migrated_to_v3 = self.ucr.is_false('office365/migrate/adconnectionalias')
 
-		self.ah = AzureHandler(self.ucr, name, self.adconnection_alias)
+		self.ah = Graph(self.ucr, name, self.adconnection_alias, logger=logger)
 
 	@property
 	def verified_domains(self):
@@ -327,6 +330,16 @@ class Office365Listener(object):
 			return list()
 		return self.ah.list_users(objectid=object_id)
 
+	def convert_group_to_team(self, group, new):
+		logger.info("Convert to TEAM: %r (%r) adconnection: %s", group["displayName"], group["objectId"], self.adconnection_alias)
+		if not new['univentionMicrosoft365GroupOwners']:
+			logger.error("Team has no owner defined, there is a udm hook to prevent this. Aborting Team creation.")
+			return
+		owner_objectids = []
+		for owner in new['univentionMicrosoft365GroupOwners']:
+			owner_objectids.append(self._object_id_from_udm_object(self.udm.get_udm_user(owner)))
+		self.ah.convert_from_group_to_team(group_objectid=group["objectId"], owner_objectids=owner_objectids)
+
 	def create_groups(self, dn, new):
 		if self.udm.udm_groups_with_azure_users(dn):
 			new_group = self.create_group_from_new(new)
@@ -334,6 +347,9 @@ class Office365Listener(object):
 			udm_group = self.udm.get_udm_group(dn)
 			self.set_adconnection_object_id(udm_group, new_group["objectId"])
 			logger.info("Created group with displayName: %r (%r) adconnection: %s", new_group["displayName"], new_group["objectId"], self.adconnection_alias)
+			# check if the new group is also a team - and needs to be configured as team
+			if 'univentionMicrosoft365Team' in new and new['univentionMicrosoft365Team']:
+				self.convert_group_to_team(group=new_group, new=new)
 
 	def create_group(self, name, description, group_dn, add_members=True):
 		self.ah.create_group(name, description)
@@ -368,6 +384,13 @@ class Office365Listener(object):
 			logger.error("Couldn't find object_id for group %r (%s), cannot delete.", old["cn"][0], self.adconnection_alias)
 			return
 		try:
+			if 'univentionMicrosoft365Team' in old and old['univentionMicrosoft365Team']:
+				try:
+					self.ah.archive_team(object_id)
+					logger.info("Deleted team %r from Azure AD '%r'", old["cn"][0], self.adconnection_alias)
+				except GraphError as g_exc:
+					logger.error("Error while deleting team %r: %r.", old["cn"][0], g_exc)
+
 			azure_group = self.ah.delete_group(object_id)
 			logger.info("Deleted group %r from Azure AD '%r'", old["cn"][0], self.adconnection_alias)
 			return azure_group
@@ -479,7 +502,7 @@ class Office365Listener(object):
 
 	def modify_group(self, old, new):
 		modification_attributes = self._diff_old_new(self.attrs["listener"], old, new)
-		logger.debug("dn=%r modification_attributes=%r (%s)", self.dn, modification_attributes, self.adconnection_alias)
+		logger.debug("dn=%r attribute_diff=%r (%s)", self.dn, modification_attributes, self.adconnection_alias)
 
 		try:
 			object_id = self._object_id_from_attrs(old)
@@ -489,6 +512,9 @@ class Office365Listener(object):
 		if not modification_attributes:
 			logger.debug("No modifications found, ignoring.")
 			return dict(objectId=object_id)
+
+		if "univentionMicrosoft365Team" in modification_attributes:
+			modification_attributes.remove("univentionMicrosoft365Team")
 
 		udm_group = self.udm.get_udm_group(self.dn)
 
@@ -513,11 +539,27 @@ class Office365Listener(object):
 					securityEnabled=True
 				)
 				azure_group = self.ah.modify_group(object_id, attributes)
+				## TODO: unarchive team
 		except ResourceNotFoundError:
 			logger.warn("Office365Listener.modify_group() azure group doesn't exist (anymore), creating it instead.")
 			azure_group = self.create_group_from_new(new)
 			modification_attributes = dict()
 		object_id = azure_group["objectId"]
+
+		# New Team
+		if ('univentionMicrosoft365Team' in new and new['univentionMicrosoft365Team']) and \
+				'univentionMicrosoft365Team' not in old:
+			self.convert_group_to_team(group=azure_group, new=new)
+
+		# Remove Team from group
+		if ('univentionMicrosoft365Team' in old and old['univentionMicrosoft365Team']) and \
+				'univentionMicrosoft365Team' not in new:
+			try:
+				self.ah.archive_team(object_id)
+				logger.info("Deleted team %r from Azure AD '%r'", old["cn"][0], self.adconnection_alias)
+			except GraphError as g_exc:
+				logger.error("Error while deleting team %r: %r.", old["cn"][0], g_exc)
+
 
 		if "uniqueMember" in modification_attributes:
 			# In uniqueMember users and groups are both listed. There is no
@@ -563,7 +605,8 @@ class Office365Listener(object):
 					)
 
 			if users_and_groups_to_add:
-				self.ah.add_objects_to_azure_group(object_id, users_and_groups_to_add)
+				for object_id_to_add in users_and_groups_to_add:
+					self.ah.add_group_member(object_id, object_id_to_add)
 
 			# remove members
 			for removed_member in removed_members:
@@ -610,7 +653,7 @@ class Office365Listener(object):
 						)
 						continue
 
-				self.ah.delete_group_member(group_id=object_id, member_id=member_id)
+				self.ah.remove_group_member(group_id=object_id, object_id=member_id)
 
 			# remove group if it became empty
 			if removed_members and not added_members:

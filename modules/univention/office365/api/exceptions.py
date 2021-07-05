@@ -10,4 +10,7 @@
 class GraphError(Exception):
     pass
 
+class GraphRessourceNotFroundError(GraphError):
+    pass
+
 # vim: filetype=python expandtab tabstop=4 shiftwidth=4 softtabstop=4
