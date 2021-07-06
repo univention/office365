@@ -2,3 +2,7 @@ Type: file
 File: etc/cron.d/univention-office365-tokens
 Variables: office365/tokens/cron
 Variables: office365/tokens/cron/enable
+
+Type: file
+File: etc/logrotate.d/univention-ms-office-async
+Variables: logrotate/.*

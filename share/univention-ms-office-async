@@ -37,6 +37,7 @@ import glob
 import json
 import os
 import sys
+import shutil
 import time
 
 from argparse import ArgumentParser
@@ -50,22 +51,30 @@ from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
 
 
 DATA_DIR = '/var/lib/univention-office365/async'
+FAILED_DIR = os.path.join(DATA_DIR, 'failed')
 
 
 class AsyncJobs():
 
-	def __init__(self, ucr, data_dir, logger, args):
+	def __init__(self, ucr, data_dir, failed_dir, logger, args):
 		self.ucr = ucr
 		self.data_dir = data_dir
+		self.failed_dir = failed_dir
 		self.logger = logger
 		self.args = args
 		self.initialized_adconnections = {}
 
 	def get_ad_connections(self):
-		for adconnection_alias in AzureADConnectionHandler.get_adconnection_aliases():
-			if AzureAuth.is_initialized(adconnection_alias):
-				self.initialized_adconnections[adconnection_alias] = Graph(self.ucr, "univention-ms-office-async", adconnection_alias)
-				self.logger.debug(self.initialized_adconnections)
+		try:
+			for adconnection_alias in AzureADConnectionHandler.get_adconnection_aliases():
+				if AzureAuth.is_initialized(adconnection_alias):
+					# TODO class name from variable/file
+					self.initialized_adconnections[adconnection_alias] = Graph(self.ucr, "univention-ms-office-async", adconnection_alias)
+					self.logger.debug(self.initialized_adconnections)
+		except Exception as err:
+			self.logger.exception(err)
+			# exit at this point and let systemd restart the service
+			raise
 
 	def find_jobs(self):
 		return sorted(glob.glob(os.path.join(self.data_dir, '*.json')))
@@ -102,6 +111,28 @@ class AsyncJobs():
 			return False
 		return True
 
+	def dump_to_file(self, filename, data):
+		with open(filename, 'wb') as fd:
+			json.dump(data, fd, sort_keys=True, indent=4)
+
+	def update_failed_status(self, job, err):
+		if self.dumped.get('failed'):
+			self.dumped['failed'] = self.dumped['failed'] + 1
+		else:
+			self.dumped['failed'] = 1
+		self.dumped['error'] = str(err)
+		if self.dumped['failed'] > self.args.retry_count:
+			# "move" job file to failed
+			new = os.path.join(self.failed_dir, os.path.basename(job))
+			self.logger.error('Job {}: failed to many times {}, moved to {}'.format(job, self.dumped['failed'], new))
+			self.dump_to_file(new, self.dumped)
+			os.remove(job)
+		else:
+			# update job file
+			tmp = job + '.tmp'
+			self.dump_to_file(tmp, self.dumped)
+			shutil.move(tmp, job)
+
 	def execute_jobs(self, job):
 		if self.verify_job(job):
 			self.logger.info('Job {}: running {}({}) with connection alias {}'.format(
@@ -114,6 +145,7 @@ class AsyncJobs():
 				self.func(**self.dumped.get('parameters'))
 			except Exception as err:
 				self.logger.exception(err)
+				self.update_failed_status(job, err)
 				return False
 		else:
 			return False
@@ -148,11 +180,15 @@ def main():
 	parser = ArgumentParser(usage=usage, description=description)
 	parser.add_argument('--once', action='store_true', help='Only once and then quit (otherwise will loop forever).')
 	parser.add_argument('--no-delete', action='store_true', help='Do not delete job files.')
+	parser.add_argument('--retry-count', type=int, default=6, help='If the job fails, retry job for max RETRY_COUNT times (defaut: %(default)s)')
 	args = parser.parse_args()
 	ucr = ConfigRegistry()
 	ucr.load()
-	logger = get_logger('ms-office-async.log')
+	logger = get_logger('ms-office-async')
 	lock = None
+	for directory in [DATA_DIR, FAILED_DIR]:
+		if not os.path.isdir(directory):
+			os.makedirs(directory)
 	try:
 		for i in range(10):
 			lock = get_lock('univention-ms-office-async', nonblocking=True)
@@ -166,7 +202,7 @@ def main():
 			print('Could not get lock, another process is running, exiting', file=sys.stderr)
 			logger.error('Could not get lock, another process is running, exiting')
 			sys.exit(1)
-		AsyncJobs(ucr, DATA_DIR, logger, args).async_jobs()
+		AsyncJobs(ucr, DATA_DIR, FAILED_DIR, logger, args).async_jobs()
 	finally:
 		if lock:
 			release_lock(lock)

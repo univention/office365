@@ -63,3 +63,9 @@ Description[de]=Wenn der Wert auf den adconnection Alias einer initialisierten A
 Description[en]=If the value is set to the adconnection alias of an initialized AD connection and no adconnection alias is configured on a user or group account when Office365 is enabled, they are synchronized to the Azure AD defined by this variable.
 Type=str
 Categories=service-collaboration
+
+[univention-ms-office-async/autostart]
+Description[de]=Die Variable konfiguriert den Startmodus des Univention MS Office Async Daemons. Wird sie auf 'no' oder 'disabled' gesetzt, kann der Dienst nicht gestartet werden. Wird die auf 'manually' gesetzt, erfolgt kein automatischer Start zum Systemstart, der Dienst kann aber später gezielt gestartet werden.
+Description[en]=This variable configures the start mode of the Univention MS Office Async Daemons. If set to 'no' or 'disabled', the service cannot be started. If the variable is set to 'manually', the service isn't started during system boot, but can be enabled manually at a later point.
+Type=str
+Categories=service-collaboration

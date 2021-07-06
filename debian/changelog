@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-130) unstable; urgency=medium
+
+  * Issue #554: univention-ms-office-async
+
+ -- Felix Botner <botner@univention.de>  Tue, 06 Jul 2021 13:07:22 +0200
+
 univention-office365 (2.0.2-129) unstable; urgency=medium
 
   * Bug #48389: Add Graph API to group listener module

@@ -39,6 +39,7 @@ fi
 
 systemctl restart univention-directory-listener.service
 systemctl restart cron.service
+systemctl restart univention-ms-office-async.service
 
 . /usr/share/univention-lib/base.sh
 call_joinscript 40univention-office365.inst

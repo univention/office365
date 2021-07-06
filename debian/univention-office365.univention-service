@@ -1,0 +1,6 @@
+[univention-ms-office-async]
+Description[de]=Univention MS Office Async Daemon
+Description[en]=Univention MS Office Async Daemon
+programs=/usr/share/univention-office365/univention-ms-office-async
+start_type=univention-ms-office-async/autostart
+systemd=univention-ms-office-async.service
