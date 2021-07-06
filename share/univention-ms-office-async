@@ -48,10 +48,7 @@ from univention.config_registry import ConfigRegistry
 
 from univention.office365.api.graph import Graph
 from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
-
-
-DATA_DIR = '/var/lib/univention-office365/async'
-FAILED_DIR = os.path.join(DATA_DIR, 'failed')
+from univention.office365.api_helper import ASYNC_DATA_DIR, ASYNC_FAILED_DIR
 
 
 class AsyncJobs():
@@ -94,10 +91,19 @@ class AsyncJobs():
 			self.logger.error('Job {}: failed to parse json {}'.format(job, err))
 			self.delete_job(job)
 			return False
-		if not self.dumped.get('function_name') or not self.dumped.get('ad_connection_alias'):
-			self.logger.error('Job {}: no function_name or ad_connection_alias'.format(job))
+		if not self.dumped.get('api_version'):
+			self.logger.error('Job {}: mandatory attribute api_version missing'.format(job))
 			self.delete_job(job)
 			return False
+		if self.dumped['api_version'] != 1:
+			self.logger.error('Job {}: invalid api_version {}'.format(job, self.dumped['api_version']))
+			self.delete_job(job)
+			return False
+		for attr in ['function_name', 'ad_connection_alias']:
+			if not self.dumped.get(attr):
+				self.logger.error('Job {}: mandatory attribute {} missing'.format(job, attr))
+				self.delete_job(job)
+				return False
 		if not self.dumped['ad_connection_alias'] in self.initialized_adconnections:
 			self.get_ad_connections()
 			if not self.dumped['ad_connection_alias'] in self.initialized_adconnections:
@@ -124,7 +130,7 @@ class AsyncJobs():
 		if self.dumped['failed'] > self.args.retry_count:
 			# "move" job file to failed
 			new = os.path.join(self.failed_dir, os.path.basename(job))
-			self.logger.error('Job {}: failed to many times {}, moved to {}'.format(job, self.dumped['failed'], new))
+			self.logger.error('Job {}: failed too many times {}, moved to {}'.format(job, self.dumped['failed'], new))
 			self.dump_to_file(new, self.dumped)
 			os.remove(job)
 		else:
@@ -142,7 +148,10 @@ class AsyncJobs():
 				self.dumped['ad_connection_alias'],
 			))
 			try:
-				self.func(**self.dumped.get('parameters'))
+				if self.dumped.get('parameters'):
+					self.func(**self.dumped.get('parameters'))
+				else:
+					self.func()
 			except Exception as err:
 				self.logger.exception(err)
 				self.update_failed_status(job, err)
@@ -175,8 +184,10 @@ class AsyncJobs():
 
 
 def main():
+	data_dir = ASYNC_DATA_DIR
+	failed_dir = ASYNC_FAILED_DIR
 	usage = '%(prog)s'
-	description = '%(prog)s runs async jobs for the ms office listener (reads json files from {})'.format(DATA_DIR)
+	description = '%(prog)s runs async jobs for the ms office listener (reads json files from {})'.format(data_dir)
 	parser = ArgumentParser(usage=usage, description=description)
 	parser.add_argument('--once', action='store_true', help='Only once and then quit (otherwise will loop forever).')
 	parser.add_argument('--no-delete', action='store_true', help='Do not delete job files.')
@@ -186,7 +197,7 @@ def main():
 	ucr.load()
 	logger = get_logger('ms-office-async')
 	lock = None
-	for directory in [DATA_DIR, FAILED_DIR]:
+	for directory in [data_dir, failed_dir]:
 		if not os.path.isdir(directory):
 			os.makedirs(directory)
 	try:
@@ -202,7 +213,7 @@ def main():
 			print('Could not get lock, another process is running, exiting', file=sys.stderr)
 			logger.error('Could not get lock, another process is running, exiting')
 			sys.exit(1)
-		AsyncJobs(ucr, DATA_DIR, FAILED_DIR, logger, args).async_jobs()
+		AsyncJobs(ucr, data_dir, failed_dir, logger, args).async_jobs()
 	finally:
 		if lock:
 			release_lock(lock)

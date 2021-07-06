@@ -1,4 +1,4 @@
 etc/univention-office365
-var/lib/univention-office365
+var/lib/univention-office365/async/failed/
 usr/share/pyshared/univention/admin/hooks.d
 usr/share/univention-office365/scripts
