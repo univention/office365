@@ -56,6 +56,10 @@ Packages can be manually tested from there and can also be released.
   `variables:` section, but rather a [project specific setting in gitlab
   ](https://docs.gitlab.com/ee/ci/variables/#cicd-variable-types). 
 
+# SSH_PRIVATE_KEY
+
+* Settings -> CI/CD -> Variables: Type: File, Protected (make sure the main branch is a proteced branch)
+
 # Workarounds
 
 The `$SSH_PRIVATE_KEY` variable points to a file within the docker container

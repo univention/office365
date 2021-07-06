@@ -10,6 +10,10 @@ group accounts and listener modules to do the actual synchronization.
 The package is the basis for the Office365 App available in the UCS App Center,
 which can only be installed on UCS Systems with role Master or Backup.
 
+* Credentials: https://hutten.knut.univention.de/dokuwiki/externe_konten:office365
+* Web-Interfaces: https://portal.azure.com/
+* Web-Interfaces Teams: admin.teams.microsoft.com (for Teams)
+
 # User Story
 
 * After installation of this App UCS user accounts have a new Tab "Microsoft 365"
@@ -232,9 +236,13 @@ If the file can be verified (e.g. function exists or ad_connection_alias is avai
 
 The daemon is just:
 * while loop
-* find jobs
-* execute jobs
+* find jobs in */var/lib/univention-office365/async*
+* verify job -> success: execute job, failed: remove job
+* execute job -> success: remove file, failed: go to next job (move failed jobs after *retry-count* times to */var/lib/univention-office365/async/failed*)
 * wait(30)
+
+Logfile: /var/log/univention/listener_modules/ms-office-async.log.log
+Autostart: univention-ms-office-async/autostart
 
 # Test coverage
 
