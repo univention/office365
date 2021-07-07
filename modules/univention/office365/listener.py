@@ -513,8 +513,9 @@ class Office365Listener(object):
 			logger.debug("No modifications found, ignoring.")
 			return dict(objectId=object_id)
 
-		if "univentionMicrosoft365Team" in modification_attributes:
-			modification_attributes.remove("univentionMicrosoft365Team")
+		for ignore_attribute in ["univentionMicrosoft365Team"]:
+			if ignore_attribute in modification_attributes:
+				modification_attributes.remove(ignore_attribute)
 
 		udm_group = self.udm.get_udm_group(self.dn)
 
@@ -560,6 +561,30 @@ class Office365Listener(object):
 			except GraphError as g_exc:
 				logger.error("Error while deleting team %r: %r.", old["cn"][0], g_exc)
 
+		if "univentionMicrosoft365GroupOwners" in modification_attributes:
+			set_old_owners = set(old.get("univentionMicrosoft365GroupOwners", []))
+			set_new_owners = set(new.get("univentionMicrosoft365GroupOwners", []))
+			removed_owners = set_old_owners - set_new_owners
+			added_owners = set_new_owners - set_old_owners
+
+			# add owner before removing them. If a group has an owner, removing the last owner will fail
+			for owner in added_owners:
+				owner_id = self._object_id_from_udm_object(self.udm.get_udm_user(owner))
+				try:
+					logger.info("Add owner %r to group %r from Azure AD '%r'", owner, old["cn"][0], self.adconnection_alias)
+					self.ah.add_group_owner(group_id=object_id, owner_id=owner_id)
+				except GraphError as g_exc:
+					logger.error("Error while adding group owner to %r: %r.", old["cn"][0], g_exc)
+
+			for owner in removed_owners:
+				owner_id = self._object_id_from_udm_object(self.udm.get_udm_user(owner))
+				try:
+					logger.info("Remove owner %r from group %r from Azure AD '%r'", owner, old["cn"][0], self.adconnection_alias)
+					self.ah.remove_group_owner(group_id=object_id, owner_id=owner_id)
+				except GraphError as g_exc:
+					logger.error("Error while removing group owner to %r: %r.", old["cn"][0], g_exc)
+			# Do not sync this to any azure attribute directly
+			modification_attributes.remove("univentionMicrosoft365GroupOwners")
 
 		if "uniqueMember" in modification_attributes:
 			# In uniqueMember users and groups are both listed. There is no

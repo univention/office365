@@ -490,6 +490,20 @@ class Graph(AzureHandler):
             ]
         )
 
+    def remove_group_owner(self, group_id, owner_id):
+        ''' https://hutten.knut.univention.de/mediawiki/index.php/Security_Updates
+        Once owners are assigned to a group, the last owner of the group cannot be removed.
+        '''
+
+        return self._call_graph_api(
+            'DELETE', 'https://graph.microsoft.com/v1.0/groups/{group_id}/owners/{owner_id}/$ref'.format(
+                group_id=group_id, owner_id=owner_id
+            ),
+            expected_status=[
+                204,  # 204 means success and has an empty content body according to MS
+            ]
+        )
+
     def create_team_from_group(self, object_id):
         ''' https://docs.microsoft.com/en-us/graph/api/team-put-teams
 

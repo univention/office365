@@ -66,7 +66,7 @@ elif initialized_adconnections:
 else:
 	filter = '(objectClass=deactivatedOffice365GroupListener)'
 	logger.warn("office 365 group listener deactivated (no initialized adconnections)")
-attributes = ["cn", "description", "uniqueMember", "univentionMicrosoft365Team"]
+attributes = ["cn", "description", "uniqueMember", "univentionMicrosoft365Team", "univentionMicrosoft365GroupOwners"]
 modrdn = "1"
 
 OFFICE365_OLD_JSON = os.path.join("/var/lib/univention-office365", "office365-group_old_dn")
