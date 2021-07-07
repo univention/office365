@@ -226,10 +226,11 @@ Started via *univention-ms-office-async.service* this daemon checks */var/lib/un
 {
   "function_name": "convert_from_group_to_team",
   "ad_connection_alias": "alias1",
-  "parameters": [
+  "api_version": 1,
+  "parameters": {
      "param1": "value1",
      "param2": "value2",
-  ]
+  }
 }
 ```
 If the file can be verified (e.g. function exists or ad_connection_alias is available) *function_name* with the kwarg parameters *parameters* is executed on the connection *ad_connection_alias*. If the job can't be verified or is successful the job is removed.
@@ -243,6 +244,13 @@ The daemon is just:
 
 Logfile: /var/log/univention/listener_modules/ms-office-async.log.log
 Autostart: univention-ms-office-async/autostart
+
+## Async calls
+
+```
+from univention.office365.api_helper import write_async_job
+write_async_job(a_function_name='modify_group', a_ad_connection_alias='o365domain', object_id="params", new_name="aaaa", ...)
+```
 
 # Test coverage
 
