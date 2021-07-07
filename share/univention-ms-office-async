@@ -36,6 +36,7 @@ from __future__ import print_function
 import glob
 import json
 import os
+import pwd
 import sys
 import shutil
 import time
@@ -213,6 +214,12 @@ def main():
 			print('Could not get lock, another process is running, exiting', file=sys.stderr)
 			logger.error('Could not get lock, another process is running, exiting')
 			sys.exit(1)
+
+		# drop privileges here, instead of USER=listener in service file,
+		# because get_lock needs access to /var/run (which is owned by root)
+		pwnam = pwd.getpwnam('listener')
+		os.setegid(pwnam[3])
+		os.seteuid(pwnam[2])
 		AsyncJobs(ucr, data_dir, failed_dir, logger, args).async_jobs()
 	finally:
 		if lock:

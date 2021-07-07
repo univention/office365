@@ -236,6 +236,7 @@ Started via *univention-ms-office-async.service* this daemon checks */var/lib/un
 If the file can be verified (e.g. function exists or ad_connection_alias is available) *function_name* with the kwarg parameters *parameters* is executed on the connection *ad_connection_alias*. If the job can't be verified or is successful the job is removed.
 
 The daemon is just:
+* drop privileges to listener(nogroup)
 * while loop
 * find jobs in */var/lib/univention-office365/async*
 * verify job -> success: execute job, failed: remove job
@@ -244,6 +245,8 @@ The daemon is just:
 
 Logfile: /var/log/univention/listener_modules/ms-office-async.log.log
 Autostart: univention-ms-office-async/autostart
+Job dir: /var/lib/univention-office365/async (make sure owned by listener)
+Failed dir: /var/lib/univention-office365/async/failed (make sure owned by listener)
 
 ## Async calls
 
