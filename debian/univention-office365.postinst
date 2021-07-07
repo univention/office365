@@ -37,6 +37,11 @@ if [ "$1" = "configure" ]; then
 	[ -e "$uinst" ] && rm "$uinst"
 fi
 
+chmod 0700 /var/lib/univention-office365/async
+chmod 0700 /var/lib/univention-office365/async/failed
+chown listener /var/lib/univention-office365/async
+chown listener /var/lib/univention-office365/async/failed
+
 systemctl restart univention-directory-listener.service
 systemctl restart cron.service
 systemctl restart univention-ms-office-async.service

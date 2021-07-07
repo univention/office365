@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-134) unstable; urgency=medium
+
+  * Issue #554: univention-ms-office-async run as listener
+
+ -- Felix Botner <botner@univention.de>  Wed, 07 Jul 2021 13:28:23 +0200
+
 univention-office365 (2.0.2-133) unstable; urgency=medium
 
   * Issue #554: univention-ms-office-async run as listener
