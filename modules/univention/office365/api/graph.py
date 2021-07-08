@@ -16,6 +16,7 @@ from univention.office365.certificate_helper import get_client_assertion_from_al
 from univention.office365.api_helper import get_http_proxies
 from univention.office365.azure_handler import AzureHandler
 from univention.office365.logging2udebug import get_logger
+from univention.office365.api_helper import write_async_job
 
 logger = get_logger("office365", "o365")
 
@@ -52,7 +53,6 @@ class Graph(AzureHandler):
 
         # proxies must be set before any attempt to call the API
         self.proxies = get_http_proxies(ucr, self.logger)
-        # TODO: Why is this only done here?
         self.access_token_json = self._login(connection_alias)
 
         # We also initialize the base class, so that it becomes usable...
@@ -252,7 +252,7 @@ class Graph(AzureHandler):
                 self.logger.debug("retries left: {retry}".format(retry=retry))
                 if retry > 0:
                     # retry a login ,then try the call again
-                    self._login(self.connection_alias)
+                    self.access_token_json = self._login(self.connection_alias)
                     continue  # and retry with the new credentials
                 else:
                     raise self._generate_error_message(response, "Unable to (re-)login")
@@ -805,14 +805,32 @@ class Graph(AzureHandler):
             self.logger.debug("convert_from_group_to_team: add owner %r", owner)
             self.add_group_owner(group_objectid, owner)
         # convert to team
+        write_async_job(a_function_name='blocking_convert_group_to_team', a_ad_connection_alias=self.connection_alias, a_logger=self.logger, group_objectid=group_objectid)
+        return
+
+
+class GraphAPIAsyncCalls(Graph):
+    def __init__(self, ucr, name, connection_alias, logger=logger):
+        super(GraphAPIAsyncCalls, self).__init__(ucr, name, connection_alias, logger)
+        self.seconds_to_finish_azure_api_call = 180  # How long should an async method run and retry to make an API call
+        self.seconds_between_api_calls = 10  # Wait interval between API calls
+
+    def blocking_convert_group_to_team(self, group_objectid):
         # TODO: catch univention.office365.api.exceptions.GraphError: HTTP response status: 409, if group is already converted to a team
         # ErrorMessage : {\"errors\":[{\"message\":\"The group is already provisioned\....
-        # TODO: POC; make call async instead of waiting
-        self.logger.debug("wait 40")
-        time.sleep(40)
-        try:
-            self.create_team_from_group(group_objectid)
-        except GraphError as e:
-            self.logger.debug("error on create team, %r", e)
-        return
+        self.logger.debug("Convert group %r to team", group_objectid)
+        seconds_spend_in_method = 0
+        while True:
+            try:
+                self.create_team_from_group(group_objectid)
+                self.logger.debug("Successfully created team from group %r", group_objectid)
+                return
+            except GraphError as e:
+                seconds_spend_in_method += 10
+                if seconds_spend_in_method > self.seconds_to_finish_azure_api_call:
+                    self.logger.error("Giving up on converting group to team after too many API calls, %r", e)
+                    break
+                self.logger.debug("Error on create team, retry in %r seconds; %r", self.seconds_between_api_calls, e)
+                time.sleep(self.seconds_between_api_calls)
+
 # vim: filetype=python expandtab tabstop=4 shiftwidth=4 softtabstop=4

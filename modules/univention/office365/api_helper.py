@@ -51,7 +51,7 @@ def write_async_json(data):
     shutil.move(filename_tmp, filename)
 
 
-def write_async_job(a_api_version=1, a_function_name=None, a_ad_connection_alias=None, **kwargs):
+def write_async_job(a_api_version=1, a_function_name=None, a_ad_connection_alias=None, a_logger=None, **kwargs):
 
     success = False
 

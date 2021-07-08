@@ -44,10 +44,10 @@ import time
 from argparse import ArgumentParser
 
 from univention.lib.locking import get_lock, release_lock
-from univention.listener.handler_logging import get_logger
+from univention.office365.logging2udebug import get_logger
 from univention.config_registry import ConfigRegistry
 
-from univention.office365.api.graph import Graph
+from univention.office365.api.graph import GraphAPIAsyncCalls
 from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
 from univention.office365.api_helper import ASYNC_DATA_DIR, ASYNC_FAILED_DIR
 
@@ -67,7 +67,7 @@ class AsyncJobs():
 			for adconnection_alias in AzureADConnectionHandler.get_adconnection_aliases():
 				if AzureAuth.is_initialized(adconnection_alias):
 					# TODO class name from variable/file
-					self.initialized_adconnections[adconnection_alias] = Graph(self.ucr, "univention-ms-office-async", adconnection_alias)
+					self.initialized_adconnections[adconnection_alias] = GraphAPIAsyncCalls(self.ucr, "univention-ms-office-async", adconnection_alias, logger=self.logger)
 					self.logger.debug(self.initialized_adconnections)
 		except Exception as err:
 			self.logger.exception(err)
