@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-138) unstable; urgency=medium
+
+  * Bug #48389: unarchive team
+
+ -- Felix Botner <botner@univention.de>  Fri, 09 Jul 2021 10:38:37 +0200
+
 univention-office365 (2.0.2-137) unstable; urgency=medium
 
   * Bug #48389: univention.listener.handler_logging
