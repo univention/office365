@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-137) unstable; urgency=medium
+
+  * Bug #48389: univention.listener.handler_logging
+
+ -- Felix Botner <botner@univention.de>  Fri, 09 Jul 2021 08:39:21 +0200
+
 univention-office365 (2.0.2-136) unstable; urgency=medium
 
   * Bug #48389: Add Graph API to group listener module
