@@ -758,23 +758,30 @@ class Graph(AzureHandler):
             expected_status=[201]
         )
 
-    def delete_user(self, user_id):
-        ''' https://docs.microsoft.com/en-us/graph/api/user-delete
+    # * fails currently with:
+    #     },
+    #        "message": "Insufficient privileges to complete the operation.",
+    #            "code": "Authorization_RequestDenied"
+    #   because permission User.ReadWrite.All is currently missing
+    # * and overwrites azure_handler.delete_user we don't want to overwrite anything from azure_handler
 
-            PERMISSIONS
-            -----------
-            Application
-                User.ReadWrite.All
-        '''
+    #def delete_user(self, user_id):
+    #    ''' https://docs.microsoft.com/en-us/graph/api/user-delete
 
-        return self._call_graph_api(
-            'DELETE',
-            'https://graph.microsoft.com/v1.0/users/{user_id}'.format(
-                user_id=user_id
-            ),
-            headers={'Content-Type': 'application/json'},
-            expected_status=[204]
-        )
+    #        PERMISSIONS
+    #        -----------
+    #        Application
+    #            User.ReadWrite.All
+    #    '''
+
+    #    return self._call_graph_api(
+    #        'DELETE',
+    #        'https://graph.microsoft.com/v1.0/users/{user_id}'.format(
+    #            user_id=user_id
+    #        ),
+    #        headers={'Content-Type': 'application/json'},
+    #        expected_status=[204]
+    #    )
 
     def list_teams(self):
         ''' https://docs.microsoft.com/en-us/graph/api/group-list

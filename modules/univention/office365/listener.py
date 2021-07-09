@@ -630,8 +630,7 @@ class Office365Listener(object):
 					)
 
 			if users_and_groups_to_add:
-				for object_id_to_add in users_and_groups_to_add:
-					self.ah.add_group_member(object_id, object_id_to_add)
+				self.ah.add_objects_to_azure_group(object_id, users_and_groups_to_add)
 
 			# remove members
 			for removed_member in removed_members:
@@ -678,7 +677,7 @@ class Office365Listener(object):
 						)
 						continue
 
-				self.ah.remove_group_member(group_id=object_id, object_id=member_id)
+				self.ah.delete_group_member(group_id=object_id, member_id=member_id)
 
 			# remove group if it became empty
 			if removed_members and not added_members:

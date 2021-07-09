@@ -1,3 +1,10 @@
+univention-office365 (2.0.2-140) unstable; urgency=medium
+
+  * Bug #48389: use azure_handler delete_user and
+    add_objects_to_azure_group/delete_group_member
+
+ -- Felix Botner <botner@univention.de>  Fri, 09 Jul 2021 14:07:38 +0200
+
 univention-office365 (2.0.2-139) unstable; urgency=medium
 
   * Bug #48389: logging
