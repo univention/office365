@@ -1,8 +1,6 @@
 import datetime
-import logging
 import json
 import requests
-import sys
 import time
 
 try:
@@ -805,7 +803,7 @@ class Graph(AzureHandler):
             self.logger.debug("convert_from_group_to_team: add owner %r", owner)
             self.add_group_owner(group_objectid, owner)
         # convert to team
-        write_async_job(a_function_name='blocking_convert_group_to_team', a_ad_connection_alias=self.connection_alias, a_logger=self.logger, group_objectid=group_objectid)
+        write_async_job(a_function_name='create_or_unarchive_team', a_ad_connection_alias=self.connection_alias, a_logger=self.logger, group_objectid=group_objectid)
         return
 
 
@@ -815,9 +813,18 @@ class GraphAPIAsyncCalls(Graph):
         self.seconds_to_finish_azure_api_call = 180  # How long should an async method run and retry to make an API call
         self.seconds_between_api_calls = 10  # Wait interval between API calls
 
-    def blocking_convert_group_to_team(self, group_objectid):
-        # TODO: catch univention.office365.api.exceptions.GraphError: HTTP response status: 409, if group is already converted to a team
-        # ErrorMessage : {\"errors\":[{\"message\":\"The group is already provisioned\....
+    def create_or_unarchive_team(self, group_objectid):
+        # first check if team has to be unarchived
+        team = None
+        try:
+            team = self.get_team(group_objectid)
+        except GraphError as e:
+            self.logger.info('no team found for {} ({})'.format(group_objectid, e))
+        if team and team.get('isArchived', False):
+            self.logger.info('unarchive team {}.format(group_objectid)')
+            self.unarchive_team(group_objectid)
+            return
+        # create team
         self.logger.debug("Convert group %r to team", group_objectid)
         seconds_spend_in_method = 0
         while True:
@@ -829,7 +836,7 @@ class GraphAPIAsyncCalls(Graph):
                 seconds_spend_in_method += 10
                 if seconds_spend_in_method > self.seconds_to_finish_azure_api_call:
                     self.logger.error("Giving up on converting group to team after too many API calls, %r", e)
-                    break
+                    raise
                 self.logger.debug("Error on create team, retry in %r seconds; %r", self.seconds_between_api_calls, e)
                 time.sleep(self.seconds_between_api_calls)
 
