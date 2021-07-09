@@ -821,7 +821,7 @@ class GraphAPIAsyncCalls(Graph):
         except GraphError as e:
             self.logger.info('no team found for {} ({})'.format(group_objectid, e))
         if team and team.get('isArchived', False):
-            self.logger.info('unarchive team {}.format(group_objectid)')
+            self.logger.info('unarchive team {}'.format(group_objectid))
             self.unarchive_team(group_objectid)
             return
         # create team

@@ -43,12 +43,14 @@ def get_http_proxies(ucr, logger):
     return res
 
 
-def write_async_json(data):
+def write_async_json(data, logger):
     filename = os.path.join(ASYNC_DATA_DIR, '{time:f}.json'.format(time=time.time()))
     filename_tmp = filename + '.tmp'
     with open(filename_tmp, 'wb') as fd:
         json.dump(data, fd, sort_keys=True, indent=4)
     shutil.move(filename_tmp, filename)
+    if logger:
+        logger.info('created async job {}'.format(filename))
 
 
 def write_async_job(a_api_version=1, a_function_name=None, a_ad_connection_alias=None, a_logger=None, **kwargs):
@@ -74,7 +76,7 @@ def write_async_job(a_api_version=1, a_function_name=None, a_ad_connection_alias
             }
             if kwargs:
                 data['parameters'] = kwargs
-            write_async_json(data)
+            write_async_json(data, a_logger)
             success = True
 
     return success

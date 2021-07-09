@@ -387,7 +387,7 @@ class Office365Listener(object):
 			if 'univentionMicrosoft365Team' in old and old['univentionMicrosoft365Team']:
 				try:
 					self.ah.archive_team(object_id)
-					logger.info("Deleted team %r from Azure AD '%r'", old["cn"][0], self.adconnection_alias)
+					logger.info("Deleted team %r from Azure AD %r", old["cn"][0], self.adconnection_alias)
 				except GraphError as g_exc:
 					logger.error("Error while deleting team %r: %r.", old["cn"][0], g_exc)
 
@@ -557,7 +557,7 @@ class Office365Listener(object):
 				'univentionMicrosoft365Team' not in new:
 			try:
 				self.ah.archive_team(object_id)
-				logger.info("Deleted team %r from Azure AD '%r'", old["cn"][0], self.adconnection_alias)
+				logger.info("Deleted team %r from Azure AD %r", old["cn"][0], self.adconnection_alias)
 			except GraphError as g_exc:
 				logger.error("Error while deleting team %r: %r.", old["cn"][0], g_exc)
 

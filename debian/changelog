@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-139) unstable; urgency=medium
+
+  * Bug #48389: logging
+
+ -- Felix Botner <botner@univention.de>  Fri, 09 Jul 2021 12:09:46 +0200
+
 univention-office365 (2.0.2-138) unstable; urgency=medium
 
   * Bug #48389: unarchive team
