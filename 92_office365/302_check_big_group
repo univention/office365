@@ -26,7 +26,7 @@ logger = setup_logging()
 adconnection_aliases = AzureADConnectionHandler.get_adconnection_aliases()
 initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAuth.is_initialized(adconnection_alias)]
 USERS = 125
-THRESHOLD = 400
+THRESHOLD = 600
 
 print("*** adconnection_aliases={!r}.".format(adconnection_aliases))
 print("*** initialized_adconnections={!r}.".format(initialized_adconnections))
@@ -120,7 +120,7 @@ with utils.AutomaticListenerRestart():
 			end_time = time.time()
 			diff = end_time - start_time
 			print('Creating users/checking group membership took {}s'.format(int(diff)))
-			assert diff <= THRESHOLD
+			assert diff <= THRESHOLD, 'duration {} <= threshold {}'.format(diff, THRESHOLD)
 
 # Cleanup
 to_unset = ["office365/groups/sync"]
