@@ -78,6 +78,7 @@ ucs_addServiceToLocalhost "univention-office365" "$@" || die
 
 ucs_registerLDAPExtension "$@" --schema /usr/share/univention-office365/office365.schema || die
 ucs_registerLDAPExtension "$@" --udm_syntax /usr/share/univention-office365/syntax.d/office365.py || die
+ucs_registerLDAPExtension "$@" --udm_hook /usr/share/pyshared/univention/admin/hooks.d/office365_user_ADConnections_hook.py || die
 ucs_registerLDAPExtension "$@" --udm_module /usr/share/univention-office365/handler.d/profile.py \
 	--messagecatalog /usr/share/univention-office365/handler.d/de.mo || die
 ucs_registerLDAPExtension "$@" --udm_module /usr/share/univention-office365/handler.d/ad-connection.py || die

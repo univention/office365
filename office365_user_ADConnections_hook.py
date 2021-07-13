@@ -29,15 +29,21 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
+import zlib
+import json
+import base64
+
 from univention.admin.hook import simpleHook
 import univention.admin.uexceptions
 from univention.lib.i18n import Translation
-from univention.office365.listener import Office365Listener
-import zlib
 
 _ = Translation('univention-admin-handlers-office365').translate
 msg_require_mail = _("Microsoft 365 users must have a primary e-mail address specified.")
 msg_require_owner = _("In order to create a Microsoft 365 team from a group, at least one group/team owner has to be specified.")
+
+
+def decode_o365data(data):
+	return json.loads(zlib.decompress(base64.b64decode(data)))
 
 
 def str2bool(val):
@@ -81,7 +87,7 @@ class Office365ADConnectionsHook(simpleHook):
 		adconnection_data_encoded = module.get("UniventionOffice365Data")
 		if adconnection_data_encoded:
 			try:
-				self.adconnection_data = Office365Listener.decode_o365data(adconnection_data_encoded)
+				self.adconnection_data = decode_o365data(adconnection_data_encoded)
 			except (zlib.error, TypeError):
 				self.adconnection_data = {}
 		else:
