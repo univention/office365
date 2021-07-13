@@ -28,15 +28,19 @@ Common functions used by tests.
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
+from __future__ import print_function
 import random
 import pprint
-from operator import itemgetter
 import base64
 import logging
 import os
 import shutil
 import pwd
+import sys
+import time
 import subprocess
+from datetime import datetime
+from operator import itemgetter
 
 import univention.admin.syntax as udm_syntax
 import univention.testing.strings as uts
@@ -45,7 +49,7 @@ from univention.config_registry import handler_set
 from univention.office365.azure_handler import ResourceNotFoundError
 from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
 from univention.office365.logging2udebug import get_logger, LevelDependentFormatter
-
+from univention.office365.api.exceptions import GraphError
 
 udm2azure = dict(
 	firstname=lambda x: itemgetter("givenName")(x),
@@ -251,14 +255,16 @@ def azure_user_args(azure_handler, minimal=True):
 
 
 def udm_user_args(ucr, minimal=True):
+	_username = uts.random_username()
 	res = dict(
 		firstname=uts.random_string(),
 		lastname=uts.random_string(),
+		username=_username,
 		set=dict(
-			displayName=uts.random_string(),
+			displayName=_username,
 			password=uts.random_string(),
 			mailHomeServer="{}.{}".format(ucr["hostname"], ucr["domainname"]),
-			mailPrimaryAddress="{}@{}".format(uts.random_username(), ucr["domainname"]),
+			mailPrimaryAddress="{}@{}".format(_username, ucr["domainname"]),
 		)
 	)
 	res["append"] = dict()
@@ -306,6 +312,30 @@ def udm_user_args(ucr, minimal=True):
 			"{}@{}".format(uts.random_username(), uts.random_username())
 		]
 	return res
+
+
+def create_team(udm, ucr, owner_dn=None, users=[]):
+	group_args = dict(
+		name=uts.random_string(),
+		position="cn=groups,{}".format(ucr.get("ldap/base")),
+		set=dict(
+			description="ucstest",
+			users=users,
+			UniventionMicrosoft365Team=1,
+			UniventionMicrosoft365GroupOwners=owner_dn,),
+	)
+
+	return udm.create_group(check_for_drs_replication=True, **group_args)
+
+
+def create_team_member(udm, ucr, alias, group_dn=None):
+	user_args = udm_user_args(ucr)
+	user_args["set"]["UniventionOffice365Enabled"] = 1
+	user_args["set"]["UniventionOffice365ADConnectionAlias"] = [alias]
+	if group_dn:
+		user_args["set"]["primaryGroup"] = group_dn
+
+	return udm.create_user(check_for_drs_replication=True, **user_args)
 
 
 def check_udm2azure_user(udm_args, azure_user, complete=True):
@@ -404,7 +434,7 @@ def setup_externally_configured_adconnections():
 		subprocess.call(["service", "univention-directory-listener", "restart"])
 	except Exception:
 		import traceback
-		print traceback.format_exc()
+		print(traceback.format_exc())
 		return False
 
 	return True
@@ -419,3 +449,71 @@ def remove_externally_configured_adconnections():
 	except Exception:
 		return False
 	return True
+
+
+def wait_for_seconds(func):
+	def wrapper(*args, **kwargs):
+		wait_for_seconds = kwargs.pop("wait_for_seconds", 500)
+		wait_interval = kwargs.pop("wait_interval", 1)
+		start = datetime.now()
+		now = datetime.now()
+		print(func.func_doc)
+		while (now - start).total_seconds() < wait_for_seconds:
+			ret = func(*args, **kwargs)
+			if ret:
+				print("Success, this took %d seconds" % ((now - start).total_seconds(),))
+				return ret
+			print(".", end=' ')
+			sys.stdout.flush()
+			time.sleep(wait_interval)
+			now = datetime.now()
+		else:
+			raise Exception("No success in %d seconds" % (wait_for_seconds,))
+	return wrapper
+
+
+@wait_for_seconds
+def check_team_owner(graph, team_id, owner_name):
+	''' Checking if Team Owner is set to the correct user'''
+	try:
+		team_members = graph.list_team_members(team_id)
+	except GraphError:
+		return False
+
+	for member in team_members['value']:
+		if member['displayName'] == owner_name and 'owner' in member['roles']:
+			return member
+	return False
+
+
+@wait_for_seconds
+def check_team_members(graph, team_id, member_count):
+	''' Checking if the correct number of Team members is set'''
+	try:
+		team_members = graph.list_team_members(team_id)
+		if team_members['@odata.count'] == member_count:
+			return team_members
+	except GraphError:
+		return False
+
+
+@wait_for_seconds
+def check_team_created(graph, group_name):
+	''' Checking if Group is created and converted to a Team'''
+	teams = graph.list_teams()
+	for team in teams['value']:
+		if team['displayName'] == group_name and 'Team' in team['resourceProvisioningOptions']:
+				return team
+	else:
+		return None
+
+
+@wait_for_seconds
+def check_team_archived(graph, group_name):
+	''' Checking if Team is removed'''
+	teams = graph.list_teams()
+	for team in teams['value']:
+		if team['displayName'] == group_name and 'Team' in team['resourceProvisioningOptions']:
+				return False
+	else:
+		return True

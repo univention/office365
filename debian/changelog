@@ -1,5 +1,12 @@
 univention-office365 (2.0.2-141) unstable; urgency=medium
 
+  * Bug #48389: Automated tests for listener Team functionality
+    added
+
+ -- Julia Bremer <bremer@univention.de>  Tue, 13 Jul 2021 22:11:57 +0200
+
+univention-office365 (2.0.2-141) unstable; urgency=medium
+
   * Bug #48389: 92_office365/302_check_big_group
     92_office365/402_teams_test
 

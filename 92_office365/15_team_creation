@@ -1,0 +1,44 @@
+#!/usr/share/ucs-test/runner python
+## -*- coding: utf-8 -*-
+## desc: create user in azure, check Data attribute
+## tags: [apptest]
+## exposure: dangerous
+## packages:
+##   - univention-office365
+
+from __future__ import print_function
+
+import univention.testing.ucr as ucr_test
+import univention.testing.udm as udm_test
+import univention.testing.utils as utils
+from univention.office365.api.graph import Graph
+from univention.config_registry import handler_set
+
+import helpers.office365_test_helpers as o365helpers
+
+
+with utils.AutomaticListenerRestart():
+	with udm_test.UCSTestUDM() as udm:
+		with ucr_test.UCSTestConfigRegistry() as ucr:
+			ucr.load()
+
+			class _listener(object):
+				configRegistry = ucr
+
+			alias = 'o365domain'
+
+			graph = Graph(
+				ucr=ucr,
+				name=__name__,
+				connection_alias=alias
+			)
+
+			handler_set(["office365/groups/sync=yes"])
+			utils.restart_listener()
+
+			print("*** Creating members ***")
+			user_dn, username = o365helpers.create_team_member(udm, ucr, alias)
+			print("*** Creating Team ***")
+			team_dn, team_name = o365helpers.create_team(udm, ucr, owner_dn=user_dn, users=[user_dn])
+
+			team = o365helpers.check_team_created(graph, team_name)
