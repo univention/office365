@@ -1,4 +1,4 @@
-univention-office365 (2.0.2-141) unstable; urgency=medium
+univention-office365 (2.0.2-142) unstable; urgency=medium
 
   * Bug #48389: Automated tests for listener Team functionality
     added
