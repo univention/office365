@@ -41,7 +41,7 @@ with utils.AutomaticListenerRestart():
 			print("*** Creating Team ***")
 			group_dn, group_name = o365helpers.create_team(udm, ucr, owner_dn=user_dn, users=[user_dn])
 
-			created_team = o365helpers.check_team_created(graph, group_name, wait_interval=350)
+			created_team = o365helpers.check_team_created(graph, group_name)
 
 			team_id = created_team['id']
 			owner = o365helpers.check_team_owner(graph, team_id, username)

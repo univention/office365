@@ -333,7 +333,7 @@ def create_team_member(udm, ucr, alias, group_dn=None):
 	user_args["set"]["UniventionOffice365Enabled"] = 1
 	user_args["set"]["UniventionOffice365ADConnectionAlias"] = [alias]
 	if group_dn:
-		user_args["set"]["primaryGroup"] = group_dn
+		user_args["set"]["groups"] = group_dn
 
 	return udm.create_user(check_for_drs_replication=True, **user_args)
 
