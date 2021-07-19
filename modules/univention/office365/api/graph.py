@@ -8,6 +8,10 @@ try:
 except ImportError:
     from urllib import quote
 
+import os
+import grp
+import pwd
+import shutil
 
 from univention.office365.api.exceptions import GraphError
 from univention.office365.certificate_helper import get_client_assertion_from_alias, load_ids_file
@@ -32,6 +36,8 @@ logger = get_logger("office365", "o365")
     in the Microsoft documentation under `Response` for each endpoint.
 '''
 
+uid = pwd.getpwnam("listener").pw_uid
+gid = grp.getgrnam("nogroup").gr_gid
 
 class Graph(AzureHandler):
 
@@ -82,7 +88,10 @@ class Graph(AzureHandler):
 
             the 'scope' parameter has to be adjusted in order to use Azure
         '''
-        fn_access_token_cache = "/etc/univention-office365/{alias}/access_token_graph.json.tmp".format(
+        fn_access_token_cache_tmp = "/etc/univention-office365/{alias}/access_token_graph.json.tmp".format(
+            alias=connection_alias
+        )
+        fn_access_token_cache = "/etc/univention-office365/{alias}/access_token_graph.json".format(
             alias=connection_alias
         )
         try:
@@ -137,8 +146,12 @@ class Graph(AzureHandler):
         # 'expires_on' in its result, whereas we calculate the value for it
         # here locally...
         response['expires_on'] = expires_on.strftime('%Y-%m-%dT%H:%M:%S')
-        with open(fn_access_token_cache, 'w') as f:
+        with open(fn_access_token_cache_tmp, 'w') as f:
             f.write(json.dumps(response))
+
+        os.chmod(fn_access_token_cache_tmp, 0o600)
+        os.chown(fn_access_token_cache_tmp, uid, gid)
+        shutil.move(fn_access_token_cache_tmp, fn_access_token_cache)
 
         return response
 

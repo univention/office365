@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-143) unstable; urgency=medium
+
+  * Bug #48389: Prevent access token being owned by a user other than listener
+
+ -- Julia Bremer <bremer@univention.de>  Mon, 19 Jul 2021 20:48:23 +0200
+
 univention-office365 (2.0.2-142) unstable; urgency=medium
 
   * Bug #48389: Automated tests for listener Team functionality
