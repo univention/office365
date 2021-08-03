@@ -424,6 +424,33 @@ class Graph(AzureHandler):
             expected_status=[200]
         )
 
+    def create_group(self, name, owner=None, description=""):
+        ''' https://docs.microsoft.com/en-us/graph/api/group-post-groups?view=graph-rest-1.0
+        '''
+
+        return self._call_graph_api(
+            'POST', 'https://graph.microsoft.com/v1.0/groups',
+            data=json.dumps(
+                {
+                    'displayName': name,
+                    'description': description,
+                    'mailEnabled': true,
+                    "members": [
+                        {
+                            "@odata.type": "#microsoft.graph.aadUserConversationMember",
+                            "roles": ["owner"],
+                            "user@odata.bind": "https://graph.microsoft.com/v1.0/users('{userid}')".format(
+                                userid=owner
+                            )
+                        }
+                    ]
+                }
+            ),
+            headers={'Content-Type': 'application/json'},
+            expected_status=[202]
+        )
+
+
     def get_group(self, group_id, selection=None):
         ''' https://docs.microsoft.com/en-us/graph/api/user-get
         '''
