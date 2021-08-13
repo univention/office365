@@ -821,7 +821,8 @@ class Graph(AzureHandler):
         # set owner
         for owner in owner_objectids:
             self.logger.debug("convert_from_group_to_team: add owner %r", owner)
-            self.add_group_owner(group_objectid, owner)
+            write_async_job(a_function_name='add_group_owner_to_team', a_ad_connection_alias=self.connection_alias, a_logger=self.logger, group_objectid=group_objectid, owner_objectid=owner)
+
         # convert to team
         write_async_job(a_function_name='create_or_unarchive_team', a_ad_connection_alias=self.connection_alias, a_logger=self.logger, group_objectid=group_objectid)
         return
@@ -858,6 +859,26 @@ class GraphAPIAsyncCalls(Graph):
                     self.logger.error("Giving up on converting group to team after too many API calls, %r", e)
                     raise
                 self.logger.debug("Error on create team, retry in %r seconds; %r", self.seconds_between_api_calls, e)
+                time.sleep(self.seconds_between_api_calls)
+
+    def add_group_owner_to_team(self, group_objectid, owner_objectid):
+        ''' https://docs.microsoft.com/en-us/graph/api/group-post-owners
+        '''
+
+        self.logger.debug("Add owner %r to group %r", owner_objectid, group_objectid)
+        seconds_spend_in_method = 0
+        while True:
+            self.logger.debug("Add owner %r to group %r", owner_objectid, group_objectid)
+            try:
+                self.add_group_owner(group_objectid, owner_objectid)
+                self.logger.debug("Successfully added owner %r to group %r", owner_objectid, group_objectid)
+                return
+            except GraphError as e:
+                seconds_spend_in_method += 10
+                if seconds_spend_in_method > self.seconds_to_finish_azure_api_call:
+                    self.logger.error("Giving up on adding owner to group %r", e)
+                    raise
+                self.logger.debug("Error on adding owner, retry in %r seconds; %r", self.seconds_between_api_calls, e)
                 time.sleep(self.seconds_between_api_calls)
 
 # vim: filetype=python expandtab tabstop=4 shiftwidth=4 softtabstop=4
