@@ -351,6 +351,9 @@ class Office365Listener(object):
 			if 'univentionMicrosoft365Team' in new and new['univentionMicrosoft365Team']:
 				self.convert_group_to_team(group=new_group, new=new)
 
+	def test_list_team(self):
+		self.ah.test_list_team()
+
 	def create_group(self, name, description, group_dn, add_members=True):
 		self.ah.create_group(name, description)
 

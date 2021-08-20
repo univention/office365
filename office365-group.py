@@ -106,6 +106,17 @@ def initialize():
 		raise RuntimeError("Microsoft 365 App ({}) not initialized for any Azure AD connection yet, please run wizard.".format(name))
 
 
+# Test if application permissions are sufficient for MS-Teams synchronization
+for conn in initialized_adconnections:
+	ol = Office365Listener(listener, name, dict(listener=attributes_copy), ldap_cred, None, conn)
+	try:
+		ol.test_list_team()
+	except Exception:
+		# This is only a check - this should not prohibit the import of this module in any case.
+		# The call logs an exception if one occurs, but we will catch any exception here.
+		pass
+
+
 def clean():
 	"""
 	Remove  univentionOffice365ObjectID and univentionOffice365Data from all

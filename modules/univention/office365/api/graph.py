@@ -73,7 +73,7 @@ class Graph(AzureHandler):
     # ==========================================================================
     # login logics
 
-    def _login(self, connection_alias):
+    def _login(self, connection_alias, force_new_token=False):
         '''
             COMPATIBLITY NOTE / CHANGES BETWEEN 'Graph' AND 'Azure'
 
@@ -97,7 +97,7 @@ class Graph(AzureHandler):
         try:
             with open(fn_access_token_cache, 'r') as f:
                 access_token = json.loads(f.read())
-                if self._check_token_validity(access_token):
+                if not force_new_token and self._check_token_validity(access_token):
                     self.logger.debug("Using cached access token, because it is still valid.")
                     return access_token
         except Exception as e:
@@ -177,7 +177,7 @@ class Graph(AzureHandler):
     # ==========================================================================
     # the single most important function
 
-    def _call_graph_api(self, method, url, data=None, retry=3, headers={}, expected_status=[]):
+    def _call_graph_api(self, method, url, data=None, retry=3, headers={}, expected_status=[], page=True):
         ''' SUMMARY
             -------
 
@@ -268,6 +268,25 @@ class Graph(AzureHandler):
                 else:
                     raise self._generate_error_message(response, "Unable to (re-)login")
 
+            elif 403 == response.status_code:
+                retry = retry - 1
+                if retry > 0:
+                    # retry with a new token
+                    retry = 1
+                    self.logger.info(
+                        "Getting a new token in case permissions have been updated")
+                    self.access_token_json = self._login(self.connection_alias, force_new_token=True)
+                    continue  # and retry with the new credentials
+                else:
+                    self.logger.warn(
+                        "Authorization Error. Your application may not have the correct "
+                        "permissions for the Microsoft Graph API."
+                        "Please check LINK.")
+                    raise self._generate_error_message(response,
+                        "Authorization Error. Your application may not have the correct "
+                        "permissions for the Microsoft Graph API."
+                        "Please check LINK.")
+
             elif response.status_code not in expected_status:
                 raise self._generate_error_message(response)
 
@@ -286,15 +305,16 @@ class Graph(AzureHandler):
                     else:
                         values = response_json
 
-                    # implement pagination: as long as further pages follow, we
-                    # want to request these and as long as url is set, this loop
-                    # will append to the `values` array
-                    if '@odata.nextLink' in response_json:
+                    if not (page and ('@odata.nextLink' in response_json)):
+                        # explicitly break the loop, because we are done
+                        break
+                    else:
+                        # implement pagination: as long as further pages follow, we
+                        # want to request these and as long as url is set, this loop
+                        # will append to the `values` array
                         url = response_json.get("@odata.nextLink")
                         self.logger.debug('Next page: {url}'.format(url=url))
                         continue  # continue the loop with the next url
-                    else:
-                        break  # explicitly break the loop, because we are done
 
                 except ValueError as exc:
                     raise self._generate_error_message(
@@ -795,6 +815,22 @@ class Graph(AzureHandler):
     #        headers={'Content-Type': 'application/json'},
     #        expected_status=[204]
     #    )
+    def test_list_team(self):
+        ''' https://docs.microsoft.com/en-us/graph/api/group-list
+
+            Summary
+            This function has the purpose to determine
+            if the team functionality has the correct permissions
+            set. This is called in the office365-group.py listener
+            module.
+        '''
+
+        return self._call_graph_api(
+            'GET',
+            'https://graph.microsoft.com/v1.0/groups?'
+            '$count',
+            expected_status=[200], page=False
+        )
 
     def list_teams(self):
         ''' https://docs.microsoft.com/en-us/graph/api/group-list
