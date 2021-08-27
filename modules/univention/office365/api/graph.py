@@ -281,11 +281,11 @@ class Graph(AzureHandler):
                     self.logger.warn(
                         "Authorization Error. Your application may not have the correct "
                         "permissions for the Microsoft Graph API."
-                        "Please check LINK.")
+                        "Please check https://help.univention.com/t/18453.")
                     raise self._generate_error_message(response,
                         "Authorization Error. Your application may not have the correct "
                         "permissions for the Microsoft Graph API."
-                        "Please check LINK.")
+                        "Please check https://help.univention.com/t/18453.")
 
             elif response.status_code not in expected_status:
                 raise self._generate_error_message(response)
