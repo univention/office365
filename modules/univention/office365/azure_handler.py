@@ -266,14 +266,17 @@ class AzureHandler(object):
 			msg = self._fprints_hide_pw(data, "%s %s data: {data}" % (method.upper(), url))
 			logger.debug(msg)
 
-			args = dict(url=url, headers=headers, verify=True, proxies=self.auth.proxies)
+			args = dict(url=url, headers=headers, verify=True, proxies=self.auth.proxies, timeout=10)
 			if method.upper() in ["PATCH", "POST"] and data:
 				headers["Content-Type"] = "application/json"
 				args["data"] = json.dumps(data)
 
 
 			requests_func = getattr(requests, method.lower())
-			response = requests_func(**args)
+			try:
+				response = requests_func(**args)
+			except requests.exceptions.Timeout:
+				response = requests_func(**args)
 
 			if response is not None:
 				try:
