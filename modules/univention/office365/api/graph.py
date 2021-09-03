@@ -39,6 +39,7 @@ logger = get_logger("office365", "o365")
 uid = pwd.getpwnam("listener").pw_uid
 gid = grp.getgrnam("nogroup").gr_gid
 
+
 class Graph(AzureHandler):
 
     # ==========================================================================
@@ -794,30 +795,6 @@ class Graph(AzureHandler):
             expected_status=[201]
         )
 
-    # * fails currently with:
-    #     },
-    #        "message": "Insufficient privileges to complete the operation.",
-    #            "code": "Authorization_RequestDenied"
-    #   because permission User.ReadWrite.All is currently missing
-    # * and overwrites azure_handler.delete_user we don't want to overwrite anything from azure_handler
-
-    #def delete_user(self, user_id):
-    #    ''' https://docs.microsoft.com/en-us/graph/api/user-delete
-
-    #        PERMISSIONS
-    #        -----------
-    #        Application
-    #            User.ReadWrite.All
-    #    '''
-
-    #    return self._call_graph_api(
-    #        'DELETE',
-    #        'https://graph.microsoft.com/v1.0/users/{user_id}'.format(
-    #            user_id=user_id
-    #        ),
-    #        headers={'Content-Type': 'application/json'},
-    #        expected_status=[204]
-    #    )
     def test_list_team(self):
         ''' https://docs.microsoft.com/en-us/graph/api/group-list
 
