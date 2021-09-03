@@ -1,3 +1,10 @@
+univention-office365 (2.0.2-149) unstable; urgency=medium
+
+  * Bug #48389: Add HTTP 409 reponse as valid response to create team call, if the team
+    already exists
+
+ -- Erik Damrose <damrose@univention.de>  Fri, 03 Sep 2021 16:24:16 +0200
+
 univention-office365 (2.0.2-148) unstable; urgency=medium
 
   * Bug #48389: Check if permissions are sufficient for Team functionality.
