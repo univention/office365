@@ -496,7 +496,10 @@ class Graph(AzureHandler):
                 }
             ),
             headers={'Content-Type': 'application/json'},
-            expected_status=[202]
+            expected_status=[
+                202,  # Team is created asynchronously in Azure
+                409   # Group already is a team - nothing to do
+            ]
         )
 
     def add_group_owner(self, group_id, owner_id):
