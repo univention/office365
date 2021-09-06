@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-150) unstable; urgency=medium
+
+  * Bug #53706: timout graph api call and retry once
+
+ -- Arvid <requate@univention.de>  Mon, 06 Sep 2021 11:34:18 +0200
+
 univention-office365 (2.0.2-149) unstable; urgency=medium
 
   * Bug #48389: Add HTTP 409 reponse as valid response to create team call, if the team
