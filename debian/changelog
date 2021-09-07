@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-151) unstable; urgency=medium
+
+  * Bug #53551: Adjusted installation path
+
+ -- Dirk Wiesenthal <wiesenthal@univention.de>  Tue, 07 Sep 2021 11:15:52 +0200
+
 univention-office365 (2.0.2-150) unstable; urgency=medium
 
   * Bug #53706: timout graph api call and retry once
