@@ -42,7 +42,7 @@ Categories=service-collaboration
 
 [office365/groups/sync]
 Description[de]=Sollen Gruppen in denen sich Benutzer mit Microsoft 365 Konto befinden, synchronisiert werden? Standard ist 'no'.
-Description[en]=Should groups that contain users with a Microsoft 365 account be syncronized? Defaults to 'no'.
+Description[en]=Should groups that contain users with a Microsoft 365 account be synchronized? Defaults to 'no'.
 Type=bool
 Categories=service-collaboration
 
