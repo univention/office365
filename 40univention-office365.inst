@@ -168,7 +168,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set translationTabName='"de_DE" "Microsoft 365"' \
 	--set module="users/user" \
 	--set module="settings/usertemplate" \
-	--set syntax=univention.admin.syntax.boolean \
+	--set syntax=boolean \
 	--set default=0 \
 	--set multivalue=0 \
 	--set valueRequired=0 \
