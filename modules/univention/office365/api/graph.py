@@ -226,14 +226,26 @@ class Graph(AzureHandler):
             if hasattr(self, 'access_token_json'):
                 headers.update({'Authorization': 'Bearer {}'.format(self.access_token_json['access_token'])})
 
-            response = requests.request(
-                method=method,
-                url=url,
-                verify=True,
-                headers=headers,
-                data=data,
-                proxies=self.proxies
-            )
+            try:
+                response = requests.request(
+                    method=method,
+                    url=url,
+                    verify=True,
+                    headers=headers,
+                    data=data,
+                    proxies=self.proxies,
+                    timeout=10
+                )
+            except requests.exceptions.Timeout:
+                response = requests.request(
+                    method=method,
+                    url=url,
+                    verify=True,
+                    headers=headers,
+                    data=data,
+                    proxies=self.proxies,
+                    timeout=10
+                )
 
             self.logger.info(
                 "status: %r (%s) (%s %s)",
