@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-153) unstable; urgency=medium
+
+  * Bug #53706: Add timeout to Graph API calls
+
+ -- Dirk Wiesenthal <wiesenthal@univention.de>  Wed, 08 Sep 2021 15:34:05 +0200
+
 univention-office365 (2.0.2-152) unstable; urgency=medium
 
   * Bug #53397: Improve new group's EA description
