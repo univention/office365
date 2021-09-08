@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-152) unstable; urgency=medium
+
+  * Bug #53397: Improve new group's EA description
+
+ -- Dirk Wiesenthal <wiesenthal@univention.de>  Wed, 08 Sep 2021 15:20:03 +0200
+
 univention-office365 (2.0.2-151) unstable; urgency=medium
 
   * Bug #53551: Adjusted installation path

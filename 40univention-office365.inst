@@ -348,8 +348,8 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set CLIName="UniventionMicrosoft365Team" \
 	--set shortDescription="Microsoft 365 Team" \
 	--set translationShortDescription='"de_DE" "Microsoft 365 Team"' \
-	--set longDescription="If this attribute is true, the group is a Microsoft 365 Team" \
-	--set translationLongDescription='"de_DE" "Wenn dieser Wert wahr ist, ist diese Gruppe ein Microsoft 365 Team"' \
+	--set longDescription="If this attribute is true, the group is a Microsoft 365 Team. Group sync has to be activated, please refer to the documentation." \
+	--set translationLongDescription='"de_DE" "Wenn dieser Wert wahr ist, ist diese Gruppe ein Microsoft 365 Team. Die Gruppensynchronisation muss aktiviert sein; Näheres findet sich in der Dokumentation."' \
 	--set module="groups/group" \
 	--set tabAdvanced=0 \
 	--set tabName="Microsoft 365" \
