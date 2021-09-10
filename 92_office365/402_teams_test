@@ -5,6 +5,14 @@
 ## exposure: dangerous
 ## packages:
 ##   - univention-office365
+## versions:
+##  4.4-4: skip
+
+####
+# Skip here: This tests the graph api calls directly, but we currently
+# do not support creating users through graph - as it is done in setUp()
+####
+
 
 import os
 import logging

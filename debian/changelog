@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-155) unstable; urgency=medium
+
+  * Bug #48389: Skip test 402 for now
+
+ -- Erik Damrose <damrose@univention.de>  Fri, 10 Sep 2021 12:42:49 +0200
+
 univention-office365 (2.0.2-154) unstable; urgency=medium
 
   * Bug #53397: EA syntax
