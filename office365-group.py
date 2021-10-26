@@ -38,11 +38,14 @@ import json
 import os
 from stat import S_IRUSR, S_IWUSR
 
+from ldap import explode_dn
+
 import listener
 from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
 from univention.office365.listener import Office365Listener, get_adconnection_filter
 from univention.office365.udm_helper import UDMHelper
 from univention.office365.logging2udebug import get_logger
+from univention.office365.cache_helper import GROUP_USERS, GROUP_GROUPS
 
 
 logger = get_logger("office365", "o365")
@@ -75,22 +78,24 @@ ldap_cred = dict()
 attributes_copy = copy.deepcopy(attributes)  # when handler() runs, all kinds of stuff is suddenly in attributes
 
 
-def load_old(old):
+def load_old(dn, old):
 	try:
 		with open(OFFICE365_OLD_JSON, "r") as fp:
-			old = json.load(fp)
+			data = json.load(fp)
+		dn = data["dn"]
+		old = data["attrs"]
 		old["krb5Key"] = [base64.b64decode(old["krb5Key"])]
 		os.unlink(OFFICE365_OLD_JSON)
-		return old
 	except IOError:
-		return old
+		pass
+	return dn, old
 
 
-def save_old(old):
+def save_old(dn, old):
 	old["krb5Key"] = base64.b64encode(old["krb5Key"][0])
 	with open(OFFICE365_OLD_JSON, "w+") as fp:
 		os.chmod(OFFICE365_OLD_JSON, S_IRUSR | S_IWUSR)
-		json.dump(old, fp)
+		json.dump({"attrs": old, "dn": dn}, fp)
 
 
 def setdata(key, value):
@@ -134,15 +139,40 @@ def handler(dn, new, old, command):
 	if not initialized_adconnections:
 		raise RuntimeError("{}.handler() Microsoft 365 App not initialized for any Azure AD connection yet, please run wizard.".format(name))
 
+	old_dn = None
 	if command == 'r':
-		save_old(old)
+		save_old(dn, old)
 		return
 	elif command == 'a':
-		old = load_old(old)
+		old_dn, old = load_old(dn, old)
 
 	adconnection_aliases_old = set(old.get('univentionOffice365ADConnectionAlias', []))
 	adconnection_aliases_new = set(new.get('univentionOffice365ADConnectionAlias', []))
 	logger.info('adconnection_alias_old=%r adconnection_alias_new=%r', adconnection_aliases_old, adconnection_aliases_new)
+
+	# Take care of cache
+	if old_dn and old_dn != dn:
+		GROUP_GROUPS.delete(old_dn)
+		GROUP_USERS.delete(old_dn)
+	if old and not new:
+		GROUP_GROUPS.delete(dn)
+		GROUP_USERS.delete(dn)
+	else:
+		def get_rdn(dn):
+			return explode_dn(dn, 1)[0]
+		members = [member.decode('utf-8') for member in new['uniqueMember']]
+		uids = [uid.decode('utf-8') for uid in new['memberUid']]
+		nested_groups = []
+		users = []
+		for member in members:
+			rdn = get_rdn(member)
+			if rdn in uids:
+				users.append(member)
+			else:
+				if '%s$' % rdn not in uids:
+					nested_groups.append(member)
+		GROUP_GROUPS.save(dn, nested_groups)
+		GROUP_USERS.save(dn, users)
 
 	#
 	# NEW group
@@ -172,7 +202,7 @@ def handler(dn, new, old, command):
 		logger.debug("old and new -> MODIFY (%s)", dn)
 		for conn in initialized_adconnections:
 			ol = Office365Listener(listener, name, dict(listener=attributes_copy), ldap_cred, dn, conn)
-			if ol.udm.udm_groups_with_azure_users(dn):
+			if ol.udm.group_in_azure(dn):
 				azure_group = ol.modify_group(old, new)
 				# save Azure objectId in UDM object
 				try:

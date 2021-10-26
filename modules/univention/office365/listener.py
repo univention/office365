@@ -341,7 +341,7 @@ class Office365Listener(object):
 		self.ah.convert_from_group_to_team(group_objectid=group["objectId"], owner_objectids=owner_objectids)
 
 	def create_groups(self, dn, new):
-		if self.udm.udm_groups_with_azure_users(dn):
+		if self.udm.group_in_azure(dn):
 			new_group = self.create_group_from_new(new)
 			# save Azure objectId in UDM object
 			udm_group = self.udm.get_udm_group(dn)

@@ -45,6 +45,7 @@ from univention.office365.listener import Office365Listener, NoAllocatableSubscr
 from univention.office365.udm_helper import UDMHelper
 from univention.office365.logging2udebug import get_logger
 from univention.office365.api_helper import get_http_proxies
+from univention.office365.cache_helper import USER_AZURES
 
 listener.configRegistry.load()
 attributes_anonymize = list()
@@ -181,22 +182,24 @@ logger.info("attributes to sync from multiple sources: %r", attributes_multiple_
 get_http_proxies(listener.configRegistry, logger)  # log proxy settings
 
 
-def load_old(old):
+def load_old(dn, old):
 	try:
 		with open(OFFICE365_OLD_JSON, "r") as fp:
-			old = json.load(fp)
+			data = json.load(fp)
+		dn = data["dn"]
+		old = data["attrs"]
 		old["krb5Key"] = [base64.b64decode(old["krb5Key"])]
 		os.unlink(OFFICE365_OLD_JSON)
-		return old
 	except IOError:
-		return old
+		pass
+	return dn, old
 
 
-def save_old(old):
+def save_old(dn, old):
 	old["krb5Key"] = base64.b64encode(old["krb5Key"][0])
 	with open(OFFICE365_OLD_JSON, "w+") as fp:
 		os.chmod(OFFICE365_OLD_JSON, S_IRUSR | S_IWUSR)
-		json.dump(old, fp)
+		json.dump({"attrs": old, "dn": dn}, fp)
 
 
 def is_deactived_locked_or_expired(udm_user):
@@ -382,11 +385,12 @@ def handler(dn, new, old, command):
 	if not initialized_adconnection:
 		raise RuntimeError("{}.handler() Microsoft 365 App not initialized for any AD connection yet, please run wizard.".format(name))
 
+	old_dn = None
 	if command == 'r':
-		save_old(old)
+		save_old(dn, old)
 		return
 	elif command == 'a':
-		old = load_old(old)
+		old_dn, old = load_old(dn, old)
 
 	adconnection_aliases_old = set(old.get('univentionOffice365ADConnectionAlias', []))
 	adconnection_aliases_new = set(new.get('univentionOffice365ADConnectionAlias', []))
@@ -414,6 +418,16 @@ def handler(dn, new, old, command):
 		new_enabled &= new_adconnection_enabled
 
 	logger.debug("new_enabled=%r old_enabled=%r", new_enabled, old_enabled)
+
+	# Take care of cache
+	if new_enabled:
+		if old_dn and old_dn != dn:
+			USER_AZURES.delete(old_dn)
+		aliases = [alias.decode('utf-8') for alias in new.get('univentionOffice365ADConnectionAlias', [])]
+		if aliases:
+			USER_AZURES.save(dn, aliases)
+	else:
+		USER_AZURES.delete(dn)
 
 	#
 	# Add or remove user from AD connections -> delete and create

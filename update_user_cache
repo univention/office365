@@ -1,9 +1,7 @@
-#!/bin/bash
+#!/usr/bin/python2.7
+# -*- coding: utf-8 -*-
 #
-# MS Office 365 provisioning
-#  postinst file for the debian package
-#
-# Copyright 2016-2019 Univention GmbH
+# Copyright 2021 Univention GmbH
 #
 # http://www.univention.de/
 #
@@ -30,35 +28,22 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-#DEBHELPER#
+from univention.office365.cache_helper import GROUP_USERS, GROUP_GROUPS, USER_AZURES
+from univention.udm import UDM
 
-if [ "$1" = "configure" ]; then
-	uinst=/usr/lib/univention-install/60univention-office365.uinst
-	[ -e "$uinst" ] && rm "$uinst"
-fi
+udm = UDM.machine().version(1)
 
-chmod 0700 /var/lib/univention-office365/async
-chmod 0700 /var/lib/univention-office365/async/failed
-chown listener /var/lib/univention-office365/async
-chown listener /var/lib/univention-office365/async/failed
 
-systemctl restart univention-directory-listener.service
-systemctl restart cron.service
-systemctl restart univention-ms-office-async.service
+USER_AZURES.clear()
+GROUP_USERS.clear()
+GROUP_GROUPS.clear()
 
-. /usr/share/univention-lib/base.sh
-call_joinscript 40univention-office365.inst
 
-if dpkg --compare-versions "2.0.0-8" gt-nl "$2"; then
-	# Remove old saml config completely by rewriting saml20-sp-remote.php
-	ucr commit /etc/simplesamlphp/metadata/saml20-sp-remote.php
-fi
+for obj in udm.get('users/user').search():
+	if obj.props.UniventionOffice365Enabled == '1':
+		USER_AZURES.save(obj.dn, obj.props.UniventionOffice365ADConnectionAlias)
 
-if dpkg --compare-versions "2.0.2-156" gt-nl "$2"; then
-	/usr/share/univention-office365/scripts/update_user_cache
-fi
 
-a2ensite office365-wsgi
-systemctl reload apache2
-
-exit 0
+for obj in udm.get('groups/group').search():
+	GROUP_USERS.save(obj.dn, obj.props.users)
+	GROUP_GROUPS.save(obj.dn, obj.props.nestedGroup)

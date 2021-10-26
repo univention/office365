@@ -35,6 +35,7 @@ import univention.admin.uldap
 import univention.admin.objects
 from univention.config_registry import ConfigRegistry
 from univention.office365.logging2udebug import get_logger
+from univention.office365.cache_helper import azure_relevant_for_group
 
 
 logger = get_logger("office365", "o365")
@@ -134,6 +135,15 @@ class UDMHelper(object):
 	@classmethod
 	def get_udm_officeprofile(cls, profiledn, attributes=None):
 		return cls.get_udm_obj("office365/profile", profiledn, attributes)
+
+	def group_in_azure(self, groupdn):
+		"""
+		Whether or not a group is "relevant" for the azure connection
+
+		:param groupdn: group to start with
+		:return: True / False
+		"""
+		return azure_relevant_for_group(self.adconnection_alias, groupdn)
 
 	def udm_groups_with_azure_users(self, groupdn):
 		"""
