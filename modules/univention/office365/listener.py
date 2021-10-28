@@ -341,7 +341,7 @@ class Office365Listener(object):
 		self.ah.convert_from_group_to_team(group_objectid=group["objectId"], owner_objectids=owner_objectids)
 
 	def create_groups(self, dn, new):
-		if self.udm.udm_groups_with_azure_users(dn):
+		if self.udm.is_azure_group(dn):
 			new_group = self.create_group_from_new(new)
 			# save Azure objectId in UDM object
 			udm_group = self.udm.get_udm_group(dn)
@@ -388,11 +388,7 @@ class Office365Listener(object):
 			return
 		try:
 			if 'univentionMicrosoft365Team' in old and old['univentionMicrosoft365Team']:
-				try:
-					self.ah.archive_team(object_id)
-					logger.info("Deleted team %r from Azure AD %r", old["cn"][0], self.adconnection_alias)
-				except GraphError as g_exc:
-					logger.error("Error while deleting team %r: %r.", old["cn"][0], g_exc)
+				self.archive_team(object_id, old)
 
 			azure_group = self.ah.delete_group(object_id)
 			logger.info("Deleted group %r from Azure AD '%r'", old["cn"][0], self.adconnection_alias)
@@ -558,11 +554,7 @@ class Office365Listener(object):
 		# Remove Team from group
 		if ('univentionMicrosoft365Team' in old and old['univentionMicrosoft365Team']) and \
 				'univentionMicrosoft365Team' not in new:
-			try:
-				self.ah.archive_team(object_id)
-				logger.info("Deleted team %r from Azure AD %r", old["cn"][0], self.adconnection_alias)
-			except GraphError as g_exc:
-				logger.error("Error while deleting team %r: %r.", old["cn"][0], g_exc)
+			self.archive_team(object_id, old)
 
 		if "univentionMicrosoft365GroupOwners" in modification_attributes:
 			set_old_owners = set(old.get("univentionMicrosoft365GroupOwners", []))
@@ -570,22 +562,10 @@ class Office365Listener(object):
 			removed_owners = set_old_owners - set_new_owners
 			added_owners = set_new_owners - set_old_owners
 
-			# add owner before removing them. If a group has an owner, removing the last owner will fail
-			for owner in added_owners:
-				owner_id = self._object_id_from_udm_object(self.udm.get_udm_user(owner))
-				try:
-					logger.info("Add owner %r to group %r from Azure AD '%r'", owner, old["cn"][0], self.adconnection_alias)
-					self.ah.add_group_owner(group_id=object_id, owner_id=owner_id)
-				except GraphError as g_exc:
-					logger.error("Error while adding group owner to %r: %r.", old["cn"][0], g_exc)
+			self.add_owners_to_azure(object_id, old, added_owners)
 
-			for owner in removed_owners:
-				owner_id = self._object_id_from_udm_object(self.udm.get_udm_user(owner))
-				try:
-					logger.info("Remove owner %r from group %r from Azure AD '%r'", owner, old["cn"][0], self.adconnection_alias)
-					self.ah.remove_group_owner(group_id=object_id, owner_id=owner_id)
-				except GraphError as g_exc:
-					logger.error("Error while removing group owner to %r: %r.", old["cn"][0], g_exc)
+			self.remove_owners_from_azure(object_id, old, removed_owners)
+
 			# Do not sync this to any azure attribute directly
 			modification_attributes.remove("univentionMicrosoft365GroupOwners")
 
@@ -600,87 +580,9 @@ class Office365Listener(object):
 			added_members = set_new - set_old
 			logger.debug("dn=%r added_members=%r removed_members=%r", self.dn, added_members, removed_members)
 
-			# add new members to Azure
-			users_and_groups_to_add = list()
-			for added_member in added_members:
-				if added_member in udm_group["users"]:
-					# it's a user
-					udm_user = self.udm.get_udm_user(added_member)
-					if int(udm_user.get("UniventionOffice365Enabled", "0")):
-						try:
-							member_object_id = self._object_id_from_udm_object(udm_user)
-							users_and_groups_to_add.append(member_object_id)
-						except KeyError:
-							pass
-				elif added_member in udm_group["nestedGroup"]:
-					# it's a group
-					# check if this group or any of its nested groups has azure_users
-					for group_with_azure_users in self.udm.udm_groups_with_azure_users(added_member):
-						logger.debug("Found nested group %r with azure users...", group_with_azure_users)
-						udm_group_with_azure_users = self.udm.get_udm_group(group_with_azure_users)
-						try:
-							member_object_id = self._object_id_from_udm_object(udm_group_with_azure_users)
-						except KeyError:
-							new_group = self.create_group_from_udm(udm_group_with_azure_users)
-							member_object_id = new_group["objectId"]
-							self.set_adconnection_object_id(udm_group_with_azure_users, member_object_id)
-						if group_with_azure_users in udm_group["nestedGroup"]:  # only add direct members to group
-							users_and_groups_to_add.append(member_object_id)
-				else:
-					raise RuntimeError(
-						"Office365Listener.modify_group() {!r} from new[uniqueMember] not in "
-						"'nestedGroup' or 'users' ({!r}).".format(added_member, self.adconnection_alias)
-					)
+			self.add_members_to_azure(added_members, object_id, udm_group)
 
-			if users_and_groups_to_add:
-				self.ah.add_objects_to_azure_group(object_id, users_and_groups_to_add)
-
-			# remove members
-			for removed_member in removed_members:
-				member_id = None
-				# try with UDM user
-				udm_obj = self.udm.get_udm_user(removed_member)
-				try:
-					member_id = self._object_id_from_udm_object(udm_obj)
-				except (KeyError, TypeError):
-					# try with UDM group
-					udm_obj = self.udm.get_udm_group(removed_member)
-					try:
-						member_id = self._object_id_from_udm_object(udm_obj)
-					except (KeyError, TypeError):
-						pass
-				if not member_id:
-					# group may have been deleted or group may not be an Azure group
-					# let's try to remove it from Azure anyway
-					# get group using name and search
-					m = re.match(r"^cn=(.*?),.*", removed_member)
-					if m:
-						object_name = m.groups()[0]
-						# do not try with a user account: it will either have
-						# been deleted, in which case it will be removed from
-						# all groups by AzureHandler.deactivate_user() or if it
-						# existed, we'd have found it already at the top of the
-						# for loop with self.get_udm_user(removed_member).
-
-						# try with a group
-						azure_group = self.find_aad_group_by_name(object_name)
-						if azure_group:
-							member_id = azure_group["objectId"]
-						else:
-							# not an Azure user or group or already deleted in Azure
-							logger.warn(
-								"Office365Listener.modify_group(), removing members: couldn't figure out object name from dn %r",
-								removed_member
-							)
-							continue
-					else:
-						logger.warn(
-							"Office365Listener.modify_group(), removing members: couldn't figure out object name from dn %r",
-							removed_member
-						)
-						continue
-
-				self.ah.delete_group_member(group_id=object_id, member_id=member_id)
+			self.remove_members_from_azure(object_id, removed_members)
 
 			# remove group if it became empty
 			if removed_members and not added_members:
@@ -694,6 +596,116 @@ class Office365Listener(object):
 			return self.ah.modify_group(object_id=object_id, modifications=modifications)
 
 		return dict(objectId=object_id)  # for listener to store in UDM object
+
+	def archive_team(self, object_id, old):
+		try:
+			self.ah.archive_team(object_id)
+			logger.info("Deleted team %r from Azure AD %r", old["cn"][0], self.adconnection_alias)
+		except GraphError as g_exc:
+			logger.error("Error while deleting team %r: %r.", old["cn"][0], g_exc)
+
+	def remove_owners_from_azure(self, object_id, old, removed_owners):
+		for owner in removed_owners:
+			owner_id = self._object_id_from_udm_object(self.udm.get_udm_user(owner))
+			try:
+				logger.info("Remove owner %r from group %r from Azure AD '%r'", owner, old["cn"][0],
+							self.adconnection_alias)
+				self.ah.remove_group_owner(group_id=object_id, owner_id=owner_id)
+			except GraphError as g_exc:
+				logger.error("Error while removing group owner to %r: %r.", old["cn"][0], g_exc)
+
+	def add_owners_to_azure(self, object_id, old, added_owners):
+		# add owner before removing them. If a group has an owner, removing the last owner will fail
+		for owner in added_owners:
+			owner_id = self._object_id_from_udm_object(self.udm.get_udm_user(owner))
+			try:
+				logger.info("Add owner %r to group %r from Azure AD '%r'", owner, old["cn"][0], self.adconnection_alias)
+				self.ah.add_group_owner(group_id=object_id, owner_id=owner_id)
+			except GraphError as g_exc:
+				logger.error("Error while adding group owner to %r: %r.", old["cn"][0], g_exc)
+
+	def remove_members_from_azure(self, object_id, removed_members):
+		# remove members
+		for removed_member in removed_members:
+			member_id = None
+			# try with UDM user
+			udm_obj = self.udm.get_udm_user(removed_member)
+			try:
+				member_id = self._object_id_from_udm_object(udm_obj)
+			except (KeyError, TypeError):
+				# try with UDM group
+				udm_obj = self.udm.get_udm_group(removed_member)
+				try:
+					member_id = self._object_id_from_udm_object(udm_obj)
+				except (KeyError, TypeError):
+					pass
+			if not member_id:
+				# group may have been deleted or group may not be an Azure group
+				# let's try to remove it from Azure anyway
+				# get group using name and search
+				m = re.match(r"^cn=(.*?),.*", removed_member)
+				if m:
+					object_name = m.groups()[0]
+					# do not try with a user account: it will either have
+					# been deleted, in which case it will be removed from
+					# all groups by AzureHandler.deactivate_user() or if it
+					# existed, we'd have found it already at the top of the
+					# for loop with self.get_udm_user(removed_member).
+
+					# try with a group
+					azure_group = self.find_aad_group_by_name(object_name)
+					if azure_group:
+						member_id = azure_group["objectId"]
+					else:
+						# not an Azure user or group or already deleted in Azure
+						logger.warn(
+							"Office365Listener.modify_group(), removing members: couldn't figure out object name from dn %r",
+							removed_member
+						)
+						continue
+				else:
+					logger.warn(
+						"Office365Listener.modify_group(), removing members: couldn't figure out object name from dn %r",
+						removed_member
+					)
+					continue
+
+			self.ah.delete_group_member(group_id=object_id, member_id=member_id)
+
+	def add_members_to_azure(self, added_members, object_id, udm_group):
+		# add new members to Azure
+		users_and_groups_to_add = list()
+		for added_member in added_members:
+			if added_member in udm_group["users"]:
+				# it's a user
+				udm_user = self.udm.get_udm_user(added_member)
+				if int(udm_user.get("UniventionOffice365Enabled", "0")):
+					try:
+						member_object_id = self._object_id_from_udm_object(udm_user)
+						users_and_groups_to_add.append(member_object_id)
+					except KeyError:
+						pass
+			elif added_member in udm_group["nestedGroup"]:
+				# it's a group
+				# check if this group or any of its nested groups has azure_users
+				for group_with_azure_users in self.udm.udm_groups_with_azure_users(added_member):
+					logger.debug("Found nested group %r with azure users...", group_with_azure_users)
+					udm_group_with_azure_users = self.udm.get_udm_group(group_with_azure_users)
+					try:
+						member_object_id = self._object_id_from_udm_object(udm_group_with_azure_users)
+					except KeyError:
+						new_group = self.create_group_from_udm(udm_group_with_azure_users)
+						member_object_id = new_group["objectId"]
+						self.set_adconnection_object_id(udm_group_with_azure_users, member_object_id)
+					if group_with_azure_users in udm_group["nestedGroup"]:  # only add direct members to group
+						users_and_groups_to_add.append(member_object_id)
+			else:
+				raise RuntimeError(
+					"Office365Listener.modify_group() {!r} from new[uniqueMember] not in "
+					"'nestedGroup' or 'users' ({!r}).".format(added_member, self.adconnection_alias)
+				)
+		if users_and_groups_to_add:
+			self.ah.add_objects_to_azure_group(object_id, users_and_groups_to_add)
 
 	def add_ldap_members_to_azure_group(self, group_dn, object_id):
 		"""

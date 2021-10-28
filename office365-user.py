@@ -266,23 +266,7 @@ def new_or_reactivate_user(ol, dn, new, old):
 				'userPrincipalName': new_user['userPrincipalName'],
 			}
 		}
-		old_azure_data_encoded = udm_user["UniventionOffice365Data"]
-		if old_azure_data_encoded:
-			# The account already has an Azure AD connection
-			try:
-				old_azure_data = Office365Listener.decode_o365data(old_azure_data_encoded)
-			except (zlib.error, TypeError):
-				old_azure_data = {}
-			if 'objectId' in old_azure_data and not isinstance(old_azure_data['objectId'], dict):
-				# Migration case
-				old_azure_data = {
-					k: v
-					for k, v in old_azure_data.items()
-					if isinstance(v, dict)
-				}
-			old_azure_data.update(new_azure_data)
-			new_azure_data = old_azure_data
-		udm_user["UniventionOffice365Data"] = Office365Listener.encode_o365data(new_azure_data)
+		replace_azure_data_udm(new_azure_data, udm_user)
 		if not new.get('univentionOffice365ADConnectionAlias', []):
 			udm_user["UniventionOffice365ADConnectionAlias"] = [ol.adconnection_alias]
 	udm_user.modify()
@@ -356,25 +340,30 @@ def modify_user(ol, dn, new, old):
 				'userPrincipalName': azure_user['userPrincipalName'],
 			}
 		}
-		old_azure_data_encoded = udm_user["UniventionOffice365Data"]
-		if old_azure_data_encoded:
-			# The account already has an Azure AD connection
-			try:
-				old_azure_data = Office365Listener.decode_o365data(old_azure_data_encoded)
-			except (zlib.error, TypeError):
-				old_azure_data = {}
-			if 'objectId' in old_azure_data and not isinstance(old_azure_data['objectId'], dict):
-				# Migration case
-				old_azure_data = {
-					k: v
-					for k, v in old_azure_data.items()
-					if isinstance(v, dict)
-				}
-			old_azure_data.update(new_azure_data)
-			new_azure_data = old_azure_data
-		udm_user["UniventionOffice365Data"] = Office365Listener.encode_o365data(new_azure_data)
+		replace_azure_data_udm(new_azure_data, udm_user)
+
 	udm_user.modify()
 	logger.info("Modified user %r adconnection: %s.", old["uid"][0], ol.adconnection_alias)
+
+
+def replace_azure_data_udm(new_azure_data, udm_user):
+	old_azure_data_encoded = udm_user["UniventionOffice365Data"]
+	if old_azure_data_encoded:
+		# The account already has an Azure AD connection
+		try:
+			old_azure_data = Office365Listener.decode_o365data(old_azure_data_encoded)
+		except (zlib.error, TypeError):
+			old_azure_data = {}
+		if 'objectId' in old_azure_data and not isinstance(old_azure_data['objectId'], dict):
+			# Migration case
+			old_azure_data = {
+				k: v
+				for k, v in old_azure_data.items()
+				if isinstance(v, dict)
+			}
+		old_azure_data.update(new_azure_data)
+		new_azure_data = old_azure_data
+	udm_user["UniventionOffice365Data"] = Office365Listener.encode_o365data(new_azure_data)
 
 
 def handler(dn, new, old, command):

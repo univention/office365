@@ -161,6 +161,27 @@ class UDMHelper(object):
 
 		return groups
 
+	def is_azure_group(self, groupdn) -> bool:
+		"""
+		Recursively search for any azure user in nested groups.
+
+		:param groupdn: group to start with
+		:return: True if least one user is enabled for self.adconnection_alias (and has UniventionOffice365Enabled=1)
+		"""
+		udm_group = self.get_udm_group(groupdn)
+		for userdn in udm_group.get("users", []):
+			udm_user = self.get_udm_user(userdn)
+			if bool(int(udm_user.get("UniventionOffice365Enabled", "0"))):
+				if self.adconnection_alias in udm_user.get("UniventionOffice365ADConnectionAlias", []):
+					return True
+				elif not udm_user.get("UniventionOffice365ADConnectionAlias") and udm_user.get("UniventionOffice365ObjectID", [''])[0]:
+					return True
+		for nested_groupdn in udm_group.get("nestedGroup", []):
+			if self.is_azure_group(nested_groupdn):
+				return True
+		return False
+
+
 	@classmethod
 	def _get_lo_o365_objects(cls, filter_s, attributes):
 		"""
