@@ -54,7 +54,7 @@ if dpkg --compare-versions "2.0.0-8" gt-nl "$2"; then
 	ucr commit /etc/simplesamlphp/metadata/saml20-sp-remote.php
 fi
 
-if dpkg --compare-versions "2.0.2-156" gt-nl "$2"; then
+if dpkg --compare-versions "2.0.2-156" gt "$2"; then
 	/usr/share/univention-office365/scripts/update_user_cache
 fi
 

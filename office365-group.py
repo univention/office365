@@ -158,14 +158,12 @@ def handler(dn, new, old, command):
 		GROUP_GROUPS.delete(dn)
 		GROUP_USERS.delete(dn)
 	else:
-		def get_rdn(dn):
-			return explode_dn(dn, 1)[0]
-		members = [member.decode('utf-8') for member in new['uniqueMember']]
-		uids = [uid.decode('utf-8') for uid in new['memberUid']]
+		members = [member.decode('utf-8') for member in new.get('uniqueMember', [])]
+		uids = [uid.decode('utf-8') for uid in new.get('memberUid', [])]
 		nested_groups = []
 		users = []
 		for member in members:
-			rdn = get_rdn(member)
+			rdn = explode_dn(dn, 1)[0]
 			if rdn in uids:
 				users.append(member)
 			else:

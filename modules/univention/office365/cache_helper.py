@@ -38,12 +38,12 @@ import gdbm as gdbm
 class Cache(object):
 	def __init__(self, db_file):
 		self.db_file = db_file
-		self._listenr_uid = getpwnam('listener').pw_uid
+		self._listener_uid = getpwnam('listener').pw_uid
 
 	@contextmanager
 	def writing_db(self, mode):
 		db = gdbm.open(self.db_file, mode)
-		os.chown(self.db_file, self._listenr_uid, -1)
+		os.chown(self.db_file, self._listener_uid, -1)
 		yield db
 		db.close()
 
