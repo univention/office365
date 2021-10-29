@@ -39,8 +39,7 @@ GROUP_USERS.clear()
 GROUP_GROUPS.clear()
 
 
-for obj in udm.get('users/user').search():
-	if obj.props.UniventionOffice365Enabled == '1':
+for obj in udm.get('users/user').search('UniventionOffice365Enabled=1'):
 		USER_AZURES.save(obj.dn, obj.props.UniventionOffice365ADConnectionAlias)
 
 
