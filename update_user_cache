@@ -28,6 +28,10 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
+from __future__ import print_function
+
+import sys
+
 from univention.office365.cache_helper import GROUP_USERS, GROUP_GROUPS, USER_AZURES
 from univention.udm import UDM
 
@@ -39,10 +43,28 @@ GROUP_USERS.clear()
 GROUP_GROUPS.clear()
 
 
+i = 0
+print('Updating %s. This may take a while...' % (USER_AZURES.db_file,))
+print('Going through all users enabled for Microsoft365')
 for obj in udm.get('users/user').search('UniventionOffice365Enabled=1'):
+	i += 1
+	if i % 1000 == 0:
+		print('\rAdding user #%d' % i, end='')
+		sys.stdout.flush()
 	USER_AZURES.save(obj.dn, obj.props.UniventionOffice365ADConnectionAlias)
+print('')
+print('%d users added successfully' % i)
 
 
+i = 0
+print('Updating %s and %s. This may take a while...' % (GROUP_USERS.db_file, GROUP_GROUPS.db_file))
+print('Going through all groups')
 for obj in udm.get('groups/group').search():
+	i += 1
+	if i % 1000 == 0:
+		print('\rAdding group #%d' % i, end='')
+		sys.stdout.flush()
 	GROUP_USERS.save(obj.dn, obj.props.users)
 	GROUP_GROUPS.save(obj.dn, obj.props.nestedGroup)
+print('')
+print('%d groups added successfully' % i)
