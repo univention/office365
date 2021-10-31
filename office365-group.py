@@ -60,15 +60,7 @@ logger.info('Found initialized adconnections: %r', initialized_adconnections)
 
 name = 'office365-group'
 description = 'sync groups to office 365'
-if not listener.configRegistry.is_true("office365/groups/sync", False):
-	filter = '(entryCSN=)'  # not matching anything, evaluated by UDL filter implementation
-	logger.warn("office 365 group listener deactivated by UCR office365/groups/sync")
-elif initialized_adconnections:
-	filter = '(&(objectClass=posixGroup){})'.format(get_adconnection_filter(listener.configRegistry, adconnection_aliases))
-	logger.info("office 365 group listener active with filter=%r", filter)
-else:
-	filter = '(objectClass=deactivatedOffice365GroupListener)'
-	logger.warn("office 365 group listener deactivated (no initialized adconnections)")
+filter = 'objectClass=posixGroup'
 attributes = ["cn", "description", "uniqueMember", "univentionMicrosoft365Team", "univentionMicrosoft365GroupOwners"]
 modrdn = "1"
 
@@ -134,10 +126,6 @@ def clean():
 
 def handler(dn, new, old, command):
 	logger.debug("%s.handler() command: %r dn: %r", name, command, dn)
-	if not listener.configRegistry.is_true("office365/groups/sync", False):
-		return
-	if not initialized_adconnections:
-		raise RuntimeError("{}.handler() Microsoft 365 App not initialized for any Azure AD connection yet, please run wizard.".format(name))
 
 	old_dn = None
 	if command == 'r':
@@ -145,10 +133,6 @@ def handler(dn, new, old, command):
 		return
 	elif command == 'a':
 		old_dn, old = load_old(dn, old)
-
-	adconnection_aliases_old = set(old.get('univentionOffice365ADConnectionAlias', []))
-	adconnection_aliases_new = set(new.get('univentionOffice365ADConnectionAlias', []))
-	logger.info('adconnection_alias_old=%r adconnection_alias_new=%r', adconnection_aliases_old, adconnection_aliases_new)
 
 	# Take care of cache
 	if old_dn and old_dn != dn:
@@ -159,11 +143,11 @@ def handler(dn, new, old, command):
 		GROUP_USERS.delete(dn)
 	else:
 		members = [member.decode('utf-8') for member in new.get('uniqueMember', [])]
-		uids = [uid.decode('utf-8') for uid in new.get('memberUid', [])]
+		uids = [uid.decode('utf-8').lower() for uid in new.get('memberUid', [])]
 		nested_groups = []
 		users = []
 		for member in members:
-			rdn = explode_dn(dn, 1)[0]
+			rdn = explode_dn(member, 1)[0].lower()
 			if rdn in uids:
 				users.append(member)
 			else:
@@ -171,6 +155,16 @@ def handler(dn, new, old, command):
 					nested_groups.append(member)
 		GROUP_GROUPS.save(dn, nested_groups)
 		GROUP_USERS.save(dn, users)
+
+	if not listener.configRegistry.is_true("office365/groups/sync", False):
+		return
+	if not initialized_adconnections:
+		logger.error("{}.handler() Microsoft 365 App not initialized for any Azure AD connection yet, please run wizard.".format(name))
+		return
+
+	adconnection_aliases_old = set(old.get('univentionOffice365ADConnectionAlias', []))
+	adconnection_aliases_new = set(new.get('univentionOffice365ADConnectionAlias', []))
+	logger.info('adconnection_alias_old=%r adconnection_alias_new=%r', adconnection_aliases_old, adconnection_aliases_new)
 
 	#
 	# NEW group
