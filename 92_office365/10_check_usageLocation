@@ -23,6 +23,7 @@ from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
 adconnection_aliases = AzureADConnectionHandler.get_adconnection_aliases()
 initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAuth.is_initialized(adconnection_alias)]
 
+udm_syntax.update_choices()
 blacklisted_ul = ["CU", "KP"]  # some usageLocations seem to be invalid, collecting them here
 usage_locations = set(udm_syntax.Country.choices) - set(blacklisted_ul)
 
