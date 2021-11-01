@@ -93,7 +93,7 @@ class AzureADConnectionHandler(object):
 		self.adconnection = None
 
 	@classmethod
-	def listener_restart(self):
+	def listener_restart(cls):
 		logger.info('Restarting univention-directory-listener service')
 		subprocess.call(['systemctl', 'restart', 'univention-directory-listener'])
 
@@ -120,7 +120,7 @@ class AzureADConnectionHandler(object):
 		}[name]
 
 	@classmethod
-	def get_adconnection_aliases(self):
+	def get_adconnection_aliases(cls):
 		res = dict()
 		ucr.load()
 		for k, v in ucr.items():
@@ -129,19 +129,19 @@ class AzureADConnectionHandler(object):
 		return res
 
 	@classmethod
-	def adconnection_id_to_alias(self, adconnection_id):
-		for alias, t_id in self.get_adconnection_aliases().items():
+	def adconnection_id_to_alias(cls, adconnection_id):
+		for alias, t_id in cls.get_adconnection_aliases().items():
 			if t_id == adconnection_id:
 				return alias
 		logger.error('Unknown Azure AD connection ID %r.', adconnection_id)
 		return None
 
 	@classmethod
-	def get_adconnections(self, only_initialized=False):
+	def get_adconnections(cls, only_initialized=False):
 		res = []
-		aliases = self.get_adconnection_aliases().items()
+		aliases = cls.get_adconnection_aliases().items()
 		for alias, adconnection_id in aliases:
-			confdir = self.get_conf_path('CONFDIR', alias)
+			confdir = cls.get_conf_path('CONFDIR', alias)
 			initialized = AzureAuth.is_initialized(alias)
 			status = 'initialized' if initialized else 'uninitialized'
 			if (only_initialized is False or initialized):
@@ -149,7 +149,7 @@ class AzureADConnectionHandler(object):
 		return res
 
 	@classmethod
-	def configure_wizard_for_adconnection(self, adconnection_alias):
+	def configure_wizard_for_adconnection(cls, adconnection_alias):
 		# configure UCR to let wizard configure this adconnection
 		# TODO: Should be removed in the future, as the wizard should be able to configure
 		# adconnections by itself
@@ -158,8 +158,8 @@ class AzureADConnectionHandler(object):
 		subprocess.call(['pkill', '-f', '/usr/sbin/univention-management-console-module -m office365'])
 
 	@classmethod
-	def create_new_adconnection(self, adconnection_alias, make_default=False, description=""):
-		aliases = self.get_adconnection_aliases()
+	def create_new_adconnection(cls, adconnection_alias, make_default=False, description=""):
+		aliases = cls.get_adconnection_aliases()
 		if adconnection_alias in aliases:
 			logger.error('Azure AD connection alias %s is already listed in UCR %s.', adconnection_alias, adconnection_alias_ucrv)
 			return None
@@ -183,12 +183,12 @@ class AzureADConnectionHandler(object):
 
 		handler_set(ucrv)
 		UDMHelper.create_udm_adconnection(adconnection_alias, description)
-		self.configure_wizard_for_adconnection(adconnection_alias)
-		self.listener_restart()
+		cls.configure_wizard_for_adconnection(adconnection_alias)
+		cls.listener_restart()
 
 	@classmethod
-	def rename_adconnection(self, old_adconnection_alias, new_adconnection_alias):
-		aliases = self.get_adconnection_aliases()
+	def rename_adconnection(cls, old_adconnection_alias, new_adconnection_alias):
+		aliases = cls.get_adconnection_aliases()
 		if old_adconnection_alias not in aliases:
 			logger.error('Azure AD connection alias %s is not listed in UCR %s.', old_adconnection_alias, adconnection_alias_ucrv)
 			return None
@@ -210,11 +210,11 @@ class AzureADConnectionHandler(object):
 		handler_set([ucrv_set])
 		ucrv_unset = '%s%s' % (adconnection_alias_ucrv, old_adconnection_alias)
 		handler_unset([ucrv_unset])
-		self.listener_restart()
+		cls.listener_restart()
 
 	@classmethod
-	def remove_adconnection(self, adconnection_alias):
-		aliases = self.get_adconnection_aliases()
+	def remove_adconnection(cls, adconnection_alias):
+		aliases = cls.get_adconnection_aliases()
 		# Checks
 		if adconnection_alias not in aliases:
 			logger.error('Azure AD connection alias %s is not listed in UCR %s.', adconnection_alias, adconnection_alias_ucrv)
@@ -228,7 +228,7 @@ class AzureADConnectionHandler(object):
 		shutil.rmtree(target_path)
 		ucrv_unset = '%s%s' % (adconnection_alias_ucrv, adconnection_alias)
 		handler_unset([ucrv_unset])
-		self.listener_restart()
+		cls.listener_restart()
 
 
 class AzureError(Exception):
