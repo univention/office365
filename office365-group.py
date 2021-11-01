@@ -45,7 +45,7 @@ from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
 from univention.office365.listener import Office365Listener, get_adconnection_filter
 from univention.office365.udm_helper import UDMHelper
 from univention.office365.logging2udebug import get_logger
-from univention.office365.cache_helper import GROUP_USERS, GROUP_GROUPS
+from univention.office365.cache_helper import GROUP_USERS, GROUP_GROUPS, current_caches
 
 
 logger = get_logger("office365", "o365")
@@ -143,7 +143,7 @@ def handler(dn, new, old, command):
 		GROUP_USERS.delete(dn)
 	else:
 		members = [member.decode('utf-8') for member in new.get('uniqueMember', [])]
-		uids = [uid.decode('utf-8').lower() for uid in new.get('memberUid', [])]
+		uids = set([uid.decode('utf-8').lower() for uid in new.get('memberUid', [])])
 		nested_groups = []
 		users = []
 		for member in members:
@@ -171,9 +171,10 @@ def handler(dn, new, old, command):
 	#
 	if new and not old:
 		logger.debug("new and not old -> NEW (%s)", dn)
+		caches = current_caches()
 		for conn in initialized_adconnections:
 			ol = Office365Listener(listener, name, dict(listener=attributes_copy), ldap_cred, dn, conn)
-			ol.create_groups(dn, new)
+			ol.create_groups(dn, new, caches=caches)
 		logger.debug("done (%s)", dn)
 		return
 
@@ -192,9 +193,10 @@ def handler(dn, new, old, command):
 	#
 	if old and new:
 		logger.debug("old and new -> MODIFY (%s)", dn)
+		caches = current_caches()
 		for conn in initialized_adconnections:
 			ol = Office365Listener(listener, name, dict(listener=attributes_copy), ldap_cred, dn, conn)
-			if ol.udm.group_in_azure(dn):
+			if ol.udm.group_in_azure(dn, caches=caches):
 				azure_group = ol.modify_group(old, new)
 				# save Azure objectId in UDM object
 				try:

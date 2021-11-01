@@ -136,14 +136,14 @@ class UDMHelper(object):
 	def get_udm_officeprofile(cls, profiledn, attributes=None):
 		return cls.get_udm_obj("office365/profile", profiledn, attributes)
 
-	def group_in_azure(self, groupdn):
+	def group_in_azure(self, groupdn, caches=None):
 		"""
 		Whether or not a group is "relevant" for the azure connection
 
 		:param groupdn: group to start with
 		:return: True / False
 		"""
-		return azure_relevant_for_group(self.adconnection_alias, groupdn)
+		return azure_relevant_for_group(self.adconnection_alias, groupdn, caches=caches)
 
 	def udm_groups_with_azure_users(self, groupdn):
 		"""
