@@ -51,6 +51,7 @@ import jwt
 from requests.exceptions import RequestException
 import subprocess
 import shutil
+import traceback
 
 from univention.lib.i18n import Translation
 from univention.office365.logging2udebug import get_logger
@@ -80,6 +81,7 @@ resource_url = "https://graph.windows.net"
 adconnection_alias_ucrv = 'office365/adconnection/alias/'
 adconnection_wizard_ucrv = 'office365/adconnection/wizard'
 default_adconnection_alias_ucrv = 'office365/defaultalias'
+default_adconnection_name = "defaultADconnection"
 
 ucr = ConfigRegistry()
 ucr.load()
@@ -96,7 +98,13 @@ class AzureADConnectionHandler(object):
 		subprocess.call(['systemctl', 'restart', 'univention-directory-listener'])
 
 	@classmethod
-	def get_conf_path(self, name, adconnection_alias):
+	def get_conf_path(cls, name, adconnection_alias):
+		if adconnection_alias is None:
+			logger.error("get_conf_path called with None in adconnection_alias argument")
+			for line_traceback in traceback.format_stack(limit=10):
+				logger.error(line_traceback)
+			raise ValueError('adconnection_alias can\'t be None')
+
 		conf_dir = os.path.join(ADCONNECTION_CONF_BASEPATH, adconnection_alias)
 		if not os.path.exists(conf_dir):
 			logger.error('Config directory for Azure AD connection %s not found (%s)', adconnection_alias, conf_dir)
@@ -671,7 +679,7 @@ class AzureAuth(object):
 			raise WriteScriptError(_("Error converting identity provider certificate."), adconnection_alias=adconnection_alias)
 
 		saml_uri_supplement = ""
-		if adconnection_alias != "defaultADconnection":
+		if adconnection_alias != default_adconnection_name:
 			saml_uri_supplement = '/%s' % adconnection_alias
 
 		issuer = 'https://{ssohost}/simplesamlphp{supplement}/saml2/idp/metadata.php'.format(ssohost=ucr.get('ucs/server/sso/fqdn', 'ucs-sso.{domain}'.format(domain=ucr.get('domainname'))), supplement=saml_uri_supplement)
