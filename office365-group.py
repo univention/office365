@@ -60,7 +60,7 @@ logger.info('Found initialized adconnections: %r', initialized_adconnections)
 
 name = 'office365-group'
 description = 'sync groups to office 365'
-filter = 'objectClass=posixGroup'
+filter = '(objectClass=posixGroup)'
 attributes = ["cn", "description", "uniqueMember", "univentionMicrosoft365Team", "univentionMicrosoft365GroupOwners"]
 modrdn = "1"
 
