@@ -144,22 +144,20 @@ class UDMHelper(object):
 		"""
 		udm_group = self.get_udm_group(groupdn)
 
-		groups = list()
-		for nested_groupdn in udm_group.get("nestedGroup", []):
-			groups.extend(self.udm_groups_with_azure_users(nested_groupdn))
 		for userdn in udm_group.get("users", []):
 			udm_user = self.get_udm_user(userdn)
 			if bool(int(udm_user.get("UniventionOffice365Enabled", "0"))):
 				if self.adconnection_alias in udm_user.get("UniventionOffice365ADConnectionAlias", []):
-					groups.append(groupdn)
+					yield groupdn
 					break
 				elif not udm_user.get("UniventionOffice365ADConnectionAlias") and udm_user.get("UniventionOffice365ObjectID", [''])[0]:
 					# In the unmigrated phase this is the state of users.
 					# This special elif can be removed later iff we have ensured that all customers have actually migrated
-					groups.append(groupdn)
+					yield groupdn
 					break
-
-		return groups
+		for nested_groupdn in udm_group.get("nestedGroup", []):
+			yield self.udm_groups_with_azure_users(nested_groupdn)
+		yield None
 
 	def is_azure_group(self, groupdn) -> bool:
 		"""
