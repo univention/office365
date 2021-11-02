@@ -1,41 +1,41 @@
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS'
+      when: never
+    - if: '$CI_COMMIT_BRANCH'
+
 stages:
   - test
+  - import
   - build
-  - staging
-  - deploy
 
 variables:
   PACKAGE: univention-office365
   UCS_VERSION: "448"
   UCS_RELEASE: "4.4"
-  BRANCH: "4.4"
   SCOPE: "office365"
   LANG: "C.UTF-8"
   DEBIAN_FRONTEND: noninteractive
   CI_REGISTRY: docker-registry.knut.univention.de
-  IMAGE_UCSDEV: $CI_REGISTRY/phahn/ucs-devbase:$UCS_VERSION
+  IMAGE_UCSDEV: $CI_REGISTRY/phahn/ucs-debbase:$UCS_VERSION
   IMAGE_UCSLINT: $CI_REGISTRY/ucslint:$UCS_VERSION
-  IMAGE_SSH: $CI_REGISTRY/knut/ssh
-  DOCKER_HOST: tcp://docker:2375/
-  DOCKER_DRIVER: overlay2
   GIT_STRATEGY: fetch
   GIT_SUBMODULE_STRATEGY: none
   GIT_DEPTH: "3"
-  IMPORT_HOST: "omar.knut.univention.de"
-  BUILD_HOST: "dimma.knut.univention.de"
 
 build_package:
-  stage: build
+  stage: test
   image: $IMAGE_UCSDEV
   before_script:
     - apt-get -q --assume-yes build-dep .
   script:
     - dpkg-buildpackage
-    - mkdir -p _build/
-    - mv ../*.tar.gz ../*.dsc ../*.deb ../*.buildinfo ../*.changes _build/
+    - install -d -m 755 build
+    - mv ../*.tar.*z ../*.dsc ../*.deb ../*.buildinfo ../*.changes build/
   artifacts:
     paths:
-      - _build/
+      - build/
 
 run_ucslint:
   stage: test
@@ -49,66 +49,48 @@ run_ucslint:
       junit: ucslint.xml
 
 repo_admin:
-  stage: staging
+  stage: import
   variables:
     GIT_STRATEGY: none  # disables `git clone` altogether
-  image:
-    name: $IMAGE_SSH
-    entrypoint: [""]
   rules:
     - if: "$CI_COMMIT_MESSAGE =~ /skip-build/ || $pipeline =~ /skip-build/"
       when: never
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       changes:
         - debian/changelog
-  before_script:
-    - chmod 0600 "$SSH_PRIVATE_KEY"
-    - md5sum $SSH_PRIVATE_KEY
+  tags:
+    - omar
   script:
-    - |
-      set -x && ssh -i "$SSH_PRIVATE_KEY" \
-        -o BatchMode=yes \
-        -l build \
-        $IMPORT_HOST \
-        repo_admin.py \
-          -G $CI_REPOSITORY_URL \
-          -p $PACKAGE \
-          -b $BRANCH \
-          -P . \
-          -s $SCOPE \
-          -r ${UCS_RELEASE}-0-0
+    - >
+      repo_admin.py
+      -G $CI_REPOSITORY_URL
+      -b $CI_COMMIT_BRANCH
+      -P .
+      -r ${UCS_RELEASE}-0-0
+      -s $SCOPE
+      -p $PACKAGE
 
 build-package-ng:
-  stage: deploy
+  stage: build
   needs:
     - job: repo_admin
       artifacts: false
   variables:
     GIT_STRATEGY: none  # disables `git clone` altogether
-  image:
-    name: $IMAGE_SSH
-    entrypoint: [""]
   rules:
     - if: "$CI_COMMIT_MESSAGE =~ /skip-build/ || $pipeline =~ /skip-build/"
       when: never
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       changes:
         - debian/changelog
-  before_script:
-    - chmod 0600 "$SSH_PRIVATE_KEY"
-    - md5sum $SSH_PRIVATE_KEY
+  tags:
+    - dimma
   script:
-    - |
-      set -x && ssh -i "$SSH_PRIVATE_KEY" \
-        -o BatchMode=yes \
-        -l build \
-        $BUILD_HOST \
-        build-package-ng \
-          --no-pbuilder-update \
-          -P ucs \
-          -p $PACKAGE \
-          -s $SCOPE \
-          -r ${UCS_RELEASE}-0-0
-
+    - >
+      build-package-ng
+      --no-pbuilder-update
+      -r ${UCS_RELEASE}-0-0
+      -s $SCOPE
+      -p $PACKAGE
 
 # vim: filetype=yaml expandtab tabstop=2 shiftwidth=2 softtabstop=2
