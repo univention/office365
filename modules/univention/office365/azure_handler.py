@@ -741,8 +741,8 @@ class AzureHandler(object):
 		pw = list(random.choice(string.lowercase))
 		pw.append(random.choice(string.uppercase))
 		pw.append(random.choice(string.digits))
-		pw.append(random.choice(u"@#$%^&*-_+=[]{}|\:,.?/`~();"))
-		pw.extend(random.choice(string.ascii_letters + string.digits + u"@#$%^&*-_+=[]{}|\:,.?/`~();") for _ in range(12))
+		pw.append(random.choice(u"@#$%^&*-_+=[]{}|\\:,.?/`~();"))
+		pw.extend(random.choice(string.ascii_letters + string.digits + u"@#$%^&*-_+=[]{}|\\:,.?/`~();") for _ in range(12))
 		random.shuffle(pw)
 		return u"".join(pw)
 
