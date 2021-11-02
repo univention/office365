@@ -32,12 +32,7 @@
 
 #DEBHELPER#
 
-CONFDIR=/etc/univention-office365
-
 case "$1" in
-    purge)
-		rm -f $CONFDIR/*
-	    ;;
 	remove)
 		cp /usr/lib/univention-uninstall/60univention-office365.uinst /usr/lib/univention-install/
 	    ;;

@@ -34,11 +34,17 @@
 
 if [ "$1" = "remove" ]
 then
+	# shellcheck source=/dev/null
 	. /usr/share/univention-lib/all.sh
 	call_unjoinscript 60univention-office365.uinst
+
+	a2dissite office365-wsgi
+	systemctl reload apache2
 fi
 
-a2dissite office365-wsgi
-systemctl reload apache2
+if [ "$1" = "purge" ]
+then
+	rm -rf /etc/univention-office365
+fi
 
 exit 0
