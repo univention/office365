@@ -30,9 +30,12 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
+from __future__ import print_function
+
 import sys
 import argparse
 import logging
+
 from univention.config_registry import ConfigRegistry
 from univention.office365.azure_auth import AzureADConnectionHandler
 from univention.office365.logging2udebug import get_logger
@@ -46,9 +49,9 @@ ucr.load()
 def list(args):
 	adconnection_list = AzureADConnectionHandler.get_adconnections()
 	if adconnection_list:
-		print "{0:<25} {1:<50} {2:<20}".format("Alias", "Path", "status")
+		print("{0:<25} {1:<50} {2:<20}".format("Alias", "Path", "status"))
 		for alias, status, path in adconnection_list:
-			print "{0:<25} {1:<50} {2:<20}".format(alias, path, status)
+			print("{0:<25} {1:<50} {2:<20}".format(alias, path, status))
 
 
 def create(args):
@@ -57,7 +60,7 @@ def create(args):
 
 def rename(args):
 	#AzureADConnectionHandler.rename_adconnection(args.oldalias, args.newalias)
-	print "Not implemented"
+	print("Not implemented")
 
 
 def remove(args):

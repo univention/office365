@@ -6,8 +6,8 @@ PATH=/usr/sbin:/usr/bin:/sbin:/bin
 script = '/usr/share/univention-office365/scripts/o365_usertokens --invalidate-tokens --modify'
 interval = configRegistry.get('office365/tokens/cron', '45 4 * * *')
 if configRegistry.is_true('office365/tokens/cron/enable', True):
-    print '%s   root    %s' % (interval, script)
+    print('%s   root    %s' % (interval, script))
 else:
-    print '# disabled by UCRv office365/tokens/cron/enable'
+    print('# disabled by UCRv office365/tokens/cron/enable')
 @!@
 

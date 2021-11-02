@@ -30,6 +30,8 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
+from __future__ import print_function
+
 from univention.config_registry import ConfigRegistry
 from univention.office365.azure_handler import AzureHandler
 import univention.admin.uldap
@@ -66,7 +68,7 @@ if __name__ == '__main__':
 
 	for ldap_user in lookup_result:
 		try:
-			print "Local user: %s" % ldap_user["username"]
+			print("Local user: %s" % ldap_user["username"])
 			pp.pprint(ah.list_users(objectid=ldap_user["UniventionOffice365ObjectID"]))
 		except Exception as ex:
 			traceback.print_exc()
