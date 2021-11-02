@@ -3,30 +3,29 @@ Section: univention
 Priority: optional
 Build-Depends:
  debhelper (>> 9),
- univention-config-dev,
- python2.7,
  python-support,
+ python2.7,
  univention-config-dev,
- univention-ucs-translation-template,
  univention-management-console-dev,
+ univention-ucs-translation-template,
 Maintainer: Univention GmbH <packages@univention.de>
 Standards-Version: 3.8.2
 
 Package: univention-office365
 Architecture: all
 Depends:
- univention-config,
- python-univention,
  libapache2-mod-wsgi,
+ python-cryptography (>= 1.1.1),
+ python-jwt (>= 1.3.0),
+ python-rsa,
+ python-univention,
+ python-univention-directory-manager (>= 11.0.2-15),
  python-univention-lib,
  shell-univention-lib,
+ univention-config,
  univention-join,
- python-rsa,
- python-jwt (>= 1.3.0),
- python-cryptography (>= 1.1.1),
- python-univention-directory-manager (>= 11.0.2-15),
- univention-saml (>= 5.0.4-23),
  univention-ldap-server,
+ univention-saml (>= 5.0.4-23),
  ${misc:Depends},
  ${python:Depends},
 Description: Provision MS Office 365 accounts.
@@ -43,12 +42,14 @@ Description: Office 365 setup wizard UMC module
 
 Package: ucs-test-office365
 Architecture: all
-Depends: ucs-test-libs,
+Depends:
  ucs-test-framework,
+ ucs-test-libs,
  univention-office365 (= ${source:Version}),
  ${misc:Depends},
  ${python:Depends},
-Provides: ucs-test-module
+Provides:
+ ucs-test-module,
 Description: Additional Office 365 App tests for ucs-test
  This package includes some Office 365 App related tests for
  ucs-test.
