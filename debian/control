@@ -4,7 +4,6 @@ Priority: optional
 Build-Depends:
  debhelper (>> 9),
  univention-config-dev,
- ucslint-univention,
  python2.7-dev,
  python-support,
  univention-config-dev,
