@@ -172,7 +172,7 @@ def handler(dn, new, old, command):
 		logger.debug("old and new -> MODIFY (%s)", dn)
 		for conn in initialized_adconnections:
 			ol = Office365Listener(listener, name, dict(listener=attributes_copy), ldap_cred, dn, conn)
-			if ol.udm.udm_groups_with_azure_users(dn):
+			if ol.udm.group_in_azure(dn):
 				azure_group = ol.modify_group(old, new)
 				# save Azure objectId in UDM object
 				try:

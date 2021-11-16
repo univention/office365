@@ -42,6 +42,11 @@ chmod 0700 /var/lib/univention-office365/async/failed
 chown listener /var/lib/univention-office365/async
 chown listener /var/lib/univention-office365/async/failed
 
+/usr/share/univention-group-membership-cache/univention-ldap-cache add-cache univentionOffice365ADConnectionAlias dn univentionOffice365ADConnectionAlias "(univentionObjectType=users/user)" --single-value
+/usr/share/univention-group-membership-cache/univention-ldap-cache add-cache univentionOffice365Enabled dn univentionOffice365Enabled "(univentionObjectType=users/user)" --single-value
+/usr/share/univention-group-membership-cache/univention-ldap-cache rebuild univentionOffice365ADConnectionAlias univentionOffice365Enabled
+/usr/share/univention-group-membership-cache/univention-ldap-cache create-listener-modules
+
 systemctl restart univention-directory-listener.service
 systemctl restart cron.service
 systemctl restart univention-ms-office-async.service

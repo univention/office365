@@ -51,6 +51,8 @@ from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
 from univention.office365.logging2udebug import get_logger, LevelDependentFormatter
 from univention.office365.api.exceptions import GraphError
 
+udm_syntax.update_choices()
+
 udm2azure = dict(
 	firstname=lambda x: itemgetter("givenName")(x),
 	lastname=lambda x: itemgetter("surname")(x),

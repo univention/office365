@@ -17,6 +17,8 @@ Depends:
  libapache2-mod-wsgi,
  python-cryptography (>= 1.1.1),
  python-jwt (>= 1.3.0),
+ univention-group-membership-cache,
+ python-univention-group-membership-cache,
  python-rsa,
  python-univention,
  python-univention-directory-manager (>= 11.0.2-15),

@@ -31,11 +31,14 @@
 # <http://www.gnu.org/licenses/>.
 
 from ldap.filter import filter_format, escape_filter_chars
+
 import univention.admin.uldap
 import univention.admin.objects
 from univention.config_registry import ConfigRegistry
-from univention.office365.logging2udebug import get_logger
+from univention.ldap_cache.frontend import users_in_group
+from univention.ldap_cache.cache import get_cache
 
+from univention.office365.logging2udebug import get_logger
 
 logger = get_logger("office365", "o365")
 
@@ -134,6 +137,19 @@ class UDMHelper(object):
 	@classmethod
 	def get_udm_officeprofile(cls, profiledn, attributes=None):
 		return cls.get_udm_obj("office365/profile", profiledn, attributes)
+
+	def group_in_azure(self, group_dn):
+		cache = get_cache()
+		univentionOffice365Enabled = cache.get_sub_cache('univentionOffice365Enabled')
+		univentionOffice365ADConnectionAlias = cache.get_sub_cache('univentionOffice365ADConnectionAlias')
+		users = users_in_group(group_dn)
+		for user in users:
+			if univentionOffice365Enabled.get(user.lower()) != '1':
+				continue
+			azure = univentionOffice365ADConnectionAlias.get(user.lower())
+			if azure == self.adconnection_alias:
+				return True
+		return False
 
 	def udm_groups_with_azure_users(self, groupdn):
 		"""

@@ -26,6 +26,7 @@ initialized_adconnections = [adconnection_alias for adconnection_alias in adconn
 blacklisted_ul = ["CU", "KP"]  # some usageLocations seem to be invalid, collecting them here
 usage_locations = set(udm_syntax.Country.choices) - set(blacklisted_ul)
 
+udm_syntax.update_choices()
 
 def _test(udm_args, a_user, check_complete):
 	success, errors = check_udm2azure_user(udm_args, a_user, check_complete)
