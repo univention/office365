@@ -1,4 +1,4 @@
-univention-office365 (2.0.2-156) unstable; urgency=medium
+univention-office365 (2.0.2-157) unstable; urgency=medium
 
   * Bug #53668: Improve listener performance by using the group cache
 

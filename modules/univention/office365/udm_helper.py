@@ -147,7 +147,7 @@ class UDMHelper(object):
 			if univentionOffice365Enabled.get(user.lower()) != '1':
 				continue
 			azure = univentionOffice365ADConnectionAlias.get(user.lower())
-			if azure == self.adconnection_alias:
+			if self.adconnection_alias in azure:
 				return True
 		return False
 
