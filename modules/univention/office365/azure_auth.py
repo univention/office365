@@ -103,7 +103,14 @@ class AzureADConnectionHandler(object):
 			logger.error("get_conf_path called with None in adconnection_alias argument")
 			for line_traceback in traceback.format_stack(limit=10):
 				logger.error(line_traceback)
-			raise ValueError('adconnection_alias can\'t be None')
+			if ucr.get(adconnection_wizard_ucrv) is None:
+				extra_info = ('The reason might be that the Univention Configuration Registry variable {ucr_wizard} is not set.\n'
+					 'If it\'s not, you can set to the default value "{ad_default}"\n'
+					 'Command to check: ucr get {ucr_wizard}\n'
+					 'Command to set: "ucr set {ucr_wizard}={ad_default}"'.format(ucr_wizard=adconnection_wizard_ucrv,ad_default=default_adconnection_alias_ucrv))
+			else:
+				extra_info = ('The reason might be that the Univention Configuration Registry variable {ucr_wizard} is set to "{ucr_wizard_value}".\n'.format(ucr_wizard=adconnection_wizard_ucrv,ucr_wizard_value=ucr.get(adconnection_wizard_ucrv)))
+			raise ValueError('No AD connection alias specified\n'+extra_info)
 
 		conf_dir = os.path.join(ADCONNECTION_CONF_BASEPATH, adconnection_alias)
 		if not os.path.exists(conf_dir):
