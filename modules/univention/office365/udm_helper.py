@@ -141,13 +141,11 @@ class UDMHelper(object):
 	def group_in_azure(self, group_dn):
 		cache = get_cache()
 		univentionOffice365Enabled = cache.get_sub_cache('univentionOffice365Enabled')
-		univentionOffice365ADConnectionAlias = cache.get_sub_cache('univentionOffice365ADConnectionAlias')
-		users = users_in_group(group_dn)
-		for user in users:
-			if univentionOffice365Enabled.get(user.lower()) != '1':
-				continue
-			azure = univentionOffice365ADConnectionAlias.get(user.lower())
-			if self.adconnection_alias in azure:
+		univentionOffice365ADConnectionAlias = cache.get_sub_cache('reverseUniventionOffice365ADConnectionAlias')
+		group_users = set(map(str.lower, users_in_group(group_dn)))
+		alias_users = set(map(str.lower, univentionOffice365ADConnectionAlias.get(self.adconnection_alias)))
+		for user in group_users & alias_users:
+			if univentionOffice365Enabled.get(user) == '1':
 				return True
 		return False
 

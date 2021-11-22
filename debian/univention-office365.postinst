@@ -42,10 +42,12 @@ chmod 0700 /var/lib/univention-office365/async/failed
 chown listener /var/lib/univention-office365/async
 chown listener /var/lib/univention-office365/async/failed
 
-/usr/share/univention-group-membership-cache/univention-ldap-cache add-cache univentionOffice365ADConnectionAlias dn univentionOffice365ADConnectionAlias "(univentionObjectType=users/user)"
-/usr/share/univention-group-membership-cache/univention-ldap-cache add-cache univentionOffice365Enabled dn univentionOffice365Enabled "(univentionObjectType=users/user)" --single-value
-/usr/share/univention-group-membership-cache/univention-ldap-cache rebuild univentionOffice365ADConnectionAlias univentionOffice365Enabled
-/usr/share/univention-group-membership-cache/univention-ldap-cache create-listener-modules
+if dpkg --compare-versions "2.0.2-158" lt-nl "$2"; then
+	/usr/share/univention-group-membership-cache/univention-ldap-cache add-cache reverseUniventionOffice365ADConnectionAlias dn univentionOffice365ADConnectionAlias "(univentionObjectType=users/user)" --reverse
+	/usr/share/univention-group-membership-cache/univention-ldap-cache add-cache univentionOffice365Enabled dn univentionOffice365Enabled "(univentionObjectType=users/user)" --single-value
+	# /usr/share/univention-group-membership-cache/univention-ldap-cache rebuild reverseUniventionOffice365ADConnectionAlias univentionOffice365Enabled
+	/usr/share/univention-group-membership-cache/univention-ldap-cache create-listener-modules
+fi
 
 systemctl restart univention-directory-listener.service
 systemctl restart cron.service

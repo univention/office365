@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-158) unstable; urgency=medium
+
+  * Bug #53668: Further optimize listener performance
+
+ -- Dirk Wiesenthal <wiesenthal@univention.de>  Mon, 22 Nov 2021 20:47:24 +0100
+
 univention-office365 (2.0.2-157) unstable; urgency=medium
 
   * Bug #53668: Improve listener performance by using the group cache
