@@ -104,14 +104,13 @@ class AzureADConnectionHandler(object):
 			for line_traceback in traceback.format_stack(limit=10):
 				logger.error(line_traceback)
 			if ucr.get(adconnection_wizard_ucrv) is None:
-				extra_info = ('The reason might be that the Univention Configuration Registry variable {ucr_wizard} is not set.\n'
+				extra_info = _('The reason might be that the Univention Configuration Registry variable {ucr_wizard} is not set.\n'
 					 'If it\'s not, you can set to the default value "{ad_default}"\n'
 					 'Command to check: ucr get {ucr_wizard}\n'
-					 'Command to set: "ucr set {ucr_wizard}={ad_default}"'.format(ucr_wizard=adconnection_wizard_ucrv,ad_default=default_adconnection_alias_ucrv))
+					 'Command to set: "ucr set {ucr_wizard}={ad_default}"').format(ucr_wizard=adconnection_wizard_ucrv,ad_default=default_adconnection_name)
 			else:
-				extra_info = ('The reason might be that the Univention Configuration Registry variable {ucr_wizard} is set to "{ucr_wizard_value}".\n'.format(ucr_wizard=adconnection_wizard_ucrv,ucr_wizard_value=ucr.get(adconnection_wizard_ucrv)))
-			raise ValueError('No AD connection alias specified\n'+extra_info)
-
+				extra_info = _('The reason might be that the Univention Configuration Registry variable {ucr_wizard} is set to "{ucr_wizard_value}".\n').format(ucr_wizard=adconnection_wizard_ucrv,ucr_wizard_value=ucr.get(adconnection_wizard_ucrv))
+			raise ValueError(_('No AD connection alias specified\n') + extra_info)
 		conf_dir = os.path.join(ADCONNECTION_CONF_BASEPATH, adconnection_alias)
 		if not os.path.exists(conf_dir):
 			logger.error('Config directory for Azure AD connection %s not found (%s)', adconnection_alias, conf_dir)
