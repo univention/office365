@@ -65,8 +65,8 @@ Type=str
 Categories=service-collaboration
 
 [office365/adconnection/wizard]
-Description[de]=Wenn ein neuer Alias erstellt wird, wird diese Variable auf den Namen des Alias gesetzt und legt fest, welche Verbindung bei der nächsten Ausführung des Microsoft 365-Konfigurationsassistenten konfiguriert wird.
-Description[en]=If a new alias is created, this variable is set to the name of the alias and defines which connection is configured by the next run of the Microsoft 365 Configuration Wizard.
+Description[de]=Der Wert dieser Univention Configuration Registry-Variable legt fest, welche Verbindung bei der nächsten Ausführung des Microsoft 365 Konfigurationsassistenten konfiguriert wird. Der Wert sollte nicht leer sein. Um die verfügbaren Verbindungen zu sehen, kann '/usr/share/univention-office365/scripts/manage_adconnections list' aufgerufen werden. Der Standardwert nach der Installation ist "defaultADconnection".
+Description[en]=The value of this Univention Configuration Registry-Variable defines which connection is configured by the next run of the Microsoft 365 Configuration Wizard. The value should not be empty. To see the available connections, '/usr/share/univention-office365/scripts/manage_adconnections list' can be called. The default after installation is 'defaultADconnection'.
 Type=str
 Categories=service-collaboration
 
