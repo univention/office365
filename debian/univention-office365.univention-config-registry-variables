@@ -64,6 +64,12 @@ Description[en]=If the value is set to the adconnection alias of an initialized 
 Type=str
 Categories=service-collaboration
 
+[office365/adconnection/wizard]
+Description[de]=Wenn ein neuer Alias erstellt wird, wird diese Variable auf den Namen des Alias gesetzt und legt fest, welche Verbindung bei der nächsten Ausführung des Microsoft 365-Konfigurationsassistenten konfiguriert wird.
+Description[en]=If a new alias is created, this variable is set to the name of the alias and defines which connection is configured by the next run of the Microsoft 365 Configuration Wizard.
+Type=str
+Categories=service-collaboration
+
 [univention-ms-office-async/autostart]
 Description[de]=Die Variable konfiguriert den Startmodus des Univention MS Office Async Daemons. Wird sie auf 'no' oder 'disabled' gesetzt, kann der Dienst nicht gestartet werden. Wird die auf 'manually' gesetzt, erfolgt kein automatischer Start zum Systemstart, der Dienst kann aber später gezielt gestartet werden.
 Description[en]=This variable configures the start mode of the Univention MS Office Async Daemons. If set to 'no' or 'disabled', the service cannot be started. If the variable is set to 'manually', the service isn't started during system boot, but can be enabled manually at a later point.
