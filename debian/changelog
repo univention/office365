@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-159) unstable; urgency=medium
+
+  * Bug #54243: Initialize group cache on package update
+
+ -- Erik Damrose <damrose@univention.de>  Mon, 13 Dec 2021 12:14:34 +0100
+
 univention-office365 (2.0.2-158) unstable; urgency=medium
 
   * Bug #53668: Further optimize listener performance
