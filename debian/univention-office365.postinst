@@ -42,7 +42,7 @@ chmod 0700 /var/lib/univention-office365/async/failed
 chown listener /var/lib/univention-office365/async
 chown listener /var/lib/univention-office365/async/failed
 
-if dpkg --compare-versions "$2" lt-nl "2.0.2-159"; then
+if dpkg --compare-versions "2.0.2-160" gt "$2"; then
 	/usr/share/univention-group-membership-cache/univention-ldap-cache add-cache reverseUniventionOffice365ADConnectionAlias dn univentionOffice365ADConnectionAlias "(univentionObjectType=users/user)" --reverse
 	/usr/share/univention-group-membership-cache/univention-ldap-cache add-cache univentionOffice365Enabled dn univentionOffice365Enabled "(univentionObjectType=users/user)" --single-value
 	# /usr/share/univention-group-membership-cache/univention-ldap-cache rebuild reverseUniventionOffice365ADConnectionAlias univentionOffice365Enabled

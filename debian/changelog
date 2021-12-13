@@ -1,4 +1,4 @@
-univention-office365 (2.0.2-159) unstable; urgency=medium
+univention-office365 (2.0.2-160) unstable; urgency=medium
 
   * Bug #54243: Initialize group cache on package update
 
