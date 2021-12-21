@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: univention-office365\n"
 "Report-Msgid-Bugs-To: packages@univention.de\n"
-"POT-Creation-Date: 2019-10-24 18:41+0200\n"
+"POT-Creation-Date: 2021-11-18 00:42+0100\n"
 "PO-Revision-Date: 2019-10-24 18:35+0200\n"
 "Last-Translator: Univention GmbH <packages@univention.de>\n"
 "Language-Team: Univention GmbH <packages@univention.de>\n"
@@ -12,86 +12,118 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: modules/univention/office365/azure_auth.py:714
-msgid "Error converting identity provider certificate."
-msgstr "Fehler beim Umwandeln des Identity Provider Zertifikates."
-
-#: modules/univention/office365/azure_auth.py:534
-#, python-brace-format
-msgid ""
-"Error downloading certificates from Azure for AD connection {adconnection}. Please run "
-"the wizard again."
-msgstr ""
-"Fehler beim Herunterladen der Zertifikate von Azure für AD Connection {adconnection}. "
-"Bitte führen Sie den Einrichtungsassistent erneut aus."
-
-#: modules/univention/office365/azure_auth.py:553
-#, python-brace-format
-msgid ""
-"Error reading certificates of Azure AD connection {adconnection} from Azure. Please run the "
-"wizard again."
-msgstr ""
-"Fehler beim Lesen von Azures Zertifikaten für AD Connection {adconnection}. Bitte führen"
-" Sie den Einrichtungsassistent erneut aus."
-
-#: modules/univention/office365/azure_auth.py:708
-msgid "Error reading identity provider certificate."
-msgstr "Fehler beim Lesen des Identity Provider Zertifikates"
-
-#: modules/univention/office365/azure_auth.py:520
-#, python-brace-format
-msgid ""
-"Error reading token of Azure AD connection {adconnection} received from Azure. Please run the "
-"wizard again."
-msgstr ""
-"Fehler beim lesen von Azures Token für AD Connection {adconnection}. Bitte führen Sie "
-"den Einrichtungsassistent erneut aus."
-
-#: modules/univention/office365/azure_auth.py:623
-#: modules/univention/office365/azure_auth.py:635
-#, python-brace-format
-msgid "Error retrieving authentication token from Azure for AD connection {adconnection}."
-msgstr ""
-"Fehler beim Abrufen eines Authentifizierungs-Tokens von Azure für AD Connection "
-"{adconnection}."
-
-#: modules/univention/office365/azure_auth.py:733
-msgid "Error writing SAML setup script."
-msgstr "Fehler beim Schreiben des SAML Installations-Skriptes."
-
-#: modules/univention/office365/azure_auth.py:404
+#: modules/univention/office365/azure_auth.py:442
 msgid "ADConnection-ID '{}' has wrong format."
 msgstr "ADConnection-ID '{}' hat ein ungültiges Format."
 
-#: modules/univention/office365/azure_auth.py:358
-#: modules/univention/office365/azure_auth.py:479
-#: modules/univention/office365/azure_auth.py:594
+#: modules/univention/office365/azure_auth.py:685
+msgid "Error converting identity provider certificate."
+msgstr "Fehler beim Umwandeln des Identity Provider Zertifikates."
+
+#: modules/univention/office365/azure_auth.py:539
 #, python-brace-format
 msgid ""
-"The configuration of Azure AD connection {adconnection} is incomplete and misses some data. "
+"Error downloading certificates from Azure for AD connection {adconnection}. "
 "Please run the wizard again."
 msgstr ""
-"Die Konfiguration von Azure AD Connection {adconnection} ist unvollständig, da einige Daten "
-"fehlen. Bitte führen Sie den Einrichtungsassistent erneut aus."
+"Fehler beim Herunterladen der Zertifikate von Azure für AD Connection "
+"{adconnection}. Bitte führen Sie den Einrichtungsassistent erneut aus."
 
-#: modules/univention/office365/azure_auth.py:280
-msgid "The manifest is invalid: Invalid JSON document."
-msgstr "Das Manifest ist ungültig: ungültiges JSON Dokument."
+#: modules/univention/office365/azure_auth.py:558
+#, python-brace-format
+msgid ""
+"Error reading certificates of Azure AD connection {adconnection} from Azure."
+" Please run the wizard again."
+msgstr ""
+"Fehler beim Lesen von Azures Zertifikaten für AD Connection {adconnection}. "
+"Bitte führen Sie den Einrichtungsassistent erneut aus."
 
-#: modules/univention/office365/azure_auth.py:583
+#: modules/univention/office365/azure_auth.py:679
+msgid "Error reading identity provider certificate."
+msgstr "Fehler beim Lesen des Identity Provider Zertifikates"
+
+#: modules/univention/office365/azure_auth.py:525
+#, python-brace-format
+msgid ""
+"Error reading token of Azure AD connection {adconnection} received from "
+"Azure. Please run the wizard again."
+msgstr ""
+"Fehler beim lesen von Azures Token für AD Connection {adconnection}. Bitte "
+"führen Sie den Einrichtungsassistent erneut aus."
+
+#: modules/univention/office365/azure_auth.py:638
+#: modules/univention/office365/azure_auth.py:650
+#, python-brace-format
+msgid ""
+"Error retrieving authentication token from Azure for AD connection "
+"{adconnection}."
+msgstr ""
+"Fehler beim Abrufen eines Authentifizierungs-Tokens von Azure für AD "
+"Connection {adconnection}."
+
+#: modules/univention/office365/azure_auth.py:710
+msgid "Error writing SAML setup script."
+msgstr "Fehler beim Schreiben des SAML Installations-Skriptes."
+
+#: modules/univention/office365/azure_auth.py:113
+msgid "No AD connection alias specified\n"
+msgstr "Kein AD-Verbindungsalias angegeben\n"
+
+#: modules/univention/office365/azure_auth.py:396
+#: modules/univention/office365/azure_auth.py:484
 #: modules/univention/office365/azure_auth.py:599
 #, python-brace-format
 msgid ""
-"The received token for Azure AD connection {adconnection} is not valid. Please run the wizard "
-"again."
+"The configuration of Azure AD connection {adconnection} is incomplete and "
+"misses some data. Please run the wizard again."
 msgstr ""
-"Der empfangene Token für Azure AD Connection {adconnection} ist ungültig. Bitte führen Sie den"
-" Einrichtungsassistent erneut aus."
+"Die Konfiguration von Azure AD Connection {adconnection} ist unvollständig, "
+"da einige Daten fehlen. Bitte führen Sie den Einrichtungsassistent erneut "
+"aus."
 
-#: office365_user_ADConnections_hook.py:39
-msgid "Microsoft 365 users must have a primary e-mail address specified."
-msgstr "Microsoft 365 Benutzer müssen eine primäre E-Mail-Adresse besitzen."
+#: modules/univention/office365/azure_auth.py:305
+msgid "The manifest is invalid: Invalid JSON document."
+msgstr "Das Manifest ist ungültig: ungültiges JSON Dokument."
 
-#: office365_user_ADConnections_hook.py:40
-msgid "In order to create a Microsoft 365 team from a group, at least one group/team owner has to be specified."
-msgstr "Um ein Microsoft 365 Team aus einer Gruppe zu erstellen wird mindestens ein Gruppen-Besitzer benötigt."
+#: modules/univention/office365/azure_auth.py:107
+#, python-brace-format
+msgid ""
+"The reason might be that the Univention Configuration Registry variable {ucr_wizard} is not set.\n"
+"If it's not, you can set to the default value \"{ad_default}\"\n"
+"Command to check: ucr get {ucr_wizard}\n"
+"Command to set: \"ucr set {ucr_wizard}={ad_default}\""
+msgstr ""
+"Der Grund dafür könnte sein, dass die Univention Configuration Registry "
+"Variable {ucr_wizard} nicht gesetzt ist.\n"
+"Wenn nicht, können Sie den Standardwert setzen \"{ad_default}\"\n"
+"Zu prüfender Befehl: ucr get {ucr_wizard}\n"
+"Befehl zum Setzen: \"ucr set {ucr_wizard}={ad_default}\""
+
+#: modules/univention/office365/azure_auth.py:112
+#, python-brace-format
+msgid ""
+"The reason might be that the Univention Configuration Registry variable "
+"{ucr_wizard} is set to \"{ucr_wizard_value}\".\n"
+msgstr ""
+"Der Grund dafür könnte sein, dass die Univention Configuration Registry "
+"Variable {ucr_wizard} auf \"{ucr_wizard_value}\" gesetzt ist.\n"
+
+#: modules/univention/office365/azure_auth.py:588
+#: modules/univention/office365/azure_auth.py:604
+#, python-brace-format
+msgid ""
+"The received token for Azure AD connection {adconnection} is not valid. "
+"Please run the wizard again."
+msgstr ""
+"Der empfangene Token für Azure AD Connection {adconnection} ist ungültig. "
+"Bitte führen Sie den Einrichtungsassistent erneut aus."
+
+#~ msgid ""
+#~ "In order to create a Microsoft 365 team from a group, at least one "
+#~ "group/team owner has to be specified."
+#~ msgstr ""
+#~ "Um ein Microsoft 365 Team aus einer Gruppe zu erstellen wird mindestens ein "
+#~ "Gruppen-Besitzer benötigt."
+
+#~ msgid "Microsoft 365 users must have a primary e-mail address specified."
+#~ msgstr "Microsoft 365 Benutzer müssen eine primäre E-Mail-Adresse besitzen."
