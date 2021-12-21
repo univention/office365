@@ -1,3 +1,9 @@
+univention-office365 (2.0.2-161) unstable; urgency=medium
+
+  * Bug #52568: Improve error messages in case of empty default adconnection
+
+ -- Esteban Martinena <martinena@univention.de>  Tue, 21 Dec 2021 07:09:45 +0100
+
 univention-office365 (2.0.2-160) unstable; urgency=medium
 
   * Bug #54243: Initialize group cache on package update
