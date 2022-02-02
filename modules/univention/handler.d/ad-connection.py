@@ -27,6 +27,7 @@
 # License with the Debian GNU/Linux or Univention distribution in file
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
+import sys
 
 from univention.admin.layout import Tab
 import univention.admin.filter
@@ -96,7 +97,9 @@ except AttributeError:
 			univention.admin.filter.walk(filter_p, univention.admin.mapping.mapRewrite, arg=mapping)
 			searchfilter.expressions.append(filter_p)
 
-		return [object(co, lo, None, dn, attr) for dn, attr in lo.search(unicode(searchfilter), base, scope, unique, required, timeout, sizelimit)]
+		if sys.version_info < (3,):
+			searchfilter = unicode(searchfilter)
+		return [object(co, lo, None, dn, attr) for dn, attr in lo.search(searchfilter, base, scope, unique, required, timeout, sizelimit)]
 
 
 try:

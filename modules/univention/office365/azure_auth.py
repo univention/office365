@@ -393,7 +393,7 @@ class AzureAuth(object):
 			if not all([self.client_id, self.adconnection_id, self.reply_url, self.domain]):
 				raise NoIDsStored("")
 		except (KeyError, NoIDsStored) as exc:
-			raise NoIDsStored, NoIDsStored(_("The configuration of Azure AD connection {adconnection} is incomplete and misses some data. Please run the wizard again.").format(adconnection=adconnection_alias), chained_exc=exc), sys.exc_info()[2]
+			raise NoIDsStored(_("The configuration of Azure AD connection {adconnection} is incomplete and misses some data. Please run the wizard again.").format(adconnection=adconnection_alias), chained_exc=exc)
 		self._access_token = None
 		self._access_token_exp_at = None
 		if self.proxies is None:
@@ -481,7 +481,7 @@ class AzureAuth(object):
 			client_id = ids["client_id"]
 			reply_url = ids["reply_url"]
 		except KeyError as exc:
-			raise NoIDsStored, NoIDsStored(_("The configuration of Azure AD connection {adconnection} is incomplete and misses some data. Please run the wizard again.").format(adconnection=adconnection_alias), chained_exc=exc, adconnection_alias=adconnection_alias), sys.exc_info()[2]
+			raise NoIDsStored(_("The configuration of Azure AD connection {adconnection} is incomplete and misses some data. Please run the wizard again.").format(adconnection=adconnection_alias), chained_exc=exc, adconnection_alias=adconnection_alias)
 		adconnection = ids.get("adconnection_id") or "common"
 		params = {
 			'client_id': client_id,
@@ -522,7 +522,7 @@ class AzureAuth(object):
 				else:
 					et = encoded_token
 				logger.exception(u"Invalid token value: %r", et)
-				raise IDTokenError, IDTokenError(_("Error reading token of Azure AD connection {adconnection} received from Azure. Please run the wizard again.").format(adconnection=adconnection_alias), chained_exc=exc, adconnection_alias=adconnection_alias), sys.exc_info()[2]
+				raise IDTokenError(_("Error reading token of Azure AD connection {adconnection} received from Azure. Please run the wizard again.").format(adconnection=adconnection_alias), chained_exc=exc, adconnection_alias=adconnection_alias)
 
 		def _get_azure_certs(adconnection_id):
 			# there's a strange non-ascii char at the beginning of the xml doc...
@@ -536,7 +536,7 @@ class AzureAuth(object):
 				fed = requests.get(federation_metadata_url.format(adconnection_id=adconnection_id), proxies=cls.proxies)
 			except RequestException as exc:
 				logger.exception("Error downloading federation metadata.")
-				raise TokenValidationError, TokenValidationError(_("Error downloading certificates from Azure for AD connection {adconnection}. Please run the wizard again.").format(adconnection=adconnection_alias), chained_exc=exc, adconnection_alias=adconnection_alias), sys.exc_info()[2]
+				raise TokenValidationError(_("Error downloading certificates from Azure for AD connection {adconnection}. Please run the wizard again.").format(adconnection=adconnection_alias), chained_exc=exc, adconnection_alias=adconnection_alias)
 			# the federation metadata document is a XML file
 			dom_tree = parseString(_discard_garbage(fed.text))
 			# the certificates we want are inside:
@@ -596,7 +596,7 @@ class AzureAuth(object):
 			client_id = ids["client_id"]
 			reply_url = ids["reply_url"]
 		except KeyError as exc:
-			raise NoIDsStored, NoIDsStored(_("The configuration of Azure AD connection {adconnection} is incomplete and misses some data. Please run the wizard again.").format(adconnection=adconnection_alias), chained_exc=exc, adconnection_alias=adconnection_alias), sys.exc_info()[2]
+			raise NoIDsStored(_("The configuration of Azure AD connection {adconnection} is incomplete and misses some data. Please run the wizard again.").format(adconnection=adconnection_alias), chained_exc=exc, adconnection_alias=adconnection_alias)
 
 		nonce_old = cls.load_tokens(adconnection_alias)["nonce"]
 		if not body["nonce"] == nonce_old:
@@ -704,7 +704,7 @@ pause
 			script_path = SAML_SETUP_SCRIPT_PATH.format(adconnection_alias='_{}'.format(adconnection_alias) if adconnection_alias else '')
 			with open(script_path, 'wb') as fd:
 				fd.write(template)
-			os.chmod(script_path, 0644)
+			os.chmod(script_path, 0o644)
 		except IOError as exc:
 			logger.exception("while writing powershell script: %s", exc)
 			raise WriteScriptError(_("Error writing SAML setup script."), adconnection_alias=adconnection_alias)

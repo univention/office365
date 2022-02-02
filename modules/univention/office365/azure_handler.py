@@ -43,6 +43,7 @@ from operator import itemgetter
 import random
 import string
 import sys
+from six import string_types
 
 from univention.office365.azure_auth import AzureAuth, AzureError, resource_url
 from univention.office365.logging2udebug import get_logger
@@ -292,7 +293,7 @@ class AzureHandler(object):
 						response_json = {}
 					else:
 						logger.exception("response is not JSON (adconnection_alias=%r). response.__dict__: %r", self.adconnection_alias, response.__dict__)
-						raise ApiError, ApiError(response, chained_exc=exc, adconnection_alias=self.adconnection_alias), sys.exc_info()[2]
+						raise ApiError(response, chained_exc=exc, adconnection_alias=self.adconnection_alias)
 				logger.info(
 					"status: %r (%s)%s (%s %s)",
 					response.status_code,
@@ -621,7 +622,7 @@ class AzureHandler(object):
 		try:
 			self._change_license("add", user_id, sku_id, deactivate_plans)
 		except ApiError as exc:
-			raise AddLicenseError, AddLicenseError(str(exc), user_id, sku_id, exc), sys.exc_info()[2]
+			raise AddLicenseError(str(exc), user_id, sku_id, exc)
 
 	def remove_license(self, user_id, sku_id):
 		self._change_license("remove", user_id, sku_id, None)
@@ -788,7 +789,7 @@ class AzureHandler(object):
 						res[k].append(val)
 					else:
 						res[k] = val
-				if res[k] and isinstance(res[k], list) and all(isinstance(x, basestring) for x in res[k]):
+				if res[k] and isinstance(res[k], list) and all(isinstance(x, string_types) for x in res[k]):
 					# remove duplicates insensitive (can really only happen in 'otherMails')
 					list_copy = list()
 					for o in res[k]:
@@ -797,7 +798,7 @@ class AzureHandler(object):
 					res[k] = list_copy
 
 			except KeyError as exc:
-				raise UnkownTypeError, UnkownTypeError("Attribute '{}' not in azure_attribute_types mapping.".format(k), chained_exc=exc), sys.exc_info()[2]
+				raise UnkownTypeError("Attribute '{}' not in azure_attribute_types mapping.".format(k), chained_exc=exc)
 		return res
 
 # vim: filetype=python noexpandtab tabstop=4 shiftwidth=4 softtabstop=4
