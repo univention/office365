@@ -316,7 +316,9 @@ def udm_user_args(ucr, minimal=True):
 	return res
 
 
-def create_team(udm, ucr, owner_dn=None, users=[]):
+def create_team(udm, ucr, owner_dn=None, users=None):
+	if users is None:
+		users = list()
 	group_args = dict(
 		name=uts.random_string(),
 		position="cn=groups,{}".format(ucr.get("ldap/base")),
