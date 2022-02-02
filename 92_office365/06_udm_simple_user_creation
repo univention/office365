@@ -7,16 +7,12 @@
 ##   - univention-office365
 
 import time
-import json
-import zlib
-import base64
 
 import univention.testing.ucr as ucr_test
 import univention.testing.udm as udm_test
 import univention.testing.utils as utils
-from univention.config_registry import handler_set, handler_unset
 
-from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user, setup_logging
+from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, setup_logging
 from univention.office365.listener import Office365Listener
 from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
 

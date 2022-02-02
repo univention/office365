@@ -100,6 +100,7 @@ with utils.AutomaticListenerRestart():
 						value = errors[attrib]
 					except KeyError:
 						utils.fail("Attribute '{}' is synced, but should not be.".format(attrib))
+						raise
 					if value is None:
 						# postcode should be None
 						pass
@@ -124,6 +125,7 @@ with utils.AutomaticListenerRestart():
 						value = errors[attrib]
 					except KeyError:
 						utils.fail("Attribute '{}' was synced without anonymizing it.".format(attrib))
+						raise
 					udm_val = user_args[attrib] if attrib in ["firstname", "lastname"] else user_args["set"][attrib]
 					if udm_val == value:
 						utils.fail("Attribute '{}' was synced without anonymizing it.".format(attrib))
@@ -138,6 +140,7 @@ with utils.AutomaticListenerRestart():
 						value = errors[attrib]
 					except KeyError:
 						utils.fail("Attribute '{}' was synced without anonymizing it.".format(attrib))
+						raise
 					if user_args["set"][attrib] == value:
 						utils.fail("Attribute '{}' was synced without anonymizing it.".format(attrib))
 

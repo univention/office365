@@ -11,7 +11,7 @@ import time
 import univention.testing.ucr as ucr_test
 import univention.testing.utils as utils
 
-from helpers.office365_test_helpers import AzureDirectoryTestUsers, azure_user_args, print_users, setup_logging, setup_externally_configured_adconnections
+from helpers.office365_test_helpers import AzureDirectoryTestUsers, azure_user_args, print_users, setup_logging
 from univention.office365.azure_handler import AzureHandler, ResourceNotFoundError
 from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
 
