@@ -203,7 +203,7 @@ if __name__ == "__main__":
 		)  # the instantiation of the class requests a new access token
 
 		arguments = [
-			k for k, v in vars(args).iteritems()
+			k for k, v in args.iteritems()
 			if v not in [None, False] and len(k) > 1
 		]  # iterates over all arguments and skips flags with the length of 1
 
