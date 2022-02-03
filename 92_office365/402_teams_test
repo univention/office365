@@ -1,4 +1,4 @@
-#!/usr/share/ucs-test/runner python
+#!/usr/share/ucs-test/runner python3
 ## -*- coding: utf-8 -*-
 ## desc: tests the team related API calls, return values and exception handling.
 ## tags: [apptest, integrationtest]
