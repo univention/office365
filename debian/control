@@ -3,11 +3,16 @@ Section: univention
 Priority: optional
 Build-Depends:
  debhelper (>> 9),
- python-support,
- python2.7,
+ dh-python,
+ python-debian,
+ python-setuptools,
+ python-all,
+ python3-debian,
+ python3-setuptools,
+ python3-all,
+ univention-management-console-dev (>= 11.0.4-37),
  univention-config-dev,
- univention-management-console-dev,
- univention-ucs-translation-template,
+ univention-l10n-dev,
 Maintainer: Univention GmbH <packages@univention.de>
 Standards-Version: 3.8.2
 
@@ -15,21 +20,54 @@ Package: univention-office365
 Architecture: all
 Depends:
  libapache2-mod-wsgi,
- python-cryptography (>= 1.1.1),
- python-jwt (>= 1.3.0),
  univention-group-membership-cache (>> 1.0.0-8),
- python-univention-group-membership-cache,
- python-rsa,
- python-univention,
- python-univention-directory-manager (>= 11.0.2-15),
- python-univention-lib,
  shell-univention-lib,
  univention-config,
  univention-join,
  univention-ldap-server,
  univention-saml (>= 5.0.4-23),
+ python-univention-office365 (= ${binary:Version}) |  python3-univention-office365 (= ${binary:Version}),
  ${misc:Depends},
  ${python:Depends},
+Description: Provision MS Office 365 accounts.
+ Synchronize user accounts to Microsoft Azure Active Directory and enable
+ them to use Microsoft Office 365.
+Homepage: https://products.office.com/office-365-home
+
+Package: python-univention-office365
+Architecture: all
+Depends:
+ python-cryptography (>= 1.1.1),
+ python-jwt (>= 1.3.0),
+ python-univention-group-membership-cache,
+ python-rsa,
+ python-univention,
+ python-univention-directory-manager (>= 11.0.2-15),
+ python-univention-lib,
+ ${misc:Depends},
+ ${python:Depends},
+Provides:
+ ${python:Provides},
+Description: Provision MS Office 365 accounts.
+ Synchronize user accounts to Microsoft Azure Active Directory and enable
+ them to use Microsoft Office 365.
+Homepage: https://products.office.com/office-365-home
+
+
+Package: python3-univention-office365
+Architecture: all
+Depends:
+ python3-cryptography (>= 1.1.1),
+ python3-jwt (>= 1.3.0),
+ python3-univention-group-membership-cache,
+ python3-rsa,
+ python3-univention,
+ python3-univention-directory-manager (>= 11.0.2-15),
+ python3-univention-lib,
+ ${misc:Depends},
+ ${python3:Depends},
+Provides:
+ ${python3:Provides},
 Description: Provision MS Office 365 accounts.
  Synchronize user accounts to Microsoft Azure Active Directory and enable
  them to use Microsoft Office 365.
@@ -40,7 +78,11 @@ Architecture: all
 Depends:
  univention-office365 (= ${source:Version}),
  ${python:Depends},
+ ${python3:Depends},
 Description: Office 365 setup wizard UMC module
+Provides:
+ ${python3:Provides},
+ ${python:Provides},
 
 Package: ucs-test-office365
 Architecture: all
