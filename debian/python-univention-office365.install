@@ -1,0 +1,3 @@
+modules/univention/office365/*.py usr/lib/python2.7/dist-packages/univention/office365/
+modules/univention/office365/api/*.py usr/lib/python2.7/dist-packages/univention/office365/api/
+modules/univention/office365/api/responseparser/*.py usr/lib/python2.7/dist-packages/univention/office365/api/responseparser/
