@@ -31,7 +31,11 @@
 # <http://www.gnu.org/licenses/>.
 
 import re
-from urllib import urlencode
+import sys
+if sys.version_info < (3,):
+	from urllib import urlencode
+else:
+	from urllib.parse import urlencode
 import requests
 import json
 import base64
@@ -40,7 +44,6 @@ import time
 import rsa
 import os
 import datetime
-import sys
 import pwd
 from xml.dom.minidom import parseString
 from stat import S_IRUSR, S_IWUSR
@@ -371,8 +374,8 @@ class JsonStorage(object):
 		open(self.filename, "w").close()  # touch
 		os.chown(self.filename, self.listener_uid, 0)
 		os.chmod(self.filename, S_IRUSR | S_IWUSR)
-		with open(self.filename, "wb") as fd:
-			json.dump(data, fd)
+		with open(self.filename, "w") as fd:
+			fd.write(json.dumps(data))
 
 
 class AzureAuth(object):

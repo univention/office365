@@ -133,7 +133,7 @@ class UDebugHandler(logging.Handler):
 
 	def emit(self, record):
 		msg = self.format(record)
-		if isinstance(msg, unicode):
+		if isinstance(msg, u"".__class__):
 			msg = msg.encode("utf-8")
 		if _werror:
 			udebug_level = ud.ERROR
@@ -143,6 +143,7 @@ class UDebugHandler(logging.Handler):
 			true_lvl = ""
 
 		if self._dev:
-			syslog.syslog(LOGGING_TO_SYSLOG[record.levelname], msg)
+			print(msg)
+			# syslog.syslog(LOGGING_TO_SYSLOG[record.levelname], msg) # TODO should be change for python3
 		else:
 			ud.debug(self._udebug_facility, udebug_level, "{}{}: {}".format(self.get_name(), true_lvl, msg))

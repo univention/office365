@@ -53,6 +53,10 @@ try:
 except ImportError:
 	JSONDecodeError = ValueError  # requests with py2
 
+if sys.version_info < (3,):
+	unicode = unicode
+else:
+	unicode = str
 
 azure_params = {"api-version": "1.6"}
 azure_attribute_types = dict(
