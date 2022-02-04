@@ -29,6 +29,7 @@ Depends:
  python-univention-office365 (= ${binary:Version}) |  python3-univention-office365 (= ${binary:Version}),
  ${misc:Depends},
  ${python:Depends},
+ ${python3:Depends},
 Description: Provision MS Office 365 accounts.
  Synchronize user accounts to Microsoft Azure Active Directory and enable
  them to use Microsoft Office 365.
@@ -92,6 +93,7 @@ Depends:
  univention-office365 (= ${source:Version}),
  ${misc:Depends},
  ${python:Depends},
+ ${python3:Depends},
 Provides:
  ucs-test-module,
 Description: Additional Office 365 App tests for ucs-test

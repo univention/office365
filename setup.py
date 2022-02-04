@@ -10,7 +10,11 @@ dsc = Deb822(io.open('debian/control', 'r', encoding='utf-8'))
 realname, email_address = parseaddr(dsc['Maintainer'])
 
 setup(
-    packages=['univention.office365', 'univention.office365.api', 'univention'],
+    packages=['univention',
+              'univention.office365',
+              'univention.office365.api',
+              'univention.office365.api.responseparser'
+              ],
     package_dir={'': 'modules'},
     description='Univention Configuration Registry',
 
