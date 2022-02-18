@@ -342,7 +342,7 @@ class Office365Listener(object):
 
 	def create_groups(self, dn, new):
 		if self.udm.group_in_azure(dn):
-			new_group = self.create_group_from_new(new)
+			new_group = self.create_group_from_new(new, dn)
 			# save Azure objectId in UDM object
 			udm_group = self.udm.get_udm_group(dn)
 			self.set_adconnection_object_id(udm_group, new_group["objectId"])
@@ -364,7 +364,7 @@ class Office365Listener(object):
 			self.add_ldap_members_to_azure_group(group_dn, new_group["objectId"])
 		return new_group
 
-	def create_group_from_new(self, new):
+	def create_group_from_new(self, new, dn=None):
 		desc = new.get("description", [""])[0] or None
 		name = new["cn"][0]
 		return self.create_group(name, desc, self.dn)
