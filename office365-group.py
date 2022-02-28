@@ -69,28 +69,10 @@ else:
 attributes = ["cn", "description", "uniqueMember", "univentionMicrosoft365Team", "univentionMicrosoft365GroupOwners"]
 modrdn = "1"
 
-OFFICE365_OLD_JSON = os.path.join("/var/lib/univention-office365", "office365-group_old_dn")
+ldap_cred = {}
+attributes_copy = copy.copy(attributes)  # when handler() runs, all kinds of stuff is suddenly in attributes
 
-ldap_cred = dict()
-attributes_copy = copy.deepcopy(attributes)  # when handler() runs, all kinds of stuff is suddenly in attributes
-
-
-def load_old(old):
-	try:
-		with open(OFFICE365_OLD_JSON, "r") as fp:
-			old = json.load(fp)
-		old["krb5Key"] = [base64.b64decode(old["krb5Key"])]
-		os.unlink(OFFICE365_OLD_JSON)
-		return old
-	except IOError:
-		return old
-
-
-def save_old(old):
-	old["krb5Key"] = base64.b64encode(old["krb5Key"][0])
-	with open(OFFICE365_OLD_JSON, "w+") as fp:
-		os.chmod(OFFICE365_OLD_JSON, S_IRUSR | S_IWUSR)
-		json.dump(old, fp)
+_delay = None
 
 
 def setdata(key, value):
@@ -128,6 +110,7 @@ def clean():
 
 
 def handler(dn, new, old, command):
+	global _delay
 	logger.debug("%s.handler() command: %r dn: %r", name, command, dn)
 	if not listener.configRegistry.is_true("office365/groups/sync", False):
 		return
@@ -135,10 +118,11 @@ def handler(dn, new, old, command):
 		raise RuntimeError("{}.handler() Microsoft 365 App not initialized for any Azure AD connection yet, please run wizard.".format(name))
 
 	if command == 'r':
-		save_old(old)
+		_delay = old
 		return
 	elif command == 'a':
-		old = load_old(old)
+		old = _delay if _delay else old
+		_delay = None
 
 	adconnection_aliases_old = set(old.get('univentionOffice365ADConnectionAlias', []))
 	adconnection_aliases_new = set(new.get('univentionOffice365ADConnectionAlias', []))

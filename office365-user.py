@@ -156,8 +156,6 @@ else:
 attributes = get_listener_attributes()
 modrdn = "1"
 
-OFFICE365_OLD_JSON = os.path.join("/var/lib/univention-office365", "office365-user_old_dn")
-
 _attrs = dict(
 	anonymize=attributes_anonymize,
 	listener=copy.deepcopy(attributes),  # when handler() runs, all kinds of stuff is suddenly in attributes
@@ -181,22 +179,7 @@ logger.info("attributes to sync from multiple sources: %r", attributes_multiple_
 get_http_proxies(listener.configRegistry, logger)  # log proxy settings
 
 
-def load_old(old):
-	try:
-		with open(OFFICE365_OLD_JSON, "r") as fp:
-			old = json.load(fp)
-		old["krb5Key"] = [base64.b64decode(old["krb5Key"])]
-		os.unlink(OFFICE365_OLD_JSON)
-		return old
-	except IOError:
-		return old
-
-
-def save_old(old):
-	old["krb5Key"] = base64.b64encode(old["krb5Key"][0])
-	with open(OFFICE365_OLD_JSON, "w+") as fp:
-		os.chmod(OFFICE365_OLD_JSON, S_IRUSR | S_IWUSR)
-		json.dump(old, fp)
+_delay = None
 
 
 def is_deactived_locked_or_expired(udm_user):
@@ -378,15 +361,18 @@ def modify_user(ol, dn, new, old):
 
 
 def handler(dn, new, old, command):
+	global _delay
+
 	logger.debug("%s.handler() command: %r dn: %r", name, command, dn)
 	if not initialized_adconnection:
 		raise RuntimeError("{}.handler() Microsoft 365 App not initialized for any AD connection yet, please run wizard.".format(name))
 
 	if command == 'r':
-		save_old(old)
+		_delay = old
 		return
 	elif command == 'a':
-		old = load_old(old)
+		old = _delay if _delay else old
+		_delay = None
 
 	adconnection_aliases_old = set(old.get('univentionOffice365ADConnectionAlias', []))
 	adconnection_aliases_new = set(new.get('univentionOffice365ADConnectionAlias', []))
