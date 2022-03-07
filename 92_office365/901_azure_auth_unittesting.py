@@ -1,4 +1,4 @@
-#!/usr/share/ucs-test/runner pytest
+#!/usr/share/ucs-test/runner pytest-3
 ## -*- coding: utf-8 -*-
 ## desc: unit test for azure auth
 ## tags: [apptest]

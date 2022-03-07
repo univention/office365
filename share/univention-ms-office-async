@@ -1,4 +1,4 @@
-#!/usr/bin/python2.7
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 #
 # Univention App Center
@@ -119,7 +119,7 @@ class AsyncJobs():
 		return True
 
 	def dump_to_file(self, filename, data):
-		with open(filename, 'wb') as fd:
+		with open(filename, 'w') as fd:
 			json.dump(data, fd, sort_keys=True, indent=4)
 
 	def update_failed_status(self, job, err):

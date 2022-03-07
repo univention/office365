@@ -1,4 +1,4 @@
-#!/usr/share/ucs-test/runner python
+#!/usr/share/ucs-test/runner python3
 ## -*- coding: utf-8 -*-
 ## desc: create a user with udm for one Azure AD connection and then change the adconnection
 ## tags: [apptest]
