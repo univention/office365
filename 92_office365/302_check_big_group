@@ -17,7 +17,7 @@ import univention.testing.udm as udm_test
 import univention.testing.utils as utils
 from univention.config_registry import handler_set, handler_unset
 
-from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user, setup_logging
+from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user, setup_logging, check_user_office365_data_updated
 from univention.office365.listener import Office365Listener
 from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
 
@@ -25,6 +25,8 @@ from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
 logger = setup_logging()
 adconnection_aliases = AzureADConnectionHandler.get_adconnection_aliases()
 initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAuth.is_initialized(adconnection_alias)]
+assert initialized_adconnections, "run ./01_initialize_external_testenv first!"
+
 USERS = 125
 THRESHOLD = 600
 
@@ -62,7 +64,7 @@ with utils.AutomaticListenerRestart():
 
 			# create users
 			username = uts.random_name()
-			users = list()
+			users = []
 			for i in range(USERS):
 				user_args = udm_user_args(ucr, minimal=True)
 				user_args["username"] = '{}{}'.format(username, i)
@@ -72,13 +74,15 @@ with utils.AutomaticListenerRestart():
 				users.append(udm.create_user(**user_args))
 
 			# wait for users to be created in azure
-			for i in range(3600):
-				print('waiting for last user to be created in azure')
-				time.sleep(1)
-				user_dn, username = users[-1]
-				udm_user = ol.udm.get_udm_user(user_dn)
-				if udm_user.get("UniventionOffice365Data", None):
-					break
+			user_dn, username = users[-1]
+			print("*** Checking user Office365Data is updated")
+			check_user_office365_data_updated(ol, user_dn)
+			# for i in range(3600):
+			# 	print('waiting for last user to be created in azure')
+			# 	time.sleep(1)
+			# 	udm_user = ol.udm.get_udm_user(user_dn)
+			# 	if udm_user.get("UniventionOffice365Data", None):
+			# 		break
 
 			# get user ids
 			user_ids = list()
@@ -121,6 +125,7 @@ with utils.AutomaticListenerRestart():
 			diff = end_time - start_time
 			print('Creating users/checking group membership took {}s'.format(int(diff)))
 			assert diff <= THRESHOLD, 'duration {} <= threshold {}'.format(diff, THRESHOLD)
+			print("*** All went well.")
 
 # Cleanup
 to_unset = ["office365/groups/sync"]

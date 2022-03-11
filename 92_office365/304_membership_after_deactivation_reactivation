@@ -15,7 +15,8 @@ import univention.testing.udm as udm_test
 import univention.testing.utils as utils
 from univention.config_registry import handler_set, handler_unset
 
-from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, setup_logging
+from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, setup_logging, azure_user_enabled, check_user_id_from_azure, azure_user_disabled
+from helpers.retry import retry_call
 from univention.office365.listener import Office365Listener
 from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
 
@@ -23,6 +24,7 @@ from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
 logger = setup_logging()
 adconnection_aliases = AzureADConnectionHandler.get_adconnection_aliases()
 initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAuth.is_initialized(adconnection_alias)]
+assert initialized_adconnections, "run ./01_initialize_external_testenv first!"
 
 print("*** adconnection_aliases={!r}.".format(adconnection_aliases))
 print("*** initialized_adconnections={!r}.".format(initialized_adconnections))
@@ -36,7 +38,7 @@ def test_membership(ucr, udm, check):
 		configRegistry = ucr
 
 	attr, disable, enable = check
-
+	print("*** Test activate and reactivate: %s ***" % attr)
 	handler_set(["office365/groups/sync=yes"])
 	utils.restart_listener()
 
@@ -73,16 +75,7 @@ def test_membership(ucr, udm, check):
 	user_dn, username = udm.create_user(**user_args)
 
 	# wait for user to be created in azure
-	udm_user = None
-	for i in range(60):
-		print('waiting for user to be created in azure')
-		time.sleep(1)
-		udm_user = ol.udm.get_udm_user(user_dn)
-		if udm_user.get("UniventionOffice365Data", None):
-			break
-	assert udm_user
-	user_id = Office365Listener.decode_o365data(udm_user.get("UniventionOffice365Data"))[adconnection_alias]['objectId']
-	assert user_id
+	user_id = retry_call(check_user_id_from_azure, fargs=[ol, adconnection_alias, user_dn], tries=90, delay=1)
 
 	# get group id
 	udm_group1 = ol.udm.get_udm_group(group_dn1)
@@ -97,12 +90,7 @@ def test_membership(ucr, udm, check):
 
 	# deactivate office user, groups should be clean
 	udm.modify_object(modulename="users/user", dn=user_dn, set={attr: disable})
-	for i in range(60):
-		time.sleep(1)
-		print('waiting for user to be disabled in azure')
-		a = ol.ah.list_users(objectid=user_id)
-		if a.get('accountEnabled', True) is False:
-			break
+	retry_call(azure_user_disabled, fargs=[ol, user_id], tries=90, delay=1)
 
 	# check that user is not member of any group
 	print('user is member of: {}'.format(ol.ah.member_of_groups(user_id).get('value', [])))
@@ -130,21 +118,11 @@ def test_membership(ucr, udm, check):
 	user_dn_other, username_other = udm.create_user(**user_args)
 
 	# wait for user to be synced to azure
-	for i in range(60):
-		print('waiting for user')
-		time.sleep(1)
-		udm_user_other = ol.udm.get_udm_user(user_dn_other)
-		if udm_user_other.get("UniventionOffice365Data", None):
-			break
+	retry_call(check_user_id_from_azure, fargs=[ol, adconnection_alias_other, user_dn_other], tries=90, delay=1)
 
 	# reactivate user, user should be member of groups
 	udm.modify_object(modulename="users/user", dn=user_dn, set={attr: enable})
-	for i in range(60):
-		time.sleep(1)
-		print('waiting for user to be enabled in azure')
-		a = ol.ah.list_users(objectid=user_id)
-		if a.get('accountEnabled', False) is True:
-			break
+	retry_call(azure_user_enabled, fargs=[ol, user_id], tries=90, delay=1)
 
 	# get group id's
 	udm_group_new = ol.udm.get_udm_group(group_dn_new)
@@ -158,14 +136,14 @@ def test_membership(ucr, udm, check):
 	assert group_objectid2 in ol.ah.member_of_groups(user_id).get('value', [])
 	assert group_objectid_new in ol.ah.member_of_groups(user_id).get('value', [])
 	assert group_objectid_new_other in ol.ah.member_of_groups(user_id).get('value', [])
-
+	print("*** All went well.")
 
 with utils.AutomaticListenerRestart():
 	for check in [('UniventionOffice365Enabled', 0, 1), ('disabled', 1, 0)]:
 		with udm_test.UCSTestUDM() as udm:
 			with ucr_test.UCSTestConfigRegistry() as ucr:
 				test_membership(ucr, udm, check)
-
+				print("*** All went well.")
 
 # Cleanup
 to_unset = ["office365/groups/sync"]

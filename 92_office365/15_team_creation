@@ -1,6 +1,6 @@
 #!/usr/share/ucs-test/runner python
 ## -*- coding: utf-8 -*-
-## desc: create user in azure, check Data attribute
+## desc: create team in azure
 ## tags: [apptest]
 ## exposure: dangerous
 ## packages:
@@ -42,3 +42,4 @@ with utils.AutomaticListenerRestart():
 			team_dn, team_name = o365helpers.create_team(udm, ucr, owner_dn=user_dn, users=[user_dn])
 
 			team = o365helpers.check_team_created(graph, team_name)
+			print("*** All went well.")

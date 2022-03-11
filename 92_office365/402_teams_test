@@ -113,12 +113,17 @@ class Test_TeamsAPI(unittest.TestCase):
                 self.graph.add_group_owner(group_id, self.owner)
                 break
             except GraphError:
+                if i == 14:
+                    raise
                 time.sleep(3)
+        team = None
         for i in range(15):
             try:
                 team = self.graph.create_team_from_group(group_id)
                 break
             except GraphError:
+                if i == 14:
+                    raise
                 time.sleep(3)
         # parse the team_id out of the request (this is inconsistent in teams
         # API that with other API calls against graph, where the return value

@@ -44,12 +44,15 @@ from operator import itemgetter
 
 import univention.admin.syntax as udm_syntax
 import univention.testing.strings as uts
+import univention.testing.utils as utils
+
 from univention.config_registry import handler_set
 
 from univention.office365.azure_handler import ResourceNotFoundError
 from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
 from univention.office365.logging2udebug import get_logger, LevelDependentFormatter
 from univention.office365.api.exceptions import GraphError
+from univention.office365.listener import Office365Listener
 
 udm_syntax.update_choices()
 
@@ -201,7 +204,7 @@ def print_users(users, complete=False, short=False):
 				print("            None")
 			print("      provisionedPlans:")
 			for plan in user["provisionedPlans"]:
-				print(u"            service: {0} \t capabilityStatus: {0} \t provisioningStatus: {0}".format(
+				print(u"            service: {0} \t capabilityStatus: {1} \t provisioningStatus: {2}".format(
 					plan["service"],
 					plan["capabilityStatus"],
 					plan["provisioningStatus"]
@@ -227,7 +230,7 @@ def azure_user_args(azure_handler, minimal=True):
 	res = dict(
 		accountEnabled=True,
 		displayName=uts.random_string(),
-		immutableId=base64.b64encode(uts.random_string()),
+		immutableId=base64.b64encode(uts.random_string().encode("UTF-8")).decode("ASCII"),
 		mailNickname=local_part_email,
 		passwordProfile=dict(
 			password=azure_handler.create_random_pw(),
@@ -316,7 +319,9 @@ def udm_user_args(ucr, minimal=True):
 	return res
 
 
-def create_team(udm, ucr, owner_dn=None, users=[]):
+def create_team(udm, ucr, owner_dn=None, users=None):
+	if users is None:
+		users = []
 	group_args = dict(
 		name=uts.random_string(),
 		position="cn=groups,{}".format(ucr.get("ldap/base")),
@@ -505,7 +510,7 @@ def check_team_created(graph, group_name):
 	teams = graph.list_teams()
 	for team in teams['value']:
 		if team['displayName'] == group_name and 'Team' in team['resourceProvisioningOptions']:
-				return team
+			return team
 	else:
 		return None
 
@@ -516,6 +521,78 @@ def check_team_archived(graph, group_name):
 	teams = graph.list_teams()
 	for team in teams['value']:
 		if team['displayName'] == group_name and 'Team' in team['resourceProvisioningOptions']:
-				return False
+			return False
 	else:
 		return True
+
+
+@wait_for_seconds
+def check_user_office365_data_updated(ol, user_dn):
+	''' Checking if Office365Data is updated'''
+
+	udm_user = ol.udm.get_udm_user(user_dn)
+	return udm_user.get("UniventionOffice365Data", None)
+
+
+def check_user_location(office_listener, user_id, ucr_usageLocation, fail_msg):
+	azure_user = office_listener.ah.list_users(objectid=user_id)
+	if not azure_user["usageLocation"] == ucr_usageLocation:
+		utils.fail(fail_msg.format(
+			azure_user["usageLocation"], ucr_usageLocation))
+	return azure_user
+
+
+def check_user_id_from_azure(office_listener, adconnection_alias, user_dn, fail_msg=None):
+	fail_msg = fail_msg or "User was not created properly (no UniventionOffice365ObjectID)."
+	print("*** Checking that user was created (UniventionOffice365ObjectID in UDM object)...")
+	udm_user = office_listener.udm.get_udm_user(user_dn)
+	user_id = Office365Listener.decode_o365data(udm_user.get("UniventionOffice365Data"))[adconnection_alias]['objectId']
+	if not user_id:
+		utils.fail(fail_msg)
+	return user_id
+
+
+def check_user_in_group_from_azure(office_listener, group_dn, user_dn):
+	print("*** Checking that user was created (UniventionOffice365ObjectID in UDM object)...")
+	udm_user = office_listener.udm.get_udm_user(user_dn)
+	if udm_user['groups'] != [group_dn]:
+		utils.fail("User has groups: %r, expected %r." % (udm_user['groups'], [group_dn]))
+	return udm_user
+
+def __is_azure_user_enabled(azure_user):
+	print_users(azure_user, short=True)
+	return azure_user["accountEnabled"]
+
+
+def azure_user_disabled(office_listener, user_id):
+	azure_user = office_listener.ah.list_users(objectid=user_id)
+	if __is_azure_user_enabled(azure_user):
+		utils.fail("Account was not deactivated.")
+	return azure_user
+
+
+def azure_user_enabled(office_listener, user_id):
+	azure_user = office_listener.ah.list_users(objectid=user_id)
+	if not __is_azure_user_enabled(azure_user):
+		utils.fail("Account was not activated.")
+	return azure_user
+
+
+def check_azure_user_change(office_listener, user_id, attribute_name, attribute_value):
+	print("*** Checking value of usageLocation...")
+	azure_user = office_listener.ah.list_users(objectid=user_id)
+	if not azure_user[attribute_name] == attribute_value:
+		utils.fail("'{}' was not correctly set (is: {}, should be: {}).".format(
+			attribute_name, azure_user[attribute_name], attribute_value))
+
+
+def check_user_was_deleted(office_listener, user_id):
+	print("*** Checking that user was deleted in old adconnection...")
+	try:
+		deleted_user = office_listener.ah.list_users(objectid=user_id)
+		if deleted_user["accountEnabled"]:
+			utils.fail("User was not deleted.")
+		else:
+			print("OK: user was deleted.")
+	except ResourceNotFoundError:
+		print("OK: user was deleted.")

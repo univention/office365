@@ -22,6 +22,7 @@ from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
 logger = setup_logging()
 adconnection_aliases = AzureADConnectionHandler.get_adconnection_aliases()
 initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAuth.is_initialized(adconnection_alias)]
+assert initialized_adconnections, "run ./01_initialize_external_testenv first!"
 
 print("*** adconnection_aliases={!r}.".format(adconnection_aliases))
 print("*** initialized_adconnections={!r}.".format(initialized_adconnections))
@@ -103,7 +104,7 @@ with utils.AutomaticListenerRestart():
 			print('user2 is member of: {}'.format(ol.ah.member_of_groups(user_id2).get('value', [])))
 			assert group_objectid in ol.ah.member_of_groups(user_id1).get('value', [])
 			assert group_objectid in ol.ah.member_of_groups(user_id2).get('value', [])
-
+			print("*** All went well.")
 
 # Cleanup
 to_unset = ["office365/groups/sync"]

@@ -1,6 +1,6 @@
 #!/usr/share/ucs-test/runner python
 ## -*- coding: utf-8 -*-
-## desc: create user in azure, check Data attribute
+## desc: change team members in azure
 ## tags: [apptest]
 ## exposure: dangerous
 ## packages:
@@ -57,3 +57,4 @@ with utils.AutomaticListenerRestart():
 			udm.remove_object('users/user', dn=user3_dn)
 
 			team_members = o365helpers.check_team_members(graph, team_id, 4)
+			print("*** All went well.")

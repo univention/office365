@@ -13,7 +13,8 @@ import univention.testing.ucr as ucr_test
 import univention.testing.udm as udm_test
 import univention.testing.utils as utils
 
-from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user, setup_logging
+from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user, setup_logging, check_user_id_from_azure, check_user_was_deleted
+from helpers.retry import retry_call
 from univention.office365.listener import Office365Listener
 from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
 from univention.office365.azure_handler import ResourceNotFoundError
@@ -54,13 +55,9 @@ with udm_test.UCSTestUDM() as udm:
 
 		print("*** Creating user with adconnection_alias1 ({!r})...".format(adconnection_alias1))
 		user_dn, username = udm.create_user(check_for_drs_replication=True, **user_args)
-		time.sleep(10)
 
-		print("*** Checking that user was created (UniventionOffice365ObjectID in UDM object)...")
-		udm_user = ol.udm.get_udm_user(user_dn)
-		azure_user_id1 = Office365Listener.decode_o365data(udm_user.get("UniventionOffice365Data"))[adconnection_alias1]['objectId']
-		if not azure_user_id1:
-			utils.fail("User was not created properly (no UniventionOffice365ObjectID).")
+		fail_msg = "User was not created properly (no UniventionOffice365ObjectID)."
+		azure_user_id1 = retry_call(check_user_id_from_azure, fargs=[ol, adconnection_alias1, user_dn, fail_msg], tries=5, delay=2)
 
 		print("*** Checking sync of user properties...")
 		azure_user = ol.ah.list_users(objectid=azure_user_id1)
@@ -75,24 +72,15 @@ with udm_test.UCSTestUDM() as udm:
 		print("*** Changing UniventionOffice365ADConnectionAlias property from adconnection_alias1 ({!r}) to adconnection_alias2 ({!r})...".format(adconnection_alias1, adconnection_alias2))
 		user_args2 = dict(set=dict(UniventionOffice365ADConnectionAlias=adconnection_alias2), append=dict())
 		udm.modify_object(modulename="users/user", dn=user_dn, **user_args2)
-		time.sleep(10)
 
-		print("*** Checking that user was deleted in old adconnection...")
-		try:
-			deleted_user = ol.ah.list_users(objectid=azure_user["objectId"])
-			if deleted_user["accountEnabled"]:
-				utils.fail("User was not deleted.")
-			else:
-				print("OK: user was deleted.")
-		except ResourceNotFoundError:
-			print("OK: user was deleted.")
+		retry_call(check_user_was_deleted, fargs=[ol, azure_user["objectId"]], tries=5, delay=2)
 
 		print("*** Checking that user was created in new Azure AD connection (2) (UniventionOffice365ObjectID must differ)...")
 		ol = Office365Listener(_listener(), "ucs-test", listener_attributes_data, {}, "dn", adconnection_alias2)
-		udm_user = ol.udm.get_udm_user(user_dn)
-		azure_user_id2 = Office365Listener.decode_o365data(udm_user.get("UniventionOffice365Data"))[adconnection_alias2]['objectId']
-		if not azure_user_id2:
-			utils.fail("User was not created properly (no UniventionOffice365ObjectID).")
+
+		fail_msg = "User was not created properly (no UniventionOffice365ObjectID)."
+		azure_user_id2 = retry_call(check_user_id_from_azure, fargs=[ol, adconnection_alias2, user_dn, fail_msg], tries=5, delay=2)
+
 		if azure_user_id1 == azure_user_id2:
 			utils.fail("UniventionOffice365ObjectID did not change.")
 
@@ -105,3 +93,4 @@ with udm_test.UCSTestUDM() as udm:
 			print("*** attributes were synced correctly for adconnection_alias2={!r}".format(adconnection_alias2))
 		else:
 			utils.fail("One or more properties were not synced correctly for adconnection_alias2={!r}:\n{}".format("\n".join(map(str, errors)), adconnection_alias2))
+		print("*** All went well.")

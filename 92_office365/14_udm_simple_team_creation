@@ -1,6 +1,6 @@
 #!/usr/share/ucs-test/runner python
 ## -*- coding: utf-8 -*-
-## desc: create user in azure, check Data attribute
+## desc: create group and sync as team in azure
 ## tags: [apptest]
 ## exposure: dangerous
 ## packages:
@@ -41,3 +41,4 @@ with udm_test.UCSTestUDM() as udm:
 		print(group_args)
 		print("*** Creating Microsoft Team with Owner ***")
 		group_dn = udm.create_group(check_for_drs_replication=True, **group_args)
+		print("*** All went well.")

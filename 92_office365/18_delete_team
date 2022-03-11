@@ -1,6 +1,6 @@
 #!/usr/share/ucs-test/runner python
 ## -*- coding: utf-8 -*-
-## desc: create user in azure, check Data attribute
+## desc: delete team in azure
 ## tags: [apptest]
 ## exposure: dangerous
 ## packages:
@@ -16,8 +16,8 @@ import helpers.office365_test_helpers as o365helpers
 
 
 with utils.AutomaticListenerRestart():
-	with udm_test.UCSTestUDM() as udm:
-		with ucr_test.UCSTestConfigRegistry() as ucr:
+	with ucr_test.UCSTestConfigRegistry() as ucr:
+		with udm_test.UCSTestUDM() as udm:
 			ucr.load()
 
 			class _listener(object):
@@ -39,6 +39,11 @@ with utils.AutomaticListenerRestart():
 
 			print("*** Creating Team ***")
 			group_dn, group_name = o365helpers.create_team(udm, ucr, owner_dn=user_dn, users=[user_dn])
+
+			print("*** Checking Team ***")
 			created_team = o365helpers.check_team_created(graph, group_name)
 
-	created_team = o365helpers.check_team_archived(graph, group_name)
+		print("*** Checking Team Archived***")
+		created_team = o365helpers.check_team_archived(graph, group_name)
+
+		print("*** All went well.")

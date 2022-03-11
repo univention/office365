@@ -24,6 +24,7 @@ from univention.office365.azure_handler import ResourceNotFoundError
 logger = setup_logging()
 adconnection_aliases = AzureADConnectionHandler.get_adconnection_aliases()
 initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAuth.is_initialized(adconnection_alias)]
+assert initialized_adconnections, "run ./01_initialize_external_testenv first!"
 
 print("*** adconnection_aliases={!r}.".format(adconnection_aliases))
 print("*** initialized_adconnections={!r}.".format(initialized_adconnections))
@@ -73,25 +74,25 @@ with utils.AutomaticListenerRestart():
 
 			print("*** Checking that user was created (UniventionOffice365ObjectID in UDM object)...")
 			udm_user_one = ol_one.udm.get_udm_user(user_dn)
-			azure_user_id_one = Office365Listener.decode_o365data(udm_user_one.get("UniventionOffice365Data"))[adconnection_alias1]['objectId']
+			azure_user_id_one = Office365Listener.decode_o365data(udm_user_one.get("UniventionOffice365Data").encode('ASCII'))[adconnection_alias1]['objectId']
 			if not azure_user_id_one:
 				utils.fail("User was not created properly (no UniventionOffice365ObjectID).")
-			azure_user_id_two = Office365Listener.decode_o365data(udm_user_one.get("UniventionOffice365Data"))[adconnection_alias2]['objectId']
+			azure_user_id_two = Office365Listener.decode_o365data(udm_user_one.get("UniventionOffice365Data").encode('ASCII'))[adconnection_alias2]['objectId']
 			if not azure_user_id_two:
 				utils.fail("User was not created properly in AD2 (no UniventionOffice365ObjectID).")
 
 			print("*** Checking that group was created in AD1 (UniventionOffice365ObjectID in UDM object)...")
 			udm_group1 = ol_one.udm.get_udm_group(group_dn)
-			group_objectid_one = Office365Listener.decode_o365data(udm_group1.get("UniventionOffice365Data"))[adconnection_alias1]['objectId']
+			group_objectid_one = Office365Listener.decode_o365data(udm_group1.get("UniventionOffice365Data").encode('ASCII'))[adconnection_alias1]['objectId']
 			if not group_objectid_one:
 				utils.fail("Created group {!r} has no objectId in UDM Data object  ({!r}).".format(group_name, adconnection_alias1))
-			
+
 			print("*** Checking that group was created in AD2 (UniventionOffice365ObjectID in UDM object)...")
 			udm_group_two = ol_two.udm.get_udm_group(group_dn)
-			group_objectid_two = Office365Listener.decode_o365data(udm_group1.get("UniventionOffice365Data"))[adconnection_alias2]['objectId']
+			group_objectid_two = Office365Listener.decode_o365data(udm_group1.get("UniventionOffice365Data").encode('ASCII'))[adconnection_alias2]['objectId']
 			if not group_objectid_two:
 				utils.fail("Created group {!r} has no objectId in UDM Data object  ({!r}).".format(group_name, adconnection_alias2))
-			
+
 			print("*** Checking that user is in group in AD1...")
 			azure_group = ol_one.find_aad_group_by_name(group_name)
 			member_urls = ol_one.ah.get_groups_direct_members(azure_group['objectId'])["value"]
@@ -102,7 +103,7 @@ with utils.AutomaticListenerRestart():
 
 			if not azure_user_id_one in member_objectids:
 				utils.fail("Group {!r} does not contain the user object for user {!r} ({!r}).".format(group_name, username, self.adconnection_alias1))
-			
+
 			print("*** Checking that user is in group in AD2...")
 			azure_group = ol_two.find_aad_group_by_name(group_name)
 			member_urls = ol_two.ah.get_groups_direct_members(azure_group['objectId'])["value"]
@@ -113,6 +114,7 @@ with utils.AutomaticListenerRestart():
 
 			if not azure_user_id_two in member_objectids:
 				utils.fail("Group {!r} does not contain the user object for user {!r} ({!r}).".format(group_name, username, self.adconnection_alias2))
+			print("*** All went well.")
 
 # Cleanup
 to_unset = ["office365/groups/sync"]

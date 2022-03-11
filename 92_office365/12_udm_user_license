@@ -14,7 +14,8 @@ import univention.testing.ucr as ucr_test
 import univention.testing.udm as udm_test
 import univention.testing.utils as utils
 
-from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user
+from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_user_id_from_azure, check_user_in_group_from_azure
+from helpers.retry import retry_call
 from univention.office365.listener import Office365Listener
 from univention.office365.subscriptions import SubscriptionProfile
 from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
@@ -44,16 +45,10 @@ def create_azure_user():
 	user_args["set"]["UniventionOffice365ADConnectionAlias"] = adconnection_alias
 	user_args["set"]["primaryGroup"] = group_dn
 	user_dn, username = udm.create_user(**user_args)
-	time.sleep(10)
 
-	print("*** Checking that user was created (UniventionOffice365ObjectID in UDM object)...")
-	udm_user = ol.udm.get_udm_user(user_dn)
-	user_id = Office365Listener.decode_o365data(udm_user.get("UniventionOffice365Data"))[adconnection_alias]['objectId']
-	if not user_id:
-		utils.fail("User was not created properly (no UniventionOffice365ObjectID).")
-
-	if udm_user['groups'] != [group_dn]:
-		utils.fail("User has groups: %r, expected %r." % (udm_user['groups'], [group_dn]))
+	fail_msg = "User was not created properly (no UniventionOffice365ObjectID)."
+	user_id = retry_call(check_user_id_from_azure, fargs=[ol, adconnection_alias, user_dn, fail_msg], tries=5, delay=2)
+	udm_user = retry_call(check_user_in_group_from_azure, fargs=[ol, group_dn, user_dn], tries=5, delay=2)
 
 	return user_dn, udm_user, user_id
 
@@ -218,3 +213,4 @@ with utils.AutomaticListenerRestart():
 						(whitelisted_plans - blacklisted_plans - enabled_plans, debug_msg))
 				if whitelisted_plans and len(enabled_plans) > len(whitelisted_plans):
 					utils.fail('More plans enabled than whitelisted plans.\n%s' % debug_msg)
+			print("*** All went well.")

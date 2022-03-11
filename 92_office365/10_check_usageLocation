@@ -16,7 +16,8 @@ import univention.testing.utils as utils
 from univention.config_registry import handler_set, handler_unset
 import univention.admin.syntax as udm_syntax
 
-from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user
+from helpers.retry import retry_call
+from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user,  check_user_id_from_azure, check_azure_user_change
 from univention.office365.listener import Office365Listener
 from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
 
@@ -47,7 +48,7 @@ with utils.AutomaticListenerRestart():
 
 			ol = Office365Listener(_listener(), "ucs-test", listener_attributes_data, {}, "dn", adconnection_alias)
 
-			ucr_usageLocation = random.choice(map(itemgetter(0), usage_locations))
+			ucr_usageLocation = random.choice(list(map(itemgetter(0), usage_locations)))
 			ucr_ssl_country = ucr["ssl/country"]
 			user_args = udm_user_args(ucr, minimal=False)
 			udm_country = user_args["set"]["country"]
@@ -86,22 +87,13 @@ with utils.AutomaticListenerRestart():
 
 			print("*** Creating user with some properties...")
 			user_dn, username = udm.create_user(check_for_drs_replication=True, **user_args)
-			time.sleep(10)
-
-			print("*** Checking that user was created (UniventionOffice365ObjectID in UDM object)...")
-			udm_user = ol.udm.get_udm_user(user_dn)
-			user_id = Office365Listener.decode_o365data(udm_user.get("UniventionOffice365Data"))[adconnection_alias]['objectId']
-			if not user_id:
-				utils.fail("User was not created properly (no UniventionOffice365ObjectID).")
+			user_id = retry_call(check_user_id_from_azure, fargs=[ol, adconnection_alias, user_dn], tries=5, delay=2)
 
 			print("*** Checking sync of all properties...")
 			azure_user = ol.ah.list_users(objectid=user_id)
 			_test(user_args, azure_user, check_complete=True)
+			retry_call(check_azure_user_change, fargs=[ol, user_id, "usageLocation", udm_country], tries=5, delay=2)
 
-			print("*** Checking value of usageLocation (should be user[set][country] now)...")
-			if not azure_user["usageLocation"] == udm_country:
-				utils.fail("'usageLocation' was not set to LDAP property 'st' (is: {}, should be: {}).".format(
-					azure_user["usageLocation"], udm_country))
 
 			print("*** Unsetting UDM property 'country'...")
 			udm.modify_object(
@@ -109,30 +101,17 @@ with utils.AutomaticListenerRestart():
 				dn=user_dn,
 				set=dict(country=''),
 			)
-			time.sleep(10)
-
-			print("*** Checking value of usageLocation (should be UCR[office365/attributes/usageLocation] now)...")
-			azure_user = ol.ah.list_users(objectid=user_id)
-			if not azure_user["usageLocation"] == ucr_usageLocation:
-				utils.fail("'usageLocation' was not set to UCRV (is: {}, should be: {}).".format(
-					azure_user["usageLocation"], ucr_usageLocation))
+			retry_call(check_azure_user_change, fargs=[ol, user_id, "usageLocation", ucr_usageLocation], tries=5, delay=2)
 
 			print("*** Unsetting UCRV office365/attributes/usageLocation...")
 			handler_unset(["office365/attributes/usageLocation"])
-
 			print("*** Setting property 'country' back to '{}'...".format(udm_country))
 			udm.modify_object(
 				modulename="users/user",
 				dn=user_dn,
 				set=dict(country=udm_country),
 			)
-			time.sleep(10)
-
-			print("*** Checking value of usageLocation (should be user[set][country] now)...")
-			azure_user = ol.ah.list_users(objectid=user_id)
-			if not azure_user["usageLocation"] == udm_country:
-				utils.fail("'usageLocation' was not set as instructed (is: {}, should be: {}).".format(
-					azure_user["usageLocation"], udm_country))
+			retry_call(check_azure_user_change, fargs=[ol, user_id, "usageLocation", udm_country], tries=5, delay=2)
 
 			print("*** Unsetting property 'country'...")
 			udm.modify_object(
@@ -140,10 +119,6 @@ with utils.AutomaticListenerRestart():
 				dn=user_dn,
 				set=dict(country=''),
 			)
-			time.sleep(10)
+			retry_call(check_azure_user_change, fargs=[ol, user_id, "usageLocation", ucr_ssl_country], tries=5, delay=2)
 
-			print("*** Checking value of usageLocation (should be UCR[ssl/country] now)...")
-			azure_user = ol.ah.list_users(objectid=user_id)
-			if not azure_user["usageLocation"] == ucr_ssl_country:
-				utils.fail("'usageLocation' was not set to UCRV of 'ssl/country' (is: {}, should be: {}).".format(
-					azure_user["usageLocation"], ucr_ssl_country))
+			print("*** All went well.")

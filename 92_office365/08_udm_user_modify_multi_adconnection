@@ -14,7 +14,8 @@ import univention.testing.udm as udm_test
 import univention.testing.utils as utils
 from univention.config_registry import handler_set, handler_unset
 
-from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user, setup_logging
+from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user, setup_logging, check_user_id_from_azure
+from helpers.retry import retry_call
 from univention.office365.listener import Office365Listener
 from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
 
@@ -22,12 +23,14 @@ from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
 logger = setup_logging()
 adconnection_aliases = AzureADConnectionHandler.get_adconnection_aliases()
 initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAuth.is_initialized(adconnection_alias)]
+assert initialized_adconnections, "run ./01_initialize_external_testenv first!"
 
 print("*** adconnection_aliases={!r}.".format(adconnection_aliases))
 print("*** initialized_adconnections={!r}.".format(initialized_adconnections))
 
 
-def _test(udm_args, a_user, check_complete):
+def _test(udm_args, user_id, check_complete):
+	a_user = ol.ah.list_users(objectid=user_id)
 	success, errors = check_udm2azure_user(udm_args, a_user, check_complete)
 	if success:
 		print("*** all attributes were synced correctly")
@@ -91,37 +94,26 @@ with utils.AutomaticListenerRestart():
 
 				print("*** Creating user with some properties...")
 				user_dn, username = udm.create_user(check_for_drs_replication=True, **user_args1)
-				time.sleep(10)
 
-				print("*** Checking that user was created (UniventionOffice365ObjectID in UDM object)...")
-				udm_user = ol.udm.get_udm_user(user_dn)
-				user_id = Office365Listener.decode_o365data(udm_user.get("UniventionOffice365Data"))[adconnection_alias]['objectId']
-				if not user_id:
-					utils.fail("User was not created properly (no UniventionOffice365ObjectID).")
+				user_id = retry_call(check_user_id_from_azure, fargs=[ol, adconnection_alias, user_dn], tries=12, delay=5)
 
 				print("*** Checking sync of properties #0...")
-				azure_user = ol.ah.list_users(objectid=user_id)
-				_test(user_args1, azure_user, check_complete=False)
+				retry_call(_test, fargs=[user_args1, user_id], fkwargs={"check_complete": False}, tries=12, delay=5)
 
 				print("*** Adding more properties to user #1...")
 				udm.modify_object(modulename="users/user", dn=user_dn, **user_args2)
-				time.sleep(10)
 
 				print("*** Checking sync of properties #1...")
-				azure_user = ol.ah.list_users(objectid=user_id)
-				_test(user_args2, azure_user, check_complete=False)
+				retry_call(_test, fargs=[user_args2, user_id], fkwargs={"check_complete": False}, tries=12, delay=5)
 
 				print("*** Adding more properties to user #2...")
 				udm.modify_object(modulename="users/user", dn=user_dn, **user_args3)
-				time.sleep(10)
 
 				print("*** Checking sync of properties #2...")
-				azure_user = ol.ah.list_users(objectid=user_id)
-				_test(user_args3, azure_user, check_complete=False)
+				retry_call(_test, fargs=[user_args3, user_id], fkwargs={"check_complete": False}, tries=12, delay=5)
 
 				print("*** Checking sync of all properties...")
-				azure_user = ol.ah.list_users(objectid=user_id)
-				_test(user_args, azure_user, check_complete=True)
+				retry_call(_test, fargs=[user_args, user_id], fkwargs={"check_complete": True}, tries=12, delay=5)
 
 				print("*** All went well for Azure AD connection {!r}.".format(adconnection_alias))
 			print("*** All went well for all in {!r}.".format(initialized_adconnections))

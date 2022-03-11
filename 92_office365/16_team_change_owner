@@ -1,6 +1,6 @@
 #!/usr/share/ucs-test/runner python
 ## -*- coding: utf-8 -*-
-## desc: create user in azure, check Data attribute
+## desc: change team owner in azure
 ## tags: [apptest]
 ## exposure: dangerous
 ## packages:
@@ -52,3 +52,4 @@ with utils.AutomaticListenerRestart():
 				UniventionMicrosoft365GroupOwners=user2_dn,))
 
 			owner = o365helpers.check_team_owner(graph, team_id, username2)
+			print("*** All went well.")
