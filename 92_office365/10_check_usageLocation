@@ -8,26 +8,20 @@
 
 import time
 import random
-from operator import itemgetter
 
 import univention.testing.ucr as ucr_test
 import univention.testing.udm as udm_test
 import univention.testing.utils as utils
 from univention.config_registry import handler_set, handler_unset
-import univention.admin.syntax as udm_syntax
 
 from helpers.retry import retry_call
-from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user,  check_user_id_from_azure, check_azure_user_change
+from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user,  check_user_id_from_azure, check_azure_user_change, usage_locations_code
 from univention.office365.listener import Office365Listener
 from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
 
 adconnection_aliases = AzureADConnectionHandler.get_adconnection_aliases()
 initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAuth.is_initialized(adconnection_alias)]
 
-blacklisted_ul = ["CU", "KP"]  # some usageLocations seem to be invalid, collecting them here
-usage_locations = set(udm_syntax.Country.choices) - set(blacklisted_ul)
-
-udm_syntax.update_choices()
 
 def _test(udm_args, a_user, check_complete):
 	success, errors = check_udm2azure_user(udm_args, a_user, check_complete)
@@ -36,10 +30,12 @@ def _test(udm_args, a_user, check_complete):
 	else:
 		utils.fail("One or more properties were not synced correctly:\n{}".format("\n".join(map(str, errors))))
 
+
 with utils.AutomaticListenerRestart():
 	with udm_test.UCSTestUDM() as udm:
 		with ucr_test.UCSTestConfigRegistry() as ucr:
 			ucr.load()
+
 			class _listener(object):
 				configRegistry = ucr
 
@@ -48,7 +44,7 @@ with utils.AutomaticListenerRestart():
 
 			ol = Office365Listener(_listener(), "ucs-test", listener_attributes_data, {}, "dn", adconnection_alias)
 
-			ucr_usageLocation = random.choice(list(map(itemgetter(0), usage_locations)))
+			ucr_usageLocation = random.choice(usage_locations_code)
 			ucr_ssl_country = ucr["ssl/country"]
 			user_args = udm_user_args(ucr, minimal=False)
 			udm_country = user_args["set"]["country"]
@@ -56,8 +52,12 @@ with utils.AutomaticListenerRestart():
 			user_args["set"]["UniventionOffice365ADConnectionAlias"] = adconnection_alias
 
 			print("*** Setting UCRs for maximum property sync...")
-			to_unset = ["office365/attributes/anonymize", "office365/attributes/never",
-				"office365/groups/sync", "office365/subscriptions/service_plan_names"]
+			to_unset = [
+				"office365/attributes/anonymize",
+				"office365/attributes/never",
+				"office365/groups/sync",
+				"office365/subscriptions/service_plan_names"
+			]
 			to_unset.extend([k.split("=")[0] for k, v in ucr.items() if k.startswith("office365/attributes/static/")])
 			handler_unset(to_unset)
 			handler_set([

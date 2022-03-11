@@ -55,6 +55,8 @@ from univention.office365.api.exceptions import GraphError
 from univention.office365.listener import Office365Listener
 
 udm_syntax.update_choices()
+blacklisted_ul = ["SD", "SY", "KP", "CU", "IR"]  # some usageLocations are not valid (https://www.microsoft.com/en-us/microsoft-365/business/microsoft-office-license-restrictions), collecting them here
+usage_locations_code = list(set(x[0] for x in udm_syntax.Country.choices) - set(blacklisted_ul))
 
 udm2azure = dict(
 	firstname=lambda x: itemgetter("givenName")(x),
@@ -241,7 +243,7 @@ def azure_user_args(azure_handler, minimal=True):
 	if not minimal:
 		res.update(dict(
 			city=uts.random_string(),
-			country=random.choice(map(itemgetter(0), udm_syntax.Country.choices)),
+			country=random.choice(usage_locations_code),
 			givenName=uts.random_string(),
 			jobTitle=uts.random_string(),
 			otherMails=[
@@ -251,7 +253,7 @@ def azure_user_args(azure_handler, minimal=True):
 			mobile=uts.random_string(),
 			postalCode=uts.random_string(),
 			physicalDeliveryOfficeName=uts.random_string(),
-			usageLocation=random.choice(map(itemgetter(0), udm_syntax.Country.choices)),
+			usageLocation=random.choice(usage_locations_code),
 			streetAddress=uts.random_string(),
 			surname=uts.random_string(),
 			telephoneNumber=uts.random_string(),
@@ -282,7 +284,7 @@ def udm_user_args(ucr, minimal=True):
 				uts.random_int(1)
 			),
 			city=uts.random_string(),
-			country=random.choice(map(itemgetter(0), udm_syntax.Country.choices)),
+			country=random.choice(usage_locations_code),
 			departmentNumber=uts.random_string(),
 			description=uts.random_string(),
 			employeeNumber=3 * uts.random_int(),
@@ -464,7 +466,7 @@ def wait_for_seconds(func):
 		wait_interval = kwargs.pop("wait_interval", 1)
 		start = datetime.now()
 		now = datetime.now()
-		print(func.func_doc)
+		# print(func.func_doc)
 		while (now - start).total_seconds() < wait_for_seconds:
 			ret = func(*args, **kwargs)
 			if ret:
