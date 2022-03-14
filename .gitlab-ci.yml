@@ -12,8 +12,8 @@ stages:
 
 variables:
   PACKAGE: univention-office365
-  UCS_VERSION: "448"
-  UCS_RELEASE: "4.4"
+  UCS_VERSION: "500"
+  UCS_RELEASE: "5.0"
   SCOPE: "office365"
   LANG: "C.UTF-8"
   DEBIAN_FRONTEND: noninteractive
@@ -84,7 +84,7 @@ build-package-ng:
       changes:
         - debian/changelog
   tags:
-    - dimma
+    - ladda
   script:
     - >
       build-package-ng
