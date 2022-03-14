@@ -1,11 +1,8 @@
-#!/usr/bin/make -f
+#!/usr/bin/python2.7
 #
-# Univention Office 365
-#  rules file for the debian package
+# Copyright 2022 Univention GmbH
 #
-# Copyright 2016-2021 Univention GmbH
-#
-# http://www.univention.de/
+# https://www.univention.de/
 #
 # All rights reserved.
 #
@@ -28,23 +25,32 @@
 # You should have received a copy of the GNU Affero General Public
 # License with the Debian GNU/Linux or Univention distribution in file
 # /usr/share/common-licenses/AGPL-3; if not, see
-# <http://www.gnu.org/licenses/>.
+# <https://www.gnu.org/licenses/>.
 
-export PYBUILD_NAME=univention-office365
+import io
+from setuptools import setup
+from email.utils import parseaddr
+from debian.changelog import Changelog
+from debian.deb822 import Deb822
 
-override_dh_auto_build:
-	dh-umc-module-build
-	univention-l10n-build de
-	dh_auto_build
+dch = Changelog(io.open('debian/changelog', 'r', encoding='utf-8'))
+dsc = Deb822(io.open('debian/control', 'r', encoding='utf-8'))
+realname, email_address = parseaddr(dsc['Maintainer'])
 
-override_dh_auto_install:
-	univention-install-config-registry
-	dh-umc-module-install
-	univention-l10n-install de
-	dh_auto_install
+setup(
+    packages=[
+        'univention.office365',
+        'univention.office365.api',
+        'univention.office365.api.responseparser'
+    ],
+    package_dir={'': 'modules'},
+    description='Univention Office365',
 
-override_dh_systemd_enable:
-	dh_systemd_enable --name=univention-ms-office-async
+    url='https://www.univention.de/',
+    license='GNU Affero General Public License v3',
 
-%:
-	dh $@ --with systemd --with python2,python3 --buildsystem=pybuild
+    name=dch.package,
+    version=dch.version.full_version,
+    maintainer=realname,
+    maintainer_email=email_address,
+)
