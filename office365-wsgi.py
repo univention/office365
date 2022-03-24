@@ -32,7 +32,7 @@ def application(environ, start_response):
 	""" % {'title': _('Microsoft 365 Configuration finished')})
 
 	for name, value in request_body.items():
-		content += u'\t<input type="hidden" name="%s" value="%s" />\n' % (escape(name), escape(value[0]))
+		content += u'\t<input type="hidden" name="%s" value="%s" />\n' % (escape(name.decode("utf-8")), escape(value[0].decode("ASCII")))
 
 	content += textwrap.dedent(u"""\
 				<button type="submit">...</button>

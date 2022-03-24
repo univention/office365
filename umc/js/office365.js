@@ -35,6 +35,7 @@ define([
 	"dojo/aspect",
 	"dojo/dom-construct",
 	"dojo/Deferred",
+	"dojox/html/entities",
 	"umc/tools",
 	"umc/dialog",
 	"umc/widgets/Module",
@@ -46,7 +47,7 @@ define([
 	"umc/widgets/ProgressBar",
 	"umc/i18n!umc/modules/office365",
 	"xstyle/css!./office365.css"
-], function(declare, lang, array, aspect, domConstruct, Deferred, tools, dialog, Module, Wizard, Text, TextBox, Button, Uploader, ProgressBar, _) {
+], function(declare, lang, array, aspect, domConstruct, Deferred, entities, tools, dialog, Module, Wizard, Text, TextBox, Button, Uploader, ProgressBar, _) {
 
 	var OfficeWizard = declare('umc.modules.office365.OfficeWizard', [Wizard], {
 
@@ -385,12 +386,12 @@ define([
 		},
 
 		formatOrderedList: function(data, props) {
-			var start = (props && props.start) ? 'start="' + props.start + '" ' : '';
+			var start = (props && props.start) ? 'start="' + entities.encode(String(props.start)) + '" ' : '';
 			return '<ol ' + start + 'style="padding: 0; list-style-position: inside;"><li>' + data.join('</li><li>')  + '</li></ol>';
 		},
 
 		img: function(image) {
-			return '<br/><img style="min-width: 250px; max-width: 100%; padding-left: 1em;" src="' + require.toUrl('umc/modules/office365/' + image) + '">';
+			return '<br/><img style="min-width: 250px; max-width: 100%; padding-left: 1em;" src="' + entities.encode(require.toUrl('umc/modules/office365/' + image)) + '">';
 		},
 
 		initWizard: function(data) {
@@ -472,8 +473,8 @@ define([
 				});
 			} else if (nextPage == 'add-application') {
 				if (window.location.protocol != 'https:') {
-					dialog.alert(_('It is necessary to <a href="https://%(url)s">run this wizard while using the Univention Management Console with a https connection.</a> If you continue without a https connection, the wizard will likely not complete.', {
-								url: window.location.href.slice(7)
+					dialog.alert(_('It is necessary to <a href="https://%(url)s" target="_blank">run this wizard while using the Univention Management Console with a https connection.</a> If you continue without a https connection, the wizard will likely not complete.', {
+								url: entities.encode(window.location.href.slice(7))
 							}),
 						_('Warning'));
 				}
@@ -521,6 +522,7 @@ define([
 
 		postMixInProperties: function() {
 			this.inherited(arguments);
+			this.set('closable', true);  // since the module is opened via the Portal in a iframe as singleton closable was set to true
 			this._wizard = new OfficeWizard({
 				umcpCommand: lang.hitch(this, 'umcpCommand')
 			});
@@ -543,12 +545,20 @@ define([
 					dialog.alert([
 						_('This wizard helps you to configure the connection between UCS and Microsoft 365.'), '<br>',
 						_('You need a <a href="%(domain)s" target="_blank">verified domain</a> and access to the <a href="%(dev)s" target="_blank">Microsoft Azure Portal</a> with a Microsoft 365 administrator account.', {
-							domain: _('https://azure.microsoft.com/en-us/documentation/articles/active-directory-add-domain/'),
-							dev: _('https://manage.windowsazure.com/')
+							domain: entities.encode(_('https://azure.microsoft.com/en-us/documentation/articles/active-directory-add-domain/')),
+							dev: entities.encode(_('https://manage.windowsazure.com/'))
 						})
 					].join(' '), _('Microsoft 365 setup wizard'));
 				})
 			}]);
+		},
+
+		closeModule: function() {
+			this.inherited(arguments);
+			window.close();
+			if (parent && parent.store) {  // inside of Portal
+				parent.store.dispatch('tabs/deleteTab', parent.store._modules.root.state.tabs.activeTabIndex)
+			}
 		},
 
 		buildRendering: function() {

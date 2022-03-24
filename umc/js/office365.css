@@ -21,3 +21,15 @@
         min-height: 0px !important;
     }
 }
+
+.dijitReadOnly *,
+.dijitDisabled *,
+.dijitReadOnly,
+.dijitDisabled {
+        cursor: cell;
+}
+
+a[href*="o365_public_signing_cert.pem"], a[href*="/univention/command/office365/manifest.json"] {
+        background-color: slategray;
+
+}
