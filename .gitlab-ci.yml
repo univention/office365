@@ -55,7 +55,7 @@ repo_admin:
   rules:
     - if: "$CI_COMMIT_MESSAGE =~ /skip-build/ || $pipeline =~ /skip-build/"
       when: never
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH == $UCS_RELEASE
       changes:
         - debian/changelog
   tags:
