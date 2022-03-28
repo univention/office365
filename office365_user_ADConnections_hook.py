@@ -43,7 +43,7 @@ msg_require_owner = _("In order to create a Microsoft 365 team from a group, at 
 
 
 def decode_o365data(data):
-	return json.loads(zlib.decompress(base64.b64decode(data)))
+	return json.loads(zlib.decompress(base64.b64decode(data.encode('ASCII'))))
 
 
 def str2bool(val):
@@ -119,15 +119,15 @@ class Office365ADConnectionsHook(simpleHook):
 		if not module.hasChanged("UniventionOffice365ADConnections"):
 			return ml
 
-		adconnection_aliases_new = set([x for x, _ in module["UniventionOffice365ADConnections"]])
+		adconnection_aliases_new = set(x for x, _ in module["UniventionOffice365ADConnections"])
 		adconnections_old = module.oldinfo.get("UniventionOffice365ADConnections", [])
-		adconnection_aliases_old = set([x for x, _ in adconnections_old])
+		adconnection_aliases_old = set(x for x, _ in adconnections_old)
 		if adconnection_aliases_new == adconnection_aliases_old:
 			return ml
 
 		# Update the UniventionOffice365ADConnectionAlias list
-		old = module.get("UniventionOffice365ADConnectionAlias")
-		new = list(adconnection_aliases_new)
+		old = [x.encode('UTF-8') for x in module.get("UniventionOffice365ADConnectionAlias")]
+		new = [x.encode('UTF-8') for x in adconnection_aliases_new]
 		if new != old:
 			ml.append(("univentionOffice365ADConnectionAlias", old, new))
 

@@ -394,13 +394,21 @@ def check_udm2azure_user(udm_args, azure_user, complete=True):
 				res.append((k, "value was not set", "cannot compare"))
 			continue
 		azure_values = v(azure_user)
-		for udm_value in udm_values:
-			if k == "homePostalAddress":
-				udm_value = udm_value.replace('"', '').replace(" ", "$")
-			if azure_values and udm_value not in azure_values:
+		if k in ["mobileTelephoneNumber", "phone"]:
+			if len(udm_value) == 0:
+				fail = True
+				res.append((k, "value was not set", "cannot compare"))
+			if azure_values not in udm_values:
 				fail = True
 				res.append((k, udm_value, azure_values))
+		else:
+			for udm_value in udm_values:
+				if k == "homePostalAddress":
+					udm_value = udm_value.replace('"', '').replace(" ", "$")
 
+				if azure_values and udm_value not in azure_values:
+					fail = True
+					res.append((k, udm_value, azure_values))
 	return not fail, res
 
 

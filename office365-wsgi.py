@@ -1,12 +1,11 @@
 import textwrap
 from univention.lib.i18n import Translation
-from cgi import parse_qs
 _ = Translation('univention-management-console-module-office365').translate
 
 try:
 	from html import escape
 	from urllib.parse import parse_qs
-except ImportError: # Python 2
+except ImportError:  # Python 2
 	from cgi import escape, parse_qs
 
 

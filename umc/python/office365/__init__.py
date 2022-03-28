@@ -31,7 +31,7 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-import urlparse
+from six.moves.urllib import parse
 import functools
 import subprocess
 import textwrap
@@ -108,7 +108,7 @@ class Instance(Base):
 
 		try:
 			adconnection_id = request.body.get('adconnection_id') or 'common'
-			adconnection_id = urlparse.urlparse(adconnection_id).path.strip('/').split('/')[0]
+			adconnection_id = parse.urlparse(adconnection_id).path.strip('/').split('/')[0]
 			with open(request.options[0]['tmpfile']) as fd:
 				manifest = Manifest(fd, adconnection_id, request.body['domain'])
 			manifest.transform()

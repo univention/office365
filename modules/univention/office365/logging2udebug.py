@@ -52,8 +52,7 @@
 #
 
 import logging
-import platform
-import syslog
+from six import PY2, PY3
 
 import univention.debug as ud
 from univention.config_registry import ConfigRegistry
@@ -75,15 +74,6 @@ LOGGING_TO_UDEBUG = dict(
 	INFO=ud.PROCESS,
 	DEBUG=ud.ALL,
 	NOTSET=ud.ALL
-)
-LOGGING_TO_SYSLOG = dict(
-	CRITICAL=syslog.LOG_CRIT,
-	ERROR=syslog.LOG_ERR,
-	WARN=syslog.LOG_WARNING,
-	WARNING=syslog.LOG_WARNING,
-	INFO=syslog.LOG_INFO,
-	DEBUG=syslog.LOG_DEBUG,
-	NOTSET=syslog.LOG_DEBUG
 )
 
 ucr = ConfigRegistry()
@@ -121,20 +111,15 @@ class LevelDependentFormatter(logging.Formatter):
 class UDebugHandler(logging.Handler):
 	def __init__(self, level=logging.NOTSET, udebug_facility=ud.LISTENER):
 		self._udebug_facility = udebug_facility
-		self._dev = "Univention" not in platform.dist()[0]
-		if self._dev:
-			syslog.openlog(ident="UDebugHandler", logoption=syslog.LOG_PID, facility=syslog.LOG_USER)
 		super(UDebugHandler, self).__init__(level)
-
-	def set_name(self, name):
-		if self._dev:
-			syslog.openlog(ident=name, logoption=syslog.LOG_PID, facility=syslog.LOG_USER)
-		super(UDebugHandler, self).set_name(name)
 
 	def emit(self, record):
 		msg = self.format(record)
-		if isinstance(msg, unicode):
+		if PY2 and isinstance(msg, unicode):
 			msg = msg.encode("utf-8")
+		elif PY3 and isinstance(msg, bytes):
+			msg = msg.decode("utf-8", "replace")
+
 		if _werror:
 			udebug_level = ud.ERROR
 			true_lvl = "({})".format(record.levelname[0])
@@ -142,7 +127,4 @@ class UDebugHandler(logging.Handler):
 			udebug_level = LOGGING_TO_UDEBUG[record.levelname]
 			true_lvl = ""
 
-		if self._dev:
-			syslog.syslog(LOGGING_TO_SYSLOG[record.levelname], msg)
-		else:
-			ud.debug(self._udebug_facility, udebug_level, "{}{}: {}".format(self.get_name(), true_lvl, msg))
+		ud.debug(self._udebug_facility, udebug_level, "{}{}: {}".format(self.get_name(), true_lvl, msg))

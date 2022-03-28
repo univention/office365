@@ -30,17 +30,16 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-import re
-from urllib import urlencode
+import sys
+
+from six import reraise
+from six.moves.urllib.parse import urlencode
 import requests
 import json
 import base64
 import uuid
-import time
-import rsa
 import os
 import datetime
-import sys
 import pwd
 from xml.dom.minidom import parseString
 from stat import S_IRUSR, S_IWUSR
@@ -104,12 +103,14 @@ class AzureADConnectionHandler(object):
 			for line_traceback in traceback.format_stack(limit=10):
 				logger.error(line_traceback)
 			if ucr.get(adconnection_wizard_ucrv) is None:
-				extra_info = _('The reason might be that the Univention Configuration Registry variable {ucr_wizard} is not set.\n'
-					 'If it\'s not, you can set to the default value "{ad_default}"\n'
-					 'Command to check: ucr get {ucr_wizard}\n'
-					 'Command to set: "ucr set {ucr_wizard}={ad_default}"').format(ucr_wizard=adconnection_wizard_ucrv,ad_default=default_adconnection_name)
+				extra_info = _(
+					'The reason might be that the Univention Configuration Registry variable {ucr_wizard} is not set.\n'
+					'If it\'s not, you can set to the default value "{ad_default}"\n'
+					'Command to check: ucr get {ucr_wizard}\n'
+					'Command to set: "ucr set {ucr_wizard}={ad_default}"'
+				).format(ucr_wizard=adconnection_wizard_ucrv, ad_default=default_adconnection_name)
 			else:
-				extra_info = _('The reason might be that the Univention Configuration Registry variable {ucr_wizard} is set to "{ucr_wizard_value}".\n').format(ucr_wizard=adconnection_wizard_ucrv,ucr_wizard_value=ucr.get(adconnection_wizard_ucrv))
+				extra_info = _('The reason might be that the Univention Configuration Registry variable {ucr_wizard} is set to "{ucr_wizard_value}".\n').format(ucr_wizard=adconnection_wizard_ucrv, ucr_wizard_value=ucr.get(adconnection_wizard_ucrv))
 			raise ValueError(_('No AD connection alias specified\n') + extra_info)
 		conf_dir = os.path.join(ADCONNECTION_CONF_BASEPATH, adconnection_alias)
 		if not os.path.exists(conf_dir):
@@ -313,12 +314,14 @@ class Manifest(object):
 
 		permissions = {
 			# Permission: Azure Active Directory Graph
-			"00000002-0000-0000-c000-000000000000": {"resourceAppId": "00000002-0000-0000-c000-000000000000",
+			"00000002-0000-0000-c000-000000000000": {
+				"resourceAppId": "00000002-0000-0000-c000-000000000000",
 				"resourceAccess": [
 					# Permission Name: Directory.ReadWrite.All, Type: Application
 					{"id": "78c8a3c8-a07e-4b9e-af1b-b5ccab50a175", "type": "Role"}]},
 			# Permission: Microsoft Graph
-			"00000003-0000-0000-c000-000000000000": {"resourceAppId": "00000003-0000-0000-c000-000000000000",
+			"00000003-0000-0000-c000-000000000000": {
+				"resourceAppId": "00000003-0000-0000-c000-000000000000",
 				"resourceAccess": [
 					# Permission Name: Directory.ReadWrite.All, Type: Application
 					{"id": "19dbc75e-c2e2-444c-a770-ec69d8559fc7", "type": "Role"},
@@ -329,7 +332,7 @@ class Manifest(object):
 					# Permission Name: TeamMember.ReadWrite.All, Type: Application
 					{"id": "0121dc95-1b9f-4aed-8bac-58c5ac466691", "type": "Role"}]}}
 
-		apps = permissions.keys()
+		apps = list(permissions.keys())
 		for appid in permissions.keys():
 			for access in self.manifest['requiredResourceAccess']:
 				if appid == access['resourceAppId']:
@@ -371,7 +374,7 @@ class JsonStorage(object):
 		open(self.filename, "w").close()  # touch
 		os.chown(self.filename, self.listener_uid, 0)
 		os.chmod(self.filename, S_IRUSR | S_IWUSR)
-		with open(self.filename, "wb") as fd:
+		with open(self.filename, "w") as fd:
 			json.dump(data, fd)
 
 
@@ -393,7 +396,7 @@ class AzureAuth(object):
 			if not all([self.client_id, self.adconnection_id, self.reply_url, self.domain]):
 				raise NoIDsStored("")
 		except (KeyError, NoIDsStored) as exc:
-			raise NoIDsStored, NoIDsStored(_("The configuration of Azure AD connection {adconnection} is incomplete and misses some data. Please run the wizard again.").format(adconnection=adconnection_alias), chained_exc=exc), sys.exc_info()[2]
+			reraise(NoIDsStored, NoIDsStored(_("The configuration of Azure AD connection {adconnection} is incomplete and misses some data. Please run the wizard again.").format(adconnection=adconnection_alias), chained_exc=exc), sys.exc_info()[2])
 		self._access_token = None
 		self._access_token_exp_at = None
 		if self.proxies is None:
@@ -426,7 +429,7 @@ class AzureAuth(object):
 
 	@classmethod
 	def store_manifest(cls, manifest, adconnection_alias=None):
-		with open(AzureADConnectionHandler.get_conf_path('MANIFEST_FILE', adconnection_alias), 'wb') as fd:
+		with open(AzureADConnectionHandler.get_conf_path('MANIFEST_FILE', adconnection_alias), 'w') as fd:
 			json.dump(manifest.as_dict(), fd, indent=2, separators=(',', ': '), sort_keys=True)
 		os.chmod(AzureADConnectionHandler.get_conf_path('MANIFEST_FILE', adconnection_alias), S_IRUSR | S_IWUSR)
 		cls.store_azure_ids(adconnection_alias=adconnection_alias, client_id=manifest.app_id, adconnection_id=manifest.adconnection_id, reply_url=manifest.reply_url, domain=manifest.domain)
@@ -481,7 +484,7 @@ class AzureAuth(object):
 			client_id = ids["client_id"]
 			reply_url = ids["reply_url"]
 		except KeyError as exc:
-			raise NoIDsStored, NoIDsStored(_("The configuration of Azure AD connection {adconnection} is incomplete and misses some data. Please run the wizard again.").format(adconnection=adconnection_alias), chained_exc=exc, adconnection_alias=adconnection_alias), sys.exc_info()[2]
+			reraise(NoIDsStored, NoIDsStored(_("The configuration of Azure AD connection {adconnection} is incomplete and misses some data. Please run the wizard again.").format(adconnection=adconnection_alias), chained_exc=exc, adconnection_alias=adconnection_alias), sys.exc_info()[2])
 		adconnection = ids.get("adconnection_id") or "common"
 		params = {
 			'client_id': client_id,
@@ -517,12 +520,11 @@ class AzureAuth(object):
 				decoded_body = _decode_b64(_body)
 				return json.loads(decoded_header), json.loads(decoded_body), _signature
 			except (AttributeError, TypeError, ValueError) as exc:
-				if sys.version_info < (3,):
-					et = unicode(encoded_token, 'utf8')
-				else:
-					et = encoded_token
+				et = encoded_token
+				if isinstance(et, bytes):  # Python 2
+					et = et.decode('UTF-8')
 				logger.exception(u"Invalid token value: %r", et)
-				raise IDTokenError, IDTokenError(_("Error reading token of Azure AD connection {adconnection} received from Azure. Please run the wizard again.").format(adconnection=adconnection_alias), chained_exc=exc, adconnection_alias=adconnection_alias), sys.exc_info()[2]
+				reraise(IDTokenError, IDTokenError(_("Error reading token of Azure AD connection {adconnection} received from Azure. Please run the wizard again.").format(adconnection=adconnection_alias), chained_exc=exc, adconnection_alias=adconnection_alias), sys.exc_info()[2])
 
 		def _get_azure_certs(adconnection_id):
 			# there's a strange non-ascii char at the beginning of the xml doc...
@@ -536,14 +538,14 @@ class AzureAuth(object):
 				fed = requests.get(federation_metadata_url.format(adconnection_id=adconnection_id), proxies=cls.proxies)
 			except RequestException as exc:
 				logger.exception("Error downloading federation metadata.")
-				raise TokenValidationError, TokenValidationError(_("Error downloading certificates from Azure for AD connection {adconnection}. Please run the wizard again.").format(adconnection=adconnection_alias), chained_exc=exc, adconnection_alias=adconnection_alias), sys.exc_info()[2]
+				reraise(TokenValidationError, TokenValidationError(_("Error downloading certificates from Azure for AD connection {adconnection}. Please run the wizard again.").format(adconnection=adconnection_alias), chained_exc=exc, adconnection_alias=adconnection_alias), sys.exc_info()[2])
 			# the federation metadata document is a XML file
 			dom_tree = parseString(_discard_garbage(fed.text))
 			# the certificates we want are inside:
 			# <EntityDescriptor>
-			#  <RoleDescriptor xsi:type="fed:SecurityTokenServiceType">  (<- the same certificates can be found in ApplicationServiceType/SAML too)
-			#    <KeyDescriptor use="signing">                           (<- must be use="signing")
-			#      <X509Certificate>
+			#	<RoleDescriptor xsi:type="fed:SecurityTokenServiceType">  (<- the same certificates can be found in ApplicationServiceType/SAML too)
+			#		<KeyDescriptor use="signing">							(<- must be use="signing")
+			#			<X509Certificate>
 			certs = set()
 			collection = dom_tree.documentElement
 			# walk xml tree, checking conditions, collecting certificates and mccabes
@@ -596,7 +598,7 @@ class AzureAuth(object):
 			client_id = ids["client_id"]
 			reply_url = ids["reply_url"]
 		except KeyError as exc:
-			raise NoIDsStored, NoIDsStored(_("The configuration of Azure AD connection {adconnection} is incomplete and misses some data. Please run the wizard again.").format(adconnection=adconnection_alias), chained_exc=exc, adconnection_alias=adconnection_alias), sys.exc_info()[2]
+			reraise(NoIDsStored, NoIDsStored(_("The configuration of Azure AD connection {adconnection} is incomplete and misses some data. Please run the wizard again.").format(adconnection=adconnection_alias), chained_exc=exc, adconnection_alias=adconnection_alias), sys.exc_info()[2])
 
 		nonce_old = cls.load_tokens(adconnection_alias)["nonce"]
 		if not body["nonce"] == nonce_old:
@@ -679,7 +681,7 @@ class AzureAuth(object):
 			raise WriteScriptError(_("Error reading identity provider certificate."), adconnection_alias=adconnection_alias)
 
 		try:
-			cert = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, raw_cert))
+			cert = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, raw_cert)).decode("ASCII")
 		except OpenSSL.crypto.Error as exc:
 			logger.exception("while converting certificate: %s", exc)
 			raise WriteScriptError(_("Error converting identity provider certificate."), adconnection_alias=adconnection_alias)
@@ -702,9 +704,9 @@ pause
 
 		try:
 			script_path = SAML_SETUP_SCRIPT_PATH.format(adconnection_alias='_{}'.format(adconnection_alias) if adconnection_alias else '')
-			with open(script_path, 'wb') as fd:
+			with open(script_path, 'w') as fd:
 				fd.write(template)
-			os.chmod(script_path, 0644)
+			os.chmod(script_path, 0o644)
 		except IOError as exc:
 			logger.exception("while writing powershell script: %s", exc)
 			raise WriteScriptError(_("Error writing SAML setup script."), adconnection_alias=adconnection_alias)

@@ -46,7 +46,7 @@ def get_http_proxies(ucr, logger):
 def write_async_json(data, logger):
     filename = os.path.join(ASYNC_DATA_DIR, '{time:f}.json'.format(time=time.time()))
     filename_tmp = filename + '.tmp'
-    with open(filename_tmp, 'wb') as fd:
+    with open(filename_tmp, 'w') as fd:
         json.dump(data, fd, sort_keys=True, indent=4)
     shutil.move(filename_tmp, filename)
     if logger:

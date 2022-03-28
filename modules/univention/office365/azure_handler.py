@@ -33,7 +33,7 @@
 from __future__ import absolute_import
 
 import json
-import urllib
+from six.moves.urllib.parse import urlencode
 import uuid
 import requests
 import collections
@@ -43,6 +43,7 @@ from operator import itemgetter
 import random
 import string
 import sys
+from six import string_types, reraise, text_type
 
 from univention.office365.azure_auth import AzureAuth, AzureError, resource_url
 from univention.office365.logging2udebug import get_logger
@@ -52,56 +53,56 @@ try:
 except ImportError:
 	JSONDecodeError = ValueError  # requests with py2
 
-
 azure_params = {"api-version": "1.6"}
+
 azure_attribute_types = dict(
 	accountEnabled=bool,
 	addLicenses=list,
 	assignedLicenses=list,
-	city=unicode,
-	country=unicode,
-	department=unicode,
-	description=unicode,
-	displayName=unicode,
-	facsimileTelephoneNumber=unicode,
+	city=text_type,
+	country=text_type,
+	department=text_type,
+	description=text_type,
+	displayName=text_type,
+	facsimileTelephoneNumber=text_type,
 	forceChangePasswordNextLogin=bool,
-	givenName=unicode,
-	immutableId=unicode,
-	jobTitle=unicode,
-	mail=unicode,
+	givenName=text_type,
+	immutableId=text_type,
+	jobTitle=text_type,
+	mail=text_type,
 	mailEnabled=bool,
-	mailNickname=unicode,
-	mobile=unicode,
+	mailNickname=text_type,
+	mobile=text_type,
 	otherMails=list,
-	passwordPolicies=unicode,
+	passwordPolicies=text_type,
 	passwordProfile=dict,
-	password=unicode,
-	physicalDeliveryOfficeName=unicode,
-	postalCode=unicode,
-	preferredLanguage=unicode,
+	password=text_type,
+	physicalDeliveryOfficeName=text_type,
+	postalCode=text_type,
+	preferredLanguage=text_type,
 	removeLicenses=list,
 	securityEnabled=bool,
 	securityEnabledOnly=bool,
-	state=unicode,
-	streetAddress=unicode,
-	surname=unicode,
-	telephoneNumber=unicode,
+	state=text_type,
+	streetAddress=text_type,
+	surname=text_type,
+	telephoneNumber=text_type,
 	thumbnailPhoto=bytes,
-	url=str,
-	usageLocation=unicode,
-	userPrincipalName=unicode,
-	userType=unicode
+	url=text_type,
+	usageLocation=text_type,
+	userPrincipalName=text_type,
+	userType=text_type
 )
 # service plan names
-# SWAY                   Sway
-# INTUNE_O365            Mobile Device Management for Office 365
-# YAMMER_ENTERPRISE      Yammer
-# RMS_S_ENTERPRISE       Azure Rights Management (RMS)
-# OFFICESUBSCRIPTION     Office Professional Plus
-# MCOSTANDARD            Skype for Business Online
-# SHAREPOINTWAC          Office Online
-# SHAREPOINTENTERPRISE   SharePoint Online
-# EXCHANGE_S_ENTERPRISE  Exchange Online Plan 2
+# SWAY						Sway
+# INTUNE_O365				Mobile Device Management for Office 365
+# YAMMER_ENTERPRISE			Yammer
+# RMS_S_ENTERPRISE			Azure Rights Management (RMS)
+# OFFICESUBSCRIPTION		Office Professional Plus
+# MCOSTANDARD				Skype for Business Online
+# SHAREPOINTWAC				Office Online
+# SHAREPOINTENTERPRISE		SharePoint Online
+# EXCHANGE_S_ENTERPRISE		Exchange Online Plan 2
 _default_azure_service_plan_names = "SHAREPOINTWAC, SHAREPOINTWAC_DEVELOPER, OFFICESUBSCRIPTION, OFFICEMOBILE_SUBSCRIPTION, SHAREPOINTWAC_EDU"
 
 logger = get_logger("office365", "o365")
@@ -142,7 +143,7 @@ class ApiError(AzureError):
 		msg = "Communication error."
 		if isinstance(response, requests.Response):
 			msg += "HTTP response status: {num}\n".format(
-			    num=response.status_code
+				num=response.status_code
 			)
 		if hasattr(response, "json"):
 			j = response.json
@@ -271,7 +272,6 @@ class AzureHandler(object):
 				headers["Content-Type"] = "application/json"
 				args["data"] = json.dumps(data)
 
-
 			requests_func = getattr(requests, method.lower())
 			try:
 				response = requests_func(**args)
@@ -292,7 +292,7 @@ class AzureHandler(object):
 						response_json = {}
 					else:
 						logger.exception("response is not JSON (adconnection_alias=%r). response.__dict__: %r", self.adconnection_alias, response.__dict__)
-						raise ApiError, ApiError(response, chained_exc=exc, adconnection_alias=self.adconnection_alias), sys.exc_info()[2]
+						reraise(ApiError, ApiError(response, chained_exc=exc, adconnection_alias=self.adconnection_alias), sys.exc_info()[2])
 				logger.info(
 					"status: %r (%s)%s (%s %s)",
 					response.status_code,
@@ -344,9 +344,9 @@ class AzureHandler(object):
 			params.update(params_extra)
 		if ofilter:
 			params["$filter"] = ofilter
-		params = urllib.urlencode(params)
+		params = urlencode(params)
 		if object_id:
-			assert type(object_id) in [str, unicode], 'The ObjectId must be a string.'
+			assert type(object_id) in [str, text_type], 'The ObjectId must be a string not %s' % type(object_id)
 			url = self.uris[object_type].format(
 				params=params,
 				object_id=object_id,
@@ -359,7 +359,7 @@ class AzureHandler(object):
 		return self._list_objects(object_type="user", object_id=objectid, ofilter=ofilter)
 
 	def get_users_direct_groups(self, user_id):
-		params = urllib.urlencode(azure_params)
+		params = urlencode(azure_params)
 		url = self.uris["user_direct_groups"].format(user_id=user_id, params=params)
 		return self.call_api("GET", url)
 
@@ -391,13 +391,13 @@ class AzureHandler(object):
 				modifications=attributes
 			)
 		else:
-			params = urllib.urlencode(azure_params)
+			params = urlencode(azure_params)
 			url = self.uris[object_type + "s"].format(params=params)
 			return self.call_api("POST", url, attributes)
 
 	def invalidate_all_tokens_for_user(self, user_id):
 		# https://docs.microsoft.com/de-de/previous-versions/azure/ad/graph/api/users-operations#invalidate-all-refresh-tokens-for-a-user
-		params = urllib.urlencode(azure_params)
+		params = urlencode(azure_params)
 		url = self.uris["invalidateTokens"].format(user_id=user_id, params=params)
 		return self.call_api("POST", url)
 
@@ -411,7 +411,7 @@ class AzureHandler(object):
 				forceChangePasswordNextLogin=False
 			)
 		)
-		params = urllib.urlencode(azure_params)
+		params = urlencode(azure_params)
 		url = self.uris["user"].format(object_id=user_id, params=params)
 		return self.call_api("PATCH", url, pwdProfile)
 
@@ -444,7 +444,7 @@ class AzureHandler(object):
 
 	def _modify_objects(self, object_type, object_id, modifications):
 		assert object_type in ["user", "group"], 'Currently only "user" and "group" supported.'
-		assert type(object_id) in [str, unicode], 'The ObjectId must be a string.'
+		assert type(object_id) in [str, text_type], 'The ObjectId must be a string not %s' % type(object_id)
 		assert type(modifications) == dict, "Please supply a dict of attr->value to change."
 
 		can_only_be_created_not_modified = ["mobile", "passwordProfile"]
@@ -455,7 +455,7 @@ class AzureHandler(object):
 				logger.warn("Modifying %r is currently not supported, removed it from modification list.", attrib)
 		logger.info("Modifying %s with object_id %r (%s) and modifications %r...", object_type, object_id, self.adconnection_alias, modifications)
 
-		params = urllib.urlencode(azure_params)
+		params = urlencode(azure_params)
 		url = self.uris[object_type].format(object_id=object_id, params=params)
 		return self.call_api("PATCH", url, modifications)
 
@@ -469,10 +469,10 @@ class AzureHandler(object):
 
 	def _delete_objects(self, object_type, object_id):
 		assert object_type in ["user", "group"], 'Currently only "user" and "group" supported.'
-		assert type(object_id) in [str, unicode], "The ObjectId must be a string."
+		assert type(object_id) in [str, text_type], 'The ObjectId must be a string not %s' % type(object_id)
 		logger.info("Deleting %s with object_id %r (%s)...", object_type, object_id, self.adconnection_alias)
 
-		params = urllib.urlencode(azure_params)
+		params = urlencode(azure_params)
 		url = self.uris[object_type].format(object_id=object_id, params=params)
 		try:
 			return self.call_api("DELETE", url)
@@ -507,10 +507,12 @@ class AzureHandler(object):
 		Transitive versions (incl nested groups)
 		"""
 		logger.debug("Querying memberOf %r for %r with object_id %r (%s)...", obj, resource_collection, object_id, self.adconnection_alias)
-		assert type(resource_collection) in [str, unicode], "resource_collection must be a string."
-		assert type(object_id) in [str, unicode], "The ObjectId must be a string."
+		assert type(resource_collection) in [str, text_type], 'resource_collection must be a string not %s' % type(resource_collection)
+		assert type(object_id) in [str, text_type], 'The ObjectId must be a string not %s' % type(object_id)
 
-		params = urllib.urlencode(azure_params)
+		resource_collection = text_type(resource_collection)
+
+		params = urlencode(azure_params)
 		if obj == "groups":
 			url = self.uris["getMemberGroups"].format(resource_collection=resource_collection, resource_id=object_id, params=params)
 			data = {"securityEnabledOnly": False}
@@ -529,14 +531,14 @@ class AzureHandler(object):
 		assert type(object_ids) == list, "Parameter object_ids must be a list of object IDs."
 
 		data = {"objectIds": object_ids}
-		params = urllib.urlencode(azure_params)
+		params = urlencode(azure_params)
 		url = self.uris["getObjectsByObjectIds"].format(params=params)
 		return self.call_api("POST", url, data)
 
 	def get_groups_direct_members(self, group_id):
-		assert type(group_id) in [str, unicode], "The ObjectId must be a string."
+		assert type(group_id) in [str, text_type], 'The ObjectId must be a string not %s' % type(group_id)
 
-		params = urllib.urlencode(azure_params)
+		params = urlencode(azure_params)
 		url = self.uris["group_members"].format(group_id=group_id, params=params)
 		return self.call_api("GET", url)
 
@@ -547,9 +549,9 @@ class AzureHandler(object):
 		:param object_ids: list: object_ids of groups
 		:return: None
 		"""
-		assert type(group_id) in [str, unicode], "The ObjectId must be a string."
-		assert type(object_ids) == list, "object_ids must be a list."
-		assert all(type(o_id) in [str, unicode] for o_id in object_ids), "object_ids must be a list of objectID strings."
+		assert type(group_id) in [str, text_type], 'The ObjectId must be a string not %s' % type(group_id)
+		assert type(object_ids) == list, 'object_ids must be a list not %s' % type(object_ids)
+		assert all(type(o_id) in [str, text_type] for o_id in object_ids), "object_ids must be a list of objectID strings."
 		logger.info("Adding objects %r to group %r (%s)...", object_ids, group_id, self.adconnection_alias)
 
 		# remove object's that already member of group
@@ -572,7 +574,7 @@ class AzureHandler(object):
 				continue
 			dir_obj_url = self.uris["directoryObjects"].format(object_id=object_id)
 			objs = {"url": dir_obj_url}
-			params = urllib.urlencode(azure_params)
+			params = urlencode(azure_params)
 			url = self.uris["group_members"].format(group_id=group_id, params=params)
 			try:
 				self.call_api("POST", url, data=objs)
@@ -585,7 +587,7 @@ class AzureHandler(object):
 
 	def delete_group_member(self, group_id, member_id):
 		logger.info("Removing member %r from group %r (%s)...", member_id, group_id, self.adconnection_alias)
-		params = urllib.urlencode(azure_params)
+		params = urlencode(azure_params)
 		url = self.uris["group_member"].format(group_id=group_id, member_id=member_id, params=params)
 
 		try:
@@ -613,7 +615,7 @@ class AzureHandler(object):
 			data["addLicenses"].append(dict(disabledPlans=deactivate_plans if deactivate_plans else [], skuId=sku_id))
 		elif operation == "remove":
 			data["removeLicenses"].append(sku_id)
-		params = urllib.urlencode(azure_params)
+		params = urlencode(azure_params)
 		url = self.uris["user_assign_license"].format(user_id=user_id, params=params)
 		return self.call_api("POST", url, data)
 
@@ -621,7 +623,7 @@ class AzureHandler(object):
 		try:
 			self._change_license("add", user_id, sku_id, deactivate_plans)
 		except ApiError as exc:
-			raise AddLicenseError, AddLicenseError(str(exc), user_id, sku_id, exc), sys.exc_info()[2]
+			reraise(AddLicenseError, AddLicenseError(str(exc), user_id, sku_id, exc), sys.exc_info()[2])
 
 	def remove_license(self, user_id, sku_id):
 		self._change_license("remove", user_id, sku_id, None)
@@ -738,8 +740,8 @@ class AzureHandler(object):
 	def create_random_pw():
 		# have at least one char from each category in password
 		# https://msdn.microsoft.com/en-us/library/azure/jj943764.aspx
-		pw = list(random.choice(string.lowercase))
-		pw.append(random.choice(string.uppercase))
+		pw = list(random.choice(string.ascii_lowercase))
+		pw.append(random.choice(string.ascii_uppercase))
 		pw.append(random.choice(string.digits))
 		pw.append(random.choice(u"@#$%^&*-_+=[]{}|\\:,.?/`~();"))
 		pw.extend(random.choice(string.ascii_letters + string.digits + u"@#$%^&*-_+=[]{}|\\:,.?/`~();") for _ in range(12))
@@ -778,6 +780,11 @@ class AzureHandler(object):
 				if azure_attribute_types[k] == list and not isinstance(v, list) and isinstance(v, collections.Iterable):
 					res[k] = [v]  # list("str") -> ["s", "t", "r"] and list(dict) -> [k, e, y, s]  :/
 				else:
+					if azure_attribute_types[k] == text_type and isinstance(v, list):
+						# FIXME: "mobile" and "telephoneNumber" are multivalue in UCS but single-value in Azure
+						# therefore we only use the first value
+						v = v[0]
+
 					if v is None:
 						# don't do unicode(None)
 						val = None
@@ -788,7 +795,7 @@ class AzureHandler(object):
 						res[k].append(val)
 					else:
 						res[k] = val
-				if res[k] and isinstance(res[k], list) and all(isinstance(x, basestring) for x in res[k]):
+				if res[k] and isinstance(res[k], list) and all(isinstance(x, string_types) for x in res[k]):
 					# remove duplicates insensitive (can really only happen in 'otherMails')
 					list_copy = list()
 					for o in res[k]:
@@ -797,7 +804,7 @@ class AzureHandler(object):
 					res[k] = list_copy
 
 			except KeyError as exc:
-				raise UnkownTypeError, UnkownTypeError("Attribute '{}' not in azure_attribute_types mapping.".format(k), chained_exc=exc), sys.exc_info()[2]
+				reraise(UnkownTypeError, UnkownTypeError("Attribute '{}' not in azure_attribute_types mapping.".format(k), chained_exc=exc), sys.exc_info()[2])
 		return res
 
 # vim: filetype=python noexpandtab tabstop=4 shiftwidth=4 softtabstop=4

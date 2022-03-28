@@ -32,12 +32,7 @@
 
 from __future__ import absolute_import
 
-import base64
 import copy
-import json
-import os
-from stat import S_IRUSR, S_IWUSR
-
 import listener
 from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
 from univention.office365.listener import Office365Listener, get_adconnection_filter
@@ -124,10 +119,10 @@ def handler(dn, new, old, command):
 		old = _delay if _delay else old
 		_delay = None
 
-	adconnection_aliases_old = set(old.get('univentionOffice365ADConnectionAlias', []))
-	adconnection_aliases_new = set(new.get('univentionOffice365ADConnectionAlias', []))
-	logger.info('adconnection_alias_old=%r adconnection_alias_new=%r', adconnection_aliases_old, adconnection_aliases_new)
+	adconnection_aliases_old = set(x.decode("utf-8") for x in old.get('univentionOffice365ADConnectionAlias', []))
+	adconnection_aliases_new = set(x.decode("utf-8") for x in new.get('univentionOffice365ADConnectionAlias', []))
 
+	logger.info('adconnection_alias_old=%r adconnection_alias_new=%r', adconnection_aliases_old, adconnection_aliases_new)
 	#
 	# NEW group
 	#
@@ -166,13 +161,13 @@ def handler(dn, new, old, command):
 					object_id = None
 				udm_group = ol.udm.get_udm_group(dn)
 				ol.set_adconnection_object_id(udm_group, object_id)
-				logger.info("Modified group %r (%r).", old["cn"][0], conn)
+				logger.info("Modified group %r (%r).", old["cn"][0].decode('UTF-8'), conn)
 			else:
-				logger.debug("Modified group %r has no members in %r.", new["cn"][0], conn)
+				logger.debug("Modified group %r has no members in %r.", new["cn"][0].decode('UTF-8'), conn)
 				# Handle case where no active user is left in the group and any nested group
 				if (
-					conn in new.get("univentionOffice365ADConnectionAlias", []) or
-					conn in old.get("univentionOffice365ADConnectionAlias", [])
+					conn.encode('UTF-8') in new.get("univentionOffice365ADConnectionAlias", []) or
+					conn.encode('UTF-8') in old.get("univentionOffice365ADConnectionAlias", [])
 				):
 					azure_group = ol.modify_group(old, new)
 					# save Azure objectId in UDM object
@@ -183,7 +178,7 @@ def handler(dn, new, old, command):
 						object_id = None
 					udm_group = ol.udm.get_udm_group(dn)
 					ol.set_adconnection_object_id(udm_group, object_id)
-					logger.info("Modified group %r (%r).", old["cn"][0], conn)
+					logger.info("Modified group %r (%r).", old["cn"][0].decode('UTF-8'), conn)
 
 				continue
 		return

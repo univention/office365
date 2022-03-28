@@ -28,6 +28,8 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
+from six import text_type
+
 from univention.admin.layout import Tab
 import univention.admin.filter
 import univention.admin.handlers
@@ -96,7 +98,7 @@ except AttributeError:
 			univention.admin.filter.walk(filter_p, univention.admin.mapping.mapRewrite, arg=mapping)
 			searchfilter.expressions.append(filter_p)
 
-		return [object(co, lo, None, dn, attr) for dn, attr in lo.search(unicode(searchfilter), base, scope, unique, required, timeout, sizelimit)]
+		return [object(co, lo, None, dn, attr) for dn, attr in lo.search(text_type(searchfilter), base, scope, unique, required, timeout, sizelimit)]
 
 
 try:

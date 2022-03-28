@@ -31,14 +31,9 @@
 
 from __future__ import absolute_import
 
-import os
-import json
-import base64
 import copy
 import datetime
 import zlib
-from stat import S_IRUSR, S_IWUSR
-
 import listener
 from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler, NoIDsStored, default_adconnection_alias_ucrv
 from univention.office365.listener import Office365Listener, NoAllocatableSubscriptions, attributes_system, get_adconnection_filter
@@ -58,7 +53,7 @@ logger = get_logger("office365", "o365")
 
 
 def get_listener_attributes():
-	global attributes_anonymize, attributes_mapping, attributes_never, attributes_static, attributes_sync
+	global attributes_anonymize, attributes_mapping, attributes_never, attributes_static, attributes_sync, attributes_multiple_azure2ldap
 
 	def rm_objs_from_list_or_dict(rm_objs_list, list_of_listsdicts):
 		for rm_obj in rm_objs_list:
@@ -109,9 +104,7 @@ def get_listener_attributes():
 			attributes_multiple_azure2ldap[v].append(k)
 		except KeyError:
 			attributes_multiple_azure2ldap[v] = [k]
-	for k, v in attributes_multiple_azure2ldap.items():
-		if len(v) < 2:
-			del attributes_multiple_azure2ldap[k]
+	attributes_multiple_azure2ldap = {k: v for k, v in attributes_multiple_azure2ldap.items() if len(v) >= 2}
 
 	# sanity check
 	no_mapping = [a for a in attrs if a not in attributes_mapping.keys() and a not in attributes_system]
@@ -158,7 +151,7 @@ modrdn = "1"
 
 _attrs = dict(
 	anonymize=attributes_anonymize,
-	listener=copy.deepcopy(attributes),  # when handler() runs, all kinds of stuff is suddenly in attributes
+	listener=copy.copy(attributes),  # when handler() runs, all kinds of stuff is suddenly in attributes
 	mapping=attributes_mapping,
 	never=attributes_never,
 	static=attributes_static,
@@ -166,7 +159,7 @@ _attrs = dict(
 	multiple=attributes_multiple_azure2ldap
 )
 
-ldap_cred = dict()
+ldap_cred = {}
 
 logger.info("listener observing attributes: %r", [a for a in attributes if a not in attributes_system])
 logger.info("listener is also observing: %r", sorted(list(attributes_system)))
@@ -182,9 +175,9 @@ get_http_proxies(listener.configRegistry, logger)  # log proxy settings
 _delay = None
 
 
-def is_deactived_locked_or_expired(udm_user):
+def is_deactivated_locked_or_expired(udm_user):
 	"""
-	Check if a LDAP-user is deactivated or locked (by any method: Windows/Kerberos/POSIX).
+	Check if a LDAP-user is deactivated or locked.
 
 	:param udm_user: UDM user instance
 	:return: bool: whether the user is deactivated or locked
@@ -301,7 +294,7 @@ def new_or_reactivate_user(ol, dn, new, old):
 
 def delete_user(ol, dn, new, old):
 	ol.delete_user(old)
-	logger.info("Deleted user %r adconnection: %s.", old["uid"][0], ol.adconnection_alias)
+	logger.info("Deleted user %r adconnection: %s.", old["uid"][0].decode("UTF-8"), ol.adconnection_alias)
 
 
 def deactivate_user(ol, dn, new, old):
@@ -322,7 +315,7 @@ def deactivate_user(ol, dn, new, old):
 				pass
 			udm_user["UniventionOffice365Data"] = Office365Listener.encode_o365data(old_azure_data)
 			udm_user.modify()
-	logger.info("Deactivated user %r adconnection: %s.", old["uid"][0], ol.adconnection_alias)
+	logger.info("Deactivated user %r adconnection: %s.", old["uid"][0].decode("UTF-8"), ol.adconnection_alias)
 
 
 def modify_user(ol, dn, new, old):
@@ -357,7 +350,7 @@ def modify_user(ol, dn, new, old):
 			new_azure_data = old_azure_data
 		udm_user["UniventionOffice365Data"] = Office365Listener.encode_o365data(new_azure_data)
 	udm_user.modify()
-	logger.info("Modified user %r adconnection: %s.", old["uid"][0], ol.adconnection_alias)
+	logger.info("Modified user %r adconnection: %s.", old["uid"][0].decode('UTF-8'), ol.adconnection_alias)
 
 
 def handler(dn, new, old, command):
@@ -374,25 +367,26 @@ def handler(dn, new, old, command):
 		old = _delay if _delay else old
 		_delay = None
 
-	adconnection_aliases_old = set(old.get('univentionOffice365ADConnectionAlias', []))
-	adconnection_aliases_new = set(new.get('univentionOffice365ADConnectionAlias', []))
+	adconnection_aliases_old = set(x.decode("utf-8") for x in old.get('univentionOffice365ADConnectionAlias', []))
+	adconnection_aliases_new = set(x.decode("utf-8") for x in new.get('univentionOffice365ADConnectionAlias', []))
+
 	logger.info('adconnection_alias_old=%r adconnection_alias_new=%r', adconnection_aliases_old, adconnection_aliases_new)
 
 	udm_helper = UDMHelper(ldap_cred)
 
-	old_enabled = bool(int(old.get("univentionOffice365Enabled", ["0"])[0]))  # "" when disabled, "1" when enabled
+	old_enabled = bool(int(old.get("univentionOffice365Enabled", [b"0"])[0]))  # b"" when disabled, b"1" when enabled
 	if old_enabled:
 		udm_user = udm_helper.get_udm_user(dn, old)
-		enabled = not is_deactived_locked_or_expired(udm_user)
+		enabled = not is_deactivated_locked_or_expired(udm_user)
 		logger.debug("old was %s.", "enabled" if enabled else "deactivated, locked or expired")
 		old_enabled &= enabled
 		old_adconnection_enabled = adconnection_aliases_old.issubset(initialized_adconnection)
 		logger.debug("old Azure AD connection is %s.", "enabled" if old_adconnection_enabled else "not initialized")
 		old_enabled &= old_adconnection_enabled
-	new_enabled = bool(int(new.get("univentionOffice365Enabled", ["0"])[0]))
+	new_enabled = bool(int(new.get("univentionOffice365Enabled", [b"0"])[0]))
 	if new_enabled:
 		udm_user = udm_helper.get_udm_user(dn, new)
-		enabled = not is_deactived_locked_or_expired(udm_user)
+		enabled = not is_deactivated_locked_or_expired(udm_user)
 		logger.debug("new is %s.", "enabled" if enabled else "deactivated, locked or expired")
 		new_enabled &= enabled
 		new_adconnection_enabled = adconnection_aliases_new.issubset(initialized_adconnection)

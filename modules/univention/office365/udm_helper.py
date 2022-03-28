@@ -142,8 +142,8 @@ class UDMHelper(object):
 		cache = get_cache()
 		univentionOffice365Enabled = cache.get_sub_cache('univentionOffice365Enabled')
 		univentionOffice365ADConnectionAlias = cache.get_sub_cache('reverseUniventionOffice365ADConnectionAlias')
-		group_users = set(map(unicode.lower, users_in_group(group_dn)))
-		alias_users = set(map(unicode.lower, univentionOffice365ADConnectionAlias.get(self.adconnection_alias)))
+		group_users = set(x.lower() for x in users_in_group(group_dn))
+		alias_users = set(x.lower() for x in univentionOffice365ADConnectionAlias.get(self.adconnection_alias))
 		for user in group_users & alias_users:
 			if univentionOffice365Enabled.get(user) == '1':
 				return True

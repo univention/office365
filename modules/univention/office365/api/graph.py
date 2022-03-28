@@ -3,10 +3,7 @@ import json
 import requests
 import time
 
-try:
-    from urllib.parse import quote
-except ImportError:
-    from urllib import quote
+from six.moves.urllib.parse import quote
 
 import os
 import grp

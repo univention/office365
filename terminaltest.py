@@ -179,7 +179,7 @@ if __name__ == "__main__":
 		print(
 			"Call this program with `%s -g <connection>` to use a specific connection."
 			" Without further arguments that is enough to test which connection works"
-			" and which does not and it gives hints why it does not."  % sys.argv[0]
+			" and which does not and it gives hints why it does not." % sys.argv[0]
 		)
 		print("")
 		print("If `-g` is skipped this program defaults to: `%s`." % args.g)

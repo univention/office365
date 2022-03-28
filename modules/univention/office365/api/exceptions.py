@@ -7,8 +7,10 @@
     adaptions required to introduce new error types smaller.
 '''
 
+
 class GraphError(Exception):
     pass
+
 
 class GraphRessourceNotFroundError(GraphError):
     pass

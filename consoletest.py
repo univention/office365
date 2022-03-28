@@ -40,7 +40,7 @@ import base64
 
 from univention.config_registry import ConfigRegistry
 from univention.office365.azure_handler import AzureHandler
-from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
+from univention.office365.azure_auth import AzureADConnectionHandler
 
 EXAMPLES = """\
 ADD USERS | GROUPS
@@ -119,7 +119,7 @@ def print_users(users, complete=False, short=False):
 				print("            None")
 			print("      provisionedPlans:")
 			for plan in user["provisionedPlans"]:
-				print(u"            service: {0} \t capabilityStatus: {0} \t provisioningStatus: {0}".format(
+				print(u"            service: {0} \t capabilityStatus: {1} \t provisioningStatus: {2}".format(
 					plan["service"], plan["capabilityStatus"], plan["provisioningStatus"]))
 			if not user["provisionedPlans"]:
 				print("            None")
@@ -142,7 +142,7 @@ def print_groups(groups, complete=False, short=False):
 			else:
 				pprint.pprint(group)
 				print("")
-		except:
+		except KeyError:
 			print("type(groups): {}".format(type(groups)))
 			pprint.pprint(group)
 			print("")
@@ -213,7 +213,7 @@ if __name__ == "__main__":
 					"accountEnabled": True,
 					"displayName": name,
 					"mailNickname": name,
-					"immutableId": base64.b64encode(str(random.randint(100000000, 999999999))),
+					"immutableId": base64.b64encode(str(random.randint(100000000, 999999999)).encode("ASCII")).decode("ASCII"),
 					"passwordProfile": {
 						"password": "univention.99",
 						"forceChangePasswordNextLogin": False},

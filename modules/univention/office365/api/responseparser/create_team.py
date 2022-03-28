@@ -1,4 +1,3 @@
-import json
 import re
 
 '''
@@ -7,6 +6,7 @@ import re
     header with a cruse url format, for which this function is there to parse
     it.
 '''
+
 
 def get_team_id(response):
     return re.search(r"teams\('([^']+)'\)", response['Location']).group(1) or None
