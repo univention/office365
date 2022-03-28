@@ -1,3 +1,9 @@
+univention-office365 (3.0.0-2) unstable; urgency=medium
+
+  * Bug #54509: Increase debian version for first UCS 5.0 build
+
+ -- Erik Damrose <damrose@univention.de>  Mon, 28 Mar 2022 18:16:10 +0200
+
 univention-office365 (3.0.0-1) unstable; urgency=medium
 
   * Bug #54509: Update shebangs and ucs-test dependences (python3-pytest-mock)
