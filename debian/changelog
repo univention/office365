@@ -1,3 +1,9 @@
+univention-office365 (2.0.3-2) unstable; urgency=medium
+
+  * Bug #54403: Fix: Run UMC module with python2
+
+ -- Erik Damrose <damrose@univention.de>  Tue, 29 Mar 2022 14:14:03 +0200
+
 univention-office365 (2.0.3-1) unstable; urgency=medium
 
   * Bug #55403: Migration to python3 compatible code.
