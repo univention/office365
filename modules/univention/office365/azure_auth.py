@@ -165,7 +165,7 @@ class AzureADConnectionHandler(object):
 		subprocess.call(['pkill', '-f', '/usr/sbin/univention-management-console-module -m office365'])
 
 	@classmethod
-	def create_new_adconnection(cls, adconnection_alias, make_default=False, description=""):
+	def create_new_adconnection(cls, adconnection_alias, make_default=False, description="", restart_listener=True):
 		aliases = cls.get_adconnection_aliases()
 		if adconnection_alias in aliases:
 			logger.error('Azure AD connection alias %s is already listed in UCR %s.', adconnection_alias, adconnection_alias_ucrv)
@@ -191,7 +191,8 @@ class AzureADConnectionHandler(object):
 		handler_set(ucrv)
 		UDMHelper.create_udm_adconnection(adconnection_alias, description)
 		cls.configure_wizard_for_adconnection(adconnection_alias)
-		cls.listener_restart()
+		if restart_listener:
+			cls.listener_restart()
 
 	@classmethod
 	def rename_adconnection(cls, old_adconnection_alias, new_adconnection_alias):

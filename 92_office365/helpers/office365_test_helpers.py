@@ -425,7 +425,7 @@ def setup_logging():
 def setup_externally_configured_adconnections():
 	try:
 		if not os.path.exists("/etc/univention-office365/o365domain"):
-			AzureADConnectionHandler.create_new_adconnection("o365domain")
+			AzureADConnectionHandler.create_new_adconnection("o365domain", restart_listener=False)
 		if not AzureAuth.is_initialized("o365domain"):
 			newconf_dir = AzureADConnectionHandler.get_conf_path("CONFDIR", "o365domain")
 			srcpath = "/etc/univention-office365/o365-dev-univention-de"
@@ -434,7 +434,7 @@ def setup_externally_configured_adconnections():
 			ucrv_set = 'office365/adconnection/alias/o365domain=initialized'
 			handler_set([ucrv_set])
 		if not os.path.exists("/etc/univention-office365/azuretestdomain"):
-			AzureADConnectionHandler.create_new_adconnection("azuretestdomain")
+			AzureADConnectionHandler.create_new_adconnection("azuretestdomain", restart_listener=False)
 		if not AzureAuth.is_initialized("azuretestdomain"):
 			newconf_dir = AzureADConnectionHandler.get_conf_path("CONFDIR", "azuretestdomain")
 			srcpath = "/etc/univention-office365/u-azure-test-de"
