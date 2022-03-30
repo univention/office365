@@ -25,7 +25,7 @@ Depends:
  univention-join,
  univention-ldap-server,
  univention-saml (>= 5.0.4-23),
- python-univention-office365 (= ${binary:Version}) |  python3-univention-office365 (= ${binary:Version}),
+ python3-univention-office365 (= ${binary:Version}),
  ${misc:Depends},
  ${python:Depends},
 Description: Provision MS Office 365 accounts.

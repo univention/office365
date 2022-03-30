@@ -1,3 +1,9 @@
+univention-office365 (3.0.0-4) unstable; urgency=medium
+
+  * Bug #54509: u-office365 only depends on python3 lib package
+
+ -- Erik Damrose <damrose@univention.de>  Wed, 30 Mar 2022 17:15:59 +0200
+
 univention-office365 (3.0.0-3) unstable; urgency=medium
 
   * Bug #54509: Increase joinscript version, fix translation
