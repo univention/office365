@@ -696,11 +696,12 @@ msgstr ""
 msgid "Microsoft 365 configuration"
 msgstr "Microsoft 365 Konfiguration"
 
-#: office365.js:475
+#: umc/js/office365.js:476
 msgid ""
-"It is necessary to <a href=\"https://%(url)s\">run this wizard while using "
-"the Univention Management Console with a https connection.</a> If you "
-"continue without a https connection, the wizard will likely not complete."
+"It is necessary to <a href=\"https://%(url)s\" target=\"_blank\">run this "
+"wizard while using the Univention Management Console with a https connection."
+"</a> If you continue without a https connection, the wizard will likely not "
+"complete."
 msgstr ""
 "Es ist notwendig <a href=\"https://%(url)s\">den Einrichtungswizard in der "
 "Univention Management Console mit einer https Verbindung zu nutzen.</a> Wenn "
