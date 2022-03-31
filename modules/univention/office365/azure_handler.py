@@ -33,7 +33,7 @@
 from __future__ import absolute_import
 
 import json
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 import uuid
 import requests
 import collections
@@ -49,7 +49,7 @@ from univention.office365.azure_auth import AzureAuth, AzureError, resource_url
 from univention.office365.logging2udebug import get_logger
 
 try:
-	from json.decoder import JSONDecodeError  # noqa: F811 # python-requests with py3
+	from simplejson.errors import JSONDecodeError  # noqa: F811 # python-requests with py3
 except ImportError:
 	JSONDecodeError = ValueError  # requests with py2
 
