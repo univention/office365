@@ -9,9 +9,9 @@ from typing import List, Dict, Any, Union, Optional
 import attr
 from six import reraise
 
-from univention.office365.api.core import MSGraphApiCore
-from univention.office365.api.core_exceptions import MSGraphError, AddLicenseError
-from univention.office365.api.objects.utils import create_random_pw
+from univention.office365.microsoft.core import MSGraphApiCore
+from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError, AddLicenseError
+from univention.office365.microsoft.objects.utils import create_random_pw
 from univention.office365.asyncqueue.tasks.azuretask import MSGraphCoreTask
 
 delete_name_pattern = "ZZZ_deleted_{time}_{orig}"
