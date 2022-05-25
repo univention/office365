@@ -31,7 +31,7 @@
 # <http://www.gnu.org/licenses/>.
 
 import sys
-from univention.office365.api.account import AzureAccount
+from univention.office365.microsoft.account import AzureAccount
 from univention.office365.ucr_helper import UCRHelper
 
 if len(sys.argv) < 2 or not sys.argv[1]:

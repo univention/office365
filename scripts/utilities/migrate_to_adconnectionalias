@@ -37,9 +37,9 @@ import os
 import subprocess
 import sys
 import univention.admin.uldap
-from univention.office365.api.objects.udmobjects import UniventionOffice365Data
+from univention.office365.udmwrapper.udmobjects import UniventionOffice365Data
 from univention.office365.logging2udebug import get_logger
-from univention.office365.api.account import AzureAccount
+from univention.office365.microsoft.account import AzureAccount
 from univention.office365.ucr_helper import UCRHelper
 from univention.office365.udm_helper import UDMHelper
 
