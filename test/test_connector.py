@@ -4,10 +4,10 @@ from unittest.mock import ANY, call
 import mock
 import pytest
 
-import univention.office365.api
+import univention.office365.microsoft
 from test import DOMAIN_PATH
 
-univention.office365.api.OFFICE365_API_PATH = DOMAIN_PATH
+univention.office365.microsoft.OFFICE365_API_PATH = DOMAIN_PATH
 from test.utils import all_methods_called
 
 fake_module = mock.MagicMock()
@@ -41,11 +41,11 @@ m.gr_gid = 1000
 grp_module.getgrnam.return_value = m
 sys.modules['grp'] = grp_module
 sys.modules['univention.lib.i18n'] = mock.MagicMock()
-import univention.office365.api.objects.connector
-univention.office365.api.objects.connector.filter_format = lambda x, y: x % y
-from univention.office365.api.objects.connector import UserConnector, GroupConnector, ConnectorAttributes, UCRHelper, SubscriptionProfile
-from univention.office365.api.objects.azureobjects import UserAzure
-from univention.office365.api.objects.udmobjects import UniventionOffice365Data
+import univention.office365.connector.connector
+univention.office365.connector.connector.filter_format = lambda x, y: x % y
+from univention.office365.connector.connector import UserConnector, GroupConnector, ConnectorAttributes, UCRHelper, SubscriptionProfile
+from univention.office365.microsoft.objects.azureobjects import UserAzure
+from univention.office365.udmwrapper.udmobjects import UniventionOffice365Data
 UCRHelper.get_adconnection_filtered_in = mock.MagicMock(return_value=[])
 # UCRHelper["office365/subscriptions/service_plan_names"] = None
 UCRHelper.get_service_plan_names = mock.MagicMock(return_value=[spn.strip() for spn in "SHAREPOINTWAC, SHAREPOINTWAC_DEVELOPER, OFFICESUBSCRIPTION, OFFICEMOBILE_SUBSCRIPTION, SHAREPOINTWAC_EDU".split(",")])
@@ -75,7 +75,8 @@ UCRHelper.get_service_plan_names = mock.MagicMock(return_value=[spn.strip() for 
 
 @pytest.fixture(scope='function')
 def ucr_helper():
-	with mock.patch("univention.office365.api.objects.connector.UCRHelper") as ucr_helper:
+
+	with mock.patch("univention.office365.connector.connector.UCRHelper") as ucr_helper:
 		ucr_helper.ucr_split_value.side_effect = [["givenName", "street", "postalCode"], ["mail", "postalCode"],
 												  ["l", "st", "displayName", "employeeType", "givenName", "mailPrimaryAddress", "mobile", "mailAlternativeAddress", "mail", "postalCode", "roomNumber", "st", "street", "sn", "telephoneNumber"]]
 		ucr_helper.ucr_entries_to_dict.side_effect = [
@@ -254,7 +255,7 @@ class TestUserConnector:
 
 
 
-	def test__assign_subscription(self, create_udm_user_object):
+	def test__assign_subscription(self, create_udm_user_object, ucr_helper):
 		udm_fake_user = create_udm_user_object()
 		subscription = mock.MagicMock()
 		subscription.subscription = "TEAMS_EXPLORATORY"
@@ -436,7 +437,7 @@ class TestGroupConnector:
 		azure_group = mock.MagicMock()
 		azure_group.id = "azure_object_id"
 
-		with mock.patch("univention.office365.api.objects.connector.TeamAzure") as mock_team:
+		with mock.patch("univention.office365.connector.connector.TeamAzure") as mock_team:
 			mock_team.create_from_group = mock.MagicMock()
 
 			self.gc.convert_group_to_team(udm_fake_group, azure_group)
@@ -464,7 +465,7 @@ class TestGroupConnector:
 		azure_group.id = "azure_object_id"
 		self.gc.parse = mock.MagicMock(return_value=azure_group)
 		udm_fake_group.udm_object_reference["UniventionOffice365Data"] = UniventionOffice365Data.to_ldap_str({'o365domain': {'objectId': 'the_object_id'}})
-		with mock.patch("univention.office365.api.objects.connector.TeamAzure") as mock_team:
+		with mock.patch("univention.office365.connector.connector.TeamAzure") as mock_team:
 			self.gc.delete(udm_fake_group)
 			mock_team.return_value.deactivate.assert_called_once()
 			azure_group.remove_direct_members.assert_called_once()
@@ -492,7 +493,7 @@ class TestGroupConnector:
 		# Check deactivate/remove team
 		udm_fake_group_old.is_team = mock.MagicMock(return_value=True)
 		udm_fake_group_new.is_team = mock.MagicMock(return_value=False)
-		with mock.patch("univention.office365.api.objects.connector.TeamAzure") as mock_team:
+		with mock.patch("univention.office365.connector.connector.TeamAzure") as mock_team:
 			self.gc.check_and_modify_teams(udm_fake_group_old, udm_fake_group_new, azure_group)
 			mock_team.return_value.deactivate.assert_called_once()
 
@@ -682,7 +683,7 @@ class TestGroupConnector:
 		azure_group.remove_member.assert_called_once_with(udm_fake_user.azure_object_id)
 
 	def test_get_listener_filter(self):
-		with mock.patch("univention.office365.api.objects.connector.UCRHelper") as ucr_helper:
+		with mock.patch("univention.office365.connector.connector.UCRHelper") as ucr_helper:
 			ucr_helper.get_adconnection_filtered_in = mock.MagicMock(return_value=["o365domain"])
 			assert self.gc.get_listener_filter() == '(univentionOffice365ADConnectionAlias=o365domain)'
 

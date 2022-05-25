@@ -57,7 +57,7 @@ def create_udm_object(cls, file, mapping):
 
 @pytest.fixture(scope='function')
 def udm_object(mock_univention_libs):
-	from univention.office365.api.objects.udmobjects import UDMOfficeObject
+	from univention.office365.udmwrapper.udmobjects import UDMOfficeObject
 	mapping = {
 		'username': 'uid',
 		'uidNumber': 'uidNumber',
@@ -115,7 +115,7 @@ def udm_object(mock_univention_libs):
 
 @pytest.fixture(scope='function')
 def create_udm_user_object(mock_univention_libs):
-	from univention.office365.api.objects.udmobjects import UDMOfficeUser
+	from univention.office365.udmwrapper.udmobjects import UDMOfficeUser
 	user_mapping = {
 		'username': 'uid',
 		'uidNumber': 'uidNumber',
@@ -173,7 +173,7 @@ def create_udm_user_object(mock_univention_libs):
 
 @pytest.fixture(scope='function')
 def create_udm_group_object(mock_univention_libs):
-	from univention.office365.api.objects.udmobjects import UDMOfficeGroup
+	from univention.office365.udmwrapper.udmobjects import UDMOfficeGroup
 	group_mapping = {
 		'name': 'cn',
 		'gidNumber': 'gidNumber',
@@ -231,18 +231,18 @@ def handler_parameters():
 	for file in files_to_read:
 		yield pickle.load(open(os.path.join(files_path, file), "rb"))
 
-@pytest.fixture(scope='module', autouse=True)
-def office365_usr_lib(mock_univention_libs):
-	office365_usr_lib = importlib.import_module('office365-user')
-	office365_usr_lib.adconnection_aliases = {'o365domain'}
-	return office365_usr_lib
-
-
-@pytest.fixture(scope='module', autouse=True)
-def office365_group_lib(mock_univention_libs):
-	office365_group_lib = importlib.import_module('office365-group')
-	office365_group_lib.adconnection_aliases = {'o365domain'}
-	return office365_group_lib
+# @pytest.fixture(scope='module', autouse=True)
+# def office365_usr_lib(mock_univention_libs):
+# 	office365_usr_lib = importlib.import_module('office365-user')
+# 	office365_usr_lib.adconnection_aliases = {'o365domain'}
+# 	return office365_usr_lib
+#
+#
+# @pytest.fixture(scope='module', autouse=True)
+# def office365_group_lib(mock_univention_libs):
+# 	office365_group_lib = importlib.import_module('office365-group')
+# 	office365_group_lib.adconnection_aliases = {'o365domain'}
+# 	return office365_group_lib
 
 
 # @pytest.fixture(scope='module', autouse=True)
@@ -253,13 +253,13 @@ def office365_group_lib(mock_univention_libs):
 # 	sys.modules['inspect'].getfile = MagicMock(side_effect=lambda x: '/usr/lib/univention-directory-listener' )
 # 	import office365_user_listener
 # 	return office365_user_listener
-
-@pytest.fixture
-def group_initialized_adconnection_default(office365_group_lib):
-	old = office365_group_lib.initialized_adconnections
-	office365_group_lib.initialized_adconnections = ['o365domain', 'azuretestdomain', 'defaultdomainfortest']
-	yield
-	office365_group_lib.initialized_adconnections = old
+#
+# @pytest.fixture
+# def group_initialized_adconnection_default(office365_group_lib):
+# 	old = office365_group_lib.initialized_adconnections
+# 	office365_group_lib.initialized_adconnections = ['o365domain', 'azuretestdomain', 'defaultdomainfortest']
+# 	yield
+# 	office365_group_lib.initialized_adconnections = old
 
 
 @pytest.fixture
@@ -268,20 +268,20 @@ def transaction():
 
 
 
-@pytest.fixture
-def initialized_adconnection_none(office365_usr_lib):
-	old = office365_usr_lib.initialized_adconnection
-	office365_usr_lib.adconnection = None
-	yield
-	office365_usr_lib.initialized_adconnection = old
-
-
-@pytest.fixture
-def initialized_adconnection_default(office365_usr_lib):
-	old = office365_usr_lib.initialized_adconnection
-	office365_usr_lib.initialized_adconnection = ['o365domain', 'azuretestdomain', 'defaultdomainfortest']
-	yield
-	office365_usr_lib.initialized_adconnection = old
+# @pytest.fixture
+# def initialized_adconnection_none(office365_usr_lib):
+# 	old = office365_usr_lib.initialized_adconnection
+# 	office365_usr_lib.adconnection = None
+# 	yield
+# 	office365_usr_lib.initialized_adconnection = old
+#
+#
+# @pytest.fixture
+# def initialized_adconnection_default(office365_usr_lib):
+# 	old = office365_usr_lib.initialized_adconnection
+# 	office365_usr_lib.initialized_adconnection = ['o365domain', 'azuretestdomain', 'defaultdomainfortest']
+# 	yield
+# 	office365_usr_lib.initialized_adconnection = old
 
 
 @pytest.fixture
@@ -307,7 +307,7 @@ def udm_fake_user(mock_univention_libs):
 		"UniventionOffice365Data": "eJwVi0EOgjAQRa9CZm0NhRbBlVs3xitM22kyxs4YBDaEu1vzV+/l/R20H3zSgixwbXZYvzQ/Z5bIH3w/sFC1UFDqbpozR6r9OdFmVuGNZGGVinBqQMOL4nJP/8dkg8VAo+nIoXGDRzP6TGZC13aX1DuyLRzHD5ZvKC0=",
 		"groups": ["cn=office365-users,cn=groups,cn=accounts,dc=example,dc=com"],
 	}
-	from univention.office365.api.objects.udmobjects import UDMOfficeUser
+	from univention.office365.udmwrapper.udmobjects import UDMOfficeUser
 	udm_user = MagicMock(name="udm_fake_user", spec=UDMOfficeUser, autospec=True)
 	udm_user.aliases.return_value = ["aliase1", "aliase2"]
 	udm_user.__getitem__.side_effect = udm_user_dict.__getitem__

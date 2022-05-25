@@ -13,7 +13,7 @@ from mock import mock, patch
 import requests_mock
 
 from test.utils import all_methods_called
-from univention.office365.api.objects.utils import create_random_pw
+from univention.office365.microsoft.objects.utils import create_random_pw
 
 pwd_module = mock.MagicMock()
 m = mock.Mock()
@@ -33,10 +33,10 @@ sys.modules['univention.config_registry'] = mock.MagicMock()
 sys.modules['univention.lib.i18n'] = mock.MagicMock()
 sys.modules['univention.config_registry.frontend'] = mock.MagicMock()
 sys.modules["os"].chown = mock.MagicMock()
-from univention.office365.api.account import AzureAccount
-from univention.office365.api.urls import URLs
-from univention.office365.api.core import MSGraphApiCore
-from univention.office365.api.core_exceptions import MSGraphError
+from univention.office365.microsoft.account import AzureAccount
+from univention.office365.microsoft.urls import URLs
+from univention.office365.microsoft.core import MSGraphApiCore
+from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError
 from test import ALIASDOMAIN, DOMAIN_PATH, DOMAIN
 
 
