@@ -2,8 +2,8 @@ from typing import Dict, Optional, List
 
 import univention.listener
 
-from univention.office365.api.objects.connector import UserConnector
-from univention.office365.api.objects.udmobjects import UDMOfficeUser
+from univention.office365.connector.connector import UserConnector
+from univention.office365.udmwrapper.udmobjects import UDMOfficeUser
 from univention.office365.logging2udebug import get_logger
 
 logger = get_logger("office365", "o365")
