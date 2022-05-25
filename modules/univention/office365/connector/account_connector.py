@@ -5,8 +5,8 @@ from collections import UserDict, UserString
 from typing import Dict
 
 from univention.office365 import utils
-from univention.office365.api.account import AzureAccount
-from univention.office365.api.core import MSGraphApiCore
+from univention.office365.microsoft.account import AzureAccount
+from univention.office365.microsoft.core import MSGraphApiCore
 from univention.office365.logging2udebug import get_logger
 from univention.office365.ucr_helper import UCRHelper
 
