@@ -13,7 +13,7 @@ from mock import mock, patch
 import requests_mock
 
 from test.utils import all_methods_called
-from univention.office365.microsoft.objects.utils import create_random_pw
+from univention.office365.utils.utils import create_random_pw
 
 pwd_module = mock.MagicMock()
 m = mock.Mock()

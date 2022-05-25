@@ -11,10 +11,10 @@ from univention.office365.microsoft.account import AzureAccount
 from univention.office365.microsoft.core import MSGraphApiCore
 from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError, AddLicenseError
 from univention.office365.microsoft.exceptions.exceptions import NoAllocatableSubscriptions
-from univention.office365.microsoft.objects import utils
+from univention.office365.connector import utils
 from univention.office365.microsoft.objects.azureobjects import UserAzure, AzureObject, GroupAzure, SubscriptionAzure, TeamAzure
 from univention.office365.udmwrapper.udmobjects import UDMOfficeUser, UDMOfficeGroup, UDMOfficeObject
-from univention.office365.microsoft.objects.utils import create_random_pw
+from univention.office365.utils.utils import create_random_pw
 from univention.office365.asyncqueue.queues.jsonfilesqueue import JsonFilesQueue
 from univention.office365.logging2udebug import get_logger
 from univention.office365.subscriptions import SubscriptionProfile
