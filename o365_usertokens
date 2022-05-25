@@ -32,26 +32,29 @@
 Univention Microsoft 365 reset tokens
 """
 
-from univention.config_registry import ConfigRegistry
-from univention.office365.azure_handler import AzureHandler
-from univention.office365.logging2udebug import get_logger
-from univention.office365.listener import Office365Listener
-import univention.admin.objects
-from optparse import OptionParser
 import traceback
-from datetime import datetime, timedelta
-from random import randrange
 import sys
 import logging
-from logging.handlers import SysLogHandler
 import zlib
+
+from random import randrange
+from optparse import OptionParser
+from datetime import datetime, timedelta
+from logging.handlers import SysLogHandler
+
+import univention.admin.objects
+
+from univention.office365.api.account import AzureAccount
+from univention.office365.api.core import MSGraphApiCore
+from univention.office365.api.objects.udmobjects import UniventionOffice365Data
+from univention.office365.logging2udebug import get_logger
+from univention.office365.ucr_helper import UCRHelper
 
 
 # Query local LDAP for users that are activated for O365
 # invalidate all auth tokens for one or --max-modifications users
+
 if __name__ == '__main__':
-	ucr = ConfigRegistry()
-	ucr.load()
 
 	logger = get_logger("office365", "o365")
 	_handler = logging.StreamHandler(sys.stdout)
@@ -73,12 +76,12 @@ if __name__ == '__main__':
 		logger.error("At least one option of --new-password or --invalidate-tokens is required")
 		exit(1)
 
-	options.max_modifications = ucr.get("office365/tokens/max_modifications", 1000)
+	options.max_modifications = UCRHelper.get("office365/tokens/max_modifications", 1000)
 	modified_users = 0
 
 	# base period, after which user tokens get invalidated
 	try:
-		base_reset_period = int(ucr.get("office365/tokens/base_reset_period", 60))
+		base_reset_period = int(UCRHelper.get("office365/tokens/base_reset_period", 60))
 	except ValueError as e:
 		logger.error("UCRv office365/tokens/base_reset_period must contain an integer")
 		exit(1)
@@ -86,12 +89,12 @@ if __name__ == '__main__':
 	# randomize the reset period for some days, so not everyone will be reset at the same time
 	# should also reduce runtime of script and azure API calls, as fewer modifications are necessary
 	try:
-		reset_period_modifier = int(ucr.get("office365/tokens/reset_period_modifier", 15))
+		reset_period_modifier = int(UCRHelper.get("office365/tokens/reset_period_modifier", 15))
 	except ValueError as e:
 		logger.error("UCRv office365/tokens/reset_period_modifier must contain an integer")
 		exit(1)
 
-	base = ucr["ldap/base"]
+	base = UCRHelper.get("ldap/base")
 	try:
 		lo, po = univention.admin.uldap.getAdminConnection()
 		univention.admin.modules.update()
@@ -120,7 +123,7 @@ if __name__ == '__main__':
 					exit(0)
 
 				try:
-					adconnection_objects = Office365Listener.decode_o365data(ldap_user[1]["univentionOffice365Data"][0])
+					adconnection_objects = UniventionOffice365Data.from_ldap(ldap_user[1]["univentionOffice365Data"][0])
 				except (zlib.error, TypeError):
 					logger.error("Error decoding o365data for user %s", ldap_user[1]["uid"][0])
 					adconnection_objects = {}
@@ -129,11 +132,12 @@ if __name__ == '__main__':
 					continue
 
 				for alias, values in adconnection_objects.items():
-					ah = AzureHandler(ucr, name="tokens", adconnection_alias=alias)
+					core = MSGraphApiCore(AzureAccount(alias))
 					if options.newpassword:
-						ah.reset_user_password(user_id=values['objectId'])
+						raise DeprecationWarning
+						# core.reset_user_password(user_id=values['objectId'])
 					if options.invalidatetokens:
-						ah.invalidate_all_tokens_for_user(user_id=values['objectId'])
+						core.invalidate_all_tokens_for_user(user_id=values['objectId'])
 
 				# modify the ldap user, set the next modification date: base_reset_period + up to period_modifier days
 				next_mod_date = today + timedelta(days=base_reset_period + randrange(reset_period_modifier + 1))

@@ -1,0 +1,407 @@
+interactions:
+- request:
+    body: '{"accountEnabled": true, "displayName": "user_test_add_team_member", "mailNickname":
+      "user_test_add_team_member", "userPrincipalName": "user_test_add_team_member@univentiontestgmbh.onmicrosoft.com",
+      "passwordProfile": {"forceChangePasswordNextSignIn": true, "password": "1jjmUiSHfEx"},
+      "usageLocation": "DE"}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - XXXXXX
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '308'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - Univention Microsoft 365 Connector
+    method: POST
+    uri: https://graph.microsoft.com/v1.0/users
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAECoSQy2rDQAxF/0XN0u8YSrzKB4SSRXelGM1YYyvMw8zIoaH034tjEuiqO+ki3Xuk
+        bziGAQULHbzQl0AHk8icurIcI85T4VjHkIKRQgdXXuuiKneOBNellyVRTOWOvLDcIAMeoINKN9Qa
+        1Hn9qnXe6mafH0g3uapqQ3syLR0MZKCWxJ5SOk/BU4Lu4zODgdNs8faGjqCD1b0XStLjMPRC6HpH
+        TlGEDEa+kt/m/GJtBpeg3lksQbf1Dtk+66DY0j3oIQVjWNMpaBQO/qHOkQzFSMMJ/bjg+HRLS/R3
+        qM18JTtH9ppntP/RHhe/wq456zGjU1MR/J+/ws8vAAAA//8DAK/8NOGIAQAA
+    headers:
+      Cache-Control:
+      - no-cache
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8
+      Date:
+      - Fri, 13 May 2022 11:23:50 GMT
+      Location:
+      - https://graph.microsoft.com/v2/3e7d9eb5-c3a1-4cfc-892e-a8ec29e45b77/directoryObjects/0c2e4fac-17cc-4c23-9ec2-b01fe3ef4e9f/Microsoft.DirectoryServices.User
+      OData-Version:
+      - '4.0'
+      Strict-Transport-Security:
+      - max-age=31536000
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Accept-Encoding
+      client-request-id:
+      - 37cc8d8e-b9f3-4251-b50b-a32c8f613d52
+      request-id:
+      - 37cc8d8e-b9f3-4251-b50b-a32c8f613d52
+      x-ms-ags-diagnostic:
+      - '{"ServerInfo":{"DataCenter":"North Europe","Slice":"E","Ring":"4","ScaleUnit":"005","RoleInstance":"DU6PEPF00003512"}}'
+      x-ms-resource-unit:
+      - '1'
+    status:
+      code: 201
+      message: Created
+- request:
+    body: '{"description": "Description of grouptest_add_team_member", "displayName":
+      "grouptest_add_team_member", "mailEnabled": false, "mailNickname": "grouptest_add_team_member",
+      "securityEnabled": true}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - XXXXXX
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '195'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - Univention Microsoft 365 Connector
+    method: POST
+    uri: https://graph.microsoft.com/v1.0/groups
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAECoSTTW/bMAyG/0qh9Wgn/orr+rQW7WFA0AVNTh2GgJVoh5gtGZTcJRj23wc5iZMU
+        63YRbJIC34d6+Ut8NgocTKTRDrdOlGLjXGfL6bRm6DaTliQbayo3kaadvsWTaHrdogN/6VPNpu/s
+        9Bq1I7cTgSAlShFBESHKKFR5XoXZjcxCUFCEkKcqq0BmWZWLQChs0KF6AIcralGUum+aQMgGrKWK
+        JDgyeowywkWxSKIkCaNZGKerOC6TtJzFLyIQ0heS0V87f1pRfvvuW1nJNEREKR5Of1emuhogHFq3
+        BqXWDqFdt9i+InuNZLsGdk/g9Yl/VeK2Ix46vwcabq12HR7EkL2zlmoNrw2uzLNpRvQWqDkC++/H
+        oUaJsoLGYiB87InkD/1/OXsCu6HuuT9rMHAdows2Eq0lXS8duFGF0QvGlizaB9MC6T38/nFOuTlY
+        t9xp+Z72VPGE7p6M/fv1JbR3Uppeuw/yKHsmt/uivLcqQj4O5tTAtx9HtNfXMVbIPLgK5ubSQ2Ny
+        DrruoR6JOzbb3Z1SjNYeX4lR489zd35kOEZrepZ4jxt4I8MXxjsmF2zeyJLRpOuLAnvgHDkc9xiI
+        Y/gcXyzDOIwTf9zkSRIXRRHGSZRFRZIUN2EcpVmaJmmahlmcxvntLL+diUC4DZ6Wy4t4pcYv62Hd
+        TuM81/jIbHjw6+8/AAAA//8DAFBQ7JYiBAAA
+    headers:
+      Cache-Control:
+      - no-cache
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8
+      Date:
+      - Fri, 13 May 2022 11:23:51 GMT
+      Location:
+      - https://graph.microsoft.com/v2/3e7d9eb5-c3a1-4cfc-892e-a8ec29e45b77/directoryObjects/0a80eec0-d66f-47c4-ada8-a63d4fac44f6/Microsoft.DirectoryServices.Group
+      OData-Version:
+      - '4.0'
+      Strict-Transport-Security:
+      - max-age=31536000
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Accept-Encoding
+      client-request-id:
+      - ce40ec7e-a34f-4e78-9d19-c1f7740e11d2
+      request-id:
+      - ce40ec7e-a34f-4e78-9d19-c1f7740e11d2
+      x-ms-ags-diagnostic:
+      - '{"ServerInfo":{"DataCenter":"North Europe","Slice":"E","Ring":"4","ScaleUnit":"005","RoleInstance":"DU6PEPF00002DD8"}}'
+      x-ms-resource-unit:
+      - '1'
+    status:
+      code: 201
+      message: Created
+- request:
+    body: '{"@odata.id": "https://graph.microsoft.com/v1.0/users/0c2e4fac-17cc-4c23-9ec2-b01fe3ef4e9f"}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - XXXXXX
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '92'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - Univention Microsoft 365 Connector
+    method: POST
+    uri: https://graph.microsoft.com/v1.0/groups/0a80eec0-d66f-47c4-ada8-a63d4fac44f6/owners/$ref
+  response:
+    body:
+      string: ''
+    headers:
+      Cache-Control:
+      - no-cache
+      Date:
+      - Fri, 13 May 2022 11:23:51 GMT
+      Strict-Transport-Security:
+      - max-age=31536000
+      client-request-id:
+      - b3d7e3d4-024a-444b-bcdc-fc72d9f965b8
+      request-id:
+      - b3d7e3d4-024a-444b-bcdc-fc72d9f965b8
+      x-ms-ags-diagnostic:
+      - '{"ServerInfo":{"DataCenter":"North Europe","Slice":"E","Ring":"4","ScaleUnit":"005","RoleInstance":"DU6PEPF00002DE2"}}'
+      x-ms-resource-unit:
+      - '1'
+    status:
+      code: 204
+      message: No Content
+- request:
+    body: '{"template@odata.bind": "https://graph.microsoft.com/v1.0/teamsTemplates(''standard'')",
+      "group@odata.bind": "https://graph.microsoft.com/v1.0/groups(''0a80eec0-d66f-47c4-ada8-a63d4fac44f6'')"}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - XXXXXX
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '189'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - Univention Microsoft 365 Connector
+    method: POST
+    uri: https://graph.microsoft.com/v1.0/teams
+  response:
+    body:
+      string: ''
+    headers:
+      Content-Length:
+      - '0'
+      Date:
+      - Fri, 13 May 2022 11:24:28 GMT
+      Location:
+      - /teams('0a80eec0-d66f-47c4-ada8-a63d4fac44f6')/operations('5d7b5728-a7c2-4255-a319-e186d34308e6')
+      Strict-Transport-Security:
+      - max-age=31536000
+      client-request-id:
+      - 8079efe0-b3e0-4df3-a5f3-6683c3434cf2
+      request-id:
+      - 8079efe0-b3e0-4df3-a5f3-6683c3434cf2
+      x-ms-ags-diagnostic:
+      - '{"ServerInfo":{"DataCenter":"North Europe","Slice":"E","Ring":"4","ScaleUnit":"005","RoleInstance":"DU6PEPF00002DE3"}}'
+    status:
+      code: 202
+      message: Accepted
+- request:
+    body: '{"shouldSetSpoSiteReadOnlyForMembers": false}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - XXXXXX
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '45'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - Univention Microsoft 365 Connector
+    method: POST
+    uri: https://graph.microsoft.com/v1.0/teams/0a80eec0-d66f-47c4-ada8-a63d4fac44f6/archive
+  response:
+    body:
+      string: ''
+    headers:
+      Content-Length:
+      - '0'
+      Date:
+      - Fri, 13 May 2022 11:24:40 GMT
+      Location:
+      - /teams('0a80eec0-d66f-47c4-ada8-a63d4fac44f6')/operations('e1a1584b-cf75-41ff-9e8a-20ca3e367d13')
+      Strict-Transport-Security:
+      - max-age=31536000
+      client-request-id:
+      - 70094843-9a61-4bb2-abd7-48b082b539e5
+      request-id:
+      - 70094843-9a61-4bb2-abd7-48b082b539e5
+      x-ms-ags-diagnostic:
+      - '{"ServerInfo":{"DataCenter":"North Europe","Slice":"E","Ring":"4","ScaleUnit":"005","RoleInstance":"DU6PEPF00002DD4"}}'
+    status:
+      code: 202
+      message: Accepted
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - XXXXXX
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '0'
+      User-Agent:
+      - Univention Microsoft 365 Connector
+    method: POST
+    uri: https://graph.microsoft.com/v1.0/teams/0a80eec0-d66f-47c4-ada8-a63d4fac44f6/unarchive
+  response:
+    body:
+      string: ''
+    headers:
+      Content-Length:
+      - '0'
+      Date:
+      - Fri, 13 May 2022 11:24:51 GMT
+      Location:
+      - /teams('0a80eec0-d66f-47c4-ada8-a63d4fac44f6')/operations('c077b7bc-a31c-472c-9ae6-dc8497244a83')
+      Strict-Transport-Security:
+      - max-age=31536000
+      client-request-id:
+      - 6dd94cd1-4d63-4838-aea7-27b2170f17bb
+      request-id:
+      - 6dd94cd1-4d63-4838-aea7-27b2170f17bb
+      x-ms-ags-diagnostic:
+      - '{"ServerInfo":{"DataCenter":"North Europe","Slice":"E","Ring":"4","ScaleUnit":"005","RoleInstance":"DU6PEPF00002DC2"}}'
+    status:
+      code: 202
+      message: Accepted
+- request:
+    body: '{"shouldSetSpoSiteReadOnlyForMembers": false}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - XXXXXX
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '45'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - Univention Microsoft 365 Connector
+    method: POST
+    uri: https://graph.microsoft.com/v1.0/teams/0a80eec0-d66f-47c4-ada8-a63d4fac44f6/archive
+  response:
+    body:
+      string: ''
+    headers:
+      Content-Length:
+      - '0'
+      Date:
+      - Fri, 13 May 2022 11:25:04 GMT
+      Location:
+      - /teams('0a80eec0-d66f-47c4-ada8-a63d4fac44f6')/operations('61653367-c2ce-4a0d-832a-c8d0422c404a')
+      Strict-Transport-Security:
+      - max-age=31536000
+      client-request-id:
+      - 7370217b-66dc-4a11-a4fb-fb2590dabcd6
+      request-id:
+      - 7370217b-66dc-4a11-a4fb-fb2590dabcd6
+      x-ms-ags-diagnostic:
+      - '{"ServerInfo":{"DataCenter":"North Europe","Slice":"E","Ring":"4","ScaleUnit":"005","RoleInstance":"DU6PEPF0000353A"}}'
+    status:
+      code: 202
+      message: Accepted
+- request:
+    body: '{"displayName": "ZZZ_deleted_1652441104.9966042_grouptest_add_team_member",
+      "description": "deleted group"}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - XXXXXX
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '107'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - Univention Microsoft 365 Connector
+    method: PATCH
+    uri: https://graph.microsoft.com/v1.0/groups/0a80eec0-d66f-47c4-ada8-a63d4fac44f6
+  response:
+    body:
+      string: ''
+    headers:
+      Cache-Control:
+      - no-cache
+      Date:
+      - Fri, 13 May 2022 11:25:04 GMT
+      Strict-Transport-Security:
+      - max-age=31536000
+      client-request-id:
+      - ee55a0b0-6ade-43d6-9f21-3bd1dec4b125
+      request-id:
+      - ee55a0b0-6ade-43d6-9f21-3bd1dec4b125
+      x-ms-ags-diagnostic:
+      - '{"ServerInfo":{"DataCenter":"North Europe","Slice":"E","Ring":"4","ScaleUnit":"005","RoleInstance":"DU6PEPF0000351C"}}'
+      x-ms-resource-unit:
+      - '1'
+    status:
+      code: 204
+      message: No Content
+- request:
+    body: '{"accountEnabled": false, "userPrincipalName": "ZZZ_deleted_1652441105.491898_user_test_add_team_member@univentiontestgmbh.onmicrosoft.com",
+      "displayName": "ZZZ_deleted_1652441105.4919155_user_test_add_team_member"}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - XXXXXX
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '215'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - Univention Microsoft 365 Connector
+    method: PATCH
+    uri: https://graph.microsoft.com/v1.0/users/0c2e4fac-17cc-4c23-9ec2-b01fe3ef4e9f
+  response:
+    body:
+      string: ''
+    headers:
+      Cache-Control:
+      - no-cache
+      Date:
+      - Fri, 13 May 2022 11:25:05 GMT
+      Strict-Transport-Security:
+      - max-age=31536000
+      client-request-id:
+      - 85defc9f-9f1b-4522-b0d8-a5afb2f58915
+      request-id:
+      - 85defc9f-9f1b-4522-b0d8-a5afb2f58915
+      x-ms-ags-diagnostic:
+      - '{"ServerInfo":{"DataCenter":"North Europe","Slice":"E","Ring":"4","ScaleUnit":"005","RoleInstance":"DU6PEPF00002DD0"}}'
+      x-ms-resource-unit:
+      - '1'
+    status:
+      code: 204
+      message: No Content
+version: 1

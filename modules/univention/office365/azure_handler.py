@@ -107,7 +107,7 @@ _default_azure_service_plan_names = "SHAREPOINTWAC, SHAREPOINTWAC_DEVELOPER, OFF
 
 logger = get_logger("office365", "o365")
 
-
+# MOVED to univention/office365/api/urls.py
 def _get_azure_uris(adconnection_id):
 	graph_base_url = "{0}/{1}".format(resource_url, adconnection_id)
 
@@ -137,7 +137,7 @@ def get_service_plan_names(ucr):
 	ucr_service_plan_names = ucr.get("office365/subscriptions/service_plan_names") or _default_azure_service_plan_names
 	return [spn.strip() for spn in ucr_service_plan_names.split(",")]
 
-
+# TODO: move to univention/office365/api/exceptions.py
 class ApiError(AzureError):
 	def __init__(self, response, *args, **kwargs):
 		msg = "Communication error."
@@ -186,6 +186,7 @@ class AddLicenseError(AzureError):
 		super(AddLicenseError, self).__init__(msg, chained_exc, *args, **kwargs)
 
 
+# TODO: move to univention/office365/api/exceptions.py
 class UnkownTypeError(AzureError):
 	pass
 
@@ -204,6 +205,7 @@ class AzureHandler(object):
 	def getAzureLogger(self):
 		return logger
 
+	# MOVED to univention/office365/api/core.py
 	def call_api(self, method, url, data=None, retry=0):
 		'''
 		SUMMARY
@@ -480,6 +482,7 @@ class AzureHandler(object):
 			logger.error("Object %r didn't exist: %r (%s)", object_id, exc, self.adconnection_alias)
 			return
 
+	# MOVED to univention.office365.api.objects.connector.UserConnector.delete
 	def delete_user(self, object_id):
 		# https://msdn.microsoft.com/Library/Azure/Ad/Graph/howto/azure-ad-graph-api-permission-scopes#DirectoryRWDetail
 		#
@@ -502,6 +505,7 @@ class AzureHandler(object):
 		# return self._delete_objects(object_type="group", object_id=object_id)
 		return self.deactivate_group(object_id)
 
+	# MOVED to univention.office365.api.core.MSGraphApiCore.member_of_groups /objects
 	def _member_of_(self, obj, object_id, resource_collection):
 		"""
 		Transitive versions (incl nested groups)
@@ -521,12 +525,15 @@ class AzureHandler(object):
 			data = {"securityEnabledOnly": True}
 		return self.call_api("POST", url, data)
 
+	# MOVED to univention.office365.api.core.MSGraphApiCore.member_of_groups /objects
 	def member_of_groups(self, object_id, resource_collection="users"):
 		return self._member_of_("groups", object_id, resource_collection)
 
+	# MOVED to univention.office365.api.core.MSGraphApiCore.member_of_groups /objects
 	def member_of_objects(self, object_id, resource_collection="users"):
 		return self._member_of_("objects", object_id, resource_collection)
 
+	# MOVED to univention.office365.api.core.MSGraphApiCore.resolve_object_ids
 	def resolve_object_ids(self, object_ids, object_types=None):
 		assert type(object_ids) == list, "Parameter object_ids must be a list of object IDs."
 
@@ -535,6 +542,7 @@ class AzureHandler(object):
 		url = self.uris["getObjectsByObjectIds"].format(params=params)
 		return self.call_api("POST", url, data)
 
+	# TDOO: Check where moved to
 	def get_groups_direct_members(self, group_id):
 		assert type(group_id) in [str, text_type], 'The ObjectId must be a string not %s' % type(group_id)
 
@@ -542,6 +550,7 @@ class AzureHandler(object):
 		url = self.uris["group_members"].format(group_id=group_id, params=params)
 		return self.call_api("GET", url)
 
+	# TDOO: Check where moved to
 	def add_objects_to_azure_group(self, group_id, object_ids):
 		"""
 		Add users and groups to a group in Azure AD
@@ -585,6 +594,7 @@ class AzureHandler(object):
 				else:
 					raise
 
+	# TODO: Check where moved to
 	def delete_group_member(self, group_id, member_id):
 		logger.info("Removing member %r from group %r (%s)...", member_id, group_id, self.adconnection_alias)
 		params = urlencode(azure_params)
@@ -602,6 +612,7 @@ class AzureHandler(object):
 			# group didn't exist in Azure
 			pass
 
+	# TODO: implement License object
 	def _change_license(self, operation, user_id, sku_id, deactivate_plans):
 		logger.debug(
 			"operation: %r user_id: %r sku_id: %r deactivate_plans=%r (%s)",
@@ -619,18 +630,22 @@ class AzureHandler(object):
 		url = self.uris["user_assign_license"].format(user_id=user_id, params=params)
 		return self.call_api("POST", url, data)
 
+	# TODO: implement License object
 	def add_license(self, user_id, sku_id, deactivate_plans=None):
 		try:
 			self._change_license("add", user_id, sku_id, deactivate_plans)
 		except ApiError as exc:
 			reraise(AddLicenseError, AddLicenseError(str(exc), user_id, sku_id, exc), sys.exc_info()[2])
 
+	# TODO: implement License object
 	def remove_license(self, user_id, sku_id):
 		self._change_license("remove", user_id, sku_id, None)
 
+	# TODO: implement sibscription object or see if it's differente from license
 	def list_subscriptions(self, object_id=None, ofilter=None):
 		return self._list_objects(object_type="subscription", object_id=object_id, ofilter=ofilter)
 
+	# TODO: implement sibscription object or see if it's differente from license
 	def get_enabled_subscriptions(self):
 		subscriptions = list()
 		for subscription in self.list_subscriptions()["value"]:
@@ -642,6 +657,7 @@ class AzureHandler(object):
 						break
 		return subscriptions
 
+	# MOVED to univention.office365.api.core.MSGraphApiCore.list_domains
 	def list_domains(self, domain_name=None):
 		"""
 		All domains registered for this adconnection, incl. not-verified ones
@@ -654,9 +670,11 @@ class AzureHandler(object):
 			params_extra={"api-version": "beta"},  # TODO: when API version > 1.6, check if "domains" is out of "beta"
 			url_extra={"domain_name": domain_name} if domain_name else None)
 
+	# TODO: Check status
 	def list_adconnection_details(self):
 		return self._list_objects(object_type="adconnectionDetail")
 
+	# MOVED to univention.office365.api.core.MSGraphApiCore.list_verified_domains
 	def list_verified_domains(self):
 		"""
 		Verified domains - only those can be used for userPrincipalName!
@@ -664,6 +682,7 @@ class AzureHandler(object):
 		"""
 		return self.list_adconnection_details()["value"][0]["verifiedDomains"]
 
+	# TODO: Check if exists in Account
 	def get_verified_domain_from_disk(self):
 		"""
 		Get domain name that was configured in wizard.
@@ -671,6 +690,7 @@ class AzureHandler(object):
 		"""
 		return self.auth.domain
 
+	# MOVED univention.office365.api.objects.connector.UserConnector.delete
 	def deactivate_user(self, object_id, rename=False):
 		user_obj = self.list_users(objectid=object_id)
 		logger.info("Deactivating%s user %r / %r (%s)...", " and renaming" if rename else "", user_obj["displayName"], object_id, self.adconnection_alias)
@@ -701,6 +721,7 @@ class AzureHandler(object):
 		for lic in user_obj["assignedLicenses"]:
 			self.remove_license(object_id, lic["skuId"])
 
+	# TODO: implement in univention.office365.api.objects.udmobjects.UDMOfficeGroup
 	def deactivate_group(self, object_id):
 		logger.debug("object_id=%r adconnection_alias=%r", object_id, self.adconnection_alias)
 		group_obj = self.list_groups(objectid=object_id)
@@ -724,6 +745,8 @@ class AzureHandler(object):
 		logger.info("Renaming group %r to %r (%s).", group_obj["displayName"], name, self.adconnection_alias)
 		return self.modify_group(object_id=object_id, modifications=modifications)
 
+	# TODO: Check what it's doing and if it's needed
+	#  It looks like it's extracting the object ids of the users from a get members response for a group
 	def directory_object_urls_to_object_ids(self, urls):
 		"""
 		:param urls: list of dicts {"url": "https://graph.windows.net/.../directoryObjects/.../..."}
@@ -736,6 +759,7 @@ class AzureHandler(object):
 				object_ids.append(m.groups()[0])
 		return object_ids
 
+	# TODO: move to utils
 	@staticmethod
 	def create_random_pw():
 		# have at least one char from each category in password
@@ -748,6 +772,7 @@ class AzureHandler(object):
 		random.shuffle(pw)
 		return u"".join(pw)
 
+	# TODO: move to utils
 	@staticmethod
 	def _fprints_hide_pw(data, msg):
 		"""
@@ -766,6 +791,7 @@ class AzureHandler(object):
 			data["passwordProfile"]["password"] = tmppw
 		return msg
 
+	# TODO: check if its needed anymore. If it's I guess its part of the parser
 	@classmethod
 	def _prepare_data(cls, data):
 		if not data:

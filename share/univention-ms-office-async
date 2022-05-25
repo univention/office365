@@ -33,155 +33,42 @@
 
 from __future__ import print_function
 
-import glob
-import json
 import os
 import pwd
 import sys
-import shutil
 import time
 
 from argparse import ArgumentParser
 
 from univention.lib.locking import get_lock, release_lock
 from univention.listener.handler_logging import get_logger
-from univention.config_registry import ConfigRegistry
 
-from univention.office365.api.graph import GraphAPIAsyncCalls
-from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
-from univention.office365.api_helper import ASYNC_DATA_DIR, ASYNC_FAILED_DIR
+from univention.office365.asyncqueue import ASYNC_DATA_DIR, ASYNC_FAILED_DIR
+from univention.office365.asyncqueue.queues.jsonfilesqueue import JsonFilesQueue
+from univention.office365.asyncqueue.tasks.azuretask import MSGraphCoreTask
 
 
-class AsyncJobs():
-
-	def __init__(self, ucr, data_dir, failed_dir, logger, args):
-		self.ucr = ucr
-		self.data_dir = data_dir
-		self.failed_dir = failed_dir
-		self.logger = logger
-		self.args = args
-		self.initialized_adconnections = {}
-
-	def get_ad_connections(self):
-		try:
-			for adconnection_alias in AzureADConnectionHandler.get_adconnection_aliases():
-				if AzureAuth.is_initialized(adconnection_alias):
-					# TODO class name from variable/file
-					self.initialized_adconnections[adconnection_alias] = GraphAPIAsyncCalls(self.ucr, "univention-ms-office-async", adconnection_alias, logger=self.logger)
-					self.logger.debug(self.initialized_adconnections)
-		except Exception as err:
-			self.logger.exception(err)
-			# exit at this point and let systemd restart the service
-			raise
-
-	def find_jobs(self):
-		return sorted(glob.glob(os.path.join(self.data_dir, '*.json')))
-
-	def delete_job(self, job):
-		if not self.args.no_delete:
-			if os.path.exists(job):
-				self.logger.info('Job {}: removing'.format(job))
-				os.remove(job)
-
-	def verify_job(self, job):
-		self.func = None
-		self.dumped = None
-		try:
-			self.dumped = json.load(open(job))
-		except ValueError as err:
-			self.logger.error('Job {}: failed to parse json {}'.format(job, err))
-			self.delete_job(job)
-			return False
-		if not self.dumped.get('api_version'):
-			self.logger.error('Job {}: mandatory attribute api_version missing'.format(job))
-			self.delete_job(job)
-			return False
-		if self.dumped['api_version'] != 1:
-			self.logger.error('Job {}: invalid api_version {}'.format(job, self.dumped['api_version']))
-			self.delete_job(job)
-			return False
-		for attr in ['function_name', 'ad_connection_alias']:
-			if not self.dumped.get(attr):
-				self.logger.error('Job {}: mandatory attribute {} missing'.format(job, attr))
-				self.delete_job(job)
-				return False
-		if not self.dumped['ad_connection_alias'] in self.initialized_adconnections:
-			self.get_ad_connections()
-			if not self.dumped['ad_connection_alias'] in self.initialized_adconnections:
-				self.logger.error('Job {}: invalid connection alias {}'.format(job, self.dumped['ad_connection_alias']))
-				self.delete_job(job)
-				return False
-		self.func = getattr(self.initialized_adconnections[self.dumped['ad_connection_alias']], self.dumped.get('function_name'), None)
-		if not self.func:
-			self.logger.error('Job {}: invalid function name {}'.format(job, self.dumped.get('function_name')))
-			self.delete_job(job)
-			return False
-		return True
-
-	def dump_to_file(self, filename, data):
-		with open(filename, 'wb') as fd:
-			json.dump(data, fd, sort_keys=True, indent=4)
-
-	def update_failed_status(self, job, err):
-		if self.dumped.get('failed'):
-			self.dumped['failed'] = self.dumped['failed'] + 1
-		else:
-			self.dumped['failed'] = 1
-		self.dumped['error'] = str(err)
-		if self.dumped['failed'] > self.args.retry_count:
-			# "move" job file to failed
-			new = os.path.join(self.failed_dir, os.path.basename(job))
-			self.logger.error('Job {}: failed too many times {}, moved to {}'.format(job, self.dumped['failed'], new))
-			self.dump_to_file(new, self.dumped)
-			os.remove(job)
-		else:
-			# update job file
-			tmp = job + '.tmp'
-			self.dump_to_file(tmp, self.dumped)
-			shutil.move(tmp, job)
-
-	def execute_jobs(self, job):
-		if self.verify_job(job):
-			self.logger.info('Job {}: running {}({}) with connection alias {}'.format(
-				job,
-				self.dumped.get('function_name'),
-				self.dumped.get('parameters'),
-				self.dumped['ad_connection_alias'],
-			))
-			try:
-				if self.dumped.get('parameters'):
-					self.func(**self.dumped.get('parameters'))
-				else:
-					self.func()
-			except Exception as err:
-				self.logger.exception(err)
-				self.update_failed_status(job, err)
-				return False
-		else:
-			return False
-		return True
-
-	def async_jobs(self):
-		self.logger.info('')
-		self.logger.info('Started')
-		self.logger.info('')
-		while True:
-			jobs = self.find_jobs()
-			for job in jobs:
-				self.logger.debug('Job {}: found'.format(job))
-				if self.execute_jobs(job):
-					self.logger.info('Job {}: successful'.format(job))
-					self.delete_job(job)
-				else:
-					self.logger.error('Job {}: failed'.format(job))
-					self.logger.debug('Job {}: data {}'.format(job, self.dumped))
-			if self.args.once:
-				self.logger.info('')
-				self.logger.info('Goodbye ...')
-				self.logger.info('')
+def worker(once, logger):
+	q = JsonFilesQueue("o365asyncqueue")
+	while True:
+		if len(q) == 0:
+			if once:
+				logger.info('')
+				logger.info('Goodbye ...')
+				logger.info('')
 				sys.exit(0)
-			self.logger.debug('Sleeping ...')
+			logger.debug('Sleeping ...')
 			time.sleep(30)
+			continue
+		task = MSGraphCoreTask.from_dict(q.dequeue())
+		task.set_logger(logger)
+		logger.debug('Job {}: found'.format(task.dump()))
+		if task.process():
+			logger.info('Job {}: successful'.format(task.dump()))
+		else:
+			filename = q.enqueue(task, error=True)
+			logger.error('Job {}: failed'.format(filename))
+			logger.error('Job {}: data {}'.format(filename, task.dump()))
 
 
 def main():
@@ -194,8 +81,6 @@ def main():
 	parser.add_argument('--no-delete', action='store_true', help='Do not delete job files.')
 	parser.add_argument('--retry-count', type=int, default=6, help='If the job fails, retry job for max RETRY_COUNT times (defaut: %(default)s)')
 	args = parser.parse_args()
-	ucr = ConfigRegistry()
-	ucr.load()
 	logger = get_logger('ms-office-async')
 	lock = None
 	for directory in [data_dir, failed_dir]:
@@ -220,7 +105,7 @@ def main():
 		pwnam = pwd.getpwnam('listener')
 		os.setegid(pwnam[3])
 		os.seteuid(pwnam[2])
-		AsyncJobs(ucr, data_dir, failed_dir, logger, args).async_jobs()
+		worker()
 	finally:
 		if lock:
 			release_lock(lock)

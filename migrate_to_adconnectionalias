@@ -37,16 +37,13 @@ import os
 import subprocess
 import sys
 import univention.admin.uldap
-from univention.config_registry import ConfigRegistry, handler_set, handler_unset
-from univention.office365.azure_auth import AzureAuth, adconnection_alias_ucrv
-from univention.office365.udm_helper import UDMHelper
+from univention.office365.api.objects.udmobjects import UniventionOffice365Data
 from univention.office365.logging2udebug import get_logger
-from univention.office365.listener import Office365Listener
-
+from univention.office365.api.account import AzureAccount
+from univention.office365.ucr_helper import UCRHelper
+from univention.office365.udm_helper import UDMHelper
 
 conf_path = '/etc/univention-office365'
-ucr = ConfigRegistry()
-ucr.load()
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='Migrate a single Azure AD Office 365 connector setup to a multi-connection setup.')
@@ -61,8 +58,8 @@ if __name__ == '__main__':
 
 	if args.dryrun:
 		print('Dry run - no changes will be applied.')
-
-	if args.dryrun or AzureAuth.is_initialized(args.adconnection_alias):
+	acount = AzureAccount(args.adconnection_alias)
+	if args.dryrun or acount.is_initialized():
 		print('OK: Azure AD connection {!r} is initialized.'.format(args.adconnection_alias))
 	else:
 		print('Error: Azure AD connection {!r} is not initialized after copying. Exiting.'.format(args.adconnection_alias))
@@ -76,13 +73,12 @@ if __name__ == '__main__':
 	with open(ids_file, 'rb') as fp:
 		ids = json.load(fp)
 		adconnection_id = ids['adconnection_id']
-
-	ucrv_set = '{}{}={}'.format(adconnection_alias_ucrv, args.adconnection_alias, adconnection_id)
+	ucrv_set = '{}{}={}'.format(UCRHelper.adconnection_alias_ucrv, args.adconnection_alias, adconnection_id)
 	print('Setting UCR {}...'.format(ucrv_set))
 	if not args.dryrun:
-		handler_set([ucrv_set])
+		UCRHelper.handler_set([ucrv_set])
 
-	handler_unset(['office365/migrate/adconnectionalias'])
+	UCRHelper.handler_unset(['office365/migrate/adconnectionalias'])
 
 	print('Restarting the univention-directory-listener...')
 	if args.dryrun:
@@ -95,7 +91,7 @@ if __name__ == '__main__':
 	)
 
 	print('Searching for users to migrate in LDAP...')
-	users = UDMHelper.get_lo_o365_users(
+	users = UDMHelper.get_ldap_o365_users(
 		attributes=['uid', 'univentionOffice365Enabled', 'univentionOffice365ObjectID', 'univentionOffice365userPrincipalName', 'univentionOffice365Data', ],
 		enabled='',
 		additional_filter='(!(univentionOffice365ADConnectionAlias=*))'
@@ -126,7 +122,7 @@ if __name__ == '__main__':
 					'objectId': attr.get('univentionOffice365ObjectID', [''])[0],
 				}
 			}
-			new_univentionOffice365Data = Office365Listener.encode_o365data(adconnection_data)
+			new_univentionOffice365Data = UniventionOffice365Data(adconnection_data).to_ldap_str()
 			modlist.append(('univentionOffice365Data', azure_data_encoded, new_univentionOffice365Data))
 
 			azure_object_id = attr.get('univentionOffice365ObjectID', [''])[0]
@@ -170,7 +166,7 @@ if __name__ == '__main__':
 						'objectId': azure_object_id,
 					}
 				}
-				new_univentionOffice365Data = Office365Listener.encode_o365data(adconnection_data)
+				new_univentionOffice365Data = UniventionOffice365Data(adconnection_data).to_ldap_str()
 				modlist.append(('univentionOffice365Data', None, new_univentionOffice365Data))
 				modlist.append(('univentionOffice365ObjectID', azure_object_id, None))
 			if not args.dryrun:

@@ -149,6 +149,7 @@ else:
 attributes = get_listener_attributes()
 modrdn = "1"
 
+# MOVED to univention.office365.api.objects.connector.ConnectorAttributes
 _attrs = dict(
 	anonymize=attributes_anonymize,
 	listener=copy.copy(attributes),  # when handler() runs, all kinds of stuff is suddenly in attributes
@@ -161,6 +162,7 @@ _attrs = dict(
 
 ldap_cred = {}
 
+# MOVED to univention.office365.api.objects.connector.ConnectorAttributes
 logger.info("listener observing attributes: %r", [a for a in attributes if a not in attributes_system])
 logger.info("listener is also observing: %r", sorted(list(attributes_system)))
 logger.info("attributes mapping UCS->AAD: %r", attributes_mapping)
@@ -169,12 +171,15 @@ logger.info("attributes to never sync: %r", attributes_never)
 logger.info("attributes to statically set in AAD: %r", attributes_static)
 logger.info("attributes to sync: %r", attributes_sync)
 logger.info("attributes to sync from multiple sources: %r", attributes_multiple_azure2ldap)
+
+# TODO check if have being moved to new implementation
 get_http_proxies(listener.configRegistry, logger)  # log proxy settings
 
 
 _delay = None
 
 
+# MOVED to univention.office365.api.objects.udmobjects.UDMOfficeUser.is_deactivated_locked_or_expired
 def is_deactivated_locked_or_expired(udm_user):
 	"""
 	Check if a LDAP-user is deactivated or locked.
@@ -206,13 +211,14 @@ def setdata(key, value):
 	ldap_cred[key] = value
 
 
+# TODO: Move to new listener initialization
 def initialize():
 	logger.info("office 365 user listener active with filter=%r", filter)
 	logger.info('AD connection aliases: %r', adconnection_aliases)
 	if not initialized_adconnection:
 		raise RuntimeError("Microsoft 365 App ({}) not initialized for any AD connection yet, please run wizard.".format(name))
 
-
+# TODO: Move to the new listener
 def clean():
 	"""
 	Remove  univentionOffice365ObjectID and univentionOffice365Data from all
@@ -222,20 +228,23 @@ def clean():
 	logger.info("Removing Microsoft 365 ObjectID and Data from all users (adconnection_filter=%r)...", adconnection_filter)
 	UDMHelper.clean_udm_objects("users/user", listener.configRegistry["ldap/base"], ldap_cred, adconnection_filter)
 
-
+# MOVED to univention.office365.api.objects.connector.UserConnector.create
 def new_or_reactivate_user(ol, dn, new, old):
 	try:
+		# Contains the json response of the Azure request
 		new_user = ol.create_user(new)
 	except NoAllocatableSubscriptions as exc:
 		logger.error('{} ({})'.format(exc, exc.adconnection_alias))
 		new_user = exc.user
 
+	# MOVED to univention.office365.api.objects.udmobjects.UDMOfficeUser
 	# save/update Azure objectId and object data in UDM object
 	udm_user = ol.udm.get_udm_user(dn)
 	if not_migrated_to_v3:
 		udm_user["UniventionOffice365ObjectID"] = new_user["objectId"]
 		udm_user["UniventionOffice365Data"] = Office365Listener.encode_o365data(new_user)
 	else:
+		# CODE TO MIGRATE
 		new_azure_data = {
 			ol.adconnection_alias: {
 				'objectId': new_user['objectId'],
@@ -266,16 +275,20 @@ def new_or_reactivate_user(ol, dn, new, old):
 		"User creation success. userPrincipalName: %r objectId: %r dn: %s adconnection: %s",
 		new_user["userPrincipalName"], new_user["objectId"], dn, ol.adconnection_alias
 	)
+
+	# MOVED to univention.office365.api.objects.connector.UserConnector.create
 	# update group membership for user on reactivation
 	if new and old and listener.configRegistry.is_true("office365/groups/sync", False):
 		for group in udm_user['groups']:
 			logger.info('Need to add user to group %s.' % group)
 			udm_grp = ol.udm.get_udm_group(group)
 			try:
+				# If not exists in azure, create group
 				if not udm_grp.get('UniventionOffice365Data') or ol.adconnection_alias not in Office365Listener.decode_o365data(udm_grp['UniventionOffice365Data']):
 					logger.info('Need to create azure group %s for %s first.' % (group, ol.adconnection_alias))
 					ol.create_groups(group, udm_grp.oldattr)
 					udm_grp = ol.udm.get_udm_group(group)
+				# if exists in azure, add user to group
 				if udm_grp.get('UniventionOffice365Data'):
 					azure_data = Office365Listener.decode_o365data(udm_grp['UniventionOffice365Data'])
 					if ol.adconnection_alias in azure_data:
@@ -292,11 +305,13 @@ def new_or_reactivate_user(ol, dn, new, old):
 				continue
 
 
+# MOVED to univention.office365.api.objects.connector.UserConnector.delete
 def delete_user(ol, dn, new, old):
 	ol.delete_user(old)
 	logger.info("Deleted user %r adconnection: %s.", old["uid"][0].decode("UTF-8"), ol.adconnection_alias)
 
 
+# It only involves UDM user not azure at all.
 def deactivate_user(ol, dn, new, old):
 	ol.deactivate_user(old or new)
 	# remove userPrincipalName (or full Azure object data) from UDM object but keep objectId
@@ -318,7 +333,14 @@ def deactivate_user(ol, dn, new, old):
 	logger.info("Deactivated user %r adconnection: %s.", old["uid"][0].decode("UTF-8"), ol.adconnection_alias)
 
 
+# MOVED to univention.office365.api.objects.connector.UserConnector.modify
 def modify_user(ol, dn, new, old):
+	"""
+	Modify user
+	# TODO: Only two operations are needed here:
+	Modify user in Azure
+	Update user in UDM
+	"""
 	ol.modify_user(old, new)
 	# update Azure object data in UDM object
 	udm_user = ol.udm.get_udm_user(dn)
@@ -404,6 +426,7 @@ def handler(dn, new, old, command):
 		logger.info("DELETE (%s | %s)", connections_to_be_deleted, dn)
 		for conn in connections_to_be_deleted:
 			try:
+				# Delete the user from the AD connection
 				ol = Office365Listener(listener, name, _attrs, ldap_cred, dn, conn)
 				delete_user(ol, dn, new, old)
 			except NoIDsStored:
@@ -442,13 +465,14 @@ def handler(dn, new, old, command):
 			return
 
 		logger.info("new_enabled and not old_enabled -> NEW or REACTIVATED (%s | %s)", adconnection_aliases_new, dn)
+		# MOVED to connector logic
 		for conn in adconnection_aliases_new:
 			ol = Office365Listener(listener, name, _attrs, ldap_cred, dn, conn)
 			new_or_reactivate_user(ol, dn, new, old)
 		return
 
 	#
-	# DELETE account
+	# DELETE user
 	#
 	if old and not new:
 		logger.info("old and not new -> DELETE (%s | %s)", adconnection_aliases_old, dn)
@@ -458,7 +482,7 @@ def handler(dn, new, old, command):
 		return
 
 	#
-	# DEACTIVATE account
+	# DEACTIVATE user
 	#
 	if new and not new_enabled:
 		logger.info("new and not new_enabled -> DEACTIVATE (%s | %s)", adconnection_aliases_old, dn)
@@ -468,7 +492,7 @@ def handler(dn, new, old, command):
 		return
 
 	#
-	# MODIFY account
+	# MODIFY user
 	#
 	if old_enabled and new_enabled:
 		logger.info("old_enabled and new_enabled -> MODIFY (%s | %s)", adconnection_aliases_new, dn)
@@ -476,3 +500,6 @@ def handler(dn, new, old, command):
 			ol = Office365Listener(listener, name, _attrs, ldap_cred, dn, conn)
 			modify_user(ol, dn, new, old)
 		return
+
+
+

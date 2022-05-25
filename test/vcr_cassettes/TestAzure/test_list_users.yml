@@ -1,0 +1,336 @@
+interactions:
+- request:
+    body: '{"accountEnabled": true, "displayName": "user_test_list_users", "mailNickname":
+      "user_test_list_users", "userPrincipalName": "user_test_list_users@univentiontestgmbh.onmicrosoft.com",
+      "passwordProfile": {"forceChangePasswordNextSignIn": true, "password": "1nlVXlihkUg"},
+      "usageLocation": "DE"}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - XXXXXX
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '293'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - Univention Microsoft 365 Connector
+    method: POST
+    uri: https://graph.microsoft.com/v1.0/users
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAECnyQy2rDQAxF/0XN0o+86sRe5QNCyaK7Usw8ZFthHmZGDg2l/17GJoFuupMu0r1H
+        +oaT14JFobxj/GJoYGAeY1OWfRDjUFhSwUffcaG8LW+bYl2uLLJISy9TxBDLFTomvkMGpKEBvdl2
+        Wh0PefW6PeT7er/Lj1VV51rudKUqlPVaQQZyiuQwxsvgHUZoPj4z0BRHI+5vwiI0kNxbxsitocjt
+        HAYZ9HRDt4y4yZgMrl6+ExuEZumtIPOsvSSDc8ZD8l1HCs9eCSbvHuoYsMMQUJ+F6yfRP93iFNzM
+        s5gniksgp2gU5h/Q0+QSZ4pIJ/RWDoV3f74JP78AAAD//wMAf3EBQH4BAAA=
+    headers:
+      Cache-Control:
+      - no-cache
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8
+      Date:
+      - Fri, 13 May 2022 11:33:06 GMT
+      Location:
+      - https://graph.microsoft.com/v2/3e7d9eb5-c3a1-4cfc-892e-a8ec29e45b77/directoryObjects/d12fdc87-6527-4943-8669-db3d6c6eb90c/Microsoft.DirectoryServices.User
+      OData-Version:
+      - '4.0'
+      Strict-Transport-Security:
+      - max-age=31536000
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Accept-Encoding
+      client-request-id:
+      - a85a93e2-a7ce-4785-8797-98dba5c812ed
+      request-id:
+      - a85a93e2-a7ce-4785-8797-98dba5c812ed
+      x-ms-ags-diagnostic:
+      - '{"ServerInfo":{"DataCenter":"North Europe","Slice":"E","Ring":"4","ScaleUnit":"000","RoleInstance":"DU6PEPF00002DB6"}}'
+      x-ms-resource-unit:
+      - '1'
+    status:
+      code: 201
+      message: Created
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - XXXXXX
+      Connection:
+      - keep-alive
+      User-Agent:
+      - Univention Microsoft 365 Connector
+    method: GET
+    uri: https://graph.microsoft.com/v1.0/users
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAECtxda3NbuZH9K1NMvsV9A6AfAKZqa+PKazc19maSiWfG2ZQKT5l6UZYo2eNU/vsW
+        RFK8Vw8PL5nKzg0/2bIl9TloNBr9wt9nv1rksAxdWlwsy8fl7MvZu+Xy8vrLX/7y+CpcvuvO5+lq
+        cb2oyy4tzn95qzv1y5+fl2Vo3/Szm+tydT17sfkZF+Xj8qv5xekuP+TuW//z59en88vl4rRc/Mef
+        fvf6Q3753y9ffv3y5cvfLeTbs8vwnfnTWfz9G/X22z/VV998r1+dfP3p9adX+vWc+PU3rz69/s1v
+        8Tt88+ntd3+o+fdvPuXf+dO33348y79/U+O3b5bfn7/54ev/enMTvnt7Fi/+dBkNq7ffvVZvjZ6H
+        X/NtPNeX3+MfbpPx5/nXfBKNunzz3euzdOb09+ff//D221cfX83VD6++/Yv+6puvP35/8vXy+29+
+        N/+fXyt6e3L68dVvXp+9Onlz/vb3gV8OPrMXs9twdlNmX/7177N4cz2/KNfXf3y3uCjXsy//+rcX
+        szy/vjwLP7wO52X25exlPp9fzK+XV2G5uJq9mB3Pb8vF6t8ubs7OXsxOFvGb+fKszL5c/f08zM/u
+        /7yI87Ny98M3X1rUOk/lq0UKy/niYvPVy6tSy9VVyV+Fi+ObcHz/065vri6eFqQt0x+v5hdpfhnO
+        1sKGvrC/Wv0qFO5yuYWbiyZ5+6VdLrMXs3mefTnzydZoVQBDzgBlZSCI8uBUYu8ickph9o8XTxA1
+        +4UhYEPgNCqh2WPiTudf/Hl+eVoesDZ7eTqfPUfbLJzOf0Tu838ip/fyPUnmj4pyR2GOOnKKCNmJ
+        AAVdIJqgIYXoQhKsSZnnKCT/BRn9hTEGDXj9mMTfhIt5Ofvim6v/vVGqSn5E5uo/PM9nXl4tSi5X
+        v9ou/7JcL4/P47tucTEwIbMXswG3s1+Q/0JpMVo5axzOXsx2Vt5ZuYC//Hn2YrbV3yGGpwgfJ+uK
+        fAkhcq3gk3NAhRh8URU0Gl2Kq8nF/DT5j/T1PFwt5xflIuy+yWf339Ojd7W7BkyuDMPO5K3++z1z
+        q78+Rdj9rz/arm6Xy89++903P+tJ9JkFXxmBXCqVJOAoCJBSCRySguS88dGJSiruSGKT8qj9vqNc
+        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
+        Whn6RZEAAA==
+    headers:
+      Cache-Control:
+      - no-cache
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8
+      Date:
+      - Fri, 13 May 2022 11:33:07 GMT
+      OData-Version:
+      - '4.0'
+      Strict-Transport-Security:
+      - max-age=31536000
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Accept-Encoding
+      client-request-id:
+      - 149f50c0-a15f-4d1c-945c-2bb6b975ed95
+      request-id:
+      - 149f50c0-a15f-4d1c-945c-2bb6b975ed95
+      x-ms-ags-diagnostic:
+      - '{"ServerInfo":{"DataCenter":"North Europe","Slice":"E","Ring":"4","ScaleUnit":"000","RoleInstance":"DU6PEPF00002DC1"}}'
+      x-ms-resource-unit:
+      - '2'
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - XXXXXX
+      Connection:
+      - keep-alive
+      User-Agent:
+      - Univention Microsoft 365 Connector
+    method: GET
+    uri: https://graph.microsoft.com/v1.0/users?$skiptoken=RFNwdAIAAQAAAFo6WlpaX2RlbGV0ZWRfMTY1MjQzNzM1Ni45NTMzNDE3X3VzZXJfdGVzdF9kZWxldGVfbWVtYmVyQHVuaXZlbnRpb250ZXN0Z21iaC5vbm1pY3Jvc29mdC5jb20pVXNlcl81YmYyZWMxMi0yMWU1LTQxYjQtYTFiOC04ZjkxMDNlMjVmZGa5AAAAAAAAAAAAAA
+  response:
+    body:
+      string: !!binary |
+        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
+        /wAAAP//AwALGPQidjMAAA==
+    headers:
+      Cache-Control:
+      - no-cache
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8
+      Date:
+      - Fri, 13 May 2022 11:33:07 GMT
+      OData-Version:
+      - '4.0'
+      Strict-Transport-Security:
+      - max-age=31536000
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Accept-Encoding
+      client-request-id:
+      - 8aa56e62-01fc-46ae-87fa-7656d31f8978
+      request-id:
+      - 8aa56e62-01fc-46ae-87fa-7656d31f8978
+      x-ms-ags-diagnostic:
+      - '{"ServerInfo":{"DataCenter":"North Europe","Slice":"E","Ring":"4","ScaleUnit":"000","RoleInstance":"DU6PEPF00002DA9"}}'
+      x-ms-resource-unit:
+      - '2'
+    status:
+      code: 200
+      message: OK
+- request:
+    body: '{"accountEnabled": false, "userPrincipalName": "ZZZ_deleted_1652441588.26256_user_test_list_users@univentiontestgmbh.onmicrosoft.com",
+      "displayName": "ZZZ_deleted_1652441588.2625725_user_test_list_users"}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - XXXXXX
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '204'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - Univention Microsoft 365 Connector
+    method: PATCH
+    uri: https://graph.microsoft.com/v1.0/users/d12fdc87-6527-4943-8669-db3d6c6eb90c
+  response:
+    body:
+      string: ''
+    headers:
+      Cache-Control:
+      - no-cache
+      Date:
+      - Fri, 13 May 2022 11:33:07 GMT
+      Strict-Transport-Security:
+      - max-age=31536000
+      client-request-id:
+      - fd5a2475-5954-4a00-a9d8-28c47a345772
+      request-id:
+      - fd5a2475-5954-4a00-a9d8-28c47a345772
+      x-ms-ags-diagnostic:
+      - '{"ServerInfo":{"DataCenter":"North Europe","Slice":"E","Ring":"4","ScaleUnit":"000","RoleInstance":"DU6PEPF00002C4E"}}'
+      x-ms-resource-unit:
+      - '1'
+    status:
+      code: 204
+      message: No Content
+version: 1

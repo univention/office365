@@ -54,7 +54,7 @@
 import logging
 from six import PY2, PY3
 
-import univention.debug as ud
+from univention import debug as ud
 from univention.config_registry import ConfigRegistry
 
 

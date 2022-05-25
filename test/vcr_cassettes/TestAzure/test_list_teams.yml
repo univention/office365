@@ -1,0 +1,66 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - XXXXXX
+      Connection:
+      - keep-alive
+      User-Agent:
+      - Univention Microsoft 365 Connector
+    method: GET
+    uri: https://graph.microsoft.com/v1.0/groups?$filter=resourceProvisioningOptions/Any(x:x%20eq%20'Team')&$select=id
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAECkyU3apdNwyE32W3Fy1kEtmWLSlXfY/SC/3YbaDpCclJKIS8e1lQ2Ov+sxjPjPT9
+        8dtL+au/zZd/Xve/r4/3j79eXz99ef/u3Z+f/dNfbz9+yM8vX17O69t8+fjuW3tL737+uF/9evTT
+        n59fvn768suH+vXx5vHN//66H+9///74UI/3j4wpoXMgtgl4SkL76GBrVdrPNKbHjzf/07w6i2hh
+        V2fwOR2ebFD2NQaJCM8nPZOsdxNonAKTOEzVYM5rFzXxZU86Q2QfS9TpBPY0xHZBDGZzip6zPelh
+        NjRPYTMVuF9K3AukW5afmCLypH2w6CW077XBRgPKl7CStjPJRPaT7mGTaEyojkv3IljfE2fGsnky
+        JeJJh7clextq5wCvfqA9J6yW+jiz7ehPWupor3Ck5DWbJ3w5oa2mEbVj+c3vGTFJ2eB10TkI6rVB
+        OiJycfRz052yuVY19LAEL5uIswcqpg2VRn2fp5JzmOQcRfFQsFmDsQZS3XxOYm/5pPf2HNMakojB
+        NgOmsdGLz5w86MybJ9rCRE/C2xawS8FXBXotKjPyOrfZU4cNbomsdPBsHbaUsJbNMU8/g2+624ri
+        EQekqeDdGDbN0Sa3opnEd901NvuZBRmlYA5BNGVoDnZOzWr+/OV005Z1UI0dvNQQKopGTUz7cNIb
+        fZxcJiXUToDFGlxaxzY+JaNZn7cO7nb1xBOdisHCjGizQWkxiZzUcdsdK6OVUagYG7yzwecy7Mo5
+        x1jnlD51Nx/ejA+IN4EtHJ5HQaNR5GmydTxp2zE7q0E8A7xmQ5xhaGN0X5WpcsuSmHkMn4h9NnjM
+        hC+eEKW+M8deeaOXDloiE+2qCJ8UqHeFpIaYdB3t9kuKk7E3Yzfd4GYDkduwcu4+1j5+bsnz9Gq5
+        NubxBHdzBOdC+pyqg2LLLR0ZW4KMoUwDrCSIvRuq+/Duvvy+OzrYifrC0SRw5wavVmCJ2VuN3uKm
+        JGpyjEY4YgN8oiFSJ4aswVud+N6q7K1RC8XM3cBMDA0TuNhoVrb3WM90uFuyzASV9WsbGlR4QS4z
+        M87RdVeiJb60g6gruPmCttMx44qtSFbeelJDKeQqdJ4FVhZ40oJSt7HtNF23LCefyKgGaiWX34LI
+        NJzmbpOpat0u8ipNS1aI+OW3MSyPI2hmMh2xutFmruF8oCzXrToDVmNAZjk3keqbn56QK+2dhFrr
+        gCUZXq7wNYqPJ/O5OdjnyhksONo7mPaGxaXJtF2HZXHVc7aqb9XqoNnlytsQOeu6Pvu0M03yRnc5
+        asSKqDbArA163dhr/8SkZF9+//HjPwAAAP//AwAoNHL+sgcAAA==
+    headers:
+      Cache-Control:
+      - no-cache
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8
+      Date:
+      - Fri, 13 May 2022 11:32:59 GMT
+      OData-Version:
+      - '4.0'
+      Strict-Transport-Security:
+      - max-age=31536000
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Accept-Encoding
+      client-request-id:
+      - 39cfbf49-0b98-4045-b164-720ca5afecd7
+      request-id:
+      - 39cfbf49-0b98-4045-b164-720ca5afecd7
+      x-ms-ags-diagnostic:
+      - '{"ServerInfo":{"DataCenter":"North Europe","Slice":"E","Ring":"4","ScaleUnit":"000","RoleInstance":"DU6PEPF0000350E"}}'
+      x-ms-resource-unit:
+      - '1'
+    status:
+      code: 200
+      message: OK
+version: 1

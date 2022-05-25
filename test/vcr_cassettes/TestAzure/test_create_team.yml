@@ -1,0 +1,85 @@
+interactions:
+- request:
+    body: '{"template@odata.bind": "https://graph.microsoft.com/v1.0/teamsTemplates(''standard'')",
+      "displayName": "test_create_team", "description": "Description test_create_team",
+      "members": [{"@odata.type": "#microsoft.graph.aadUserConversationMember", "roles":
+      ["owner"], "user@odata.bind": "https://graph.microsoft.com/v1.0/users(''d6aab5ff-9c88-4e45-9e0f-1321ee8fc8bd'')"}]}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - XXXXXX
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '365'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - Univention Microsoft 365 Connector
+    method: POST
+    uri: https://graph.microsoft.com/v1.0/teams
+  response:
+    body:
+      string: ''
+    headers:
+      Content-Length:
+      - '0'
+      Content-Location:
+      - /teams('8c5416d2-e4da-4f06-9849-1501363b3115')
+      Date:
+      - Fri, 13 May 2022 11:19:49 GMT
+      Location:
+      - /teams('8c5416d2-e4da-4f06-9849-1501363b3115')/operations('47671a9c-3cad-4b8a-bea3-553c6c8d94b1')
+      Strict-Transport-Security:
+      - max-age=31536000
+      client-request-id:
+      - 0825d535-acb0-462a-919b-24100224bdfc
+      request-id:
+      - 0825d535-acb0-462a-919b-24100224bdfc
+      x-ms-ags-diagnostic:
+      - '{"ServerInfo":{"DataCenter":"North Europe","Slice":"E","Ring":"4","ScaleUnit":"000","RoleInstance":"DU6PEPF00002DA7"}}'
+    status:
+      code: 202
+      message: Accepted
+- request:
+    body: '{}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - XXXXXX
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '2'
+      User-Agent:
+      - Univention Microsoft 365 Connector
+    method: DELETE
+    uri: https://graph.microsoft.com/v1.0/groups/8c5416d2-e4da-4f06-9849-1501363b3115
+  response:
+    body:
+      string: ''
+    headers:
+      Cache-Control:
+      - no-cache
+      Date:
+      - Fri, 13 May 2022 11:20:00 GMT
+      Strict-Transport-Security:
+      - max-age=31536000
+      client-request-id:
+      - d3e4bcae-9f41-4012-8abc-9fe0382f1fc0
+      request-id:
+      - d3e4bcae-9f41-4012-8abc-9fe0382f1fc0
+      x-ms-ags-diagnostic:
+      - '{"ServerInfo":{"DataCenter":"North Europe","Slice":"E","Ring":"4","ScaleUnit":"000","RoleInstance":"DU6PEPF00002DC1"}}'
+      x-ms-resource-unit:
+      - '1'
+    status:
+      code: 204
+      message: No Content
+version: 1

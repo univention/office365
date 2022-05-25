@@ -38,9 +38,15 @@ import pprint
 import random
 import base64
 
-from univention.config_registry import ConfigRegistry
-from univention.office365.azure_handler import AzureHandler
-from univention.office365.azure_auth import AzureADConnectionHandler
+# from univention.config_registry import ConfigRegistry
+# from univention.office365.azure_handler import AzureHandler
+# from univention.office365.azure_auth import AzureADConnectionHandler
+from typing import List
+
+from univention.office365.api.account import AzureAccount
+from univention.office365.api.core import MSGraphApiCore
+from univention.office365.api.objects.azureobjects import UserAzure, GroupAzure, SubscriptionAzure
+from univention.office365.ucr_helper import UCRHelper
 
 EXAMPLES = """\
 ADD USERS | GROUPS
@@ -86,39 +92,36 @@ LICENSES
 
 
 def print_users(users, complete=False, short=False):
+	# type: (List[UserAzure], bool, bool) -> None
 	if not users:
 		print("None.")
 		return
-	if users["odata.metadata"].endswith("@Element"):
-		users = [users]
-	else:
-		users = users["value"]
 	for user in users:
 		print(u"objectType: {0} objectId: {1} accountEnabled: {2} displayName: '{3}'".format(
-			user["objectType"],
-			user["objectId"],
-			user["accountEnabled"],
-			user["displayName"]))
+			user.__class__.__name__,
+			user.id,
+			user.accountEnabled,
+			user.displayName))
 		if short:
 			pass
 		elif complete:
-			pprint.pprint(user)
+			pprint.pprint(user.get_not_none_values_as_dict())
 			print("")
 		else:
 			for attr in ["accountEnabled", "displayName", "mail", "odata.type", "otherMails", "userPrincipalName"]:
-				if attr in user:
-					print(u"      {0}: {1}".format(attr, user[attr]))
+				if attr in hasattr(user, attr):
+					print(u"      {0}: {1}".format(attr, user.__getattribute__(attr)))
 				else:
 					print("      no attr {0}".format(attr))
 			print("      assignedPlans:")
-			for plan in user["assignedPlans"]:
+			for plan in user.assignedPlans:
 				print(u"            service: {0} \t capabilityStatus: {1}".format(
 					plan["service"],
 					plan["capabilityStatus"]))
-			if not user["assignedPlans"]:
+			if not user.assignedPlans:
 				print("            None")
 			print("      provisionedPlans:")
-			for plan in user["provisionedPlans"]:
+			for plan in user.provisionedPlans:
 				print(u"            service: {0} \t capabilityStatus: {1} \t provisioningStatus: {2}".format(
 					plan["service"], plan["capabilityStatus"], plan["provisioningStatus"]))
 			if not user["provisionedPlans"]:
@@ -126,21 +129,18 @@ def print_users(users, complete=False, short=False):
 
 
 def print_groups(groups, complete=False, short=False):
+	# type: (List[GroupAzure], bool, bool) -> None
 	if not groups:
 		print("None.")
 		return
 
-	if groups["odata.metadata"].endswith("@Element"):
-		groups = [groups]
-	else:
-		groups = groups["value"]
 	for group in groups:
 		try:
-			print(u"objectType: {0} objectId: {1} displayName: '{2}'".format(group["objectType"], group["objectId"], group["displayName"]))
+			print(u"objectType: {0} objectId: {1} displayName: '{2}'".format(group.__class__.__name__, group.id, group.displayName))
 			if short:
 				pass
 			else:
-				pprint.pprint(group)
+				pprint.pprint(group.get_not_none_values_as_dict())
 				print("")
 		except KeyError:
 			print("type(groups): {}".format(type(groups)))
@@ -148,11 +148,11 @@ def print_groups(groups, complete=False, short=False):
 			print("")
 
 
-def member_of(action, objectid):
+def member_of(action, objectid, core):
 	if action == "groups":
-		return ah.member_of_groups(objectid)
+		return core.member_of_groups(objectid)
 	else:
-		return ah.member_of_objects(objectid)
+		return core.member_of_objects(objectid)
 
 
 if __name__ == "__main__":
@@ -182,8 +182,8 @@ if __name__ == "__main__":
 	if args.verbosity is None:
 		args.verbosity = 0
 
-	if args.connection not in AzureADConnectionHandler.get_adconnection_aliases():
-		parser.error("choose one of these connections: {}".format(AzureADConnectionHandler.get_adconnection_aliases()))
+	if args.connection not in UCRHelper.get_adconnection_aliases():
+		parser.error("choose one of these connections: {}".format(UCRHelper.get_adconnection_aliases()))
 
 	if args.object in ["users", "groups", "licenses", "domains", "subscriptions", "adconnection"]:
 		if args.action == "examples":
@@ -195,14 +195,11 @@ if __name__ == "__main__":
 	else:
 		parser.error(u"Unknown object '{0}'.".format(args.object))
 
-	ucr = ConfigRegistry()
-	ucr.load()
-	ah = AzureHandler(ucr, args.connection, args.connection)
-
+	core = MSGraphApiCore(AzureAccount(args.connection))
 	if args.action == "add":
 		if args.objectid:
 			if args.set:
-				ah.add_objects_to_azure_group(args.objectid, args.set)
+				core.add_group_members(args.objectid, args.set)
 			else:
 				parser.error("Please supply the objectIDs of users or groups to add to the group.")
 		else:
@@ -217,46 +214,47 @@ if __name__ == "__main__":
 					"passwordProfile": {
 						"password": "univention.99",
 						"forceChangePasswordNextLogin": False},
-					"userPrincipalName": "{0}@{1}".format(name, ah.get_verified_domain_from_disk())}
-				ah.create_user(attributes)
-				new_user = ah.list_users(ofilter="userPrincipalName eq '{}'".format(attributes["userPrincipalName"]))
-				print_users(new_user, args.complete, args.short)
+					"userPrincipalName": "{0}@{1}".format(name, core.account.get_domain())}
+				new_user = UserAzure(**attributes)
+				new_user.set_core(core)
+				new_user.create_or_modify()
+				# new_user = ah.list_users(ofilter="userPrincipalName eq '{}'".format(attributes["userPrincipalName"]))
+				print_users(new_user.get_not_none_values_as_dict(), args.complete, args.short)
 			elif args.object == "groups":
-				ah.create_group(name)
-				new_group = ah.list_groups(ofilter="displayName eq '{}'".format(name))
-				print_groups(new_group, args.complete, args.short)
+				new_group = GroupAzure(description=None, displayName=name, mailEnabled=False, mailNickname=name.replace(" ", "_-_"), securityEnabled=True)
+				new_group.set_core(core)
+				new_group.create_or_modify()
+				print_groups(new_group.get_not_none_values_as_dict(), args.complete, args.short)
 			else:
 				print("other object types not yet implemented")
 	elif args.action == "list":
 		print("listing {0}: {1}...".format(args.object, args.objectid if args.objectid else "all"))
 		if args.object == "users":
-			users = ah.list_users(args.objectid, args.filter)
+			users = UserAzure.list(core)
 			print_users(users, args.complete, args.short)
 		elif args.object == "groups":
-			groups = ah.list_groups(args.objectid, args.filter)
+			groups = GroupAzure.list(core)
 			print_groups(groups, args.complete, args.short)
-			if groups["odata.metadata"].endswith("@Element"):
-				groups = [groups]
-			else:
-				groups = groups["value"]
-			for group_id in [g["objectId"] for g in groups]:
-				print("MEMBERS OF %r:" % group_id)
-				members = ah.get_groups_direct_members(group_id)
+			for group in groups:
+				print("MEMBERS OF %r:" % group.id)
+				members = group.list_members()
 				if "value" in members:
-					print("\n".join([m["url"] for m in members["value"]]) if members["value"] else "None.")
+					print("\n".join([m.id for m in members]) if members else "None.")
 				else:
 					print("Error retrieving group members.")
 					print(members)
 				print("")
 		elif args.object == "subscriptions":
-			subscriptions = ah.list_subscriptions()
+			subscriptions = SubscriptionAzure.list(core)
+			subscriptions = [s.get_not_none_values_as_dict() for s in subscriptions]
 			pprint.pprint(subscriptions)
 		elif args.object == "domains":
-			domains = ah.list_verified_domains()
+			domains = core.list_verified_domains()
 			pprint.pprint(domains)
 		elif args.object == "adconnection":
-			adconnection = ah.list_adconnection_details()
-			pprint.pprint(adconnection)
+			print("deprecated in MSGraph")
+			# adconnection = ah.list_adconnection_details()
+			# pprint.pprint(adconnection)
 		else:
 			print("object type '{}' not yet implemented".format(args.object))
 	elif args.action == "modify":
@@ -271,15 +269,21 @@ if __name__ == "__main__":
 				parser.error(u"Argument '{0}' is not of form KEY=VALUE.".format(kv))
 		print(u"modifying {}: {} attributes: {}...".format(args.object[:-1], args.objectid, modifications))
 		if args.object == "users":
-			ah.modify_user(args.objectid, modifications)
+			user = UserAzure(id=args.objectid)
+			modifications = UserAzure(**modifications)
+			user.set_core(core)
+			user.update(modifications)
 		elif args.object == "groups":
-			ah.modify_group(args.objectid, modifications)
+			group = GroupAzure(id=args.objectid)
+			modifications = GroupAzure(**modifications)
+			group.set_core(core)
+			group.update(modifications)
 		elif args.object == "licenses":
 			for k, v in modifications.items():
 				if k == "add":
-					ah.add_license(args.objectid, v)
+					core.add_license(args.objectid, v)
 				elif k == "remove":
-					ah.remove_license(args.objectid, v)
+					core.remove_license(args.objectid, v)
 				else:
 					parser.error("Only 'add' and 'remove' are allowed for license modifications.")
 		else:
@@ -289,18 +293,22 @@ if __name__ == "__main__":
 			parser.error('Currently only object types "users" and "groups" supported.')
 		print("deleting {} {}...".format(args.object[:-1], args.objectid))
 		if args.object == "users":
-			ah.delete_user(args.objectid)
+			user = UserAzure(id=args.objectid)
+			user.set_core(core)
+			user.deactivate(rename=True)
 		else:
-			ah.delete_group(args.objectid)
+			group = GroupAzure(id=args.objectid)
+			group.set_core(core)
+			group.deactivate(rename=True)
 	elif args.action in ["memberofgroups", "memberofobjects"]:
 		print("querying {0} of {1}...".format(args.action[8:], args.objectid))
-		member_in = member_of(args.action[8:], args.objectid)
+		member_in = member_of(args.action[8:], args.objectid, core)
 		print("member_in: {}".format(pprint.pformat(member_in)))
 		print("{0} is member of the following {1}:".format(args.objectid, args.action[8:]))
 		print("{}".format(member_in["value"]))
 		if member_in["value"]:
 			print("resolving object IDs...")
-			objects = ah.resolve_object_ids(member_in["value"])
+			objects = core.resolve_object_ids(member_in["value"])
 			print("objects: {}".format(pprint.pformat(objects)))
 			for obj in objects["value"]:
 				print("objectId {}:".format(obj["objectId"]))

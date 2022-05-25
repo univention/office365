@@ -32,9 +32,11 @@
 
 import sys
 from operator import itemgetter
-from univention.config_registry import ConfigRegistry
-from univention.office365.azure_handler import AzureHandler
-from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
+
+from univention.office365.api.account import AzureAccount
+from univention.office365.api.core import MSGraphApiCore
+from univention.office365.api.objects.azureobjects import SubscriptionAzure
+from univention.office365.ucr_helper import UCRHelper
 
 
 def calc_column_lengths(data, data_fetchers, header_parts):
@@ -58,10 +60,8 @@ def print_table(data, data_fetchers, header_parts, line, epilog, column_lengths=
 
 
 def print_subscriptions(adconnection_alias=None):
-	ucr = ConfigRegistry()
-	ucr.load()
-	ah = AzureHandler(ucr, "print_subscriptions", adconnection_alias)
-	subscriptions = ah.list_subscriptions()["value"]
+	core = MSGraphApiCore(AzureAccount(adconnection_alias))
+	subscriptions = SubscriptionAzure.list(core)
 
 	# print all subscriptions
 	data_fetchers = (
@@ -69,7 +69,7 @@ def print_subscriptions(adconnection_alias=None):
 		itemgetter('appliesTo'),
 		itemgetter('capabilityStatus'),
 		itemgetter('consumedUnits'),
-		lambda x: x["prepaidUnits"]["enabled"] + x["prepaidUnits"]["suspended"] + x["prepaidUnits"]["warning"] - x["consumedUnits"],
+		lambda x: x['prepaidUnits']["enabled"] + x['prepaidUnits']["suspended"] + x['prepaidUnits']["warning"] - x['consumedUnits'],
 		lambda x: '{enabled}/{suspended}/{warning}'.format(**x['prepaidUnits'])
 	)
 	header_parts = ('Subscription', 'Applies to', 'Status', 'Consumed', 'Remaining', 'Prepaid (*)')
@@ -78,14 +78,15 @@ def print_subscriptions(adconnection_alias=None):
 	header = ' | '.join(header_parts)
 	print(('{: ^%d}' % len(header)).format('Subscriptions'))
 	print(('{: ^%d}' % len(header)).format('=' * (len('Subscriptions') + 8)))
-	print_table(subscriptions, data_fetchers, header_parts, line, epilog)
+	data_to_print = [s.get_not_none_values_as_dict() for s in subscriptions]
+	print_table(data_to_print, data_fetchers, header_parts, line, epilog)
 
 	# list plans of all subscriptions
 	data_fetchers = (
 		itemgetter('servicePlanName'),
 		itemgetter('appliesTo'),
 		itemgetter('provisioningStatus'),
-		lambda x: 'x' if x['servicePlanName'] in ah.service_plan_names else ''
+		lambda x: 'x' if x['servicePlanName'] in UCRHelper.get_service_plan_names() else ''
 	)
 	header_parts = ('Service plan', 'Applies to', 'Status', 'in UCRV (*)')
 	line = '{: <%d} | {: <%d} | {: <%d} | {: <%d}'
@@ -94,13 +95,13 @@ def print_subscriptions(adconnection_alias=None):
 	column_lengths = tuple(0 for x in header_parts)
 	# make columns homogeneous for all subscriptions
 	for subscription in subscriptions:
-		plan_column_length = calc_column_lengths(subscription["servicePlans"], data_fetchers, header_parts)
+		plan_column_length = calc_column_lengths(subscription.servicePlans, data_fetchers, header_parts)
 		column_lengths = tuple(max(column_lengths[x], plan_column_length[x]) for x in range(len(column_lengths)))
 	# print each subscription
 	for subscription in subscriptions:
-		print(('{: ^%d}' % len(header)).format(subscription['skuPartNumber']))
-		print(('{: ^%d}' % len(header)).format('=' * (len(subscription['skuPartNumber']) + 8)))
-		print_table(subscription["servicePlans"], data_fetchers, header_parts, line, epilog, column_lengths)
+		print(('{: ^%d}' % len(header)).format(subscription.skuPartNumber))
+		print(('{: ^%d}' % len(header)).format('=' * (len(subscription.skuPartNumber) + 8)))
+		print_table(subscription.servicePlans, data_fetchers, header_parts, line, epilog, column_lengths)
 
 
 if __name__ == '__main__':
@@ -109,8 +110,8 @@ if __name__ == '__main__':
 		sys.exit(1)
 	try:
 		adconnection_alias = sys.argv[1]
-		adconnection_aliases = AzureADConnectionHandler.get_adconnection_aliases().keys()
-		initialized_adconnections = [ta for ta in adconnection_aliases if AzureAuth.is_initialized(ta)]
+		adconnection_aliases = UCRHelper.get_adconnection_aliases().keys()
+		initialized_adconnections = [ta for ta in adconnection_aliases if AzureAccount(ta).is_initialized()]
 		if adconnection_alias not in adconnection_aliases:
 			print('Usage: {} [Azure AD connection alias]'.format(sys.argv[0]))
 			print('Unknown Azure AD connection alias {!r}.'.format(adconnection_alias))
