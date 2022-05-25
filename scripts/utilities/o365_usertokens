@@ -44,9 +44,9 @@ from logging.handlers import SysLogHandler
 
 import univention.admin.objects
 
-from univention.office365.api.account import AzureAccount
-from univention.office365.api.core import MSGraphApiCore
-from univention.office365.api.objects.udmobjects import UniventionOffice365Data
+from univention.office365.microsoft.account import AzureAccount
+from univention.office365.microsoft.core import MSGraphApiCore
+from univention.office365.udmwrapper.udmobjects import UniventionOffice365Data
 from univention.office365.logging2udebug import get_logger
 from univention.office365.ucr_helper import UCRHelper
 
