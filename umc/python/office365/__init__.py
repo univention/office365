@@ -45,11 +45,11 @@ from univention.management.console.modules.decorators import sanitize, simple_re
 from univention.management.console.modules.sanitizers import StringSanitizer, DictSanitizer, BooleanSanitizer, ValidationError, MultiValidationError
 from univention.management.console.log import MODULE
 
-from univention.office365.api.account import AzureAccount, SAML_SETUP_SCRIPT_PATH
-from univention.office365.api.core import MSGraphApiCore
-from univention.office365.api.core_exceptions import MSGraphError
-from univention.office365.api.login_exceptions import ManifestError, ADConnectionIDError, GenericLoginException
-from univention.office365.api.manifest import Manifest
+from univention.office365.microsoft.account import AzureAccount, SAML_SETUP_SCRIPT_PATH
+from univention.office365.microsoft.core import MSGraphApiCore
+from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError
+from univention.office365.microsoft.exceptions.login_exceptions import ManifestError, ADConnectionIDError, GenericLoginException
+from univention.office365.microsoft.manifest import Manifest
 from univention.office365.ucr_helper import UCRHelper
 
 _ = Translation('univention-management-console-module-office365').translate
@@ -203,7 +203,7 @@ class Instance(Base):
 				account.write_saml_setup_script()
 				UCRHelper.set_ucs_overview_link()
 				core = MSGraphApiCore(account)
-				core.get_token() # not really necessary, but it'll make sure everything worked
+				core.get_token()  # not really necessary, but it'll make sure everything worked
 			except MSGraphError as exc:
 				self.init()
 				raise UMC_Error(str(exc))
