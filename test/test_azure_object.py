@@ -31,10 +31,10 @@ sys.modules['univention.lib.i18n'] = mock.MagicMock()
 sys.modules['univention.config_registry.frontend'] = mock.MagicMock()
 sys.modules['os'].chown = mock.MagicMock()
 
-from univention.office365.api.core_exceptions import MSGraphError
-from univention.office365.api.objects.azureobjects import UserAzure, GroupAzure, TeamAzure, SubscriptionAzure
-from univention.office365.api.account import AzureAccount
-from univention.office365.api.core import MSGraphApiCore
+from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError
+from univention.office365.microsoft.objects.azureobjects import UserAzure, GroupAzure, TeamAzure, SubscriptionAzure
+from univention.office365.microsoft.account import AzureAccount
+from univention.office365.microsoft.core import MSGraphApiCore
 from test import ALIASDOMAIN, DOMAIN_PATH, DOMAIN, OWNER_ID
 
 

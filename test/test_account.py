@@ -27,7 +27,7 @@ sys.modules['univention.lib.i18n'] = mock.MagicMock()
 sys.modules['univention.config_registry.frontend'] = mock.MagicMock()
 sys.modules["os"].chown = mock.MagicMock()
 
-from univention.office365.api import account as accound_M
+from univention.office365.microsoft import account as accound_M
 from test import ALIASDOMAIN, DOMAIN_PATH, DOMAIN_2
 
 CURRENT_PATH = os.path.dirname(os.path.abspath(__file__))

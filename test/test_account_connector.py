@@ -36,7 +36,7 @@ sys.modules['ldap'] = mock.MagicMock()
 sys.modules['ldap.filter'] = mock.MagicMock()
 sys.modules['os'].chown = mock.MagicMock()
 
-from univention.office365.api.account_connector import ConnectionsPool
+from univention.office365.connector.account_connector import ConnectionsPool
 
 
 

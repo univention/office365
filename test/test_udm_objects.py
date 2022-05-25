@@ -23,8 +23,8 @@ sys.modules['ldap'] = mock.MagicMock()
 sys.modules['ldap.filter'] = mock.MagicMock()
 
 from test import ALIASDOMAIN
-from univention.office365.api.objects.udmobjects import UDMOfficeUser, UniventionOffice365Data, UDMOfficeObject, Version, UDMOfficeGroup
-from univention.office365.api.objects import udmobjects
+from univention.office365.udmwrapper.udmobjects import UDMOfficeUser, UniventionOffice365Data, UDMOfficeObject, Version, UDMOfficeGroup
+from univention.office365.udmwrapper import udmobjects
 ldap_cred = {}
 
 
