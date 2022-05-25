@@ -2,9 +2,9 @@ from typing import Dict, Optional, List
 
 import univention.listener
 
-from univention.office365.api.objects.connector import GroupConnector
+from univention.office365.connector.connector import GroupConnector
 from univention.office365.ucr_helper import UCRHelper
-from univention.office365.api.objects.udmobjects import UDMOfficeGroup
+from univention.office365.udmwrapper.udmobjects import UDMOfficeGroup
 from univention.office365.logging2udebug import get_logger
 
 logger = get_logger("office365", "o365")
