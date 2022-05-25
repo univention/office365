@@ -1,7 +1,6 @@
 import datetime
 import os.path
 import sys
-from collections import UserDict
 from copy import copy, deepcopy
 import pickle
 import pytest

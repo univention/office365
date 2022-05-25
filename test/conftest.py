@@ -2,7 +2,7 @@ import importlib
 import os
 import pickle
 import sys
-from collections import UserDict
+from six.moves import UserDict
 
 import pytest
 from mock import mock
@@ -12,7 +12,6 @@ import importlib
 import os
 import pickle
 import sys
-from collections import UserDict
 
 import pytest
 from mock import mock
@@ -54,6 +53,11 @@ def create_udm_object(cls, file, mapping):
 		return udm_object
 	return _create_udm_object
 
+
+# @pytest.fixture(scope='session', autouse=True)
+# def get_udm_object():
+# 	from univention.office365.udm_helper import UDMHelper
+# 	sys.modules["univention.office365.udm_helper.UDMHelper"] = MagicMock(spec=UDMHelper, autospec=True)
 
 @pytest.fixture(scope='function')
 def udm_object(mock_univention_libs):

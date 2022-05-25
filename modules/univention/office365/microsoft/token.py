@@ -4,7 +4,7 @@ import os
 import pwd
 import shutil
 import datetime
-from collections import UserDict
+from six.moves import UserDict
 
 from six import reraise
 from typing import Dict, Any

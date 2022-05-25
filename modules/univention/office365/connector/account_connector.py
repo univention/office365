@@ -1,7 +1,7 @@
 import os
 import pwd
 import shutil
-from collections import UserDict, UserString
+from six.moves import UserDict, UserString
 from typing import Dict
 
 from univention.office365 import utils
