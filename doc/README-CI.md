@@ -1,4 +1,4 @@
-The [.gitlab-ci.yml](./.gitlab-ci.yml) implements four stages, of which only
+The [.gitlab-ci.yml](../.gitlab-ci.yml) implements four stages, of which only
 the first two are available in user branches. The `Staging` and `Deploy` stage
 is only available on the default branch.
 
