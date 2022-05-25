@@ -7,14 +7,14 @@ import abc
 import six
 from ldap.filter import filter_format
 
-from univention.office365.api.account import AzureAccount
-from univention.office365.api.core import MSGraphApiCore
-from univention.office365.api.core_exceptions import MSGraphError, AddLicenseError
-from univention.office365.api.exceptions import NoAllocatableSubscriptions
-from univention.office365.api.objects import utils
-from univention.office365.api.objects.azureobjects import UserAzure, AzureObject, GroupAzure, SubscriptionAzure, TeamAzure
-from univention.office365.api.objects.udmobjects import UDMOfficeUser, UDMOfficeGroup, UDMOfficeObject
-from univention.office365.api.objects.utils import create_random_pw
+from univention.office365.microsoft.account import AzureAccount
+from univention.office365.microsoft.core import MSGraphApiCore
+from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError, AddLicenseError
+from univention.office365.microsoft.exceptions.exceptions import NoAllocatableSubscriptions
+from univention.office365.microsoft.objects import utils
+from univention.office365.microsoft.objects.azureobjects import UserAzure, AzureObject, GroupAzure, SubscriptionAzure, TeamAzure
+from univention.office365.udmwrapper.udmobjects import UDMOfficeUser, UDMOfficeGroup, UDMOfficeObject
+from univention.office365.microsoft.objects.utils import create_random_pw
 from univention.office365.asyncqueue.queues.jsonfilesqueue import JsonFilesQueue
 from univention.office365.logging2udebug import get_logger
 from univention.office365.subscriptions import SubscriptionProfile
@@ -321,7 +321,7 @@ class UserConnector(Connector):
 		subs_available_index = {subs_sku.skuPartNumber: subs_sku for subs_sku in subs_available}
 		self.logger.debug('seats in subscriptions_online: %r', subs_available_index)
 		if len(subs_available) == 0:
-			raise NoAllocatableSubscriptions(azure_user, msg_no_allocatable_subscriptions, self.adconnection_alias)
+			raise NoAllocatableSubscriptions(azure_user, msg_no_allocatable_subscriptions, udm_user.current_connection_alias)
 
 		# get SubscriptionProfiles for users groups
 		# TODO: test with groups
