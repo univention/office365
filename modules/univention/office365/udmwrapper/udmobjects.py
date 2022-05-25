@@ -3,7 +3,7 @@ import contextlib
 import datetime
 import json
 import zlib
-from collections import UserDict
+from six.moves import UserDict
 from logging import Logger
 from typing import List, Mapping, Any, Iterator, Optional
 from enum import Enum

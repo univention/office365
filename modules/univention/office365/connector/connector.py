@@ -1,6 +1,7 @@
 import uuid
 from abc import abstractmethod
-from collections import UserDict, defaultdict
+from six.moves import UserDict
+from collections import defaultdict
 from logging import Logger
 from typing import List, Iterable, Mapping, Union, Dict, Set, Any, Optional
 import abc

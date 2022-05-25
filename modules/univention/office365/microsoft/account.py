@@ -5,7 +5,7 @@ import pwd
 import shutil
 import time
 import uuid
-from collections import UserDict
+from six.moves import UserDict
 from stat import S_IRUSR, S_IWUSR
 from xml.dom.minidom import parseString
 
