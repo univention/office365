@@ -2,8 +2,8 @@ from typing import Union, List, Dict, Tuple, Optional
 
 import requests
 import retrying
-from univention.office365.api.account import AzureAccount
-from univention.office365.api.core import MSGraphApiCore
+from univention.office365.microsoft.account import AzureAccount
+from univention.office365.microsoft.core import MSGraphApiCore
 from univention.office365.asyncqueue.tasks.task import Task
 from logging import Logger
 
