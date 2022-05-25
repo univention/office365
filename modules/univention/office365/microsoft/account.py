@@ -21,12 +21,11 @@ from requests import RequestException
 from six import reraise
 from six.moves.urllib.parse import urlencode
 
-from univention.office365.api import OFFICE365_API_PATH
-from univention.office365.api.manifest import Manifest
-from univention.office365.api.token import Token
-from univention.office365.api.urls import URLs
-from univention.office365.certificate_helper import get_client_assertion
-from univention.office365.api.jsonstorage import JsonStorage
+from univention.office365.microsoft import OFFICE365_API_PATH
+from univention.office365.microsoft.manifest import Manifest
+from univention.office365.microsoft.token import Token
+from univention.office365.microsoft.urls import URLs
+from univention.office365.microsoft.jsonstorage import JsonStorage
 from univention.office365.logging2udebug import get_logger
 import OpenSSL.crypto
 

@@ -4,9 +4,9 @@ from six.moves.urllib.parse import quote
 
 import requests
 
-from univention.office365.api.core_exceptions import MSGraphError, exception_decorator
-from univention.office365.api.account import AzureAccount
-from univention.office365.api.urls import URLs
+from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError, exception_decorator
+from univention.office365.microsoft.account import AzureAccount
+from univention.office365.microsoft.urls import URLs
 from univention.office365.logging2udebug import get_logger
 
 logger = get_logger("office365", "core")

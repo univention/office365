@@ -1,10 +1,11 @@
 import six.moves.urllib.parse as urlparse
 
 #TODO: implement variable version not only v1.0
-from univention.office365.api_helper import get_http_proxies
 from univention.office365.logging2udebug import get_logger
 
 # TODO: use urlparse.urlunsplit
+from univention.office365.ucr_helper import UCRHelper
+
 
 class URLs:
 	"""
@@ -24,9 +25,8 @@ class URLs:
 
 	@classmethod
 	def proxies(cls, ucr=None, logger=None):
-		ucr = ucr or {}
 		logger = logger or get_logger("office365", "URLs")
-		return get_http_proxies(ucr, logger)
+		return {} # UCRHelper.get_http_proxies(logger)
 
 	@classmethod
 	def base(cls):

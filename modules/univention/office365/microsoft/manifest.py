@@ -1,6 +1,6 @@
 import json
 
-from univention.office365.api.login_exceptions import ManifestError
+from univention.office365.microsoft.exceptions.login_exceptions import ManifestError
 from univention.lib.i18n import Translation
 
 from univention.office365.logging2udebug import get_logger
