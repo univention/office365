@@ -74,6 +74,9 @@ logger = get_logger("office365", "o365")
 
 
 def get_adconnection_filter(ucr, adconnection_aliases):
+	# adconnection_filter_ucrv is a list of adconnection_alias that want to be used in this execution
+	# but what we want to return here is a ldap filter that can be used to filter the adconnections
+	# so, there are two different concepts of filters in this function
 	ucr_value = ucr[adconnection_filter_ucrv] or ''
 	aliases = ucr_value.strip().split()
 	res = ''
@@ -87,7 +90,7 @@ def get_adconnection_filter(ucr, adconnection_aliases):
 		res = '(|{})'.format(res)
 	return res
 
-
+# MOVED to univention.office365.api.exceptions.NoAllocatableSubscriptions
 class NoAllocatableSubscriptions(Exception):
 	def __init__(self, user, adconnection_alias=None, *args, **kwargs):
 		self.user = user
@@ -124,6 +127,8 @@ class Office365Listener(object):
 
 		self.ah = Graph(self.ucr, name, self.adconnection_alias, logger=logger)
 
+
+	# TODO: move to UDMObject
 	@classmethod
 	def decode_ldap_attributes(cls, udm_module, attrs):  # type: (str, Dict[str, List[bytes]]) -> dict
 		return {
@@ -131,6 +136,7 @@ class Office365Listener(object):
 			for attr, vals in attrs.items()
 		}
 
+	# TODO: move to UDMObject
 	@classmethod
 	def decode_ldap_attribute(cls, udm_module, attr, vals):  # type: (str, List[bytes]) -> List[str]
 		codecs = {
@@ -164,19 +170,22 @@ class Office365Listener(object):
 			encoding = ('UTF-8', 'strict')
 		return [x.decode(*encoding) for x in vals]
 
+	#TODO: Check if have being moved to AzureObject
 	@property
 	def verified_domains(self):
 		# Use handler.get_verified_domain_from_disk() for user creation.
 		return map(itemgetter("name"), self.ah.list_verified_domains())
 
+	# MOVED to univention.office365.api.objects.connector.UserConnector.parse
 	def create_user(self, new):  # type: (Dict[str, List[bytes]]) -> dict
 		udm_attrs = self._get_sync_values(self.attrs["listener"], new)
 		logger.debug("udm_attrs=%r adconnection_alias=%r", udm_attrs, self.adconnection_alias)
 
+		# MOVED to
 		attributes = dict()
 		for k, v in udm_attrs.items():
 			azure_ldap_attribute_name = self.attrs["mapping"][k]
-			if azure_ldap_attribute_name in attributes:
+			if azure_ldap_attribute_name in attributes:  # Append values
 				# property exists already, value must be a list
 				if not isinstance(attributes[azure_ldap_attribute_name], list):
 					attributes[azure_ldap_attribute_name] = [attributes[azure_ldap_attribute_name]]
@@ -192,7 +201,7 @@ class Office365Listener(object):
 						continue
 					list_method = list.append
 				list_method(attributes[azure_ldap_attribute_name], v)
-			else:
+			else:  # Assign value
 				attributes[azure_ldap_attribute_name] = v
 
 		# mandatory attributes, not to be overwritten by user
@@ -211,6 +220,7 @@ class Office365Listener(object):
 		)
 		attributes.update(mandatory_attributes)
 
+		# MOVED to AzureUser
 		self.ah.create_user(attributes)
 
 		user = self.ah.list_users(ofilter="userPrincipalName eq '{}'".format(attributes["userPrincipalName"]))
@@ -229,6 +239,7 @@ class Office365Listener(object):
 		self.ah.invalidate_all_tokens_for_user(new_user["objectId"])
 		return new_user
 
+	# MOVED to univention.office365.api.objects.udmobjects.UDMOfficeObject.azure_object_id
 	def _object_id_from_attrs(self, old_or_new):  # type: (Dict[str, List[bytes]]) -> str
 		"""
 		Lookup objectId for adconnection_alias from either univentionOffice365ObjectID (pre v3) or univentionOffice365Data (v3)
@@ -256,6 +267,10 @@ class Office365Listener(object):
 		object_id = azure_connection_data["objectId"]
 		return object_id
 
+	# TODO: Check where to move this behaviour.
+	# TODO: not sure if it must be moved to connector or parser
+	#  It looks for an object id, from the local information, but if not found
+	#  it looks up the object id in Azure looking for the entryUUID.
 	def _object_id_from_user_attrs_with_fallback_to_entryUUID(self, obj):  # type: (Dict[str, List[bytes]]) -> str
 		try:
 			object_id = self._object_id_from_attrs(obj)
@@ -264,6 +279,7 @@ class Office365Listener(object):
 			object_id = self.find_aad_user_by_entryUUID(obj["entryUUID"][0].decode('UTF-8'))
 		return object_id
 
+	# MOVED to univention.office365.api.objects.udmobjects.UDMOfficeObject.object_id property
 	def _object_id_from_udm_object(self, udm_obj):  # type: (Any) -> str
 		"""
 		Lookup objectId for adconnection_alias from either univentionOffice365ObjectID (pre v3) or univentionOffice365Data (v3)
@@ -294,6 +310,7 @@ class Office365Listener(object):
 			raise KeyError
 		return object_id
 
+	# TODO: check.
 	def delete_user(self, old):  # type: (Dict[str, List[bytes]]) -> None
 		object_id = self._object_id_from_user_attrs_with_fallback_to_entryUUID(old)
 		if not object_id:
@@ -311,11 +328,13 @@ class Office365Listener(object):
 			return
 		return self.ah.deactivate_user(object_id)
 
+	# MOVED to univention.office365.api.objects.connector.UserConnector.modify
 	def modify_user(self, old, new):  # type: (Dict[str, List[bytes]], Dict[str, List[bytes]]) -> None
 		modifications = self._diff_old_new(self.attrs["listener"], old, new)
 		# If there are properties in azure that get their value from multiple
 		# attributes in LDAP, then add all those attributes to the modifications
 		# list, or their existing value will be lost, when overwriting them.
+		# MOVED to univention.office365.api.objects.connector.UserConnector.parse
 		multiples_may_be_none = list()
 		for k, v in self.attrs["multiple"].items():
 			if any([ldap_attr in modifications for ldap_attr in v]):
@@ -399,6 +418,7 @@ class Office365Listener(object):
 	def test_list_team(self):  # type: () -> None
 		self.ah.test_list_team()
 
+	# TODO: move to univention.office365.api.objects.connector.GroupConnector.create
 	def create_group(self, name, description, group_dn, add_members=True):  # type: (str, str, str, bool) -> dict
 		self.ah.create_group(name, description)
 
@@ -425,6 +445,7 @@ class Office365Listener(object):
 		name = udm_group["name"]
 		return self.create_group(name, desc, udm_group.dn, add_members)
 
+	# MOVED to univention.office365.api.objects.connector.GroupConnector.delete
 	def delete_group(self, old):  # type: (Dict[str, List[bytes]]) -> None
 		try:
 			object_id = self._object_id_from_attrs(old)
@@ -561,6 +582,7 @@ class Office365Listener(object):
 			logger.debug("No modifications found, ignoring.")
 			return dict(objectId=object_id)
 
+		# TODO: try to understand what it does and why
 		for ignore_attribute in ["univentionMicrosoft365Team"]:
 			if ignore_attribute in modification_attributes:
 				modification_attributes.remove(ignore_attribute)
@@ -739,6 +761,7 @@ class Office365Listener(object):
 
 		return dict(objectId=object_id)  # for listener to store in UDM object
 
+	# TODO: move to connector
 	def add_ldap_members_to_azure_group(self, group_dn, object_id):  # type: (str, str) -> None
 		"""
 		Recursively look for users and groups to add to the Azure group.
@@ -806,6 +829,7 @@ class Office365Listener(object):
 
 		_groups_up_the_tree(udm_target_group)
 
+	# TODO: Move to connector
 	def assign_subscription(self, new, azure_user):  # type: (Dict[str, List[bytes]], dict) -> None
 		msg_no_allocatable_subscriptions = 'User {}/{} created in Azure AD ({}), but no allocatable subscriptions' \
 			' found.'.format(new['uid'][0].decode('UTF-8'), azure_user['objectId'], self.adconnection_alias)
@@ -838,7 +862,7 @@ class Office365Listener(object):
 					'Subscription from profile %r (%s) could not be found in the enabled subscriptions in Azure.',
 					subscription_profile, self.adconnection_alias)
 				continue
-
+			# Moved to univention.office365.api.objects.azureobjects.SubscriptionAzure.has_free_seats
 			if seats[skuPartNumber][0] > seats[skuPartNumber][1]:
 				subscription_profile.skuId = seats[skuPartNumber][2]
 				subscription_profile_to_use = subscription_profile
@@ -854,6 +878,7 @@ class Office365Listener(object):
 
 		# calculate plan restrictions
 		# get all plans of this subscription
+		# Moved to univention.office365.api.objects.azureobjects.SubscriptionAzure.get_plans_names
 		plan_names_to_ids = dict()
 		for subscription in subscriptions_online:
 			if subscription['skuPartNumber'] == subscription_profile_to_use.subscription:
@@ -866,7 +891,9 @@ class Office365Listener(object):
 			deactivate_plans = set()
 		deactivate_plans.update(subscription_profile_to_use.blacklisted_plans)
 		logger.info('Deactivating plans %s (%s).' % (deactivate_plans, self.adconnection_alias))
+		# Moved to univention.office365.api.objects.azureobjects.SubscriptionAzure.get_plans_id_from_names
 		deactivate_plan_ids = [plan_names_to_ids[plan] for plan in deactivate_plans]
+		# Moved to univention.office365.api.objects.azureobjects.GroupAzure.add_license
 		self.ah.add_license(azure_user['objectId'], subscription_profile_to_use.skuId, deactivate_plan_ids)
 
 	def find_aad_user_by_entryUUID(self, entryUUID):  # type: (str) -> Optional[str]
@@ -877,6 +904,7 @@ class Office365Listener(object):
 			logger.error("Could not find user with entryUUID=%r (%s).", entryUUID, self.adconnection_alias)
 			return None
 
+	# TODO: Check if implemented in the core
 	def find_aad_group_by_name(self, name):  # type: (str) -> Optional[str]
 		group = self.ah.list_groups(ofilter="displayName eq '{}'".format(name))
 		if group["value"]:
@@ -885,11 +913,14 @@ class Office365Listener(object):
 			logger.warn("Could not find group with name=%r (%s), ignore this if it is a user.", name, self.adconnection_alias)
 			return None
 
+	# TODO: move to parser
 	@staticmethod
 	def _anonymize(txt):  # type: (List[str]) -> str
 		# FIXME: txt is unused
 		return uuid.uuid4().hex
 
+	# TODO: move to connector. Maybe parser
+	#  It gets the values of the attributes to sync in azure
 	def _get_sync_values(self, attrs, user, modify=False):  # type: (List[str], Dict[str, List[bytes]], bool) -> dict
 		# anonymize > static > sync
 		res = dict()
@@ -925,6 +956,7 @@ class Office365Listener(object):
 					res[attr] = tmp
 		return res
 
+	# MOVED to UserConnector._attributes_to_update
 	@staticmethod
 	def _diff_old_new(attribs, old, new):  # type: (List[str], Dict[str, List[bytes]], Dict[str, List[bytes]]) -> List[str]
 		"""
@@ -940,6 +972,7 @@ class Office365Listener(object):
 			(attr in old and attr in new and old[attr] != new[attr])
 		]
 
+	# TODO: move to ucr helper and use in the parser
 	def _get_usage_location(self, user):  # type: (Dict[str, List[bytes]]) -> str
 		if user.get("st"):
 			res = user["st"][0].decode('UTF-8')
@@ -951,6 +984,7 @@ class Office365Listener(object):
 			raise RuntimeError("Invalid usageLocation '{}' - user cannot be created.".format(res))
 		return res
 
+	# MOVED to univention.office365.api.objects.udmobjects.UniventionOffice365Data.from_ldap
 	@classmethod
 	def decode_o365data(cls, data):  # type: (bytes) -> str
 		"""
@@ -959,6 +993,7 @@ class Office365Listener(object):
 		"""
 		return json.loads(zlib.decompress(base64.b64decode(data)))
 
+	# MOVED to univention.office365.api.objects.udmobjects.UniventionOffice365Data.to_ldap_str
 	@classmethod
 	def encode_o365data(cls, data):  # type: (bytes) -> str
 		"""

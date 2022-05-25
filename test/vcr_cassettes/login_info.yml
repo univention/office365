@@ -1,0 +1,53 @@
+interactions:
+- request:
+    body: client_id=fbb6c35f-4f7a-412d-9109-2aba2925a836&client_assertion_type=urn%3Aietf%3Aparams%3Aoauth%3Aclient-assertion-type%3Ajwt-bearer&client_assertion=eyJhbGciOiAiUlMyNTYiLCAieDV0IjogIitxRXpETnVvUHhvT0xOQkVTZWpxSDV2U3NTTT1cbiJ9.eyJzdWIiOiAiZmJiNmMzNWYtNGY3YS00MTJkLTkxMDktMmFiYTI5MjVhODM2IiwgImlzcyI6ICJmYmI2YzM1Zi00ZjdhLTQxMmQtOTEwOS0yYWJhMjkyNWE4MzYiLCAianRpIjogIjVjZTU5YTkxLTdiNGUtNDllOC04ZDQ3LTAyOWVlZWRjYzcwYyIsICJleHAiOiAxNjQ5MjI3MjU4LCAibmJmIjogMTY0OTIyNjM1OCwgImF1ZCI6ICJodHRwczovL2xvZ2luLm1pY3Jvc29mdG9ubGluZS5jb20vM2U3ZDllYjUtYzNhMS00Y2ZjLTg5MmUtYThlYzI5ZTQ1Yjc3L29hdXRoMi92Mi4wL3Rva2VuIn0.Sjnq5lkHXOPaiFlcEVJUozBwvlLsTfcQOQMutmGSc6rUmdkbsAPR3LuvJCpOLbRepBn5MCYyK8jUJyHD1KaNdP7KL_rxY8jQlBQLVPNEJ3ZrycZCWWFqJ0QPtd-KaUS6y9XARQvEOP8T-u1g-arZfUV5ixyWdMit7yjUzSmQf20Pqkvfwv0p_kY-qfb4Blcfm0LW59dN-oAniic-mosc_Qu3cNAWzm8SkB9rFsu78biyjU5eOXub2CJckDxVFAZCRXGCm_oufk1Jx9LE9sQBut-Igey10F74ocVCY9dmrYGbOGgM6IQFS4Qud5nFIrYoC6mxl3cG98yGi8CqzwkMlQ&grant_type=client_credentials&scope=https%3A%2F%2Fgraph.microsoft.com%2F.default
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1023'
+      Content-Type:
+      - application/x-www-form-urlencoded
+      User-Agent:
+      - Univention Microsoft 365 Connector
+    method: POST
+    uri: https://login.microsoftonline.com/3e7d9eb5-c3a1-4cfc-892e-a8ec29e45b77/oauth2/v2.0/token
+  response:
+    body:
+      string: '{"token_type":"Bearer","expires_in":3599,"ext_expires_in":3599,"access_token":"eyJ0eXAiOiJKV1QiLCJub25jZSI6IjFKTnQ5YVhoVW5xZ1RRNFlFTFJNYkpyLUVuQ0xLR296UzVPVFZJNE9nbDgiLCJhbGciOiJSUzI1NiIsIng1dCI6ImpTMVhvMU9XRGpfNTJ2YndHTmd2UU8yVnpNYyIsImtpZCI6ImpTMVhvMU9XRGpfNTJ2YndHTmd2UU8yVnpNYyJ9.eyJhdWQiOiJodHRwczovL2dyYXBoLm1pY3Jvc29mdC5jb20iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC8zZTdkOWViNS1jM2ExLTRjZmMtODkyZS1hOGVjMjllNDViNzcvIiwiaWF0IjoxNjQ5MjI2MzU4LCJuYmYiOjE2NDkyMjYzNTgsImV4cCI6MTY0OTIzMDI1OCwiYWlvIjoiRTJaZ1lHaTd2RTdrdXVUTzV1c1JaODVWUzkyT0FBQT0iLCJhcHBfZGlzcGxheW5hbWUiOiJETyBOT1QgREVMRVRFIGF1dG9tYXRlZCB0ZXN0IG8zNjVkb21haW4iLCJhcHBpZCI6ImZiYjZjMzVmLTRmN2EtNDEyZC05MTA5LTJhYmEyOTI1YTgzNiIsImFwcGlkYWNyIjoiMiIsImlkcCI6Imh0dHBzOi8vc3RzLndpbmRvd3MubmV0LzNlN2Q5ZWI1LWMzYTEtNGNmYy04OTJlLWE4ZWMyOWU0NWI3Ny8iLCJpZHR5cCI6ImFwcCIsIm9pZCI6ImQ1MjFhZmU0LTdhMzYtNDBkZS05ZmNkLWE2MzIzOTI2ODcxMiIsInJoIjoiMC5BVWNBdFo1OVBxSERfRXlKTHFqc0tlUmJkd01BQUFBQUFBQUF3QUFBQUFBQUFBQkhBQUEuIiwicm9sZXMiOlsiVXNlci5SZWFkV3JpdGUuQWxsIiwiRGlyZWN0b3J5LlJlYWRXcml0ZS5BbGwiLCJHcm91cC5SZWFkV3JpdGUuQWxsIiwiVGVhbU1lbWJlci5SZWFkV3JpdGUuQWxsIl0sInN1YiI6ImQ1MjFhZmU0LTdhMzYtNDBkZS05ZmNkLWE2MzIzOTI2ODcxMiIsInRlbmFudF9yZWdpb25fc2NvcGUiOiJFVSIsInRpZCI6IjNlN2Q5ZWI1LWMzYTEtNGNmYy04OTJlLWE4ZWMyOWU0NWI3NyIsInV0aSI6IklmeXA0VnNNQTBDRktjSnV6OGFEQUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbIjA5OTdhMWQwLTBkMWQtNGFjYi1iNDA4LWQ1Y2E3MzEyMWU5MCJdLCJ4bXNfdGNkdCI6MTQ1Mjg2MDYxM30.HoU2-y2tXSTFKaw-USrs47n6Yp4qWPEQEbSUlpBIgd4UMw7FxKdVewPCyxuGyHSuudXc0LkIDVe-B_3IkxhnsnxZkV525mpsgipdJ_JS15LVbSJ2NygwRvl-ddCz6urn-yXk5y2X54PRx86QnrDhD4G5L2bnfNQ8dJmcwjnrzkWyj_tg6j7S0d2_bSyOgEp1PuckkOnQ9w9R94lQcHtiRylqHL6wiSn_rbMfzJSVxv8t5nz8eiNji-ID5A2ZN-D0-VUSdtmnPmcCJAoH8HOqirAFmdwBfGkftFLzeARrKq86kLLJrOCPbtifqgNwE9vzG21zePFkrjvx5g-uSNkZUA"}'
+    headers:
+      Cache-Control:
+      - no-store, no-cache
+      Content-Length:
+      - '1760'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 06 Apr 2022 06:30:57 GMT
+      Expires:
+      - '-1'
+      P3P:
+      - CP="DSP CUR OTPi IND OTRi ONL FIN"
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - fpc=Aq9vKaL5HxFHsBpyvlY32FxiIWrSAQAAAKIq39kOAAAA; expires=Fri, 06-May-2022
+        06:30:58 GMT; path=/; secure; HttpOnly; SameSite=None
+      - x-ms-gateway-slice=estsfd; path=/; secure; samesite=none; httponly
+      - stsservicecookie=estsfd; path=/; secure; samesite=none; httponly
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains
+      X-Content-Type-Options:
+      - nosniff
+      x-ms-ests-server:
+      - 2.1.12570.16 - NEULR2 ProdSlices
+      x-ms-request-id:
+      - e1a9fc21-0c5b-4003-8529-c26ecfc68300
+    status:
+      code: 200
+      message: OK
+version: 1

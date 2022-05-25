@@ -32,9 +32,11 @@
 
 import sys
 from operator import itemgetter
-from univention.config_registry import ConfigRegistry
-from univention.office365.azure_handler import AzureHandler, ResourceNotFoundError
-from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
+
+from univention.office365.api.account import AzureAccount
+from univention.office365.api.core import MSGraphApiCore
+from univention.office365.api.objects.azureobjects import UserAzure, GroupAzure, SubscriptionAzure
+from univention.office365.ucr_helper import UCRHelper
 
 
 def calc_column_lengths(data, data_fetchers, header_parts):
@@ -58,22 +60,20 @@ def print_table(data, data_fetchers, header_parts, line, epilog, column_lengths=
 
 
 def print_users_and_groups(adconnection_alias=None):
-	ucr = ConfigRegistry()
-	ucr.load()
-	ah = AzureHandler(ucr, "print_subscriptions", adconnection_alias)
+	core = MSGraphApiCore(AzureAccount(adconnection_alias))
 
-	users = ah.list_users()
-	groups = ah.list_groups()
-	subscriptions = ah.list_subscriptions()["value"]
+	users = UserAzure.list(core)
+	groups = GroupAzure.list(core)
+	subscriptions = SubscriptionAzure.list(core)
 
 	# print users
 	plans = set(
-		plan['service'] for user in users['value']
-		for plan in user['assignedPlans']
+		plan['service'] for user in users
+		for plan in user.assignedPlans
 		if plan['capabilityStatus'] == 'Enabled'
 	)
 	plan_to_num = dict((plan, num) for num, plan in enumerate(sorted(plans), 1))
-	subscription_id_to_name = dict((sub['skuId'], sub['skuPartNumber']) for sub in subscriptions)
+	subscription_id_to_name = dict((sub.skuId, sub.skuPartNumber) for sub in subscriptions)
 	sub_names_to_num = dict((sub, num) for num, sub in enumerate(sorted(subscription_id_to_name.values()), 1))
 
 	data_fetchers = (
@@ -99,34 +99,31 @@ def print_users_and_groups(adconnection_alias=None):
 		epilog += '{}{}\n'.format(
 			'     ' if i > 0 else '',
 			', '.join(['{}: {}'.format(plan_to_num[plan], plan) for plan in plan_names[i:i + 4]]))
-	print_table(users["value"], data_fetchers, header_parts, line, epilog)
+	users_to_print = [x.get_not_none_values_as_dict() for x in users]
+	print_table(users_to_print, data_fetchers, header_parts, line, epilog)
 
 	# print groups
-	member_ids = dict()
-	for group in groups["value"]:
-		member_urls = ah.get_groups_direct_members(group["objectId"])["value"]
-		member_ids[group["displayName"]] = ah.directory_object_urls_to_object_ids(member_urls)
+	members_by_group = dict()
+	for group in groups:
+		members_by_group[group.displayName] = group.list_members()
 
 	group_members = list()
-	for name, member_ids in member_ids.items():
+	for name, members in members_by_group.items():
 		membernames = list()
-		for member_id in member_ids:
-			try:
-				member = ah.list_users(objectid=member_id)
-				membername = member["userPrincipalName"]
+		for member in members:
+			if isinstance(member, UserAzure):
+				membername = member.userPrincipalName
 				if membername.startswith("ZZZ_deleted_"):
 					membername = "(DEL) {}".format(membername[26:])
-			except ResourceNotFoundError:
-				try:
-					member = ah.list_groups(objectid=member_id)
-				except ResourceNotFoundError:
-					member = {"displayName": member_id}
-				membername = member["displayName"]
+			elif isinstance(member, GroupAzure):
+				membername = member.displayName
 				if membername.startswith("ZZZ_deleted_"):
 					membername = "(DEL, group) {}".format(membername[26:])
 				else:
 					membername = '(group) {}'.format(membername)
-			membernames.append(membername)
+			else:
+				membername = member.id
+				membernames.append(membername)
 		group_members.append((name, membernames))
 
 	header_parts = ('Group', '#', 'Members')
@@ -164,8 +161,8 @@ if __name__ == '__main__':
 		sys.exit(1)
 	try:
 		adconnection_alias = sys.argv[1]
-		adconnection_aliases = AzureADConnectionHandler.get_adconnection_aliases().keys()
-		initialized_adconnections = [ta for ta in adconnection_aliases if AzureAuth.is_initialized(ta)]
+		adconnection_aliases = UCRHelper.get_adconnection_aliases().keys()
+		initialized_adconnections = [ta for ta in adconnection_aliases if AzureAccount(ta).is_initialized()]
 		if adconnection_alias not in adconnection_aliases:
 			print('Usage: {} [Azure AD connection alias]'.format(sys.argv[0]))
 			print('Unknown Azure AD connection alias {!r}.'.format(adconnection_alias))

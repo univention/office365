@@ -36,18 +36,14 @@ import sys
 import argparse
 import logging
 
-from univention.config_registry import ConfigRegistry
-from univention.office365.azure_auth import AzureADConnectionHandler
+from univention.office365.api.account_connector import AccountConnector
 from univention.office365.logging2udebug import get_logger
 
-
 conf_path = '/etc/univention-office365'
-ucr = ConfigRegistry()
-ucr.load()
 
 
 def list(args):
-	adconnection_list = AzureADConnectionHandler.get_adconnections()
+	adconnection_list = account_connector.get_adconnections()
 	if adconnection_list:
 		print("{0:<25} {1:<50} {2:<20}".format("Alias", "Path", "status"))
 		for alias, status, path in adconnection_list:
@@ -55,7 +51,7 @@ def list(args):
 
 
 def create(args):
-	AzureADConnectionHandler.create_new_adconnection(args.alias, args.makedefault)
+	account_connector.create_new_adconnection(args.alias, args.makedefault)
 
 
 def rename(args):
@@ -64,11 +60,12 @@ def rename(args):
 
 
 def remove(args):
-	AzureADConnectionHandler.remove_adconnection(args.alias)
+	account_connector.remove_adconnection(args.alias)
 
 
 if __name__ == '__main__':
 	logger = get_logger("office365", "o365")
+	account_connector = AccountConnector(logger=logger)
 	_handler = logging.StreamHandler(sys.stdout)
 	_handler.setLevel(logging.INFO)
 	logger.addHandler(_handler)

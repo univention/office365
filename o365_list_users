@@ -30,6 +30,9 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
+# TODO  It currently not working
+#  We can get the adconnection from each object o365data
+
 from __future__ import print_function
 
 from univention.config_registry import ConfigRegistry

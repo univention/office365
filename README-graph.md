@@ -48,6 +48,63 @@ call to catch these very appealing.
 A further aspect of development with the Graph API is, that [pagination works
 slightly different](https://docs.microsoft.com/en-us/graph/paging).
 
+# Miscrosoft Graph API connector design
+```
+                                                        │         ┌───────────┐
+                                                        │         │           │
+                                                        │         │           │
+                                                        │         │           │
+                           ┌──────────────┐             │         │           │       ┌───────────┐
+┌─────────────────┐        │              │             │         │           │       │           │
+│                 │        │              │             │         │           │       │           │
+│                 │        │              │             │         │           │       │   Azure   │
+│                 │        │     UDM      │        ┌────┴─────┐   │           │       │   User    │
+│      User       │        │     User     │        │   User   │   │           │       │           │       ┌─────────────┐
+│    Listener     │        │     Object   │        │  Parser  │   │           │       │           │       │             │
+│                 │        │              │        └────┬─────┘   │           │       │           │       │             │
+│                 │        │              │             │         │           │       │           │       │             │
+│                 │        │              │             │         │           │       └───────────┘       │             │
+└─────────────────┘        │              │             │         │           │                           │             │
+                           └──────────────┘             │         │           │                           │             │
+                                                        │         │           │                           │             │
+                                                        │         │ Connector │                           │    Azure    │
+                           ┌──────────────┐             │         │           │                           │    Core     │
+┌─────────────────┐        │              │             │         │           │                           │             │
+│                 │        │              │             │         │           │                           │             │
+│                 │        │              │             │         │           │       ┌───────────┐       │             │
+│                 │        │     UDM      │        ┌────┴─────┐   │           │       │           │       │             │
+│      Group      │        │     Group    │        │  Group   │   │           │       │           │       │             │
+│    Listener     │        │     Object   │        │  Parser  │   │           │       │           │       │             │
+│                 │        │              │        └────┬─────┘   │           │       │   Azure   │       │             │
+│                 │        │              │             │         │           │       │   Group   │       └─────────────┘
+│                 │        │              │             │         │           │       │           │
+└─────────────────┘        │              │             │         │           │       │           │
+                           └──────────────┘             │         │           │       │           │
+                                                        │         │           │       └───────────┘
+                                                        │         │           │
+                                                        │         │           │
+                                                        │         │           │
+                                                        │         └───────────┘
+```
+
+## Main Classes
+### Listeners
+#### User Listener
+New implementation of the Listener with the high-level API.  
+https://docs.software-univention.de/developer-reference-5.0.html#listener:handler:42  
+Receives the dn of the object that has been modified in LDAP, as well as the old and new version of the modified object.  
+In the new API a method of the Listener class is re-implemented for each possible operation on the object: modify, delete, add....  
+The Listener is in charge of converting the old and new dictionaries that represent a state of an LDAP object into their homonyms as UDM Objects.  
+The Listener contains an instance of the Connector class which in turn implements the logic necessary for the interaction between UDM objects and Azure objects.  
+
+
+#### User Group
+New implementation of the Listener with the high level API.  
+https://docs.software-univention.de/developer-reference-5.0.html#listener:handler:42  
+Identical behavior to the Use Listener but for LDAP Group type objects.
+
+### UDM Objects
+
 
 # Microsoft Teams
 

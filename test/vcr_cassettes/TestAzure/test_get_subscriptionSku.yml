@@ -1,0 +1,74 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - XXXXXX
+      Connection:
+      - keep-alive
+      User-Agent:
+      - Univention Microsoft 365 Connector
+    method: GET
+    uri: https://graph.microsoft.com/v1.0/subscribedSkus/3e7d9eb5-c3a1-4cfc-892e-a8ec29e45b77_6fd2c87f-b296-42f0-b197-1e91e994b900
+  response:
+    body:
+      string: !!binary |
+        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
+    headers:
+      Cache-Control:
+      - no-cache
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8
+      Date:
+      - Fri, 13 May 2022 11:33:31 GMT
+      OData-Version:
+      - '4.0'
+      Strict-Transport-Security:
+      - max-age=31536000
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Accept-Encoding
+      client-request-id:
+      - ee8072c2-3768-481b-8ca5-989f1f61a450
+      request-id:
+      - ee8072c2-3768-481b-8ca5-989f1f61a450
+      x-ms-ags-diagnostic:
+      - '{"ServerInfo":{"DataCenter":"North Europe","Slice":"E","Ring":"4","ScaleUnit":"000","RoleInstance":"DU6PEPF000033AA"}}'
+      x-ms-resource-unit:
+      - '1'
+    status:
+      code: 200
+      message: OK
+version: 1

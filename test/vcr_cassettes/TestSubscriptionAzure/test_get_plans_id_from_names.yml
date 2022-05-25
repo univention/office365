@@ -1,0 +1,85 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - XXXXXX
+      Connection:
+      - keep-alive
+      User-Agent:
+      - Univention Microsoft 365 Connector
+    method: GET
+    uri: https://graph.microsoft.com/v1.0/subscribedSkus
+  response:
+    body:
+      string: !!binary |
+        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
+    headers:
+      Cache-Control:
+      - no-cache
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8
+      Date:
+      - Fri, 13 May 2022 10:25:43 GMT
+      OData-Version:
+      - '4.0'
+      Strict-Transport-Security:
+      - max-age=31536000
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Accept-Encoding
+      client-request-id:
+      - a0be0aec-937b-4a4f-9673-cff77a22bcfb
+      request-id:
+      - a0be0aec-937b-4a4f-9673-cff77a22bcfb
+      x-ms-ags-diagnostic:
+      - '{"ServerInfo":{"DataCenter":"North Europe","Slice":"E","Ring":"4","ScaleUnit":"000","RoleInstance":"DU6PEPF0000351A"}}'
+      x-ms-resource-unit:
+      - '3'
+    status:
+      code: 200
+      message: OK
+version: 1

@@ -38,10 +38,9 @@ import json
 import argparse
 
 from argparse import RawTextHelpFormatter
-from univention.config_registry import ConfigRegistry
 
-from univention.office365.api.graph import Graph
-from univention.office365.api.exceptions import GraphError
+from univention.office365.api.account import AzureAccount
+from univention.office365.api.core import MSGraphApiCore
 
 
 def get_all_aliases():
@@ -82,9 +81,6 @@ if __name__ == "__main__":
 	automatically advance the amount of options this program offers.  '''
 
 	# load the univention config registry, used to acquire some default values
-	ucr = ConfigRegistry()
-	ucr.load()
-
 	parser = argparse.ArgumentParser(
 		description=(
 			"Test for the Microsoft Graph API library integration"
@@ -129,7 +125,7 @@ if __name__ == "__main__":
 	# texts for functions are missing it is, because the functions do not have
 	# a proper python docstring. Nothing needs to be hard-coded here any more.
 	all_methods = filter(lambda x: not x[0].startswith('_'), [
-		m for m in inspect.getmembers(Graph, predicate=inspect.ismethod)])
+		m for m in inspect.getmembers(MSGraphApiCore, predicate=inspect.ismethod)])
 
 	for f in all_methods:
 		arg_count = f[1].func_code.co_argcount - 1
@@ -195,12 +191,7 @@ if __name__ == "__main__":
 		logger = logging.getLogger(__file__)
 		logger.setLevel(getattr(logging, args.d.upper()))
 
-		g = Graph(
-			ucr=ucr,
-			name=str(__file__),
-			connection_alias=args.g,
-			logger=logger
-		)  # the instantiation of the class requests a new access token
+		g = MSGraphApiCore(AzureAccount(args.g))  # the instantiation of the class requests a new access token
 
 		arguments = [
 			k for k, v in vars(args).iteritems()
@@ -234,7 +225,7 @@ if __name__ == "__main__":
 					try_to_prettyprint(f(*a))  # call a function with parameters
 
 				logger.info("@ finished: {method}()".format(method=arg))
-			except GraphError as e:
+			except MSGraphApiCore as e:
 				logger.exception(e)
 				# logger.exception(" {type} In '{method}': {error}".format(
 				# 	type=type(e).__name__,

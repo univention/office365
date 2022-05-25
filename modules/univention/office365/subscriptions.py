@@ -70,6 +70,7 @@ class SubscriptionProfile(object):
 
 	@classmethod
 	def get_profiles_for_groups(cls, dns):
+		# Type: List[str] -> List[SubscriptionProfile]
 		"""
 		Retrieve subscription profiles for groups.
 

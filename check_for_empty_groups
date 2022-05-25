@@ -34,29 +34,22 @@ from __future__ import print_function
 
 import argparse
 
-from univention.config_registry import ConfigRegistry
-from univention.office365.azure_handler import AzureHandler, ResourceNotFoundError
-from univention.office365.azure_auth import AzureADConnectionHandler
+from typing import List
+from univention.office365.api.account import AzureAccount
+from univention.office365.api.core import MSGraphApiCore
+from univention.office365.api.objects.azureobjects import GroupAzure, UserAzure
+from univention.office365.ucr_helper import UCRHelper
 
 
-def get_members(grp, ah):
-	members = ah.get_groups_direct_members(grp['objectId'])["value"]
+def get_members(grp):
+	# type: (GroupAzure) -> List[UserAzure]
+	members = grp.list_members()
 	member_ids = list()
 	if not members:
 		return list()
 	else:
-		member_ids = ah.directory_object_urls_to_object_ids(members)
-		azure_objs = list()
-		for member_id in member_ids:
-			try:
-				azure_objs.append(ah.list_users(objectid=member_id))
-			except ResourceNotFoundError:
-				# that's OK - it is probably not a user but a group
-				try:
-					azure_objs.append(ah.list_groups(objectid=member_id))
-				except ResourceNotFoundError:
-					pass
-		if all(azure_obj["mailNickname"].startswith("ZZZ_deleted_") for azure_obj in azure_objs):
+		azure_objs = [x for x in members if isinstance(x, (GroupAzure, UserAzure))]
+		if all(azure_obj.mailNickname.startswith("ZZZ_deleted_") for azure_obj in azure_objs):
 			return list()
 	return member_ids
 
@@ -66,29 +59,30 @@ if __name__ == "__main__":
 	parser.add_argument("-d", "--delete", action="store_true", help="delete empty groups")
 	parser.add_argument("connection", help="connection to use")
 	args = parser.parse_args()
-	if args.connection not in AzureADConnectionHandler.get_adconnection_aliases():
-		parser.error("choose one of these connections: {}".format(AzureADConnectionHandler.get_adconnection_aliases()))
-	ucr = ConfigRegistry()
-	ucr.load()
-	ah = AzureHandler(ucr, args.connection, args.connection)
-	groups = ah.list_groups()
+	if args.connection not in UCRHelper.get_adconnection_aliases():
+		parser.error("choose one of these connections: {}".format(UCRHelper.get_adconnection_aliases()))
+	# ucr = ConfigRegistry()
+	# ucr.load()
+	account = AzureAccount(args.connection)
+	core = MSGraphApiCore(account)
+	# ah = AzureHandler(ucr, args.connection, args.connection)
+	groups = GroupAzure.list(core)
 	empty_groups = list()
-	if groups and groups.get('value'):
-		for grp in groups['value']:
-			if not grp['displayName'].startswith('ZZZ_deleted_'):
-				print('Name: {displayName} Description: {description} objectId: {objectId}'.format(**grp))
-				members = get_members(grp, ah)
-				if members:
-					for member in members:
-						print('\tMember: {}'.format(member))
-				else:
-					empty_groups.append(grp)
+	for grp in groups:
+		if not grp.displayName.startswith('ZZZ_deleted_'):
+			print('Name: {displayName} Description: {description} objectId: {objectId}'.format(displayName=grp.displayName, description=grp.description, objectId=grp.id))
+			members = get_members(grp, core)
+			if members:
+				for member in members:
+					print('\tMember: {}'.format(member))
+			else:
+				empty_groups.append(grp)
 	if empty_groups:
 		print('')
 		print('Empty groups:')
 		for grp in empty_groups:
-			print('Name: {displayName} Description: {description} objectId: {objectId}'.format(**grp))
+			print('Name: {displayName} Description: {description} objectId: {objectId}'.format(displayName=grp.displayName, description=grp.description, objectId=grp.id))
 			if args.delete:
-				print('\tdelete empty group {displayName} ... '.format(**grp), end='')
-				ah.delete_group(grp['objectId'])
+				print('\tdelete empty group {displayName} ... '.format(displayName=grp.displayName), end='')
+				grp.deactivate()
 				print('OK')

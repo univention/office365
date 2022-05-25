@@ -77,6 +77,7 @@ oauth2_token_issuer = "https://sts.windows.net/{adconnection_id}/"
 federation_metadata_url = "https://login.microsoftonline.com/{adconnection_id}/federationmetadata/2007-06/federationmetadata.xml"
 resource_url = "https://graph.windows.net"
 
+# MOVED to univention.office365.api.objects.connector.ConnectorAttributes
 adconnection_alias_ucrv = 'office365/adconnection/alias/'
 adconnection_wizard_ucrv = 'office365/adconnection/wizard'
 default_adconnection_alias_ucrv = 'office365/defaultalias'
@@ -93,11 +94,13 @@ class AzureADConnectionHandler(object):
 
 	@classmethod
 	def listener_restart(cls):
+		# MOVED TO univention.office365.utils.listener_restart
 		logger.info('Restarting univention-directory-listener service')
 		subprocess.call(['systemctl', 'restart', 'univention-directory-listener'])
 
 	@classmethod
 	def get_conf_path(cls, name, adconnection_alias):
+		# MOVED TO modules/univention/office365/api/account.py:42
 		if adconnection_alias is None:
 			logger.error("get_conf_path called with None in adconnection_alias argument")
 			for line_traceback in traceback.format_stack(limit=10):
@@ -127,6 +130,7 @@ class AzureADConnectionHandler(object):
 		}[name]
 
 	@classmethod
+	# MOVED to univention.office365.ucr_helper.UCRHelperC.get_adconnection_aliases
 	def get_adconnection_aliases(cls):
 		res = dict()
 		ucr.load()
@@ -164,6 +168,8 @@ class AzureADConnectionHandler(object):
 		handler_set([ucrv_set])
 		subprocess.call(['pkill', '-f', '/usr/sbin/univention-management-console-module -m office365'])
 
+	# TODO: move to the new implementation
+	# Only called by the script manage_adconnections
 	@classmethod
 	def create_new_adconnection(cls, adconnection_alias, make_default=False, description="", restart_listener=True):
 		aliases = cls.get_adconnection_aliases()
@@ -176,6 +182,7 @@ class AzureADConnectionHandler(object):
 			logger.error('Path %s already exists, but no UCR configuration for the Azure AD connection was found.', target_path)
 			return None
 
+		# Create de needed files
 		os.mkdir(target_path, 0o700)
 		os.chown(target_path, pwd.getpwnam('listener').pw_uid, 0)
 		for filename in ('cert.fp', 'cert.pem', 'key.pem'):
@@ -183,13 +190,18 @@ class AzureADConnectionHandler(object):
 			shutil.copy2(src, target_path)
 			os.chown(os.path.join(target_path, filename), pwd.getpwnam('listener').pw_uid, 0)
 
+		# update ucr with the new adconnection
 		AzureAuth.uninitialize(adconnection_alias)
 		ucrv = ['{}{}=uninitialized'.format(adconnection_alias_ucrv, adconnection_alias)]
 		if make_default:
 			ucrv.append('{}={}'.format(default_adconnection_alias_ucrv, adconnection_alias))
 
 		handler_set(ucrv)
+
+		# update in udm directory
 		UDMHelper.create_udm_adconnection(adconnection_alias, description)
+
+		# set the needed variable in UCR for UMC
 		cls.configure_wizard_for_adconnection(adconnection_alias)
 		if restart_listener:
 			cls.listener_restart()
@@ -282,6 +294,7 @@ class ADConnectionIDError(AzureError):
 
 
 class Manifest(object):
+	# MOVED TO univention.office365.api.manifest.Manifest
 
 	@property
 	def app_id(self):
@@ -345,6 +358,7 @@ class Manifest(object):
 
 
 class JsonStorage(object):
+	# MOVED TO univention.office365.api.jsonstorage.JsonStorage
 	listener_uid = None
 
 	def __init__(self, filename):
@@ -405,6 +419,7 @@ class AzureAuth(object):
 
 	@classmethod
 	def is_initialized(cls, adconnection_alias=None):
+		# MOVED TO univention.office365.api.account.AzureAccount.is_initialized
 		logger.debug('adconnection_alias=%r', adconnection_alias)
 		try:
 			tokens = cls.load_tokens(adconnection_alias)
@@ -420,16 +435,19 @@ class AzureAuth(object):
 
 	@staticmethod
 	def uninitialize(adconnection_alias=None):
+		# MOVED TO univention.office365.api.account.AzureAccount.uninitialize
 		logger.debug('adconnection_alias=%r', adconnection_alias)
 		JsonStorage(AzureADConnectionHandler.get_conf_path('IDS_FILE', adconnection_alias)).purge()
 		JsonStorage(AzureADConnectionHandler.get_conf_path('TOKEN_FILE', adconnection_alias)).purge()
 
 	@staticmethod
 	def load_azure_ids(adconnection_alias=None):
+		# MOVED TO univention.office365.api.account.AzureAccount.load_config
 		return JsonStorage(AzureADConnectionHandler.get_conf_path('IDS_FILE', adconnection_alias)).read()
 
 	@classmethod
 	def store_manifest(cls, manifest, adconnection_alias=None):
+		# MOVED TO univention.office365.api.account.AzureAccount.store_manifest
 		with open(AzureADConnectionHandler.get_conf_path('MANIFEST_FILE', adconnection_alias), 'w') as fd:
 			json.dump(manifest.as_dict(), fd, indent=2, separators=(',', ': '), sort_keys=True)
 		os.chmod(AzureADConnectionHandler.get_conf_path('MANIFEST_FILE', adconnection_alias), S_IRUSR | S_IWUSR)
@@ -437,6 +455,7 @@ class AzureAuth(object):
 
 	@staticmethod
 	def store_azure_ids(adconnection_alias=None, **kwargs):
+		# MOVED TO univention.office365.api.account.AzureAccount.store_azure_ids
 		if "adconnection_id" in kwargs:
 			tid = kwargs["adconnection_id"]
 			try:
@@ -449,14 +468,18 @@ class AzureAuth(object):
 
 	@staticmethod
 	def load_tokens(adconnection_alias=None):
+		# MOVED TO univention.office365.api.token.Token.load_token_cache
 		return JsonStorage(AzureADConnectionHandler.get_conf_path('TOKEN_FILE', adconnection_alias)).read()
 
 	@staticmethod
 	def store_tokens(adconnection_alias=None, **kwargs):
+		# MOVED TO univention.office365.api.token.Token.update_and_save
+
 		JsonStorage(AzureADConnectionHandler.get_conf_path('TOKEN_FILE', adconnection_alias)).write(**kwargs)
 
 	@classmethod
 	def get_domain(cls, adconnection_alias=None):
+		# MOVED TO univention.office365.api.account.AzureAccount.get_domain
 		"""
 		static method to access wizard supplied domain
 		:return: str: domain name verified by MS
@@ -465,6 +488,7 @@ class AzureAuth(object):
 		return ids["domain"]
 
 	def get_access_token(self):
+		# MOVED TO univention.office365.api.account.AzureAccount.token
 		if not self._access_token:
 			logger.debug("Loading token from disk...")
 			tokens = self.load_tokens(self.adconnection_alias)
@@ -478,6 +502,7 @@ class AzureAuth(object):
 
 	@classmethod
 	def get_authorization_url(cls, adconnection_alias=None):
+		# MOVED TO univention.office365.api.account.AzureAccount.get_authorization_url
 		nonce = str(uuid.uuid4())
 		cls.store_tokens(adconnection_alias=adconnection_alias, nonce=nonce)
 		ids = cls.load_azure_ids(adconnection_alias)
@@ -501,6 +526,7 @@ class AzureAuth(object):
 
 	@classmethod
 	def parse_id_token(cls, id_token, adconnection_alias=None):
+		# TODO check where should be implemented
 		def _decode_b64(base64data):
 			# base64 strings should have a length divisible by 4
 			# If this one doesn't, add the '=' padding to fix it
@@ -611,6 +637,7 @@ class AzureAuth(object):
 		return adconnection_id
 
 	def retrieve_access_token(self):
+		# TODO check where should be implemented
 		'''
 		gets a new access token from microsoft and stores the result in a file
 		named after the alias of the connection.
@@ -653,17 +680,20 @@ class AzureAuth(object):
 			raise TokenError(_("Error retrieving authentication token from Azure for AD connection {adconnection}.").format(adconnection=self.adconnection_alias), response=response, adconnection_alias=self.adconnection_alias)
 
 	def _load_certificate_fingerprint(self):
+		# MOVED TO univention.office365.api.account.AzureAccount._load_certificate_fingerprint
 		with open(AzureADConnectionHandler.get_conf_path('SSL_CERT_FP', self.adconnection_alias), "r") as fd:
 			fp = fd.read()
 		return fp.strip()
 
 	def _get_key_file_data(self):
+		# MOVED TO univention.office365.api.account.AzureAccount._get_key_file_data
 		with open(AzureADConnectionHandler.get_conf_path('SSL_KEY', self.adconnection_alias), "rb") as pem_file:
 			key_data = pem_file.read()
 		return key_data
 
 	@classmethod
 	def write_saml_setup_script(cls, adconnection_alias=None):
+		# TODO should be moved to UCRHelper and AzureAccount
 		from univention.config_registry import ConfigRegistry
 		ucr = ConfigRegistry()
 		ucr.load()
@@ -712,8 +742,10 @@ pause
 			logger.exception("while writing powershell script: %s", exc)
 			raise WriteScriptError(_("Error writing SAML setup script."), adconnection_alias=adconnection_alias)
 
+	# MOVED TO univention.office365.ucr_helper.UCRHelperC.set_ucs_overview_link
 	@classmethod
 	def set_ucs_overview_link(cls):
+		# TODO should be moved to UCRHelper
 		from univention.config_registry import ConfigRegistry
 		ucr = ConfigRegistry()
 		ucr.load()

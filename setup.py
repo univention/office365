@@ -38,19 +38,19 @@ dsc = Deb822(io.open('debian/control', 'r', encoding='utf-8'))
 realname, email_address = parseaddr(dsc['Maintainer'])
 
 setup(
-    packages=[
-        'univention.office365',
-        'univention.office365.api',
-        'univention.office365.api.responseparser'
-    ],
-    package_dir={'': 'modules'},
-    description='Univention Office365',
+	packages=[
+		'univention.office365',
+		'univention.office365.api',
+		'univention.office365.api.responseparser'
+	],
+	package_dir={'': 'modules'},
+	description='Univention Office365',
 
-    url='https://www.univention.de/',
-    license='GNU Affero General Public License v3',
+	url='https://www.univention.de/',
+	license='GNU Affero General Public License v3',
 
-    name=dch.package,
-    version=dch.version.full_version,
-    maintainer=realname,
-    maintainer_email=email_address,
+	name=dch.package,
+	version=dch.version.full_version,
+	maintainer=realname,
+	maintainer_email=email_address,
 )

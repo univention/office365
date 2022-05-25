@@ -1,0 +1,166 @@
+interactions:
+- request:
+    body: '{"displayName": "test_delete", "mailNickname": "test_delete", "description":
+      "Description of test_delete", "mailEnabled": false, "securityEnabled": true}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - XXXXXX
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '153'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - Univention Microsoft 365 Connector
+    method: POST
+    uri: https://graph.microsoft.com/v1.0/groups
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAECnRTTW/bMAz9K4XWY5xYdr7s01KkhwFFVzQ5dRgGRqYdYrZkkHLXYNh/H5QPJyna
+        iyA9UuJ71ONf9dUV4GFonPX45lWutt63ko9GFUO7HTZk2Ikr/dC4ZvSqh/HotkEP4dKXil3XyugW
+        rSe/UwNFhcpVnJUwnqUY6VmZRWMoMMoynEUwTXQM5Xg238zVQBVYo8diCR7X1KDKbVfXA2VqEKGS
+        DHhytkcZ4SpZJXGSRPEk0ulax7nWeZK8qIEyIZGc/d6GVVT+42coJYZpj6hcLc+nG1feeBT/60Am
+        sCJpa9g9QmCkrmP41hLvX39Pet+I9a7FY0GShQhVFjY1rt2zq3t5DVB9EhX29/ucQuUl1IIDFbBH
+        Mr/tRwQabDbIsqX2ubt48gp9YmdQhGy18uD7us4+MTYkKEvXANmDwEPLz7EHEL/aWfNe3znjEf0d
+        Ofn4+gqahTGus/6TOJqOye++FcExJSGfWnEuEMr3TTnwaxlLZN57BR7ctTP64APYqoOqV9yye9st
+        ioJR5PQvjBb/XHruMxsxiuvY4B1u4ZUcX9npFHxi90pCzpKtrhLkqLPX4bnDgTrBl/LVKtKRTsIy
+        naXZTM+TSCeTaTzNtE6jyXQ8mU/TLI3SOBtn6XiShtnxWzxPTOCwoTpM4HGGzt28pHjP7Hhv0H//
+        AQAA//8DAIXIvnP3AwAA
+    headers:
+      Cache-Control:
+      - no-cache
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8
+      Date:
+      - Fri, 13 May 2022 10:11:21 GMT
+      Location:
+      - https://graph.microsoft.com/v2/3e7d9eb5-c3a1-4cfc-892e-a8ec29e45b77/directoryObjects/09fa473e-17f9-4ade-99e7-a6210af478b8/Microsoft.DirectoryServices.Group
+      OData-Version:
+      - '4.0'
+      Strict-Transport-Security:
+      - max-age=31536000
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Accept-Encoding
+      client-request-id:
+      - 4bff116a-7a52-4ccb-946e-593a29b31c46
+      request-id:
+      - 4bff116a-7a52-4ccb-946e-593a29b31c46
+      x-ms-ags-diagnostic:
+      - '{"ServerInfo":{"DataCenter":"North Europe","Slice":"E","Ring":"4","ScaleUnit":"002","RoleInstance":"DU2PEPF0001080C"}}'
+      x-ms-resource-unit:
+      - '1'
+    status:
+      code: 201
+      message: Created
+- request:
+    body: '{"displayName": "ZZZ_deleted_1652436682.8522203_test_delete", "description":
+      "deleted group", "mailEnabled": false, "mailNickname": "ZZZ_deleted_1652436682.8522203_test_delete"}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - XXXXXX
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '177'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - Univention Microsoft 365 Connector
+    method: PATCH
+    uri: https://graph.microsoft.com/v1.0/groups/09fa473e-17f9-4ade-99e7-a6210af478b8
+  response:
+    body:
+      string: ''
+    headers:
+      Cache-Control:
+      - no-cache
+      Date:
+      - Fri, 13 May 2022 10:11:22 GMT
+      Strict-Transport-Security:
+      - max-age=31536000
+      client-request-id:
+      - 5e6d734e-1063-4db5-b92c-cecdb9e4f0ad
+      request-id:
+      - 5e6d734e-1063-4db5-b92c-cecdb9e4f0ad
+      x-ms-ags-diagnostic:
+      - '{"ServerInfo":{"DataCenter":"North Europe","Slice":"E","Ring":"4","ScaleUnit":"003","RoleInstance":"DB1PEPF000218FC"}}'
+      x-ms-resource-unit:
+      - '1'
+    status:
+      code: 204
+      message: No Content
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - XXXXXX
+      Connection:
+      - keep-alive
+      User-Agent:
+      - Univention Microsoft 365 Connector
+    method: GET
+    uri: https://graph.microsoft.com/v1.0/groups/09fa473e-17f9-4ade-99e7-a6210af478b8?$select=assignedLicenses,calendar,calendarView,createdDateTime,displayName,drive,events,id,mail,mailNickname,memberOf,onPremisesLastSyncDateTime,onPremisesProvisioningErrors,photo,proxyAddresses,preferredLanguage,acceptedSenders,classification,conversations,createdOnBehalfOf,description,groupTypes,isAssignableRole,licenseProcessingState,mailEnabled,members,membersWithLicenseErrors,owners,rejectedSenders,renewedDateTime,resourceBehaviorOptions,resourceProvisioningOptions,securityEnabled,securityIdentifier,sites,threads,visibility,deletedDateTime,creationOptions,expirationDateTime,isAssignableToRole,membershipRule,membershipRuleProcessingState,onPremisesDomainName,onPremisesNetBiosName,onPremisesSamAccountName,onPremisesSecurityIdentifier,onPremisesSyncEnabled,preferredDataLocation,theme
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAECpSVTW/bMAyG/8qg9bABcuKPxIl9WovuMKBoi6bYgA5DoUp0ws2WDElJGwz774Ns
+        K3ac7LCLY5E0Tb7k4/wmn5Rglk24khbeLMnJxtra5NPpWrN6M6mQa2VUYSdcVdNdNAmnFxVY5h56
+        v9ZqW5sPzBhcSxA3yEEaMJSzEqRg+nDzFeGVcg3MgrhmFh6xAirQ1CXb3zJ3r3EHFHYgraEoaMWw
+        bC63yH9JF1FB9QL6rqBK3muo0IC5Ycau9pIfMvaue612aFBJlOvPWittaL1RVtFaq7f9pRAajKu0
+        1lCA1iBumFxv2Roo4xxqC2IFUoA2lJeuvQI5s6gk5UruQJvmYHxLd/IKNqws7goqwHCNdRPbyPO4
+        r8FQNJeNSOylhAdVAi1bre614mAMyvXKMgtNy5+lixJdx8b/fkO76RTuOlKv0lWo4SfwQcUaJLwO
+        dNZg1FZzcDXuUOm7pjr3XGsfauV9BvhWo937Wvz5iwBpsUDQ1KAFQ+1GAxOGOrVfsES7pwJKGM65
+        mTsq6XPDW426EfAwuKE8j6oRqJ232WD9sC39+P1xLFs/+GtVMZTNTvXGW7BXqMzIumLVJedqK+3Y
+        0TU/aLbP5RbOq3LYnmtm2Y3qVsRuoIKP0wunlN0TSkaLT3ISh3EchPMgSh6jMI+iPI6fCCUDIkhO
+        np6enjstn6N0Hs+SNF3Gk+U8juMwebZgbOcnlKAgOQmzgs0WCQTRosiCGRMQZBksApbGUciK2WL5
+        siSUOLhILrdl2d57xv73nb0oYxJ99mPaSP79ByUH0TxyPviYNG8dAEVy0unxrkGLUNIj1iZ3rXXT
+        IXnBSgOUjHj4t/weiBEobWbvPENLG+ARObze6i1Q4s39MpGcrIIoiGJ3SRdJtoiWcRDF8zRMsyhK
+        gnk6my/TJEuCJMxmWTKbJ25sPWK9NkekefMIuLa8U+p8+Cl83nPM4HnrCEUf1O9GT+SpbwDmqfOY
+        zzP+E0zPxPS0eudh/4bQemfDrj+c/0Z77/hfr5W573u4KO0H20X8+QsAAP//AwDCgf9ecgcAAA==
+    headers:
+      Cache-Control:
+      - no-cache
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8
+      Date:
+      - Fri, 13 May 2022 10:11:23 GMT
+      OData-Version:
+      - '4.0'
+      Strict-Transport-Security:
+      - max-age=31536000
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Accept-Encoding
+      client-request-id:
+      - f326d997-5268-42b9-88ff-a2ab86d2b75b
+      request-id:
+      - f326d997-5268-42b9-88ff-a2ab86d2b75b
+      x-ms-ags-diagnostic:
+      - '{"ServerInfo":{"DataCenter":"North Europe","Slice":"E","Ring":"4","ScaleUnit":"003","RoleInstance":"DB1PEPF0001F9D3"}}'
+      x-ms-resource-unit:
+      - '1'
+    status:
+      code: 200
+      message: OK
+version: 1

@@ -1,0 +1,55 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - XXXXXX
+      Connection:
+      - keep-alive
+      User-Agent:
+      - Univention Microsoft 365 Connector
+    method: GET
+    uri: https://graph.microsoft.com/v1.0/domains
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAECuySwUoDQQyG3yV6XLeK6GFOilXoQStW6qF4iDvZNjAzWWYyW0vpu0tra1tQRMGb
+        158kJF++OVyIRcWykqD0qmBgotok0+mMIzaT0nMVJUmtZSW+056Ux51DT4rLpgMrHjkkKKBFlwnM
+        aA6YdUJBuUJlCY+zhsDADVmKqGShAGyRHb6wY50NFDUnMCE7VwBbMCB1zRWdnp+VltqjHLhdTpNQ
+        WoICOF1az+EWA47JgtGYaZl2qcbsFEyNLq2SXmBldDvJg4huO4YUuebtjJSbRqKSHVBsuaIEZvRc
+        QIMpTSXaITq2rLN7iiy2F7o4+9h7U3MnyvX68CcOVqb7dUlR6f3YRfEFqc1l33LaklFKOvYvk9Ij
+        u1LC3sv+me249QmzX+DaOPdh2Cb4uWBwvfwZFNBfWX8l3uewNij1g+NA8IcSPi/eAAAA//8DAODi
+        KiUABAAA
+    headers:
+      Cache-Control:
+      - no-cache
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8
+      Date:
+      - Fri, 13 May 2022 11:33:05 GMT
+      OData-Version:
+      - '4.0'
+      Strict-Transport-Security:
+      - max-age=31536000
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Accept-Encoding
+      client-request-id:
+      - 27be61c3-69b3-43bf-8d4f-d30e0020d4d4
+      request-id:
+      - 27be61c3-69b3-43bf-8d4f-d30e0020d4d4
+      x-ms-ags-diagnostic:
+      - '{"ServerInfo":{"DataCenter":"North Europe","Slice":"E","Ring":"4","ScaleUnit":"000","RoleInstance":"DU6PEPF0000351A"}}'
+      x-ms-resource-unit:
+      - '1'
+    status:
+      code: 200
+      message: OK
+version: 1
