@@ -261,11 +261,13 @@ class TestUserConnector:
 		subscription.subscription = "TEAMS_EXPLORATORY"
 
 		SubscriptionProfile.get_profiles_for_groups = mock.MagicMock(return_value=[subscription])
-		for _ in udm_fake_user.aliases():
-			azure_user = mock.MagicMock(spec=UserAzure, autospec=True)
-			azure_user.id = "1234567890"
-			self.uc._assign_subscription(udm_fake_user, azure_user)
-			azure_user.add_license.assert_called_once()
+		with mock.patch("univention.office365.connector.connector.SubscriptionAzure") as azure_subscriptions:
+			azure_subscriptions.get_enabled = mock.MagicMock(return_value=[mock.MagicMock(skuPartNumber="TEAMS_EXPLORATORY")])
+			for _ in udm_fake_user.aliases():
+				azure_user = mock.MagicMock(spec=UserAzure, autospec=True)
+				azure_user.id = "1234567890"
+				self.uc._assign_subscription(udm_fake_user, azure_user)
+				azure_user.add_license.assert_called_once()
 
 	def test_prepare_azure_attributes(self):
 		azure_user = mock.MagicMock(spec=UserAzure, autospec=True)
