@@ -9,9 +9,9 @@ from collections import UserDict
 from six import reraise
 from typing import Dict, Any
 
-from univention.office365.api.jsonstorage import JsonStorage
+from univention.office365.microsoft.jsonstorage import JsonStorage
 from univention.office365.logging2udebug import get_logger
-from univention.office365.utils import token_decode_b64
+from univention.office365.utils.utils import token_decode_b64
 
 uid = pwd.getpwnam("listener").pw_uid
 gid = grp.getgrnam("nogroup").gr_gid
