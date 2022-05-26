@@ -40,8 +40,15 @@ realname, email_address = parseaddr(dsc['Maintainer'])
 setup(
 	packages=[
 		'univention.office365',
-		'univention.office365.api',
-		'univention.office365.api.responseparser'
+		'univention.office365.asyncqueue',
+		'univention.office365.asyncqueue.queues',
+		'univention.office365.asyncqueue.tasks',
+		'univention.office365.connector',
+		'univention.office365.microsoft',
+		'univention.office365.microsoft.exceptions',
+		'univention.office365.microsoft.objects',
+		'univention.office365.udmwrapper',
+		'univention.office365.utils',
 	],
 	package_dir={'': 'modules'},
 	description='Univention Office365',
