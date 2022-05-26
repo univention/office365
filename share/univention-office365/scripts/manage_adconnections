@@ -36,7 +36,7 @@ import sys
 import argparse
 import logging
 
-from univention.office365.microsoft.account_connector import AccountConnector
+from univention.office365.connector.account_connector import AccountConnector
 from univention.office365.logging2udebug import get_logger
 
 conf_path = '/etc/univention-office365'

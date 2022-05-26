@@ -117,3 +117,6 @@ msgstr "Bezeichner der Servicepläne, die in dem Profil deaktiviert werden"
 
 #~ msgid "User Principal Name"
 #~ msgstr "User Principal Name"
+
+msgid "Microsoft 365 users must have a primary e-mail address specified."
+msgstr "Microsoft 365 Benutzer müssen eine primäre E-Mail-Adresse besitzen."

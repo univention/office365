@@ -17,10 +17,10 @@ class ListenerModuleTemplate(univention.listener.ListenerModuleHandler):
 		name = 'office365-user'
 		description = 'sync users to office 365'
 		if connector.has_initialized_connections():
-			filter = '(&(objectClass=posixAccount)(objectClass=univentionOffice365)(uid=*){})'.format(connector.get_listener_filter())
-			logger.info("office 365 user listener active with filter=%r", filter)
+			ldap_filter = '(&(objectClass=posixAccount)(objectClass=univentionOffice365)(uid=*){})'.format(connector.get_listener_filter())
+			logger.info("office 365 user listener active with filter=%r", ldap_filter)
 		else:
-			filter = '(objectClass=deactivatedOffice365UserListener)'  # "objectClass" is indexed
+			ldap_filter = '(objectClass=deactivatedOffice365UserListener)'  # "objectClass" is indexed
 			logger.warn("office 365 user listener deactivated (no initialized AD connection)")
 		attributes = connector.attrs.all
 
