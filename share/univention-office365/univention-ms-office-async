@@ -105,7 +105,7 @@ def main():
 		pwnam = pwd.getpwnam('listener')
 		os.setegid(pwnam[3])
 		os.seteuid(pwnam[2])
-		worker()
+		worker(args.once, logger)
 	finally:
 		if lock:
 			release_lock(lock)

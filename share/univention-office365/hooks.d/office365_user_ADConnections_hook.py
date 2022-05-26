@@ -68,27 +68,27 @@ class Microsoft365GroupHook(simpleHook):
 
 # Look into office365_user_ADConnections_hook.Office365ADConnectionsHook.hook_open to try to undrertand
 # pre-version3 data structure for udm objects in office:
-pre_v3_data = {
-	"UniventionOffice365ObjectID": '',
-	'UniventionOffice365userPrincipalName': '',
-
-}
+# pre_v3_data = {
+# 	"UniventionOffice365ObjectID": '',
+# 	'UniventionOffice365userPrincipalName': '',
+#
+# }
 """
 Previous to version 3 the Office objects only could be related with one ADConnection.
 """
-v3_data = {
-	'UniventionOffice365Data': 'office data encoded json in base64',  # information of the ad connections for this object
-		"""{
-		 			"ad connection name": 
-		 			{
-		 				"userPrincipalName": "",
-		 				"objectId": "",
-		 			},...
-		}"""
-	'UniventionOffice365ADConnections': [("adConnectionName", "UserPrincipalName"),...],  # List of adconnections in which this object needs to be replicated
-	'UniventionOffice365ADConnectionAlias': '',  #  current alias name of the AD connection
-
-}
+# v3_data = {
+# 	'UniventionOffice365Data': 'office data encoded json in base64',  # information of the ad connections for this object
+# 		"""{
+# 		 			"ad connection name":
+# 		 			{
+# 		 				"userPrincipalName": "",
+# 		 				"objectId": "",
+# 		 			},...
+# 		}"""
+# 	'UniventionOffice365ADConnections': [("adConnectionName", "UserPrincipalName"),...],  # List of adconnections in which this object needs to be replicated
+# 	'UniventionOffice365ADConnectionAlias': '',  #  current alias name of the AD connection
+#
+# }
 
 class Office365ADConnectionsHook(simpleHook):
 	type = "Office365ADConnectionsHook"

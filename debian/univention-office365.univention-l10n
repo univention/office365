@@ -1,11 +1,11 @@
 [
 	{
 		"input_files": [
-			"modules/univention/handler.d/.*.py",
-			"modules/univention/syntax.d/.*.py",
-			"office365_userPrincipalName_hook.py"
+			"share/univention-office365/handler.d/.*.py",
+			"share/univention-office365/syntax.d/.*.py",
+			"share/univention-office365/hooks.d/.*.py"
 		],
-		"po_subdir": "modules/univention/handler.d",
+		"po_subdir": "share/univention-office365/handler.d",
 		"target_type": "mo",
 		"destination": "usr/share/univention-office365/handler.d/de.mo"
 	},

@@ -33,7 +33,6 @@
 from ldap.filter import escape_filter_chars, filter_format
 from typing import Mapping, Any, Dict, List, Optional
 
-from singleton_decorator import singleton
 
 from univention import admin
 from univention.config_registry import ConfigRegistry
@@ -43,7 +42,6 @@ from univention.office365.ucr_helper import UCRHelper
 logger = get_logger("office365", "o365")
 
 
-@singleton
 class UDMHelper(object):
 	"""
 	UDM methods collection specific for the use with office365
@@ -304,6 +302,3 @@ class UDMHelper(object):
 		if len(res.split('=')) > 2:
 			res = '(|{})'.format(res)
 		return res
-
-
-

@@ -18,13 +18,13 @@ class ListenerModuleTemplate(univention.listener.ListenerModuleHandler):
 		name = 'office365-group'
 		description = 'sync groups to office 365'
 		if UCRHelper.group_sync:
-			filter = '(entryCSN=)'  # not matching anything, evaluated by UDL filter implementation
+			ldap_filter = '(entryCSN=)'  # not matching anything, evaluated by UDL filter implementation
 			logger.warn("office 365 group listener deactivated by UCR office365/groups/sync")
 		elif connector.has_initialized_connections():
-			filter = '(&(objectClass=posixGroup){})'.format(connector.get_listener_filter())
-			logger.info("office 365 group listener active with filter=%r", filter)
+			ldap_filter = '(&(objectClass=posixGroup){})'.format(connector.get_listener_filter())
+			logger.info("office 365 group listener active with filter=%r", ldap_filter)
 		else:
-			filter = '(objectClass=deactivatedOffice365GroupListener)'
+			ldap_filter = '(objectClass=deactivatedOffice365GroupListener)'
 			logger.warn("office 365 group listener deactivated (no initialized adconnections)")
 		attributes = connector.attrs
 
