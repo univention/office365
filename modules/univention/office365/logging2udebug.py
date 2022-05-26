@@ -52,7 +52,10 @@
 #
 
 import logging
+from logging import Logger
+
 from six import PY2, PY3
+from typing import Any, Optional
 
 from univention import debug as ud
 from univention.config_registry import ConfigRegistry
@@ -82,6 +85,7 @@ _werror = ucr.is_true("office365/debug/werror", False)
 
 
 def get_logger(logger_name, short_name=None, udebug_facility=ud.LISTENER):
+	# type: (str, str, Any) -> Logger
 	logger = logging.getLogger(logger_name)
 	if not any(map(lambda x: isinstance(x, UDebugHandler), logger.handlers)):
 		handler = UDebugHandler(udebug_facility=udebug_facility)
@@ -110,6 +114,7 @@ class LevelDependentFormatter(logging.Formatter):
 
 class UDebugHandler(logging.Handler):
 	def __init__(self, level=logging.NOTSET, udebug_facility=ud.LISTENER):
+		# type: (int, int) -> None
 		self._udebug_facility = udebug_facility
 		super(UDebugHandler, self).__init__(level)
 

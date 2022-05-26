@@ -7,6 +7,8 @@ import pytest
 from dateutil.relativedelta import relativedelta
 from mock import mock
 from six import text_type
+from typing import Callable, Tuple
+
 import univention
 from test.utils import all_methods_called
 from univention.office365 import bool_from_bytes
@@ -107,27 +109,33 @@ def udm_office_user_with_fake_udm_user(udm_office_user):
 class TestUDMOfficeObjects:
 
 	def setup(self):
+		# type: () -> None
 		pass
 
 	def test_completity(self):
+		# type: () -> None
 		diff = all_methods_called(self.__class__, UDMOfficeObject, ["get", "values", "copy", "items", "setdefault", "update", "fromkeys", "keys", "clear", "pop", "popitem"])
 		assert len(diff) == 0, "Functions no tested [" + ", ".join(diff) + "]"
 
 	def test_set_current_alias(self, udm_object):
+		# type: (Callable) -> None
 		udm_object = udm_object()  # type: UDMOfficeObject
 		with udm_object.set_current_alias("test"):
 			assert udm_object.current_connection_alias == "test"
 
 	def test_init(self, udm_object):
+		# type: (Callable) -> None
 		udm_object = udm_object()
 		assert udm_object.dn == 'cn=test,dc=test,dc=test'
 		# assert udm_object.other == [b'test']
 
 	def test_init_with_empty_dict(self):
+		# type: () -> None
 		with pytest.raises(TypeError):
 			UDMOfficeObject()
 
 	def test_modified_fields(self, udm_object):
+		# type: (Callable) -> None
 		# Not encoded as bytes just to test
 		udm_object2 = udm_object()
 		udm_object = udm_object()
@@ -135,6 +143,7 @@ class TestUDMOfficeObjects:
 		assert udm_object.modified_fields(udm_object2) == ["displayName"]
 
 	def test_deactivate_azure_attributes(self, udm_object):
+		# type: (Callable) -> None
 		""""""
 		udm_user1 = udm_object()
 		for alias in udm_user1.aliases():
@@ -142,6 +151,7 @@ class TestUDMOfficeObjects:
 			assert alias not in udm_user1.azure_data
 
 	def test_get_diff_aliases(self, udm_object):
+		# type: (Callable) -> None
 		""""""
 		udm_user1 = udm_object()
 		udm_user2 = udm_object()
@@ -151,6 +161,7 @@ class TestUDMOfficeObjects:
 		assert udm_user2.get_diff_aliases(udm_user1) == ["new_alias"]
 
 	def test_aliases(self, udm_object):
+		# type: (Callable) -> None
 		""""""
 		udm_user1 = udm_object()
 		udm_user1.udm_object_reference["UniventionOffice365ADConnectionAlias"].append("new_alias")
@@ -158,6 +169,7 @@ class TestUDMOfficeObjects:
 			assert alias in udm_user1.adconnection_aliases
 
 	def test_create_azure_attributes(self, udm_object):
+		# type: (Callable) -> None
 		""""""
 		udm_user1 = udm_object()
 		alias = "new_alias"
@@ -167,6 +179,7 @@ class TestUDMOfficeObjects:
 		assert udm_user1.azure_data[alias] == new_data
 
 	def test_modify_azure_attributes(self, udm_object):
+		# type: (Callable) -> None
 		""""""
 		udm_user1 = udm_object()
 		udm_user1.udm_object_reference["UniventionOffice365ADConnectionAlias"].append("new_alias")
@@ -177,6 +190,7 @@ class TestUDMOfficeObjects:
 		assert "new_alias" in udm_user1.azure_data
 
 	def test_alias_to_modify(self, udm_object):
+		# type: (Callable) -> None
 		""""""
 		udm_user1 = udm_object()
 		udm_user2 = udm_object()
@@ -184,6 +198,7 @@ class TestUDMOfficeObjects:
 		assert list(udm_user1.alias_to_modify(udm_user2)) == ["o365domain"]
 
 	def test_is_version(self, udm_object):
+		# type: (Callable) -> None
 		""""""
 		udm_user1 = udm_object()
 		for alias in udm_user1.aliases():
@@ -196,15 +211,18 @@ class TestUDMOfficeObjects:
 class TestUdmOfficeUser:
 
 	def test_completity(self):
+		# type: () -> None
 		diff = all_methods_called(self.__class__, UDMOfficeUser, ["is_version", "items", "popitem", "create_azure_attributes", "alias_to_modify", "keys", "clear", "get_diff_aliases", "setdefault", "modified_fields", "modify_azure_attributes", "deactivate_azure_attributes", "copy", "aliases", "alias_to_deactivate", "update", "get", "pop", "fromkeys", "values", "set_current_alias"])
 		assert len(diff) == 0, "Functions no tested [" + ", ".join(diff) + "]"
 
 	def test_from_udm(self, create_udm_user_object):
+		# type: (Callable) -> None
 		""""""
 		udm_user_object = create_udm_user_object()
 		UDMOfficeUser.from_udm(udm_user_object.udm_object_reference, {})
 
 	def test_is_expired(self, create_udm_user_object):
+		# type: (Callable) -> None
 		""""""
 		udm_user_object = create_udm_user_object()
 		udm_user_object.udm_object_reference["userexpiry"] = (datetime.datetime.today() - relativedelta(days=1)).strftime('%Y-%m-%d')
@@ -223,6 +241,7 @@ class TestUdmOfficeUser:
 		(True, True, True),
 	])
 	def test_is_deactivated_locked_or_expired(self, params, create_udm_user_object):
+		# type: (Tuple, Callable) -> None
 		""""""
 		udm_user_object = create_udm_user_object()
 		udm_user_object.locked, udm_user_object.deactivated, expired = params
@@ -233,6 +252,7 @@ class TestUdmOfficeUser:
 		assert udm_user_object.is_deactivated_locked_or_expired() == any(params)
 
 	def test_is_enable(self, create_udm_user_object):
+		# type: (Callable) -> None
 		udm_user_object = create_udm_user_object()
 		udm_user_object.udm_object_reference['UniventionOffice365Enabled'] = "1"
 		assert udm_user_object.is_enable()
@@ -242,10 +262,12 @@ class TestUdmOfficeUser:
 class TestUdmOfficeGroup:
 
 	def test_completity(self):
+		# type: () -> None
 		diff = all_methods_called(self.__class__, UDMOfficeGroup, ["fromkeys", "keys", "items", "values", "create_azure_attributes", "modified_fields", "copy", "aliases", "popitem", "pop", "setdefault", "update", "deactivate_azure_attributes", "clear", "alias_to_deactivate", "alias_to_modify", "is_version", "get_diff_aliases", "get", "set_current_alias", "get_other_by_displayName"])
 		assert len(diff) == 0, "Functions no tested [" + ", ".join(diff) + "]"
 
 	def test_modify_azure_attributes(self, create_udm_group_object):
+		# type: (Callable) -> None
 		""""""
 		udm_group_object = create_udm_group_object()
 		for alias in udm_group_object.aliases(["new_alias"]):
@@ -256,6 +278,7 @@ class TestUdmOfficeGroup:
 		assert "new_alias" in list(udm_group_object.adconnection_aliases)
 
 	def test_delete_azure_data(self, create_udm_group_object):
+		# type: (Callable) -> None
 		""""""
 		udm_group_object = create_udm_group_object()
 		for alias in udm_group_object.aliases():
@@ -264,11 +287,13 @@ class TestUdmOfficeGroup:
 			assert alias not in udm_group_object.adconnection_aliases
 
 	def test_in_azure(self, create_udm_group_object):
+		# type: (Callable) -> None
 		""""""
 		udm_group_object = create_udm_group_object()
 		assert not udm_group_object.in_azure()
 
 	def test_is_team(self, create_udm_group_object):
+		# type: (Callable) -> None
 		""""""
 		udm_group_object = create_udm_group_object()
 		assert not udm_group_object.is_team()
@@ -276,6 +301,7 @@ class TestUdmOfficeGroup:
 		assert udm_group_object.is_team()
 
 	def test_get_owners_dn(self, create_udm_group_object):
+		# type: (Callable) -> None
 		""""""
 		udm_group_object = create_udm_group_object()
 		owners = ['uid=qye80535ks,cn=users,dc=test-idelgado-com,dc=intranet']
@@ -283,6 +309,7 @@ class TestUdmOfficeGroup:
 		assert udm_group_object.get_owners_dn() == owners
 
 	def test_get_owners(self, create_udm_group_object):
+		# type: (Callable) -> None
 		""""""
 		udm_group_object = create_udm_group_object()
 		owners = ['uid=qye80535ks,cn=users,dc=test-idelgado-com,dc=intranet']
@@ -292,6 +319,7 @@ class TestUdmOfficeGroup:
 		assert all([x.dn in owners for x in user_owners])
 
 	def test_get_nested_group(self, create_udm_group_object):
+		# type: (Callable) -> None
 		""""""
 		udm_group_object = create_udm_group_object()
 		data = ['uid=qye80535ks,cn=users,dc=test-idelgado-com,dc=intranet']
@@ -299,6 +327,7 @@ class TestUdmOfficeGroup:
 		assert udm_group_object.get_nested_group() == data
 		
 	def test_get_users(self, create_udm_group_object):
+		# type: (Callable) -> None
 		""""""
 		udm_group_object = create_udm_group_object()
 		data = ['uid=qye80535ks,cn=users,dc=test-idelgado-com,dc=intranet']
@@ -306,6 +335,7 @@ class TestUdmOfficeGroup:
 		assert udm_group_object.get_users() == data
 	
 	def test_has_azure_users(self, create_udm_group_object,create_udm_user_object):
+		# type: (Callable, Callable) -> None
 		udm_group_object = create_udm_group_object()
 		assert not udm_group_object.has_azure_users()
 		udm_user_object = create_udm_user_object()
@@ -325,10 +355,12 @@ class TestUdmOfficeGroup:
 
 	@pytest.mark.skip
 	def test_get_users_from_ldap(self, create_udm_group_object):
+		# type: (Callable) -> None
 		udm_group_object = create_udm_group_object()
 		assert True == udm_group_object.get_users_from_ldap()
 		
 	def test_get_groups_member_of_not_in_azure(self, create_udm_group_object):
+		# type: (Callable) -> None
 		udm_group_object = create_udm_group_object()
 		udm_group_object.udm_object_reference["memberOf"] = ["member_of_dn1", "member_of_dn2"]
 		bk, udmobjects.UDMOfficeGroup.azure_object_id = udmobjects.UDMOfficeGroup.azure_object_id, None
@@ -337,10 +369,12 @@ class TestUdmOfficeGroup:
 		assert [x.dn for x in k] == ["member_of_dn1", "member_of_dn2"]
 		
 	def test_get_members(self, create_udm_group_object):
+		# type: (Callable) -> None
 		udm_group_object = create_udm_group_object()
 		assert udm_group_object.get_members() == [x.decode("utf-8") for x in getattr(udm_group_object, "uniqueMember", [])]
 		
 	def test_get_nested_groups_with_azure_users(self, create_udm_group_object):
+		# type: (Callable) -> None
 		udm_group_object = create_udm_group_object()
 		udm_group_object.udm_object_reference['nestedGroup'] = ["group_dn1", "group_dn1"]
 		udm_group_object.udm_object_reference['users'] = ["user_dn1", "user_dn2"]
@@ -352,6 +386,7 @@ class TestUdmOfficeGroup:
 
 	# TODO: refactor initialization with fixtures
 	def test_members_changes(self, create_udm_group_object):
+		# type: (Callable) -> None
 		""""""
 		udm_group = create_udm_group_object()
 		other_group = create_udm_group_object()
@@ -364,6 +399,7 @@ class TestUdmOfficeGroup:
 
 	# TODO: refactor initialization with fixtures
 	def test_removed_members(self, create_udm_group_object):
+		# type: (Callable) -> None
 		""""""
 		udm_group = create_udm_group_object()
 		other_group = create_udm_group_object()
@@ -375,6 +411,7 @@ class TestUdmOfficeGroup:
 
 	# TODO: refactor initialization with fixtures
 	def test_added_members(self, create_udm_group_object):
+		# type: (Callable) -> None
 		""""""
 		udm_group = create_udm_group_object()
 		other_group = create_udm_group_object()
@@ -386,6 +423,7 @@ class TestUdmOfficeGroup:
 
 	# TODO: refactor initialization with fixtures
 	def test_owners_changes(self, create_udm_group_object):
+		# type: (Callable) -> None
 		""""""
 		first_group = create_udm_group_object()
 		other_group = create_udm_group_object()
@@ -400,6 +438,7 @@ class TestUdmOfficeGroup:
 
 	# TODO: refactor initialization with fixtures
 	def test_removed_owners(self, create_udm_group_object):
+		# type: (Callable) -> None
 		""""""
 		first_group = create_udm_group_object()
 		other_group = create_udm_group_object()
@@ -413,6 +452,7 @@ class TestUdmOfficeGroup:
 
 	# TODO: refactor initialization with fixtures
 	def test_added_owners(self, create_udm_group_object):
+		# type: (Callable) -> None
 		""""""
 		first_group = create_udm_group_object()
 		other_group = create_udm_group_object()

@@ -5,7 +5,7 @@ import json
 import zlib
 from six.moves import UserDict
 from logging import Logger
-from typing import List, Mapping, Any, Iterator, Optional
+from typing import List, Mapping, Any, Iterator, Optional, Dict, Set, Tuple
 from enum import Enum
 
 from ldap.filter import escape_filter_chars
@@ -55,10 +55,12 @@ class UniventionOffice365Data(UserDict):
 	interface for the different versions.
 	"""
 	def __init__(self, data):
+		# type: (Dict[str,str]) -> None 
 		super(UniventionOffice365Data, self).__init__(data)
 
 	@classmethod
 	def from_ldap(cls, ldap_data):
+		# type: (str) -> UniventionOffice365Data
 		"""
 		Decode ldap UniventionOffice365Data
 		Calling code must catch zlib.error and TypeError
@@ -70,6 +72,7 @@ class UniventionOffice365Data(UserDict):
 		# self.update(json.loads(zlib.decompress(base64.b64decode(ldap_data))))
 
 	def to_ldap_str(self):
+		# type: () -> str
 		"""
 		Encode ldap UniventionOffice365Data
 		"""
@@ -79,6 +82,7 @@ class UniventionOffice365Data(UserDict):
 		return result
 
 	def migrate(self):
+		# type: () -> None
 		if 'objectId' in self and not isinstance(self['objectId'], dict):
 			self.update({
 				k: v
@@ -116,7 +120,7 @@ class UDMOfficeObject(UserDict):
 	# TODO: can adconnection_aliases be directly obtained by this class?
 
 	def __init__(self, ldap_fields, ldap_cred, dn='', logger=None):
-		# type: (Optional[Mapping[str, List[bytes]]], Optional[Mapping], str, Logger) -> None
+		# type: (Dict[str, List[bytes]], Dict[str, Any], str, Optional[Logger]) -> None
 		self.dn = dn
 		super(UDMOfficeObject, self).__init__(ldap_fields)
 		self.logger = logger or get_logger("office365", "o365")
@@ -134,12 +138,15 @@ class UDMOfficeObject(UserDict):
 
 	@property
 	def entryUUID(self):
+		# type: () -> str
 		return self.udm_object_reference.oldattr["entryUUID"][0].decode('UTF-8')
 
 	def __getattr__(self, item):
+		# type: (str) -> Any
 		return self.__getitem__(item)
 
 	def __getitem__(self, item):
+		# type: (str) -> Any
 		if item in self.udm_object_reference:
 			return self.udm_object_reference[item]
 		else:
@@ -152,9 +159,11 @@ class UDMOfficeObject(UserDict):
 				raise Exception("{item} not found in object {dn}".format(item=item, dn=self.dn))
 
 	def __hash__(self):
+		# type: () -> int
 		return hash(self.dn)
 
 	def __eq__(self, other):
+		# type: (UDMOfficeObject) -> bool
 		return self.dn == other.dn
 
 	@contextlib.contextmanager
@@ -241,6 +250,7 @@ class UDMOfficeObject(UserDict):
 		self.udm_object_reference.modify()
 
 	def deactivate_azure_attributes(self):
+		# type: () -> None
 		self.modify_azure_attributes(None)
 
 	def create_azure_attributes(self, azure_object_dict, new_connection_alias=None):
@@ -388,6 +398,7 @@ class UDMOfficeGroup(UDMOfficeObject):
 		super(UDMOfficeGroup, self).modify_azure_attributes(azure_group_dict)
 
 	def delete_azure_data(self):
+		# type: () -> None
 		self.modify_azure_attributes(None)
 
 	def in_azure(self):
@@ -417,6 +428,7 @@ class UDMOfficeGroup(UDMOfficeObject):
 		return [UDMOfficeUser({}, self.ldap_cred, dn=owner_dn) for owner_dn in self.get_owners_dn()]
 
 	def get_members(self):
+		# type: () -> List[str]
 		members = [x.decode("utf-8") for x in getattr(self, "uniqueMember", [])]
 		return members
 
@@ -429,7 +441,7 @@ class UDMOfficeGroup(UDMOfficeObject):
 		return getattr(self, "users", [])
 
 	def get_users_from_ldap(self):
-		# type () -> List[str]
+		# type: () -> List[str]
 		# get all users for the adconnection (ignoring group membership) and compare
 		# with group members to get azure IDs, because it's faster than
 		# iterating (and opening!) lots of UDM objects
@@ -507,6 +519,7 @@ class UDMOfficeGroup(UDMOfficeObject):
 						yield x
 
 	def owners_changes(self, target):
+		# type: (UDMOfficeGroup) -> Tuple[Set[UDMOfficeUser], Set[UDMOfficeUser]]
 		assert type(self) == type(target)
 		set_old = set(self.get_owners())
 		set_new = set(target.get_owners())
@@ -515,6 +528,7 @@ class UDMOfficeGroup(UDMOfficeObject):
 		return added_owners, removed_owners
 
 	def added_owners(self, target):
+		# type: (UDMOfficeGroup) -> Set[UDMOfficeUser]
 		"""
 		Given the 'target' reference calculate the owners to be added from self to
 		get the same as the target
@@ -523,6 +537,7 @@ class UDMOfficeGroup(UDMOfficeObject):
 		return added
 
 	def removed_owners(self, target):
+		# type: (UDMOfficeGroup) -> Set[UDMOfficeUser]
 		"""
 		Given the 'target' reference calculate the owners to be removed from self to
 		get the same as the target
@@ -532,6 +547,7 @@ class UDMOfficeGroup(UDMOfficeObject):
 
 
 	def members_changes(self, target):
+		# type: (UDMOfficeGroup) -> Tuple[Set[str], Set[str]]
 		assert type(self) == type(target)
 		set_old = set(self.get_members())
 		set_new = set(target.get_members())
@@ -540,6 +556,7 @@ class UDMOfficeGroup(UDMOfficeObject):
 		return added_members_dn, removed_members_dn
 
 	def added_members(self, target):
+		# type: (UDMOfficeGroup) -> Set[str]
 		"""
 		Given the 'target' reference calculate the members to be added from self to
 		get the same as the target
@@ -548,6 +565,7 @@ class UDMOfficeGroup(UDMOfficeObject):
 		return added
 
 	def removed_members(self, target):
+		# type: (UDMOfficeGroup) -> Set[str]
 		"""
 		Given the 'target' reference calculate the members to be removed from self to
 		get the same as the target

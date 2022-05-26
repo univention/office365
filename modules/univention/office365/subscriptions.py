@@ -29,7 +29,7 @@
 # License with the Debian GNU/Linux or Univention distribution in file
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
-
+from typing import List, Optional
 
 from univention.office365.udm_helper import UDMHelper
 from univention.office365.logging2udebug import get_logger
@@ -40,16 +40,19 @@ logger = get_logger("office365", "o365")
 
 class SubscriptionProfile(object):
 	def __init__(self, name, subscription=None, whitelisted_plans=None, blacklisted_plans=None):
+		# type: (str, Optional[], Optional[List[str]], Optional[List[str]]) -> None
 		self.name = name
 		self.subscription = subscription  # skuPartNumber
 		self.whitelisted_plans = whitelisted_plans or list()
 		self.blacklisted_plans = blacklisted_plans or list()
 
 	def __repr__(self):
+		# type: () -> str
 		return 'SubscriptionProfile({}: {})'.format(self.name, self.subscription)
 
-	@staticmethod
-	def load(dn):
+	@classmethod
+	def load(cls, dn):
+		# type: (str) -> SubscriptionProfile
 		"""
 		Load a subscription profile.
 
@@ -58,7 +61,7 @@ class SubscriptionProfile(object):
 		"""
 		profile = UDMHelper.get_udm_officeprofile(dn)
 		logger.debug('loading profile: %r, with settings %r', dn, dict(profile))
-		return SubscriptionProfile(
+		return cls(
 			name=profile.get('name'),
 			subscription=profile.get('subscription'),
 			whitelisted_plans=profile.get('whitelisted_plans'),
@@ -66,11 +69,12 @@ class SubscriptionProfile(object):
 
 	@staticmethod
 	def list_profiles():
-		return UDMHelper.list_udm_officeprofiles()
+		# type: () -> List[SubscriptionProfile]
+		return UDMHelper.list_udm_office_profiles()
 
 	@classmethod
 	def get_profiles_for_groups(cls, dns):
-		# Type: List[str] -> List[SubscriptionProfile]
+		# type: (List[str]) -> List[SubscriptionProfile]
 		"""
 		Retrieve subscription profiles for groups.
 

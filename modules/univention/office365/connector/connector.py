@@ -105,6 +105,7 @@ class ConnectorAttributes(UserDict):
 			self._disjoint_attributes()
 
 	def update_attributes_from_ucr(self):
+		# type: () -> None
 
 		ucr = UCRHelper
 
@@ -603,12 +604,14 @@ class UserConnector(Connector):
 		return user_azure
 
 	# def invalidate_all_tokens(self, udm_object):
+	#	# type: (Udm) -> None
 	# 	""""""
 	# 	for alias in udm_object.aliases():
 	# 		user_azure = self.parse(udm_object)
 	# 		user_azure.invalidate_all_tokens()
 
 	def deactivate(self, udm_object):
+		# type: (UDMOfficeUser) -> None
 		""""""
 		for alias in udm_object.aliases():
 			assert alias in self.cores, "Alias {} not exist".format(alias)
@@ -622,15 +625,19 @@ class UserConnector(Connector):
 			)
 
 # def get_direct_groups(self, user):
+#	# type: (UDMOfficeUser) -> None
 # 	""""""
 #
 # def reset_password(self, user):
+#	# type: (UDMOfficeUser) -> None
 # 	""""""
 #
 # def add_license(self, user):
+#	# type: (UDMOfficeUser) -> None
 # 	""""""
 #
 # def remove_license(self, user):
+#	# type: (UDMOfficeUser) -> None
 # 	""""""
 
 
@@ -1035,6 +1042,7 @@ class GroupConnector(Connector):
 			azure_group.add_member(udm_office_user.azure_object_id)
 
 	def remove_member(self, udm_office_group, udm_office_user, alias=None):
+		# type: (UDMOfficeGroup, UDMOfficeUser, Optional[str]) -> None
 		"""
 		Given a UDMOfficeGroup and a UDMOfficeUser, remove the user as a group member in azure.
 		"""

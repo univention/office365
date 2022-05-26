@@ -7,7 +7,7 @@ import datetime
 from six.moves import UserDict
 
 from six import reraise
-from typing import Dict, Any
+from typing import Dict, Any, Tuple
 
 from univention.office365.microsoft.jsonstorage import JsonStorage
 from univention.office365.logging2udebug import get_logger
@@ -18,11 +18,6 @@ gid = grp.getgrnam("nogroup").gr_gid
 
 logger = get_logger("office365", "o365")
 
-class TokenManager:
-	def __init__(self, token_file):
-		self.token_file = token_file
-		self.token_data = {}
-		self.load_token_data()
 
 class Token(UserDict):
 	"""
@@ -38,12 +33,14 @@ class Token(UserDict):
 		self.load_token_cache()
 
 	def load_token_cache(self):
+		# type:() -> None
 		if os.path.exists(self._token_cache):
 			self.update(JsonStorage(self._token_cache).read())
 		else:
 			raise FileNotFoundError("Token cache file not found: {file}".format(file=self._token_cache))
 
 	def check_token(self):
+		# type: () -> None
 		if 'expires_on' not in self:
 			return False
 		expires_on = datetime.datetime.strptime(self['expires_on'], "%Y-%m-%dT%H:%M:%S")
@@ -65,6 +62,7 @@ class Token(UserDict):
 		return (datetime.datetime.now() < expires_on)
 
 	def update_and_save(self, response):
+		# type: (Dict[str,Any]) -> None
 		# it would be nicer to use the Date field from the response.header
 		# instead of datetime.now(), but the level of abstraction does not
 		# easily allow to come by. We cheat a little and our result could be
@@ -97,6 +95,7 @@ class Token(UserDict):
 
 	@staticmethod
 	def parse(encoded_token):
+		# type: (str) -> Tuple[Dict[str, str], Dict[str, str], str]
 		# JWT tokens have 3 segments: header, body, signature.
 		try:
 			_header, _body, _signature = encoded_token.split(".")

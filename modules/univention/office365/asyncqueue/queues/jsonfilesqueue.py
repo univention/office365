@@ -5,6 +5,8 @@ import os
 import shutil
 import time
 
+from typing import Optional
+
 from univention.office365.asyncqueue import ASYNC_DATA_DIR
 from univention.office365.asyncqueue.queues.asyncqueue import AbstractQueue
 from univention.office365.asyncqueue.tasks.task import Task
@@ -12,6 +14,7 @@ from univention.office365.asyncqueue.tasks.task import Task
 
 class JsonFilesQueue(AbstractQueue):
 	def __init__(self, queue_name, path=ASYNC_DATA_DIR, no_delete=False, logger=None):
+		# type: (str, str, bool, Optional["logging.Logger"]) -> None
 		super(JsonFilesQueue, self).__init__(queue_name)
 		self.path = path if path and os.path.exists(path) else os.path.join("/tmp", queue_name)
 		self.no_delete = no_delete
@@ -53,7 +56,8 @@ class JsonFilesQueue(AbstractQueue):
 		files = sorted(glob.glob(os.path.join(self.path, '*.json')))
 		return list(filter(lambda x: os.path.basename(x).startswith("ERROR"), files))
 
-	def find_job_by_name(self):
+	def find_job_by_name(self, name):
+		# type: (str) -> Task
 		""""""
 		raise NotImplementedError
 
@@ -97,6 +101,3 @@ class JsonFilesQueue(AbstractQueue):
 			self.delete_job(job)
 			return False
 		return True
-
-	def save_error(self, task):
-		pass

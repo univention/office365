@@ -11,19 +11,23 @@ CURRENT_PATH = os.path.dirname(os.path.abspath(__file__))
 @pytest.mark.skip("To implement")
 class TestJsonFilesQueue:
 	def setup(self):
+		# type: () -> None
 		self.queue = JsonFilesQueue(queue_name='tests_queue')
 		self.queue.clear()
 
 	def test_completity(self):
+		# type: () -> None
 		diff = all_methods_called(self.__class__, JsonFilesQueue, [])
 		assert len(diff) == 0, "Functions no tested [" + ", ".join(diff) + "]"
 
 	def test_enqueue(self):
+		# type: () -> None
 		self.queue.enqueue({"test": "test"})
 		self.queue.enqueue({"test2": "test2"})
 		assert self.queue.len() == 2
 
 	def test_dequeue(self):
+		# type: () -> None
 		self.queue.enqueue({"test": "test"})
 		self.queue.enqueue({"test2": "test2"})
 		assert self.queue.len() == 2
@@ -31,6 +35,7 @@ class TestJsonFilesQueue:
 		assert self.queue.dequeue() == {"test2": "test2"}
 
 	def test_delete_job(self):
+		# type: () -> None
 		self.queue.enqueue({"test": "test"})
 		self.queue.enqueue({"test2": "test2"})
 		assert self.queue.len() == 2
@@ -40,6 +45,7 @@ class TestJsonFilesQueue:
 		assert self.queue.len() == 0
 
 	def test_clear(self):
+		# type: () -> None
 		self.queue.enqueue({"test": "test"})
 		self.queue.enqueue({"test2": "test2"})
 		assert self.queue.len() == 2
@@ -50,10 +56,12 @@ class TestJsonFilesQueue:
 @pytest.mark.skip("To implement")
 class TestRedisQueue:
 	def setup(self):
+		# type: () -> None
 		self.queue = SimpleQueue(queue_name='tests_queue')
 		self.queue.clear()
 
 	def test_enqueue(self):
+		# type: () -> None
 		self.queue.enqueue({"test": "test"})
 		self.queue.enqueue({"test2": "test2"})
 		assert self.queue.len() == 2

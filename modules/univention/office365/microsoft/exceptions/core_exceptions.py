@@ -1,5 +1,6 @@
 import json
 import requests
+from typing import Dict, Optional, Any, List, Callable
 
 
 class MSGraphError(Exception):
@@ -50,6 +51,7 @@ class MSGraphError(Exception):
 
 	@staticmethod
 	def _try_to_prettify(json_string):
+		# type: (str) -> str
 		try:
 			return json.dumps(json.loads(json_string), indent=2)
 		except ValueError:
@@ -186,13 +188,17 @@ class Unauthenticated(GenericGraphError):
 
 class AddLicenseError(GenericGraphError):
 	def __init__(self, msg, user_id, sku_id, chained_exc=None, *args, **kwargs):
+		# type: (str,str,str, Optional[Exception], List[Any], Dict[str, Any]) -> None
 		self.user_id = user_id
 		self.sku_id = sku_id
-		super(AddLicenseError, self).__init__(msg, chained_exc, *args, **kwargs)
+		self.message = msg
+		super(AddLicenseError, self).__init__(msg, chained_exc, *args, **kwargs) # TODO revisar
 
 
 def exception_decorator(func):
+	# type: (Callable) -> Callable
 	def inner(*args, **kwargs):
+		# type: (List[Any], Dict[str, Any]) -> Any
 		try:
 			return func(*args, **kwargs)
 		except MSGraphError as e:

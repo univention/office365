@@ -1,8 +1,10 @@
 import os
 import pwd
 import shutil
+from logging import Logger
+
 from six.moves import UserDict, UserString
-from typing import Dict
+from typing import Dict, Tuple, List
 
 from univention.office365 import utils
 from univention.office365.microsoft.account import AzureAccount
@@ -58,27 +60,34 @@ class ConnectionsPool(UserDict):
 		self.current = None
 
 	def __iter__(self):
+		# type: () -> None
 		for connection in self.connections.values():
 			self.current = connection
 			yield connection.core
 		self.current = None
 
 	def __getitem__(self, alias):
+		# type: (str) -> Connection
 		return self.connections[alias]
 
 	def __setitem__(self, alias, connection):
+		# type: (str, Connection) -> None
 		self.connections[alias] = connection
 
 	def __delitem__(self, alias):
+		# type: (str) -> None
 		del self.connections[alias]
 
 	def __contains__(self, alias):
+		# type: (str) -> bool
 		return alias in self.connections
 
 	def __len__(self):
+		# type: () -> int
 		return len(self.connections)
 
 	def status(self, only_initialized=False):
+		# type: (bool) -> Tuple[str, str, str]
 		for alias, connection in self.connections.items():
 			confdir = connection.account.conf_dirs['CONFDIR']
 			initialized = connection.account.is_initialized()
@@ -116,10 +125,11 @@ class ConnectionsPool(UserDict):
 
 	# Only called by the script manage_adaccounts
 	def create_new(self, alias, make_default=False, description="", restart_listener=True):
+		# type: (str, bool, str, bool) -> None
 		if alias in self:
 			self.logger.error('Azure AD connection alias %s is already listed in UCR %s.', alias, UCRHelper.alias_ucrv)
 			return None
-		new_account = AzureAccount.create_local(alias, lazy_load=True)
+		new_account = AzureAccount.create_local(alias)
 		UCRHelper.set_ucr_for_new_connection(alias, make_default)
 		self[alias] = Connection(new_account["adconnection_id"], new_account)
 
@@ -132,6 +142,7 @@ class ConnectionsPool(UserDict):
 			utils.listener_restart()
 
 	def rename(self, old_alias, new_alias):
+		# type: (str, str) -> None
 		if new_alias in self.connections.keys():
 			self.logger.error('Azure AD connection alias %s is already listed in UCR %s.', new_alias, UCRHelper.alias_ucrv)
 			return None
@@ -159,6 +170,7 @@ class ConnectionsPool(UserDict):
 		del self.connections[old_alias]
 
 	def remove(self, alias):
+		# type: (str) -> None
 		# Checks
 		if alias not in self.connections.keys():
 			self.logger.error('Azure AD connection alias %s is not listed in UCR %s.', alias, UCRHelper.adconnection_alias_ucrv)
@@ -179,10 +191,12 @@ class ConnectionsPool(UserDict):
 
 class AccountConnector(object):
 	def __init__(self, logger=None):
+		# type: (Logger) -> None
 		self.logger = logger or get_logger("office365", "o365")
 
 	@staticmethod
 	def get_adconnections(only_initialized=False):
+		# type: (bool) -> List[Tuple[str, str, str]]
 		res = []
 		aliases = UCRHelper.get_adconnection_aliases().items()
 		for alias, adconnection_id in aliases:
@@ -196,6 +210,7 @@ class AccountConnector(object):
 
 	# Only called by the script manage_adconnections
 	def create_new_adconnection(self, adconnection_alias, make_default=False, description="", restart_listener=True):
+		# type: (str, bool, str, bool) -> None
 		aliases = UCRHelper.get_adconnection_aliases()
 		if adconnection_alias in aliases:
 			self.logger.error('Azure AD connection alias %s is already listed in UCR %s.', adconnection_alias, UCRHelper.adconnection_alias_ucrv)
@@ -228,6 +243,7 @@ class AccountConnector(object):
 			utils.listener_restart()
 
 	def rename_adconnection(self, old_adconnection_alias, new_adconnection_alias):
+		# type: (str, str) -> None
 		aliases = UCRHelper.get_adconnection_aliases()
 		if old_adconnection_alias not in aliases:
 			self.logger.error('Azure AD connection alias %s is not listed in UCR %s.', old_adconnection_alias, UCRHelper.adconnection_alias_ucrv)
@@ -250,6 +266,7 @@ class AccountConnector(object):
 		utils.listener_restart()
 
 	def remove_adconnection(self, adconnection_alias):
+		# type: (str) -> None
 		aliases = UCRHelper.get_adconnection_aliases()
 		# Checks
 		if adconnection_alias not in aliases:
