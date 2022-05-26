@@ -35,6 +35,7 @@ CURRENT_PATH = os.path.dirname(os.path.abspath(__file__))
 
 @contextlib.contextmanager
 def mock_JsonStorage():
+	# type: () -> mock.MagicMock
 	old_j = accound_M.JsonStorage
 	accound_M.JsonStorage = mock.MagicMock()
 	yield accound_M.JsonStorage
@@ -43,6 +44,7 @@ def mock_JsonStorage():
 
 @contextlib.contextmanager
 def mock_json():
+	# type: () -> mock.MagicMock
 	old_j = accound_M.json
 	accound_M.json = mock.MagicMock()
 	yield accound_M.json
@@ -51,10 +53,12 @@ def mock_json():
 class TestAzureAccount:
 
 	def test_completity(self):
+		# type: () -> None
 		diff = all_methods_called(self.__class__, accound_M.AzureAccount, ["update", "check_token", "update_and_save_token",  "values", "items", "clear", "pop", "copy", "get", "fromkeys", "setdefault", "keys", "popitem", "parse_id_token", "write_saml_setup_script", "create_local"])
 		assert len(diff) == 0, "Functions no tested [" + ", ".join(diff) + "]"
 
 	def test_load_ids_from_file(self):
+		# type: () -> None
 		""" Test Azure account """
 
 		account = accound_M.AzureAccount(alias=ALIASDOMAIN, config_base_path=DOMAIN_PATH)
@@ -68,6 +72,7 @@ class TestAzureAccount:
 		assert account["directory_id"] == account["adconnection_id"]
 
 	def test_client_assertion(self):
+		# type: () -> None
 		""" Test Azure account """
 		account = accound_M.AzureAccount(alias=ALIASDOMAIN, config_base_path=DOMAIN_PATH)
 		account.load_ids_from_file()
@@ -76,24 +81,28 @@ class TestAzureAccount:
 
 
 	def test_get_authorization_url(self):
+		# type: () -> None
 		""""""
 		account = accound_M.AzureAccount(alias=ALIASDOMAIN, config_base_path=DOMAIN_PATH)
 		url = account.get_authorization_url()
 		assert url.startswith("https://login.microsoftonline.com/{}/oauth2/authorize?".format(account.get("adconnection_id")))
 
 	def test_get_domain(self):
+		# type: () -> None
 		""""""
 		account = accound_M.AzureAccount(alias=ALIASDOMAIN, config_base_path=DOMAIN_PATH)
 		assert account.get_domain() == account["domain"]
 
 	# @pytest.mark.skip
 	# def test_parse_id_token(self):
+	#	# type: () -> None
 	# 	""""""
 	# 	account = accound_M.AzureAccount(alias=ALIASDOMAIN, config_base_path=DOMAIN_PATH)
 	# 	account.parse_id_token()
 	# 	raise NotImplementedError
 
 	def test_uninitialize(self):
+		# type: () -> None
 		""""""
 		with mock_JsonStorage():
 			account = accound_M.AzureAccount(alias=ALIASDOMAIN, config_base_path=DOMAIN_PATH)
@@ -101,6 +110,7 @@ class TestAzureAccount:
 			accound_M.JsonStorage.return_value.purge.assert_called()
 
 	def test_store_ids(self):
+		# type: () -> None
 		""""""
 		with mock_JsonStorage() as JsonStorage_mocked:
 			account = accound_M.AzureAccount(alias=ALIASDOMAIN, config_base_path=DOMAIN_PATH)
@@ -109,11 +119,13 @@ class TestAzureAccount:
 			JsonStorage_mocked.return_value.write.assert_called_with(**data)
 
 	def test_is_initialized(self):
+		# type: () -> None
 		""""""
 		account = accound_M.AzureAccount(alias=ALIASDOMAIN, config_base_path=DOMAIN_PATH)
 		assert account.is_initialized()
 
 	def test_store_manifest(self):
+		# type: () -> None
 		""""""
 		with mock_json() as json_mocked:
 			account = accound_M.AzureAccount(alias=ALIASDOMAIN, config_base_path=DOMAIN_PATH)

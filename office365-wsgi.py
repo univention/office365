@@ -1,4 +1,6 @@
 import textwrap
+
+from typing import List, Any, Callable, Dict
 from univention.lib.i18n import Translation
 _ = Translation('univention-management-console-module-office365').translate
 
@@ -10,6 +12,7 @@ except ImportError:  # Python 2
 
 
 def application(environ, start_response):
+	# type: (Dict[str,Any], Callable) -> List[str]
 	status = '200 OK'
 	response_header = [('Content-type', 'text/html; charset=UTF-8')]
 	start_response(status, response_header)

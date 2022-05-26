@@ -101,6 +101,7 @@ class AzureObject(metaclass=abc.ABCMeta):
 
 	@classmethod
 	def get_fields(cls):
+		# type: () -> Dict[str, str]
 		return {x.name: x.validator.type[0] for x in attr.fields(cls)}
 
 	def get_not_none_values_as_dict(self):
@@ -469,6 +470,7 @@ class GroupAzure(AzureObject):
 	theme = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  #: str
 
 	def create(self):
+		# type: () -> None
 		""""""
 		response = self._core.create_group(self.get_not_none_values_as_dict())
 		self._update_from_dict(response)
@@ -495,6 +497,7 @@ class GroupAzure(AzureObject):
 
 	# TODO update user with the response ??
 	def exist(self):
+		# type: () -> bool
 		response = self._core.list_groups("$filter=displayName eq '{value}'".format(value=self.displayName))
 		if response["value"]:
 			self.id = response["value"][0]["id"]
@@ -502,17 +505,20 @@ class GroupAzure(AzureObject):
 		return False
 
 	def delete(self):
+		# type: () -> None
 		""""""
 		# TODO if the team exist it should be archive first.
 		self._core.delete_group(self.id)
 
-	def update(self, other: 'AzureObject'):
+	def update(self, other):
+		# type: ("AzureObject") -> None
 		""""""
 		data = (self - other).get_not_none_values_as_dict()
 		response = self._core.modify_group(self.id, data)
 		self._update_from_dict(response)
 
-	def deactivate(self, rename: bool = False):
+	def deactivate(self, rename=False):
+		# type: (bool) -> None
 		""""""
 		name = "ZZZ_deleted_{time}_{orig}".format(time=time.time(), orig=self.displayName)
 		data = dict(displayName=name,
@@ -522,11 +528,13 @@ class GroupAzure(AzureObject):
 		self._update_from_dict(data)
 
 	def reactivate(self):
+		# type: () -> None
 		""""""
 		raise NotImplementedError()
 
 	@classmethod
-	def get(cls, core: MSGraphApiCore, oid: str) -> 'AzureObject':
+	def get(cls, core, oid):
+		# type: (MSGraphApiCore, str) -> 'AzureObject'
 		""""""
 		attrs = [x.name for x in attr.fields(cls) if x.name not in ["hasMembersWithLicenseErrors", "allowExternalSenders", "autoSubscribeNewMembers", "hideFromAddressLists", "hideFromOutlookClients", "isSubscribedByMail", "unseenCount"]]
 		response = core.get_group(group_id=oid, selection=",".join(attrs))
@@ -535,12 +543,13 @@ class GroupAzure(AzureObject):
 		group.set_core(core)
 		return group
 
-	def add_member(self, object_id: str):
+	def add_member(self, object_id):
+		# type: (str) -> None
 		""""""
 		self._core.add_group_member(self.id, object_id)
 
 	def add_members(self, object_ids):
-		# type (List[str]) -> none
+		# type: (List[str]) -> None
 		""""""
 		self._core.add_group_members(self.id, object_ids)
 
@@ -552,6 +561,7 @@ class GroupAzure(AzureObject):
 		self._core.add_group_owner(self.id, owner_id)
 
 	def remove_owner(self, owner_id):
+		# type: () -> None
 		""""""
 		self._core.remove_group_owner(self.id, owner_id)
 
@@ -586,6 +596,7 @@ class GroupAzure(AzureObject):
 			self.remove_member(member_id)
 
 	def list_owners(self):
+		# type: () -> List[UserAzure]
 		users_response = self._core.list_group_owners(self.id)
 		users = []
 		for user_response in users_response["value"]:
@@ -595,7 +606,8 @@ class GroupAzure(AzureObject):
 			users.append(user)
 		return users
 
-	def remove_member(self, user_id: str):
+	def remove_member(self, user_id):
+		# type: (str) -> None
 		""""""
 		self._core.remove_group_member(group_id=self.id, object_id=user_id)
 
@@ -612,6 +624,7 @@ class GroupAzure(AzureObject):
 			return groups
 
 	def is_delete(self):
+		# type: () -> bool
 		return self.mailNickname.startswith("ZZZ_deleted_") if self.mailNickname else False
 
 @attr.s
@@ -653,9 +666,11 @@ class TeamAzure(AzureObject):
 	_content_location = None  # type: Union[type(None), str]
 
 	def set_owner(self, owner_id):
+		# type: (str) -> None
 		self._owner_id = owner_id
 
 	def create(self):
+		# type: () -> None
 		""""""
 		if hasattr(self, "_owner_id") and self._owner_id:
 			response = self._core.create_team(name=self.displayName, owner=self._owner_id, description=self.description)
@@ -665,6 +680,7 @@ class TeamAzure(AzureObject):
 			raise Exception("Set owner before create the team")
 
 	def wait_for_team(self):
+		# type: () -> None
 		if self._content_location:
 			time_slept = 0
 			while True:
@@ -714,6 +730,7 @@ class TeamAzure(AzureObject):
 		return team
 
 	def delete(self):
+		# type: () -> None
 		""""""
 		data = dict(displayName="ZZZ_deleted_{time}_{orig}".format(time=time.time(), orig=self.displayName), description="deleted group")
 		response = self._core.modify_team(self.id, data)
@@ -724,30 +741,35 @@ class TeamAzure(AzureObject):
 		# TeamAzure.wait_for_operation(self._core, response)
 		self.isArchived = True
 
-	def update(self, other: 'AzureObject'):
+	def update(self, other):
+		# type: (AzureObject) -> None
 		""""""
 		data = (self - other).get_not_none_values_as_dict()
 		response = self._core.modify_team(self.id, data)
 		TeamAzure.wait_for_operation(self._core, response)
 		self._update_from_dict(response)
 
-	def deactivate(self, rename: bool = False):
+	def deactivate(self, rename=False):
+		# type: (bool) -> None
 		""""""
 		response = self._core.archive_team(self.id)
 		TeamAzure.wait_for_operation(self._core, response)
 
 	def reactivate(self):
+		# type: () -> None
 		""""""
 		response = self._core.unarchive_team(self.id)
 		TeamAzure.wait_for_operation(self._core, response)
 
-	def add_member(self, user_id: str):
+	def add_member(self, user_id):
+		# type: (str) -> Dict[str, Any]
 		""""""
 		response = self._core.add_team_member(self.id, user_id)
 		TeamAzure.wait_for_operation(self._core, response)
 		return response
 
-	def delete_member(self, membership_id: str):
+	def delete_member(self, membership_id):
+		# type: (str) -> None
 		"""
 		:param membership_id: this is the id returned when member is added or list
 		"""
@@ -755,6 +777,7 @@ class TeamAzure(AzureObject):
 		TeamAzure.wait_for_operation(self._core, response)
 
 	def list_team_members(self):
+		# type: () -> List[UserAzure]
 		""""""
 		response = self._core.list_team_members(self.id)
 		TeamAzure.wait_for_operation(self._core, response)
@@ -780,7 +803,8 @@ class TeamAzure(AzureObject):
 		return teams
 
 	@classmethod
-	def get(cls, core: MSGraphApiCore, oid: str) -> 'AzureObject':
+	def get(cls, core, oid):
+		# type: (MSGraphApiCore, str) -> AzureObject
 		""""""
 		response = core.get_team(group_id=oid)
 		TeamAzure.wait_for_operation(core, response)
@@ -813,22 +837,27 @@ class SubscriptionAzure(AzureObject):
 	skuPartNumber = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
 
 	def create(self):
+		# type: () -> None
 		""""""
 		raise NotImplementedError
 
 	def deactivate(self, rename=False):
+		# type: () -> None
 		""""""
 		raise NotImplementedError
 
 	def delete(self):
+		# type: () -> None
 		""""""
 		raise NotImplementedError
 
 	def reactivate(self):
+		# type: () -> None
 		""""""
 		raise NotImplementedError
 
 	def update(self, other):
+		# type: (SubscriptionAzure) -> None
 		""""""
 		raise NotImplementedError
 

@@ -31,7 +31,7 @@
 # <http://www.gnu.org/licenses/>.
 
 from ldap.filter import escape_filter_chars, filter_format
-from typing import Mapping, Any
+from typing import Mapping, Any, Dict, List, Optional
 
 from singleton_decorator import singleton
 
@@ -89,6 +89,7 @@ class UDMHelper(object):
 		return dict(lo.search(filter_s, attr=attributes))
 
 	def get_ldap_o365_users(self, attributes=None, adconnection_alias=None, enabled='1', additional_filter=''):
+		# type: (Optional[List[str]], Optional[str], str, str) -> Dict[str, Any]
 		"""
 		Get all LDAP user objects (not UDM users) that are enabled for office 365 sync.
 
@@ -121,6 +122,7 @@ class UDMHelper(object):
 
 
 	def get_ldap_o365_groups(self, attributes=None, adconnection_alias=None, additional_filter=''):
+		# type: (Optional[List[str]], Optional[str], str) -> Dict[str, Any]
 		"""
 		Get all LDAP user objects (not UDM users) that are enabled for office 365 sync.
 
@@ -139,6 +141,7 @@ class UDMHelper(object):
 		return self._get_ldap_o365_objects(filter_s, attributes)
 
 	def _get_module(self, module_name):
+		# type: (str) -> Any
 		if self.lo is None or self.po is None:
 			self._get_ldap_connection()
 		try:
@@ -151,6 +154,7 @@ class UDMHelper(object):
 		return mod
 
 	def get_udm_object(self, module_name, dn, attributes=None):
+		# type: (str, str, Optional[Dict[str, Any]]) -> object
 		assert self.lo is not None, "No LDAP connection have been established"
 		mod = self._get_module(module_name)
 		obj = mod.object(None, self.lo, self.po, dn, attributes=attributes)
@@ -161,10 +165,11 @@ class UDMHelper(object):
 		return self.get_udm_object("groups/group", groupdn, attributes)
 
 	def get_udm_user(self, userdn, attributes=None):
-		# type: (str, Mapping[str, Any]) -> "User.user"
+		# type: (str, Optional[Dict[str, Any]]) -> Any
 		return self.get_udm_object("users/user", userdn, attributes)
 
 	def _find_udm_objects(self, module_s, filter_s, base):
+		# type: (str, str, str) -> List[Any]
 		"""
 		search LDAP for UDM objects, static for listener.clean()
 
@@ -179,6 +184,7 @@ class UDMHelper(object):
 		return module.lookup(None, self.lo, filter_s=filter_s, base=base)
 
 	def find_udm_group_by_name(self, name):
+		# type: (str) -> Any
 		udm_groups = self._find_udm_objects("groups/group", filter_format('(cn=%s)', (name,)), None)
 		if len(udm_groups) > 0:
 			if len(udm_groups) > 1:
@@ -186,6 +192,7 @@ class UDMHelper(object):
 			return udm_groups[0].open()
 
 	def clean_o365_data_from_objects(self, module_s, base, adconnection_filter=''):
+		# type: (str, str, str) -> None
 		"""
 		Remove  univentionOffice365Data from all
 		user/group objects, static for listener.clean().
@@ -207,12 +214,14 @@ class UDMHelper(object):
 		logger.info("Cleaning done.")
 
 	def clean_o365_data_from_groups(self, base, adconnection_filter=''):
+		# type: (str, str) -> None
 		"""
 		Convenience method to clean univentionOffice365Data from groups
 		"""
 		self.clean_o365_data_from_objects("groups/group",  base, adconnection_filter)
 
 	def clean_o365_data_from_users(self, base, adconnection_filter=''):
+		# type: (str, str) -> None
 		"""
 		Convenience method to clean univentionOffice365Data from users
 		"""
@@ -221,6 +230,7 @@ class UDMHelper(object):
 	# AZURE GROUPS
 
 	def udm_groups_with_users_in_adconnection(self, groupdn, adconnection_alias):
+		# type: (str, str) -> List[str]
 		"""
 		Recursively search for groups with azure users.
 
@@ -244,16 +254,19 @@ class UDMHelper(object):
 	# PROFILES
 
 	def list_udm_office_profiles(self, filter_s=''):
+		# type: (str) -> List[Any]
 		assert self.lo is not None
 		mod = self._get_module('office365/profile')
 		return mod.lookup(None, self.lo, filter_s)
 
 	def get_udm_office_profile(self, profile_dn, attributes=None):
+		# type: (str, Dict[str, Any]) -> Any
 		return self.get_udm_object("office365/profile", profile_dn, attributes)
 
 	# AD Connections
 
 	def create_udm_adconnection(self, alias, description=""):
+		# type: (str, str) -> str
 		mod = self._get_module("office365/ad-connection")
 		# TODO: Move to UCRHelper? parameter?
 		ucr = ConfigRegistry()
@@ -267,6 +280,7 @@ class UDMHelper(object):
 		return dn
 
 	def remove_udm_adconnection(self, alias):
+		# type: (str) -> Union[bool, str]
 		mod = self._get_module("office365/ad-connection")
 		udm_objs = mod.lookup(None, self.lo, filter_s="cn=%s" % escape_filter_chars(alias))
 		if len(udm_objs) == 1:
@@ -277,6 +291,7 @@ class UDMHelper(object):
 
 	# TODO: NOT SURE IT MUST BE HERE, Filter is for the listener, ucr only must give the needed values
 	def get_adconnection_filter_string(self):
+		# type: () -> Dict[str, Any]
 		res = ""
 		adconnection_aliases = self.get_adconnection_aliases()
 		for alias in UCRHelper.get_adconnection_filtered_in():

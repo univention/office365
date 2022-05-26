@@ -17,12 +17,13 @@ import pytest
 from mock import mock
 from mock.mock import MagicMock
 from six import text_type
-
+from typing import Callable, Any, Dict, Union, List
 
 ldap_cred = {}
 
 @pytest.fixture(scope='session')
 def mock_univention_libs():
+	# type: () -> None
 	univention_libs = ['listener', 'univention.lib', 'univention.office365.azure_auth', 'univention.office365.listener',
 					   'univention.office365.udm_helper', 'univention.office365.logging2udebug',
 					   'univention.office365.api_helper', 'univention.config_registry', 'univention.debug', 'univention.admin']
@@ -36,9 +37,10 @@ def mock_univention_libs():
 
 
 def create_udm_object(cls, file, mapping):
-
+	# type: (Callable, str, Dict[str, Any]) -> Callable
 	unmapName = {v: k for k, v in mapping.items()}
 	def _create_udm_object():
+		# type: () -> Any
 		test_path = os.path.dirname(os.path.abspath(__file__))
 		udm_object_reference = pickle.load(open(os.path.join(test_path, "udm_pkl", file), "rb"))
 		ldap_dict = udm_object_reference["oldattr"]
@@ -61,6 +63,7 @@ def create_udm_object(cls, file, mapping):
 
 @pytest.fixture(scope='function')
 def udm_object(mock_univention_libs):
+	# type: (mock.MagicMock) -> Callable
 	from univention.office365.udmwrapper.udmobjects import UDMOfficeObject
 	mapping = {
 		'username': 'uid',
@@ -119,6 +122,7 @@ def udm_object(mock_univention_libs):
 
 @pytest.fixture(scope='function')
 def create_udm_user_object(mock_univention_libs):
+	# type: (mock.MagicMock) -> Callable
 	from univention.office365.udmwrapper.udmobjects import UDMOfficeUser
 	user_mapping = {
 		'username': 'uid',
@@ -177,6 +181,7 @@ def create_udm_user_object(mock_univention_libs):
 
 @pytest.fixture(scope='function')
 def create_udm_group_object(mock_univention_libs):
+	# type: (mock.MagicMock) -> Callable
 	from univention.office365.udmwrapper.udmobjects import UDMOfficeGroup
 	group_mapping = {
 		'name': 'cn',
@@ -192,104 +197,15 @@ def create_udm_group_object(mock_univention_libs):
 	return create_udm_object(UDMOfficeGroup, "udm_group_reference.pkl", group_mapping)
 
 
-@pytest.fixture(scope='function')
-def udm_office_raw_user():
-	ldap_dict = {
-		'dn': [b'cn=test,dc=test,dc=test'],
-		'other': [b'test'],
-		'username': [b'name'],
-		'locked': [b'0'],
-		'deactivated': [b'0'],
-		'userexpiry': [b'2023-01-01']
-	}
-	udm_user = UDMOfficeUser(ldap_fields=ldap_dict, ldap_cred=ldap_cred, adconnection_aliases=[ALIASDOMAIN])
-	return udm_user
-
-
-@pytest.fixture(scope='function')
-def udm_office_user(udm_office_raw_user):
-	udm_office_raw_user.apply_decoding({
-		'dn': 'utf-8',
-		'other': 'utf-8',
-		'username': 'utf-8',
-		'locked': 'utf-8',
-		'deactivated': 'utf-8',
-		'userexpiry': 'utf-8',
-	})
-	udm_office_raw_user.set_types({
-		'dn': text_type,
-		'other': text_type,
-		'username': text_type,
-		'locked': bool_from_bytes,
-		'deactivated': bool_from_bytes,
-		'userexpiry': text_type,
-	})
-	return udm_office_raw_user
-
-@pytest.fixture
-def handler_parameters():
-	# read pickel file from tmp office
-	import pickle
-	files_path = os.path.join("/tmp/office365/")
-	files_to_read = os.listdir(files_path)
-	for file in files_to_read:
-		yield pickle.load(open(os.path.join(files_path, file), "rb"))
-
-# @pytest.fixture(scope='module', autouse=True)
-# def office365_usr_lib(mock_univention_libs):
-# 	office365_usr_lib = importlib.import_module('office365-user')
-# 	office365_usr_lib.adconnection_aliases = {'o365domain'}
-# 	return office365_usr_lib
-#
-#
-# @pytest.fixture(scope='module', autouse=True)
-# def office365_group_lib(mock_univention_libs):
-# 	office365_group_lib = importlib.import_module('office365-group')
-# 	office365_group_lib.adconnection_aliases = {'o365domain'}
-# 	return office365_group_lib
-
-
-# @pytest.fixture(scope='module', autouse=True)
-# def office365_user_listener(mock_univention_libs):
-# 	sys.modules['univention.admin.uldap'] = MagicMock()
-# 	sys.modules['univention.admin.uldap'].access = MagicMock()
-# 	sys.modules['univention.admin.uldap'].position = MagicMock()
-# 	sys.modules['inspect'].getfile = MagicMock(side_effect=lambda x: '/usr/lib/univention-directory-listener' )
-# 	import office365_user_listener
-# 	return office365_user_listener
-#
-# @pytest.fixture
-# def group_initialized_adconnection_default(office365_group_lib):
-# 	old = office365_group_lib.initialized_adconnections
-# 	office365_group_lib.initialized_adconnections = ['o365domain', 'azuretestdomain', 'defaultdomainfortest']
-# 	yield
-# 	office365_group_lib.initialized_adconnections = old
-
-
 @pytest.fixture
 def transaction():
+	# type: () -> List[Union[str,Dict]]
 	return ['cn=asdasdasd', {}, {}, "a"]
-
-
-
-# @pytest.fixture
-# def initialized_adconnection_none(office365_usr_lib):
-# 	old = office365_usr_lib.initialized_adconnection
-# 	office365_usr_lib.adconnection = None
-# 	yield
-# 	office365_usr_lib.initialized_adconnection = old
-#
-#
-# @pytest.fixture
-# def initialized_adconnection_default(office365_usr_lib):
-# 	old = office365_usr_lib.initialized_adconnection
-# 	office365_usr_lib.initialized_adconnection = ['o365domain', 'azuretestdomain', 'defaultdomainfortest']
-# 	yield
-# 	office365_usr_lib.initialized_adconnection = old
 
 
 @pytest.fixture
 def deactivated_false():
+	# type: () -> None
 	with mock.patch('office365-user.is_deactivated_locked_or_expired', return_value=False):
 		print("Mocked office365-user.is_deactivated_locked_or_expired to False")
 		yield
@@ -297,6 +213,7 @@ def deactivated_false():
 
 @pytest.fixture
 def deactivated_true():
+	# type: () -> None
 	with mock.patch('office365-user.is_deactivated_locked_or_expired', return_value=True):
 		print("Mocked office365-user.is_deactivated_locked_or_expired to True")
 		yield
@@ -305,6 +222,7 @@ def deactivated_true():
 # FIXME: it's repeated in test_udm_objects.py
 @pytest.fixture(scope='function')
 def udm_fake_user(mock_univention_libs):
+	# type: (mock.MagicMock) -> "UDMOfficeUser"
 	# Create replacement of the udm_user
 	udm_user_dict = {
 		"uid": "ontotest",
@@ -321,6 +239,7 @@ def udm_fake_user(mock_univention_libs):
 
 @pytest.fixture(scope='function')
 def udm_fake_user_old_listener(mock_univention_libs):
+	# type: (mock.MagicMock) -> mock.MagicMock
 	# Create replacement of the udm_user
 	udm_user_dict = {
 		"uid": "ontotest",
@@ -336,6 +255,7 @@ def udm_fake_user_old_listener(mock_univention_libs):
 
 @pytest.fixture
 def function_params_01():
+	# type: () -> List[Union[mock.MagicMock, str, Dict[str,List[bytes]], Dict[str,List[bytes]]]]
 	ol = MagicMock()
 	dn = "asdfasdf"
 	new = {
@@ -359,6 +279,7 @@ def function_params_01():
 
 @pytest.fixture
 def modify_user_function(office365_usr_lib):
+	# type: (mock.MagicMock) -> mock.MagicMock
 	old = office365_usr_lib.modify_user
 	office365_usr_lib.modify_user = MagicMock()
 	yield office365_usr_lib.modify_user
@@ -367,6 +288,7 @@ def modify_user_function(office365_usr_lib):
 
 @pytest.fixture
 def new_user_function(office365_usr_lib):
+	# type: (mock.MagicMock) -> mock.MagicMock
 	old = office365_usr_lib.new_or_reactivate_user
 	office365_usr_lib.new_or_reactivate_user = MagicMock()
 	yield office365_usr_lib.new_or_reactivate_user
@@ -375,6 +297,7 @@ def new_user_function(office365_usr_lib):
 
 @pytest.fixture
 def delete_user_function(office365_usr_lib):
+	# type: (mock.MagicMock) -> mock.MagicMock
 	old = office365_usr_lib.delete_user
 	office365_usr_lib.delete_user = MagicMock()
 	yield office365_usr_lib.delete_user
@@ -383,6 +306,7 @@ def delete_user_function(office365_usr_lib):
 
 @pytest.fixture
 def deactivate_user_function(office365_usr_lib):
+	# type: (mock.MagicMock) -> mock.MagicMock
 	old = office365_usr_lib.deactivate_user
 	office365_usr_lib.deactivate_user = MagicMock()
 	yield office365_usr_lib.deactivate_user
@@ -391,6 +315,7 @@ def deactivate_user_function(office365_usr_lib):
 
 @pytest.fixture
 def all_user_functions(new_user_function, modify_user_function, delete_user_function, deactivate_user_function):
+	# type: (mock.MagicMock, mock.MagicMock, mock.MagicMock, mock.MagicMock) -> List[mock.MagicMock]
 	yield [
 		new_user_function,
 		modify_user_function,

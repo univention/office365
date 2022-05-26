@@ -7,8 +7,12 @@ import sys
 import time
 
 import pytest
+import requests
 import vcr
 from mock import mock
+from typing import Optional, Any
+
+from pyparsing import Dict
 
 from test.utils import all_methods_called
 
@@ -39,7 +43,8 @@ from test import ALIASDOMAIN, DOMAIN_PATH, DOMAIN, OWNER_ID
 
 
 @contextlib.contextmanager
-def new_user(core, name) -> UserAzure:
+def new_user(core, name):
+	# type: (MSGraphApiCore, str) -> UserAzure
 	username = "user_{team_name}".format(team_name=name)
 	user_email = "{username}@{domain}".format(username=username, domain=DOMAIN)
 
@@ -67,7 +72,8 @@ def new_user(core, name) -> UserAzure:
 
 
 @contextlib.contextmanager
-def new_team_from_group(core: MSGraphApiCore, team_name: str) -> TeamAzure:
+def new_team_from_group(core, team_name):
+	# type: (MSGraphApiCore, str) -> TeamAzure
 	with new_user(core, team_name) as user:
 		with new_group(core, team_name) as group:
 			group.add_owner(user.id)
@@ -80,7 +86,8 @@ def new_team_from_group(core: MSGraphApiCore, team_name: str) -> TeamAzure:
 
 
 @contextlib.contextmanager
-def new_team(core: MSGraphApiCore, team_name: str, owner: str) -> TeamAzure:
+def new_team(core, team_name, owner):
+	# type: (MSGraphApiCore, str, str) -> TeamAzure
 	team = TeamAzure(displayName=team_name, description="Description of {description}".format(description=team_name))
 	team.set_owner(owner)
 	team.set_core(core)
@@ -94,7 +101,8 @@ def new_team(core: MSGraphApiCore, team_name: str, owner: str) -> TeamAzure:
 
 
 @contextlib.contextmanager
-def new_group(core, group_name) -> GroupAzure:
+def new_group(core, group_name):
+	# type: (MSGraphApiCore, str) -> GroupAzure
 	description = "Description of {group_name}".format(group_name=group_name)
 	group = GroupAzure(
 		description=description,
@@ -114,6 +122,7 @@ def new_group(core, group_name) -> GroupAzure:
 
 
 def check_code_internal(response):
+	# type: (Dict[str, Any]) -> Optional[Dict[str, Any])
 	if response["status"]["code"] < 300 and response["status"]["code"] >= 200:
 		json_response = {} if len(response["body"]["string"]) == 0 else json.loads(gzip.decompress(response["body"]["string"]))
 		if "status" not in json_response or ("status" in json_response and json_response["status"] == "succeeded"):
@@ -145,11 +154,13 @@ class TestObjectAzure:
 class TestUserAzure(TestObjectAzure):
 
 	def test_completity(self):
+		# type: () -> None
 		diff = all_methods_called(self.__class__, UserAzure, ["get_not_none_values_as_dict", "set_core", "wait_for_operation", "get_fields", "create_or_modify"])
 		assert len(diff) == 0, "Functions no tested [" + ", ".join(diff) + "]"
 
 	@my_vcr.use_cassette('vcr_cassettes/TestUserAzure/test_create.yml')
 	def test_create(self):
+		# type: () -> None
 		""""""
 		username = "test_create"
 		with new_user(self.core, username) as user:
@@ -158,6 +169,7 @@ class TestUserAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestUserAzure/test_delete.yml')
 	def test_delete(self):
+		# type: () -> None
 		""""""
 		username = "test_delete"
 		user_id = None
@@ -170,6 +182,7 @@ class TestUserAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestUserAzure/test_update.yml')
 	def test_update(self):
+		# type: () -> None
 		""""""
 		username = "test_update"
 		with new_user(self.core, username) as user:
@@ -179,6 +192,7 @@ class TestUserAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestUserAzure/test_deactivate.yml')
 	def test_deactivate(self):
+		# type: () -> None
 		""""""
 		username = "test_deactivate"
 		with new_user(self.core, username) as user:
@@ -189,6 +203,7 @@ class TestUserAzure(TestObjectAzure):
 	@pytest.mark.skip
 	@my_vcr.use_cassette('vcr_cassettes/TestUserAzure/test_get_token_fail_directory_id_not_existtest_reactivateyml')
 	def test_reactivate(self):
+		# type: () -> None
 		""""""
 		username = "test_reactivate"
 		with new_user(self.core, username) as user:
@@ -201,6 +216,7 @@ class TestUserAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestUserAzure/test_get.yml')
 	def test_get(self):
+		# type: () -> None
 		username = "test_get"
 		with new_user(self.core, username) as user:
 			user_get = UserAzure.get(self.core, user.id)
@@ -208,6 +224,7 @@ class TestUserAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestUserAzure/test_member_of.yml')
 	def test_member_of(self):
+		# type: () -> None
 		""""""
 		name = "test_member_of"
 		with new_group(self.core, name) as group:
@@ -217,6 +234,7 @@ class TestUserAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestUserAzure/test_list.yml')
 	def test_list(self):
+		# type: () -> None
 		""""""
 		username = "test_list"
 		with new_user(self.core, username) as user:
@@ -226,6 +244,7 @@ class TestUserAzure(TestObjectAzure):
 	@pytest.mark.skip
 	@my_vcr.use_cassette('vcr_cassettes/TestUserAzure/test_reset_password.yml')
 	def test_reset_password(self):
+		# type: () -> None
 		""""""
 		username = "test_reset_password"
 		with new_user(self.core, username) as user:
@@ -235,6 +254,7 @@ class TestUserAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestUserAzure/test_add_license.yml')
 	def test_add_license(self):
+		# type: () -> None
 		""""""
 		with new_user(self.core, "test_add_license") as user:  # type: UserAzure
 			subs_sku = SubscriptionAzure.list(self.core)
@@ -250,12 +270,14 @@ class TestUserAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestUserAzure/test_invalidate_all_tokens.yml')
 	def test_invalidate_all_tokens(self):
+		# type: () -> None
 		""""""
 		with new_user(self.core, "test_add_license") as user:  # type: UserAzure
 			user.invalidate_all_tokens()
 
 	@my_vcr.use_cassette('vcr_cassettes/TestUserAzure/test_remove_license.yml')
 	def test_remove_license(self):
+		# type: () -> None
 		""""""
 		with new_user(self.core, "test_add_license") as user:  # type: UserAzure
 			subs_sku = SubscriptionAzure.list(self.core)
@@ -275,17 +297,20 @@ class TestUserAzure(TestObjectAzure):
 class TestGroupAzure(TestObjectAzure):
 
 	def test_completity(self):
+		# type: () -> None
 		diff = all_methods_called(self.__class__, GroupAzure, ["get_not_none_values_as_dict", "set_core", "wait_for_operation", "add_license", "remove_license", "get_fields", "create_or_modify"])
 		assert len(diff) == 0, "Functions no tested [" + ", ".join(diff) + "]"
 
 	@my_vcr.use_cassette('vcr_cassettes/TestGroupAzure/test_create.yml')
 	def test_create(self):
+		# type: () -> None
 		""""""
 		with new_group(self.core, "test_create") as group:
 			assert isinstance(group, GroupAzure)
 
 	@my_vcr.use_cassette('vcr_cassettes/TestGroupAzure/test_delete.yml')
 	def test_delete(self):
+		# type: () -> None
 		""""""
 		group_id = None
 		with new_group(self.core, "test_delete") as group:
@@ -296,6 +321,7 @@ class TestGroupAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestGroupAzure/test_is_delete.yml')
 	def test_is_delete(self):
+		# type: () -> None
 		with new_group(self.core, "test_is_delete") as group:
 			assert isinstance(group, GroupAzure)
 			assert not group.is_delete()
@@ -305,6 +331,7 @@ class TestGroupAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestGroupAzure/test_update.yml')
 	def test_update(self):
+		# type: () -> None
 		""""""
 		with new_group(self.core, "test_update") as group:
 			new_description = "New description of test_update"
@@ -314,6 +341,7 @@ class TestGroupAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestGroupAzure/test_deactivate.yml')
 	def test_deactivate(self):
+		# type: () -> None
 		""""""
 		with new_group(self.core, "test_deactivate") as group:
 			group.deactivate()
@@ -323,6 +351,7 @@ class TestGroupAzure(TestObjectAzure):
 	@pytest.mark.skip
 	@my_vcr.use_cassette('vcr_cassettes/TestGroupAzure/test_get_token_fail_directory_id_not_existtest_reactivateyml')
 	def test_reactivate(self):
+		# type: () -> None
 		""""""
 		with new_group(self.core, "test_update") as group:
 			group.deactivate()
@@ -331,6 +360,7 @@ class TestGroupAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestGroupAzure/test_add_member.yml')
 	def test_add_member(self):
+		# type: () -> None
 		""""""
 		with new_user(self.core, "test_add_member") as user:
 			with new_group(self.core, "test_add_member") as group:
@@ -339,6 +369,7 @@ class TestGroupAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestGroupAzure/test_add_owner.yml')
 	def test_add_owner(self):
+		# type: () -> None
 		""""""
 		with new_user(self.core, "test_add_member") as user:
 			with new_group(self.core, "test_add_member") as group:
@@ -347,6 +378,7 @@ class TestGroupAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestGroupAzure/test_remove_member.yml')
 	def test_remove_member(self):
+		# type: () -> None
 		""""""
 		with new_user(self.core, "test_remove_member") as user:
 			with new_group(self.core, "test_remove_member") as group:
@@ -357,6 +389,7 @@ class TestGroupAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestGroupAzure/test_remove_owner.yml')
 	def test_remove_owner(self):
+		# type: () -> None
 		""""""
 		with new_user(self.core, "test_remove_member") as user:
 			with new_user(self.core, "test_remove_member2") as user2:
@@ -370,6 +403,7 @@ class TestGroupAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestGroupAzure/test_list_members.yml')
 	def test_list_members(self):
+		# type: () -> None
 		""""""
 		with new_user(self.core, "test_list_members") as user:
 			with new_group(self.core, "test_list_members") as group:
@@ -378,6 +412,7 @@ class TestGroupAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestGroupAzure/test_list_owners.yml')
 	def test_list_owners(self):
+		# type: () -> None
 		""""""
 		with new_user(self.core, "test_list_members") as user:
 			with new_group(self.core, "test_list_members") as group:
@@ -386,6 +421,7 @@ class TestGroupAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestGroupAzure/test_get.yml')
 	def test_get(self):
+		# type: () -> None
 		""""""
 		with new_group(self.core, "test_update") as group:
 			group_get = GroupAzure.get(self.core, group.id)
@@ -393,6 +429,7 @@ class TestGroupAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestGroupAzure/test_list.yml')
 	def test_list(self):
+		# type: () -> None
 		""""""
 		with new_group(self.core, "test_update") as group:
 			groups = GroupAzure.list(self.core)
@@ -400,6 +437,7 @@ class TestGroupAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestGroupAzure/test_remove_direct_members.yml')
 	def test_remove_direct_members(self):
+		# type: () -> None
 		with new_group(self.core, "remove_direct_members") as group:
 			with new_user(self.core, "remove_direct_members") as user:
 				group.add_member(user.id)
@@ -409,6 +447,7 @@ class TestGroupAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestGroupAzure/test_list_members_id.yml')
 	def test_list_members_id(self):
+		# type: () -> None
 		with new_group(self.core, "test_list_members_id") as group:
 			with new_user(self.core, "test_list_members_id") as user:
 				group.add_member(user.id)
@@ -416,6 +455,7 @@ class TestGroupAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestGroupAzure/test_exist.yml')
 	def test_exist(self):
+		# type: () -> None
 		with new_group(self.core, "test_exist") as group:
 			assert group.exist()
 		fake_group = GroupAzure(displayName="fake_displayName")
@@ -424,6 +464,7 @@ class TestGroupAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestGroupAzure/test_add_members.yml')
 	def test_add_members(self):
+		# type: () -> None
 		with new_group(self.core, "test_add_members") as group:
 			with new_user(self.core, "test_add_members") as user:
 				with new_user(self.core, "test_add_members2") as user2:
@@ -435,6 +476,7 @@ class TestGroupAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestGroupAzure/test_member_of.yml')
 	def test_member_of(self):
+		# type: () -> None
 		""""""
 		name = "test_member_of"
 		with new_group(self.core, name+"1") as group1:
@@ -444,6 +486,7 @@ class TestGroupAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestGroupAzure/test_get_by_name.yml')
 	def test_get_by_name(self):
+		# type: () -> None
 		""""""
 		name = "test_get_by_name"
 		with new_group(self.core, name) as group:
@@ -454,11 +497,13 @@ class TestGroupAzure(TestObjectAzure):
 class TestTeamAzure(TestObjectAzure):
 
 	def test_completity(self):
+		# type: () -> None
 		diff = all_methods_called(self.__class__, TeamAzure, ["get_not_none_values_as_dict", "set_core", "wait_for_operation", "wait_for_team", "add_license", "invalidate_all_tokens", "get_fields", "remove_license", "member_of", "create_from_group_async"])
 		assert len(diff) == 0, "Functions no tested [" + ", ".join(diff) + "]"
 
 	@my_vcr.use_cassette('vcr_cassettes/TestTeamAzure/test_set_owner.yml')
 	def test_set_owner(self):
+		# type: () -> None
 		""""""
 		team = TeamAzure()
 		team.set_owner("owner_id")
@@ -466,6 +511,7 @@ class TestTeamAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestTeamAzure/test_create.yml')
 	def test_create(self):
+		# type: () -> None
 		""""""
 		with new_team(self.core, "test_create", OWNER_ID) as team:
 			time_slept = 0
@@ -483,6 +529,7 @@ class TestTeamAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestTeamAzure/test_create_from_group.yml')
 	def test_create_from_group(self):
+		# type: () -> None
 		""""""
 		with new_team_from_group(self.core, "test_create_from_group") as team:
 			time_slept = 0
@@ -498,6 +545,7 @@ class TestTeamAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestTeamAzure/test_delete.yml')
 	def test_delete(self):
+		# type: () -> None
 		""""""
 		with new_team_from_group(self.core, "test_create") as team:
 			pass
@@ -513,6 +561,7 @@ class TestTeamAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestTeamAzure/test_update.yml')
 	def test_update(self):
+		# type: () -> None
 		""""""
 		with new_team_from_group(self.core, "test_update") as team:
 			time_slept = 0
@@ -542,6 +591,7 @@ class TestTeamAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestTeamAzure/test_deactivate.yml')
 	def test_deactivate(self):
+		# type: () -> None
 		""""""
 		with new_team_from_group(self.core, "test_deactivate") as team:
 			team.deactivate()
@@ -556,6 +606,7 @@ class TestTeamAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestTeamAzure/test_reactivate.yml')
 	def test_reactivate(self):
+		# type: () -> None
 		""""""
 		with new_team_from_group(self.core, "test_reactivate") as team:
 			team.deactivate()
@@ -567,6 +618,7 @@ class TestTeamAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestTeamAzure/test_add_member.yml')
 	def test_add_member(self):
+		# type: () -> None
 		""""""
 		with new_user(self.core, "test_add_member2") as user2:
 			with new_team_from_group(self.core, "test_add_member") as team:
@@ -576,6 +628,7 @@ class TestTeamAzure(TestObjectAzure):
 	# @pytest.mark.skip
 	@my_vcr.use_cassette('vcr_cassettes/TestTeamAzure/test_delete_member.yml')
 	def test_delete_member(self):
+		# type: () -> None
 		""""""
 		with new_user(self.core, "test_delete_member1") as user2:
 			with new_team_from_group(self.core, "test_delete_member") as team:
@@ -586,6 +639,7 @@ class TestTeamAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestTeamAzure/test_list_team_members.yml')
 	def test_list_team_members(self):
+		# type: () -> None
 		""""""
 		with new_user(self.core, "test_list_team_members1") as user2:
 			with new_team_from_group(self.core, "test_list_team_members") as team:
@@ -594,6 +648,7 @@ class TestTeamAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestTeamAzure/test_list.yml')
 	def test_list(self):
+		# type: () -> None
 		""""""
 		with new_team_from_group(self.core, "test_list") as team:
 			while True:
@@ -605,6 +660,7 @@ class TestTeamAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestTeamAzure/test_get.yml')
 	def test_get(self):
+		# type: () -> None
 		""""""
 		with new_team_from_group(self.core, "test_get") as team:
 			team_get = TeamAzure.get(self.core, team.id)
@@ -614,22 +670,26 @@ class TestTeamAzure(TestObjectAzure):
 class TestSubscriptionAzure(TestObjectAzure):
 
 	def test_completity(self):
+		# type: () -> None
 		diff = all_methods_called(self.__class__, SubscriptionAzure, ["get_not_none_values_as_dict", "set_core", "wait_for_operation", "reactivate", "deactivate", "delete", "create", "update", "add_license", "get_fields", "remove_license", "member_of"])
 		assert len(diff) == 0, "Functions no tested [" + ", ".join(diff) + "]"
 
 	@my_vcr.use_cassette('vcr_cassettes/TestSubscriptionAzure/test_get.yml')
 	def test_get(self):
+		# type: () -> None
 		test_default_id = "3e7d9eb5-c3a1-4cfc-892e-a8ec29e45b77_6fd2c87f-b296-42f0-b197-1e91e994b900"
 		sku = SubscriptionAzure.get(self.core, test_default_id)
 		sku.id = test_default_id
 
 	@my_vcr.use_cassette('vcr_cassettes/TestSubscriptionAzure/test_list.yml')
 	def test_list(self):
+		# type: () -> None
 		subs = SubscriptionAzure.list(self.core)
 		assert len(subs) > 0
 
 	@my_vcr.use_cassette('vcr_cassettes/TestSubscriptionAzure/test_get_enabled.yml')
 	def test_get_enabled(self):
+		# type: () -> None
 		_default_azure_service_plan_names = "SHAREPOINTWAC, SHAREPOINTWAC_DEVELOPER, OFFICESUBSCRIPTION, OFFICEMOBILE_SUBSCRIPTION, SHAREPOINTWAC_EDU"
 
 		subs_enambled = SubscriptionAzure.get_enabled(self.core, _default_azure_service_plan_names)
@@ -637,12 +697,14 @@ class TestSubscriptionAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestSubscriptionAzure/test_has_free_seats.yml')
 	def test_has_free_seats(self):
+		# type: () -> None
 		""""""
 		subs = SubscriptionAzure.list(self.core)[0]
 		assert isinstance(subs.has_free_seats(), bool)
 
 	@my_vcr.use_cassette('vcr_cassettes/TestSubscriptionAzure/test_get_plans_id_from_names.yml')
 	def test_get_plans_id_from_names(self):
+		# type: () -> None
 		""""""
 		subs = SubscriptionAzure.list(self.core)[0]
 		names = subs.get_plans_names()
@@ -653,6 +715,7 @@ class TestSubscriptionAzure(TestObjectAzure):
 
 	@my_vcr.use_cassette('vcr_cassettes/TestSubscriptionAzure/test_get_plans_names.yml')
 	def test_get_plans_names(self):
+		# type: () -> None
 		""""""
 		subs = SubscriptionAzure.list(self.core)[0]
 		names = subs.get_plans_names()

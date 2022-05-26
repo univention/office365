@@ -9,6 +9,7 @@ logger = get_logger("office365", "o365")
 
 
 def create_random_pw():
+	# type: () -> str
 	# have at least one char from each category in password
 	# https://msdn.microsoft.com/en-us/library/azure/jj943764.aspx
 	pw = list(random.choice(string.ascii_lowercase))
@@ -24,11 +25,13 @@ _default_azure_service_plan_names = "SHAREPOINTWAC, SHAREPOINTWAC_DEVELOPER, OFF
 
 
 def listener_restart():
+	# type: () -> None
 	logger.info('Restarting univention-directory-listener service')
 	subprocess.call(['systemctl', 'restart', 'univention-directory-listener'])
 
 
 def token_decode_b64(base64data):
+	# type: (bytes) -> str
 	# base64 strings should have a length divisible by 4
 	# If this one doesn't, add the '=' padding to fix it
 	leftovers = len(base64data) % 4

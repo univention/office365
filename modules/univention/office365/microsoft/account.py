@@ -14,7 +14,7 @@ from cryptography.x509 import load_pem_x509_certificate
 from cryptography.hazmat.backends import default_backend
 import jwt
 
-from typing import Dict
+from typing import Dict, Union, Set
 
 import requests
 from requests import RequestException
@@ -45,7 +45,8 @@ class AzureAccount(UserDict):
 	config_base_path = OFFICE365_API_PATH
 
 	def __init__(self, alias, config_base_path=OFFICE365_API_PATH, logger=None, lazy_load=False):
-		super().__init__()
+		# type: (str, str, "logging.Logger", bool) -> None
+		super(AzureAccount, self).__init__()
 		self.alias = alias
 		self.config_base_path = config_base_path or self.config_base_path
 		self.__token = None
@@ -66,22 +67,27 @@ class AzureAccount(UserDict):
 			self.load_ids_from_file()
 
 	@property
-	def token(self) -> Token:
+	def token(self):
+		# type: () -> Token
 		if self.__token is None:
 			self.__token = Token(self.alias, self.config_base_path)
 		return self.__token
 
 	@token.setter
-	def token(self, token: Token):
+	def token(self, token):
+		# type: (Token) -> None
 		self.__token = token
 
 	def update_and_save_token(self, result):
+		# type: (Dict) -> None
 		self.token.update_and_save(result)
 
-	def check_token(self) -> bool:
+	def check_token(self):
+		# type: () -> bool
 		return self.token.check_token()
 
 	def load_ids_from_file(self):
+		# type: () -> None
 		"""
 		The Microsoft 365 Configuration Wizard places configuration files under
 		/etc/univention-office365. In these we find all necessary data to
@@ -100,7 +106,9 @@ class AzureAccount(UserDict):
 
 	@staticmethod
 	def _get_client_assertion(oauth_token_endpoint, ssl_fingerprint, key_data, application_id):
+		# type: (str, str, str, str) -> str
 		def _get_assertion_blob(header, payload):
+			# type: (Dict, Dict) -> str
 			header_string = json.dumps(header).encode('utf-8')
 			encoded_header = base64.urlsafe_b64encode(header_string).decode('utf-8').strip('=')
 			payload_string = json.dumps(payload).encode('utf-8')
@@ -108,6 +116,7 @@ class AzureAccount(UserDict):
 			return '{0}.{1}'.format(encoded_header, encoded_payload)  # <base64-encoded-header>.<base64-encoded-payload>
 
 		def _get_signature(message, key_data):
+			# type: (str, Union[bytes, str]) -> str
 			priv_key = rsa.PrivateKey.load_pkcs1(key_data)
 			_signature = rsa.sign(message.encode('utf-8'), priv_key, 'SHA-256')
 			encoded_signature = base64.urlsafe_b64encode(_signature)
@@ -131,6 +140,7 @@ class AzureAccount(UserDict):
 		return client_assertion
 
 	def client_assertion(self, oauth_endpoint=None):
+		# type: (str) -> str
 		oauth_endpoint = oauth_endpoint or URLs.ms_login(self['directory_id'])
 		with open(os.path.join(self.config_base_path, self.alias, "cert.fp"), 'r') as f_ssl_fingerprint, \
 				open(os.path.join(self.config_base_path, self.alias, "key.pem"), 'r') as f_ssl_key:
@@ -208,6 +218,7 @@ class AzureAccount(UserDict):
 		return oauth2_auth_url.format(adconnection=adconnection, params=urlencode(params))
 
 	def write_saml_setup_script(self):
+		# type: () -> None
 		# TODO should be moved to UCRHelper and AzureAccount
 		ucs_sso_fqdn = UCRHelper.get('ucs/server/sso/fqdn', "%s.%s" % (UCRHelper.get('hostname', 'undefined'), UCRHelper.get('domainname', 'undefined')))
 		cert = ""
@@ -251,20 +262,25 @@ pause
 			raise """WriteScriptError(_("Error writing SAML setup script."), adconnection_alias=self.alias)"""  # TODO replace Exception
 
 	def _get_key_file_data(self):
+		# type: () -> str
 		with open(self.conf_dirs['SSL_KEY'], "rb") as pem_file:
 			key_data = pem_file.read()
 		return key_data
 
 	def _load_certificate_fingerprint(self):
+		# type: () -> str
 		with open(self.conf_dirs['SSL_CERT_FP'], "r") as fd:
 			fp = fd.read()
 		return fp.strip()
 
 	def parse_id_token(self, id_token):
+		# type: (str) -> str
 		# TODO check where should be implemented
 		def _get_azure_certs(adconnection_id):
+			# type: (str) -> Set[str]
 			# there's a strange non-ascii char at the beginning of the xml doc...
 			def _discard_garbage(text):
+				# type: (str) -> str
 				return ''.join(text.partition('<')[1:])
 
 			# the certificates with which the tokens were signed can be downloaded from the federation metadata document
@@ -296,6 +312,7 @@ pause
 			return certs
 
 		def _new_cryptography_checks(client_id, adconnection_id, id_token):
+			# type: (str, str, str) -> None
 			# check JWT validity, incl. signature
 			self.logger.debug("Running new cryptography checks incl signature verification.")
 			azure_certs = list(_get_azure_certs(adconnection_id))
@@ -339,6 +356,7 @@ pause
 
 	@classmethod
 	def create_local(cls, alias):
+		# type: (AzureAccount, str) -> AzureAccount
 		new_account = cls(alias, lazy_load=True)
 		target_path = new_account.conf_dirs['CONFDIR']
 		if os.path.exists(target_path):

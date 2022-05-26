@@ -106,6 +106,7 @@ class UCRHelperC(ConfigRegistry):
 		return self.get(self.adconnection_wizard_ucrv) or None
 
 	def get_http_proxies(self, logger):
+		# type: () -> Dict[str,str]
 		res = dict()
 		# 1. proxy settings from environment
 		for req_key, env_key in [('http', 'HTTP_PROXY'), ('http', 'http_proxy'), ('https', 'HTTPS_PROXY'), ('https', 'https_proxy')]:

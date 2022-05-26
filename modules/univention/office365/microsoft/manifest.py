@@ -1,5 +1,7 @@
 import json
 
+from typing import Optional
+
 from univention.office365.microsoft.exceptions.login_exceptions import ManifestError
 from univention.lib.i18n import Translation
 
@@ -12,6 +14,7 @@ _ = Translation('univention-office365').translate
 class Manifest(object):
 
 	def __init__(self, fd, adconnection_id, domain, logger=None):
+		# type: ("SupportsRead", str, str, "logging.Logger") -> None
 		self.logger = logger or get_logger("office365", "o365")
 		self.adconnection_id = adconnection_id
 		self.adconnection_alias = UCRHelper.adconnection_id_to_alias(adconnection_id)
@@ -26,19 +29,23 @@ class Manifest(object):
 
 	@property
 	def app_id(self):
+		# type: () -> str
 		return self.manifest.get('appId')
 
 	@property
 	def reply_url(self):
+		# type: () -> Optional[str]
 		try:
 			return self.manifest["replyUrlsWithType"][0]["url"]
 		except (IndexError, KeyError):
 			pass
 
 	def as_dict(self):
+		# type: () -> str
 		return self.manifest.copy()
 
 	def transform(self):
+		# type: () -> None
 		self.manifest["oauth2AllowImplicitFlow"] = True
 		self.manifest["oauth2AllowIdTokenImplicitFlow"] = True
 

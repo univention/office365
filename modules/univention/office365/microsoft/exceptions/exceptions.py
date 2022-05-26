@@ -10,6 +10,7 @@
 
 class NoAllocatableSubscriptions(Exception):
 	def __init__(self, user, adconnection_alias=None, *args, **kwargs):
+		# type: ("UDMOfficeUser", str, List, Dict) -> None
 		self.user = user
 		self.adconnection_alias = adconnection_alias
 		super(NoAllocatableSubscriptions, self).__init__(*args, **kwargs)

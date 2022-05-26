@@ -6,8 +6,13 @@ import uuid
 import base64
 
 # MOVED TO univention.office365.api.account.AzureAccount._get_client_assertion
+from typing import Dict, Union
+
+
 def get_client_assertion(oauth_token_endpoint, ssl_fingerprint, key_data, application_id):
+		# type: (str, str, str, str) -> str
 	def _get_assertion_blob(header, payload):
+		# type: (Dict[str, str], Dict[str, str]) -> str
 		header_string = json.dumps(header).encode('utf-8')
 		encoded_header = base64.urlsafe_b64encode(header_string).decode('utf-8').strip('=')
 		payload_string = json.dumps(payload).encode('utf-8')
@@ -15,6 +20,7 @@ def get_client_assertion(oauth_token_endpoint, ssl_fingerprint, key_data, applic
 		return '{0}.{1}'.format(encoded_header, encoded_payload)  # <base64-encoded-header>.<base64-encoded-payload>
 
 	def _get_signature(message, key_data):
+		# type: (str, Union[str, bytes]) -> str
 		priv_key = rsa.PrivateKey.load_pkcs1(key_data)
 		_signature = rsa.sign(message.encode('utf-8'), priv_key, 'SHA-256')
 		encoded_signature = base64.urlsafe_b64encode(_signature)
@@ -54,6 +60,7 @@ def get_client_assertion_from_alias(
 	application_id,
 	config_basepath="/etc/univention-office365"
 ):
+	# type: (str, str, str, str) -> str
 	with open(os.path.join(config_basepath, connection_alias, "cert.fp"), 'r') as f_ssl_fingerprint,\
 		 open(os.path.join(config_basepath, connection_alias, "key.pem"), 'r') as f_ssl_key:
 
@@ -66,6 +73,7 @@ def get_client_assertion_from_alias(
 
 # MOVED TO univention.office365.api.account.AzureAccount.load_ids_from_file
 def load_ids_file(alias, config_basepath="/etc/univention-office365"):
+	# type: (str, str) -> str
 	'''
 		The Microsoft 365 Configuration Wizard places configuration files under
 		/etc/univention-office365. In these we find all necessary data to

@@ -17,27 +17,34 @@ class MSGraphCoreTask(Task):
 		self.logger = None  # type: Optional[Logger]
 
 	def set_logger(self, logger):
+		# type: ("logging.Logger") -> None
 		self.logger = logger
 
 	def __dict__(self):
+		# type: () -> Dict[str, Union[str, MSGraphCoreTask]]
 		return {"ad_connection_alias": self.ad_connection_alias, "method_name": self.method_name, "method_args": self.method_args, "sub_tasks": [x.__dict__() for x in self.sub_tasks]}
 
 	def dump(self):
+		# type: () -> Dict[str, Union[str, MSGraphCoreTask]]
 		return self.__dict__()
 
 	def verify(self):
+		# type: () -> bool
 		if not AzureAccount(self.ad_connection_alias).is_initialized():
 			return False
 		if not hasattr(MSGraphApiCore, self.method_name):
 			return False
+		return True
 
 	@classmethod
 	def from_dict(cls, data):
+		# type: ( Dict[str, Union[str, MSGraphCoreTask]]) -> MSGraphCoreTask
 		data["sub_tasks"] = [MSGraphCoreTask.from_dict(x) for x in data["sub_tasks"]]
 		return cls(**data)
 
 	@retrying.retry(wait_exponential_multiplier=1000, wait_exponential_max=10000, stop_max_attempt_number=5)
 	def run(self):
+		# type: () -> bool
 		core = MSGraphApiCore(AzureAccount(self.ad_connection_alias))
 		method = getattr(core, self.method_name)
 		try:
