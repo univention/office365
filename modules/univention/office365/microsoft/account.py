@@ -3,6 +3,7 @@ import json
 import os
 import pwd
 import shutil
+import sys
 import time
 import uuid
 from six.moves import UserDict
@@ -20,16 +21,19 @@ import requests
 from requests import RequestException
 from six import reraise
 from six.moves.urllib.parse import urlencode
+import OpenSSL.crypto
 
 from univention.office365.microsoft import OFFICE365_API_PATH
+from univention.office365.microsoft.exceptions.login_exceptions import TokenValidationError, ADConnectionIDError, NoIDsStored, WriteScriptError
 from univention.office365.microsoft.manifest import Manifest
 from univention.office365.microsoft.token import Token
 from univention.office365.microsoft.urls import URLs
 from univention.office365.microsoft.jsonstorage import JsonStorage
+from univention.lib.i18n import Translation
 from univention.office365.logging2udebug import get_logger
-import OpenSSL.crypto
-
 from univention.office365.ucr_helper import UCRHelper
+
+_ = Translation('univention-management-console-module-office365').translate
 
 SCOPE = ["Directory.ReadWrite.All"]  # https://msdn.microsoft.com/Library/Azure/Ad/Graph/howto/azure-ad-graph-api-permission-scopes#DirectoryRWDetail
 SAML_SETUP_SCRIPT_CERT_PATH = "/etc/simplesamlphp/ucs-sso.{domainname}-idp-certificate{adconnection_alias}.crt"
@@ -184,7 +188,7 @@ class AzureAccount(UserDict):
 				if not (tid == "common" or uuid.UUID(tid)):
 					raise ValueError()
 			except ValueError:
-				raise """ADConnectionIDError(_("ADConnection-ID '{}' has wrong format.".format(tid)))"""  # TODO replace with exception
+				raise ADConnectionIDError(_("ADConnection-ID '{}' has wrong format.".format(tid)))
 
 		JsonStorage(self.conf_dirs['IDS_FILE']).write(**kwargs)
 
@@ -203,7 +207,7 @@ class AzureAccount(UserDict):
 			client_id = self["client_id"]
 			reply_url = self["reply_url"]
 		except KeyError as exc:
-			raise """reraise(NoIDsStored, NoIDsStored(_("The configuration of Azure AD connection {adconnection} is incomplete and misses some data. Please run the wizard again.").format(adconnection=adconnection_alias), chained_exc=exc, adconnection_alias=adconnection_alias), sys.exc_info()[2])"""
+			reraise(NoIDsStored, NoIDsStored(_("The configuration of Azure AD connection {adconnection} is incomplete and misses some data. Please run the wizard again.").format(adconnection=self.alias), chained_exc=exc, adconnection_alias=self.alias), sys.exc_info()[2])
 		adconnection = self.get("adconnection_id") or "common"
 		params = {
 			'client_id': client_id,
@@ -228,13 +232,13 @@ class AzureAccount(UserDict):
 				raw_cert = fd.read()
 		except IOError as exc:
 			self.logger.exception("while reading certificate: %s", exc)
-			raise """WriteScriptError(_("Error reading identity provider certificate."), adconnection_alias=adconnection_alias)"""  # TODO replace Exception
+			raise WriteScriptError(_("Error reading identity provider certificate."), adconnection_alias=self.alias)
 
 		try:
 			cert = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, raw_cert)).decode("ASCII")
 		except OpenSSL.crypto.Error as exc:
 			self.logger.exception("while converting certificate: %s", exc)
-			raise """WriteScriptError(_("Error converting identity provider certificate."), adconnection_alias=adconnection_alias)"""  # TODO replace Exception
+			raise WriteScriptError(_("Error converting identity provider certificate."), adconnection_alias=self.alias)
 
 		saml_uri_supplement = ""
 		if self.alias != UCRHelper.default_adconnection:
@@ -259,7 +263,7 @@ pause
 			os.chmod(script_path, 0o644)
 		except IOError as exc:
 			self.logger.exception("while writing powershell script: %s", exc)
-			raise """WriteScriptError(_("Error writing SAML setup script."), adconnection_alias=self.alias)"""  # TODO replace Exception
+			raise WriteScriptError(_("Error writing SAML setup script."), adconnection_alias=self.alias)
 
 	def _get_key_file_data(self):
 		# type: () -> str
@@ -289,7 +293,7 @@ pause
 				fed = requests.get(federation_metadata_url.format(adconnection_id=adconnection_id), proxies=URLs.proxies(self.logger))
 			except RequestException as exc:
 				self.logger.exception("Error downloading federation metadata.")
-				reraise("""TokenValidationError, TokenValidationError(_("Error downloading certificates from Azure for AD connection {adconnection}. Please run the wizard again.").format(adconnection=adconnection_alias), chained_exc=exc, adconnection_alias=adconnection_alias), sys.exc_info()[2]""")  # TODO replace Exception
+				reraise(TokenValidationError, TokenValidationError(_("Error downloading certificates from Azure for AD connection {adconnection}. Please run the wizard again.").format(adconnection=self.alias), chained_exc=exc, adconnection_alias=self.alias), sys.exc_info()[2])
 			# the federation metadata document is a XML file
 			dom_tree = parseString(_discard_garbage(fed.text))
 			# the certificates we want are inside:
@@ -308,7 +312,7 @@ pause
 								certs.add(cert_elem.firstChild.data)
 			if not certs:
 				self.logger.exception("Could not find certificate in federation metadata: %r", _discard_garbage(fed.text))
-				raise """TokenValidationError(_("Error reading certificates of Azure AD connection {adconnection} from Azure. Please run the wizard again.").format(adconnection=adconnection_alias), adconnection_alias=adconnection_alias)"""  # TODO replace Exception
+				raise TokenValidationError(_("Error reading certificates of Azure AD connection {adconnection} from Azure. Please run the wizard again.").format(adconnection=self.alias), adconnection_alias=self.alias)
 			return certs
 
 		def _new_cryptography_checks(client_id, adconnection_id, id_token):
@@ -332,7 +336,7 @@ pause
 					jwt_exceptions.append(exc)
 			if not verified:
 				self.logger.error("JWT verification error(s): %s\nID token: %r", " ".join(map(str, jwt_exceptions)), id_token)
-				raise """TokenValidationError(_("The received token for Azure AD connection {adconnection} is not valid. Please run the wizard again.").format(adconnection=adconnection_alias), adconnection_alias=adconnection_alias)"""  # TODO replace Exception
+				raise TokenValidationError(_("The received token for Azure AD connection {adconnection} is not valid. Please run the wizard again.").format(adconnection=self.alias), adconnection_alias=self.alias)
 			self.logger.debug("Verified ID token.")
 
 		# get the adconnection ID from the id token
@@ -343,12 +347,12 @@ pause
 			client_id = self["client_id"]
 			reply_url = self["reply_url"]
 		except KeyError as exc:
-			reraise("""NoIDsStored, NoIDsStored(_("The configuration of Azure AD connection {adconnection} is incomplete and misses some data. Please run the wizard again.").format(adconnection=adconnection_alias), chained_exc=exc, adconnection_alias=adconnection_alias), sys.exc_info()[2]""")  # TODO replace Exception
+			reraise(NoIDsStored, NoIDsStored(_("The configuration of Azure AD connection {adconnection} is incomplete and misses some data. Please run the wizard again.").format(adconnection=self.alias), chained_exc=exc, adconnection_alias=self.alias), sys.exc_info()[2])
 
 		nonce_old = self.token["nonce"]
 		if not body["nonce"] == nonce_old:
 			self.logger.error("Stored (%r) and received (%r) nonce of token do not match. ID token: %r.", nonce_old, body["nonce"], id_token)
-			raise """TokenValidationError(_("The received token for Azure AD connection {adconnection} is not valid. Please run the wizard again.").format(adconnection=adconnection_alias), adconnection_alias=adconnection_alias)"""  # TODO replace Exception
+			raise TokenValidationError(_("The received token for Azure AD connection {adconnection} is not valid. Please run the wizard again.").format(adconnection=self.alias), adconnection_alias=self.alias)
 		# check validity of token
 		_new_cryptography_checks(client_id, adconnection_id, id_token)
 		self.store_ids(adconnection_alias=self.alias, client_id=client_id, adconnection_id=adconnection_id, reply_url=reply_url)

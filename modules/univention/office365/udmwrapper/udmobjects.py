@@ -197,7 +197,7 @@ class UDMOfficeObject(UserDict):
 				if "objectId" in azure_data:
 					return Version.V3
 				else:
-					raise "Unknow version %r" % azure_data
+					raise ValueError("Unknow version %r" % azure_data)
 			else:
 				return Version.V3
 		return Version.V3
