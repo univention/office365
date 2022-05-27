@@ -5,7 +5,7 @@ from typing import Dict
 
 from univention.config_registry import ConfigRegistry, handler_set, handler_unset
 from univention.config_registry.frontend import ucr_update
-
+from univention.testing.ucr import UCSTestConfigRegistry
 
 class UCRHelperC(ConfigRegistry):
 	group_sync_ucrv = "office365/groups/sync"
@@ -16,8 +16,6 @@ class UCRHelperC(ConfigRegistry):
 	default_adconnection_alias_ucrv = 'office365/defaultalias'
 	default_adconnection_name = "defaultADconnection"
 	default_azure_service_plan_names = "SHAREPOINTWAC, SHAREPOINTWAC_DEVELOPER, OFFICESUBSCRIPTION, OFFICEMOBILE_SUBSCRIPTION, SHAREPOINTWAC_EDU"
-
-
 
 	def ucr_split_value(self, key):
 		# type: (str) -> list
@@ -139,9 +137,12 @@ class UCRHelperC(ConfigRegistry):
 		return res
 
 
+class UCRHelperC_test(UCRHelperC, UCSTestConfigRegistry):
+	""""""
 """
 Singleton instance
 A module is only loaded once, so we can use an instance defined here as a singleton.
 To decide on what to use for singleton: https://stackoverflow.com/questions/6760685/creating-a-singleton-in-python
 """
 UCRHelper = UCRHelperC()
+UCRHelper.load()

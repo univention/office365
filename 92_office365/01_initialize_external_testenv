@@ -11,7 +11,7 @@ import univention.testing.utils as utils
 
 logger = setup_logging()
 
-if not setup_externally_configured_adconnections():
+if not setup_externally_configured_adconnections(logger):
 	utils.fail("Preparation of externally configured ad connections failed!")
 
 print("*** All went well.")

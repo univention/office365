@@ -192,7 +192,7 @@ class AddLicenseError(GenericGraphError):
 		self.user_id = user_id
 		self.sku_id = sku_id
 		self.message = msg
-		super(AddLicenseError, self).__init__(msg, chained_exc, *args, **kwargs) # TODO revisar
+		# super(AddLicenseError, self).__init__() # TODO revisar
 
 
 def exception_decorator(func):

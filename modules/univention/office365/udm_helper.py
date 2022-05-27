@@ -46,24 +46,29 @@ class UDMHelper(object):
 	"""
 	UDM methods collection specific for the use with office365
 	"""
+	ldap_cred = None
+
 	def __init__(self, ldap_cred=None):
 		self.lo = None
 		self.po = None
-		self.ldap_cred = None
 		self.modules = {}
-		self._get_ldap_connection(ldap_cred)
-
+		self._get_ldap_connection()
+		if ldap_cred:
+			self.ldap_cred = ldap_cred
+			UDMHelper.ldap_cred = ldap_cred
 
 	# LDAP
 
-	def _get_ldap_connection(self, ldap_cred=None):
-		if ldap_cred and not self.ldap_cred:
-			self.ldap_cred = ldap_cred
+	def _get_ldap_connection(self):
 		if not self.lo or not self.po:
 			if self.ldap_cred:
+				# {'host': 'ucs-8358.test-idelgado-com.intranet',
+				# 'base': 'dc=test-idelgado-com,dc=intranet',
+				# 'binddn': 'cn=admin,dc=test-idelgado-com,dc=intranet',
+				# 'bindpw': 'kKXv2TJZ6aeuNKKUUbi1'}
 				self.lo = admin.uldap.access(
-					host=self.ldap_cred["ldapserver"],
-					base=self.ldap_cred["basedn"],
+					host=self.ldap_cred["host"],
+					base=self.ldap_cred["base"],
 					binddn=self.ldap_cred["binddn"],
 					bindpw=self.ldap_cred["bindpw"])
 				# TODO: Move to UCRHelper?

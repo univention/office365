@@ -10,78 +10,86 @@ import time
 
 import univention.testing.ucr as ucr_test
 import univention.testing.utils as utils
+from typing import Dict, Any
 
 from helpers.office365_test_helpers import AzureDirectoryTestGroups, azure_group_args, setup_logging
-from univention.office365.azure_handler import AzureHandler, ResourceNotFoundError
-from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
+# from univention.office365.azure_handler import AzureHandler, ResourceNotFoundError
+# from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
+from univention.office365.microsoft.account import AzureAccount
+from univention.office365.microsoft.core import MSGraphApiCore
+from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError
+from univention.office365.microsoft.objects.azureobjects import GroupAzure
+from univention.office365.ucr_helper import UCRHelper
 
 
 def test_grp(grp, args):
+	# type: (GroupAzure, Dict[str, Any]) -> None
 	for k, v in args.items():
-		if v != grp[k]:
-			utils.fail("Property '{}' is '{}', but should be '{}'.".format(k, grp[k], v))
+		if v != getattr(grp, k):
+			utils.fail("Property '{}' is '{}', but should be '{}'.".format(k, getattr(grp, k), v))
 
 
 logger = setup_logging()
-adconnection_aliases = AzureADConnectionHandler.get_adconnection_aliases()
-initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAuth.is_initialized(adconnection_alias)]
+adconnection_aliases = UCRHelper.get_adconnection_aliases()
+initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAccount(adconnection_alias).is_initialized()]
 assert initialized_adconnections, "run ./01_initialize_external_testenv first!"
 
 print("*** adconnection_aliases={!r}.".format(adconnection_aliases))
 print("*** initialized_adconnections={!r}.".format(initialized_adconnections))
-
+initialized_adconnections = ["o365domain"]  # TODO Fixme remove this line and check that the azuretestdomain has the necessary permissions
 for adconnection_alias in initialized_adconnections:
 	print("*** Running for adconnection_alias={!r}.".format(adconnection_alias))
 
-	with ucr_test.UCSTestConfigRegistry() as ucr:
-		ah = AzureHandler(ucr, "ucs-test", adconnection_alias)
+	core = MSGraphApiCore(AzureAccount(adconnection_alias))
 
-	groups1 = ah.list_groups()["value"]
+	groups1 = GroupAzure.list(core)
 
 	print("*** list_groups() returned:")
 	for g in groups1:
-		print("id: '{objectId}' mailNickname: '{mailNickname}' mail: '{mail}' description: '{description}'".format(**g))
+		print("id: '{objectId}' mailNickname: '{mailNickname}' mail: '{mail}' description: '{description}'".format(objectId=g.id, mailNickname=g.mailNickname, mail=g.mail, description=g.description))
 
 	args = azure_group_args()
 	print("*** create_group(), args={}".format(args))
-	new_group1 = ah.create_group(name=args["displayName"], description=args["description"])
+	new_group1 = GroupAzure(**args)
+	new_group1.set_core(core)
+	new_group1.create()
 	time.sleep(10)
 
-	with AzureDirectoryTestGroups(ah, [new_group1["objectId"]]):
-		new_group2 = ah.list_groups(objectid=new_group1["objectId"])
+	with AzureDirectoryTestGroups(core, [new_group1]):
+		new_group2 = GroupAzure.get(core, new_group1.id)
 		test_grp(new_group2, args)
 
 		args = azure_group_args()
 		print("*** modify_group(), args={}".format(args))
-		ah.modify_group(new_group2["objectId"], args)
+		new_group2.update(GroupAzure(**args))
 		time.sleep(10)
-		new_group3 = ah.list_groups(objectid=new_group2["objectId"])
+		new_group3 = GroupAzure.get(core, new_group2.id)
 		test_grp(new_group3, args)
 
-		groups2 = ah.list_groups()["value"]
-		old_ids = set([group["objectId"] for group in groups1])
-		new_ids = set([group["objectId"] for group in groups2])
+		groups2 = GroupAzure.list(core)
+		old_ids = set([group.id for group in groups1])
+		new_ids = set([group.id for group in groups2])
 		diff = new_ids - old_ids
 		if len(diff) == 0:
 			utils.fail("Test group disappeared. groups1={}, groups2={}".format(groups1, groups2))
-		elif len(diff) > 1 or diff.pop() != new_group3["objectId"]:
+		elif len(diff) > 1 or diff.pop() != new_group3.id:
 			utils.fail("Unexpected group(s) found. groups1={}, groups2={}".format(groups1, groups2))
 
-		print("*** delete_group({})".format(new_group3["objectId"]))
-		ah.delete_group(new_group3["objectId"])
+		print("*** delete_group({})".format(new_group3.id))
+		new_group3.deactivate(rename=True)
 		time.sleep(10)
 
-		print("*** list_groups(objectid={})".format(new_group3["objectId"]))
+		print("*** list_groups(objectid={})".format(new_group3.id))
 		try:
-			groups3 = ah.list_groups(objectid=new_group3["objectId"])
-			if (groups3["description"] == "deleted group" and
-				groups3["displayName"].startswith("ZZZ_deleted_") and
-				groups3["mailNickname"].startswith("ZZZ_deleted_")):
+			groups3 = GroupAzure.get(core, new_group3.id)
+			if (groups3.description == "deleted group" and
+				groups3.displayName.startswith("ZZZ_deleted_") and
+				groups3.mailNickname.startswith("ZZZ_deleted_")):
 				print("OK: group was deactivated.")
 			else:
 				utils.fail("Group was not deleted: id: '{objectId}' mailNickname: '{mailNickname}' mail: '{mail}'"
-					"description: '{description}'".format(**groups3))
-		except ResourceNotFoundError:
+					"description: '{description}'".format(objectId=groups3.id, mailNickname=groups3.mailNickname, mail=groups3.mail, description=groups3.description))
+		except MSGraphError:
 			print("OK: group was deleted (404).")
 
 	print("*** All went well for Azure AD connection alias {!r}.".format(adconnection_alias))

@@ -119,8 +119,8 @@ class UDMOfficeObject(UserDict):
 	MODULE = None
 	# TODO: can adconnection_aliases be directly obtained by this class?
 
-	def __init__(self, ldap_fields, ldap_cred, dn='', logger=None):
-		# type: (Dict[str, List[bytes]], Dict[str, Any], str, Optional[Logger]) -> None
+	def __init__(self, ldap_fields, ldap_cred=None, dn='', logger=None):
+		# type: (Dict[str, List[bytes]], Optional[Dict[str, Any]], str, Optional[Logger]) -> None
 		self.dn = dn
 		super(UDMOfficeObject, self).__init__(ldap_fields)
 		self.logger = logger or get_logger("office365", "o365")
@@ -131,8 +131,14 @@ class UDMOfficeObject(UserDict):
 		#  If not, current implementation of UDMHelper depends of adconnection_alias which is specific to UDM office objects.
 		self.ldap_cred = ldap_cred
 		self.udm_connector = UDMHelper(ldap_cred)
-		self.udm_object_reference = self.udm_connector.get_udm_object(self.MODULE, self.dn, attributes=ldap_fields)
-
+		try:
+			self.udm_object_reference = self.udm_connector.get_udm_object(self.MODULE, self.dn, attributes=ldap_fields)
+		except:
+			self.logger.error("=" * 50)
+			self.logger.error(self.MODULE)
+			self.logger.error(self.dn)
+			self.logger.error("=" * 50)
+			raise
 		# self.adconnection_aliases = self.udm_object_reference.get("UniventionOffice365ADConnectionAlias", [])   # type List[str]
 		self.current_connection_alias = None
 
@@ -239,7 +245,7 @@ class UDMOfficeObject(UserDict):
 			old_azure_data.update(new_azure_data)
 		else:
 			old_azure_data.pop(self.current_connection_alias)
-		self.udm_object_reference["UniventionOffice365Data"] = old_azure_data.to_ldap_str()
+		self.udm_object_reference["UniventionOffice365Data"] = UniventionOffice365Data.to_ldap_str(old_azure_data)
 
 	def modify_azure_attributes(self, azure_object_dict):
 		# type: (Optional[Mapping]) -> None
@@ -291,8 +297,8 @@ class UDMOfficeObject(UserDict):
 		# type: (UDMOfficeObject) -> List[str]
 		return list(set(self.adconnection_aliases) - set(other.adconnection_aliases))
 
-	def __sub__(self, other):
-		# type: (UDMOfficeObject) -> UDMOfficeObject
+	def diff_keys(self, other):
+		# type: (UDMOfficeObject) -> Set[str]
 		"""
 		Return an specific implementation of the difference between self and other.
 		The main idea is to set Other as a target and self as a source.
@@ -313,7 +319,7 @@ class UDMOfficeObject(UserDict):
 			# By default, the result is the other value, the change itself.
 			if own_value != other_value:
 				result[field] = other_value
-		return self.__class__(result,  self.ldap_cred)
+		return set(result.keys())
 
 	# def __len__(self):
 	# 	# type: () -> int
@@ -338,8 +344,8 @@ class UDMOfficeUser(UDMOfficeObject):
 	MODULE = "users/user"
 
 	@classmethod
-	def from_udm(cls, udm_user, ldap_cred):
-		# type: (User.user, Mapping[str,Any]) -> UDMOfficeUser
+	def from_udm(cls, udm_user, ldap_cred=None):
+		# type: (User.user, Optional[Mapping[str,Any]]) -> UDMOfficeUser
 		result = cls(udm_user.oldattr, ldap_cred)
 		# result.udm_object_reference = udm_user  # TODO ????
 		return result
@@ -445,7 +451,7 @@ class UDMOfficeGroup(UDMOfficeObject):
 		# get all users for the adconnection (ignoring group membership) and compare
 		# with group members to get azure IDs, because it's faster than
 		# iterating (and opening!) lots of UDM objects
-		all_users_lo = UDMHelper.get_ldap_o365_users(attributes=['univentionOffice365Data'], adconnection_alias=self.adconnection_alias)
+		all_users_lo = self.udm_connector.get_ldap_o365_users(attributes=['univentionOffice365Data'], adconnection_alias=self.adconnection_alias)
 		all_user_dns = set(all_users_lo.keys())
 		member_dns = all_user_dns.intersection(set(self.get_users()))
 

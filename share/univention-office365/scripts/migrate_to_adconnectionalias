@@ -91,7 +91,7 @@ if __name__ == '__main__':
 	)
 
 	print('Searching for users to migrate in LDAP...')
-	users = UDMHelper.get_ldap_o365_users(
+	users = UDMHelper().get_ldap_o365_users(
 		attributes=['uid', 'univentionOffice365Enabled', 'univentionOffice365ObjectID', 'univentionOffice365userPrincipalName', 'univentionOffice365Data', ],
 		enabled='',
 		additional_filter='(!(univentionOffice365ADConnectionAlias=*))'
@@ -139,7 +139,7 @@ if __name__ == '__main__':
 		print('No users found.')
 	print('Finished migrating users.\n')
 
-	groups = UDMHelper.get_lo_o365_groups(
+	groups = UDMHelper().get_lo_o365_groups(
 		attributes=['cn', 'univentionOffice365ObjectID'],
 		additional_filter='(!(univentionOffice365ADConnectionAlias=*))'
 	)

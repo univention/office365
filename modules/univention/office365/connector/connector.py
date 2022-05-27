@@ -444,8 +444,9 @@ class UserConnector(Connector):
 			#
 			# TODO: try/except? check if resource not found or deleted ok
 			# user_azure.delete()
+
 			user_azure.deactivate(rename=True)
-			udm_object.modify_azure_attributes(None)
+			# udm_object.modify_azure_attributes(None)  # it's not needed because the object was remove form udm
 
 			self.logger.info(
 				"User deletion success. userPrincipalName: %r objectId: %r dn: %s adconnection: %s",
@@ -517,7 +518,7 @@ class UserConnector(Connector):
 		res = dict()
 		core = self.cores[udm_user.current_connection_alias]  # type: MSGraphApiCore
 
-		for attr in self.attrs.listener:
+		for attr in self.attrs.all:
 			if attr in self.attrs.system:
 				# filter out univentionOffice365Enabled and account deactivation/locking attributes
 				continue
@@ -594,9 +595,9 @@ class UserConnector(Connector):
 									userPrincipalName="{0}@{1}".format(local_part_of_email_address, core.account["domain"]),
 									mailNickname=local_part_of_email_address,
 									displayName=data.get("displayName","no name"),
-									usageLocation=udm_user.udm_object_reference.get_usage_location(), )
+									usageLocation=udm_user.get("country"), )
 		if set_password:
-			mandatory_attributes.update(dict(passwordProfile=dict(password=create_random_pw(), forceChangePasswordNextLogin=False)))
+			mandatory_attributes.update(dict(passwordProfile=dict(password=create_random_pw(), forceChangePasswordNextSignIn=False)))
 		data.update(mandatory_attributes)
 		user_azure = UserAzure(**data)
 		user_azure.set_core(core)
@@ -762,11 +763,11 @@ class GroupConnector(Connector):
 						alias in new_udm_group.adconnection_aliases or \
 						alias in old_udm_group.adconnection_aliases:
 
-					modification_attributes_udm_group = old_udm_group - new_udm_group
+					modification_attributes_udm_group = old_udm_group.diff_keys(new_udm_group)
 					object_id = old_udm_group.azure_object_id or new_udm_group.azure_object_id
 
 					# No modification to be considered
-					if not self.attrs & set(modification_attributes_udm_group.keys()):
+					if not self.attrs & modification_attributes_udm_group:
 						self.logger.debug("No modifications found, ignoring.")
 						new_udm_group.modify_azure_attributes(self.prepare_azure_attributes(GroupAzure(id=object_id)))
 						return

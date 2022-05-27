@@ -12,71 +12,74 @@ import univention.testing.ucr as ucr_test
 import univention.testing.utils as utils
 
 from helpers.office365_test_helpers import AzureDirectoryTestUsers, azure_user_args, print_users, setup_logging
-from univention.office365.azure_handler import AzureHandler, ResourceNotFoundError
-from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
-
+from univention.office365.microsoft.account import AzureAccount
+from univention.office365.microsoft.core import MSGraphApiCore
+from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError
+from univention.office365.microsoft.objects.azureobjects import UserAzure
+from univention.office365.ucr_helper import UCRHelper
 
 logger = setup_logging()
 
-adconnection_aliases = AzureADConnectionHandler.get_adconnection_aliases()
-initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAuth.is_initialized(adconnection_alias)]
+adconnection_aliases = UCRHelper.get_adconnection_aliases()
+initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAccount(adconnection_alias).is_initialized()]
 assert initialized_adconnections, "run ./01_initialize_external_testenv first!"
 
 print("*** adconnection_aliases={!r}.".format(adconnection_aliases))
 print("*** initialized_adconnections={!r}.".format(initialized_adconnections))
-
+initialized_adconnections = ["o365domain"]  # TODO Fixme remove this line and check that the azuretestdomain has the necessary permissions
 for adconnection_alias in initialized_adconnections:
 	print("*** Running for adconnection_alias={!r}.".format(adconnection_alias))
 
-	with ucr_test.UCSTestConfigRegistry() as ucr:
-		ah = AzureHandler(ucr, "ucs-test", adconnection_alias)
+	core = MSGraphApiCore(AzureAccount(adconnection_alias))
 
-	args = azure_user_args(ah, minimal=True)
+	args = azure_user_args(core, minimal=True)
 
 	# workaround for #42931
 	args["mailNickname"] = "AAA{}".format(args["mailNickname"])
 	args["userPrincipalName"] = "AAA{}".format(args["userPrincipalName"])
 
-	users1 = ah.list_users()["value"]
+	users1 = UserAzure.list(core)
 
 	print("*** list_users() returned:")
 	print_users(users1, complete=False, short=True)
 
 	print("*** create_user(), args={}".format(args))
-	new_user1 = ah.create_user(args)
+	new_user1 = UserAzure(**args)
+	new_user1.set_core(core)
+	new_user1.create()
 	time.sleep(10)
 	print("create_user() returned:")
 	print_users(new_user1, complete=False, short=True)
 
-	with AzureDirectoryTestUsers(a_handler=ah, user_ids=[new_user1["objectId"]]):
-		new_user2 = ah.list_users(objectid=new_user1["objectId"])
+	with AzureDirectoryTestUsers(core=core, azure_objects=[new_user1]):
+		new_user2 = UserAzure.get(core, new_user1.id)
 		for k, v in args.items():
 			if k == "passwordProfile":
 				continue
-			if not new_user2[k] == v:
-				utils.fail("Attribute {} has value {}, should be {}.".format(k, v, new_user2[k]))
+			if not getattr(new_user2, k) == v:
+				utils.fail("Attribute {} has value {}, should be {}.".format(k, v, getattr(new_user2, k)))
 
-		users2 = ah.list_users()["value"]
+		users2 = UserAzure.list(core)
 
-		old_ids = set([user["objectId"] for user in users1])
-		new_ids = set([user["objectId"] for user in users2])
+		old_ids = set([user.id for user in users1])
+		new_ids = set([user.id for user in users2])
 		diff = new_ids - old_ids
 		if len(diff) == 0:
 			utils.fail("Test user disappeared. old_ids={}, new_ids={}".format(old_ids, new_ids))
-		elif len(diff) > 1 or diff.pop() != new_user1["objectId"]:
+		elif len(diff) > 1 or diff.pop() != new_user1.id:
 			utils.fail("Unexpected user(s) found. old_ids={}, new_ids={}".format(old_ids, new_ids))
 
-		print("*** delete_user({})".format(new_user1["objectId"]))
-		ah.delete_user(new_user1["objectId"])
+		print("*** delete_user({})".format(new_user1.id))
+		new_user1.deactivate(rename=True)
 		time.sleep(10)
 
 		try:
-			deleted_user = ah.list_users(objectid=new_user1["objectId"])
-			if deleted_user["accountEnabled"]:
+			deleted_user = UserAzure.get(core, new_user1.id)
+			if deleted_user.accountEnabled:
 				utils.fail("User was not deleted.")
 			else:
 				print("OK: user was deleted.")
-		except ResourceNotFoundError:
+		except MSGraphError:
 			print("OK: user was deleted.")
 
 	print("*** All went well for Azure AD connection alias {!r}.".format(adconnection_alias))

@@ -14,17 +14,16 @@ import univention.testing.utils as utils
 
 from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, setup_logging, check_user_id_from_azure
 from helpers.retry import retry_call
-from univention.office365.listener import Office365Listener
-from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
-
+from univention.office365.microsoft.account import AzureAccount
+from univention.office365.ucr_helper import UCRHelper
 
 logger = setup_logging()
-adconnection_aliases = AzureADConnectionHandler.get_adconnection_aliases()
-initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAuth.is_initialized(adconnection_alias)]
+adconnection_aliases = UCRHelper.get_adconnection_aliases()
+initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAccount(adconnection_alias).is_initialized()]
 
 print("*** adconnection_aliases={!r}.".format(adconnection_aliases))
 print("*** initialized_adconnections={!r}.".format(initialized_adconnections))
-
+initialized_adconnections = ["o365domain"]  # TODO Fixme remove this line and check that the azuretestdomain has the necessary permissions
 with utils.AutomaticListenerRestart():
 	with udm_test.UCSTestUDM() as udm:
 		with ucr_test.UCSTestConfigRegistry() as ucr:
@@ -39,8 +38,6 @@ with utils.AutomaticListenerRestart():
 			for adconnection_alias in initialized_adconnections:
 				print("*** Running for adconnection_alias={!r}.".format(adconnection_alias))
 
-				ol = Office365Listener(_listener(), "ucs-test", listener_attributes_data, {}, "dn", adconnection_alias)
-
 				user_args = udm_user_args(ucr, minimal=False)
 				user_args["set"]["UniventionOffice365Enabled"] = 1
 				user_args["set"]["UniventionOffice365ADConnectionAlias"] = adconnection_alias
@@ -49,6 +46,6 @@ with utils.AutomaticListenerRestart():
 				user_dn, username = udm.create_user(check_for_drs_replication=True, **user_args)
 
 				fail_msg = "User was not created properly (no UniventionOffice365ObjectID)."
-				user_id = retry_call(check_user_id_from_azure, fargs=[ol, adconnection_alias, user_dn, fail_msg], tries=5, delay=2)
+				user_id = retry_call(check_user_id_from_azure, fargs=[adconnection_alias, user_dn, fail_msg], tries=5, delay=2)
 
 			print("*** All went well for all in {!r}.".format(initialized_adconnections))
