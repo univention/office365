@@ -51,7 +51,7 @@ def list(args):
 
 
 def create(args):
-	account_connector.create_new_adconnection(args.alias, args.makedefault)
+	account_connector.create_new_adconnection(logger, args.alias, args.makedefault)
 
 
 def rename(args):

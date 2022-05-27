@@ -59,7 +59,7 @@ class SubscriptionProfile(object):
 		:param dn: str: DN of profile
 		:return: a SubscriptionProfile object
 		"""
-		profile = UDMHelper.get_udm_officeprofile(dn)
+		profile = UDMHelper().get_udm_officeprofile(dn)
 		logger.debug('loading profile: %r, with settings %r', dn, dict(profile))
 		return cls(
 			name=profile.get('name'),
@@ -70,7 +70,7 @@ class SubscriptionProfile(object):
 	@staticmethod
 	def list_profiles():
 		# type: () -> List[SubscriptionProfile]
-		return UDMHelper.list_udm_office_profiles()
+		return UDMHelper().list_udm_office_profiles()
 
 	@classmethod
 	def get_profiles_for_groups(cls, dns):
@@ -84,7 +84,7 @@ class SubscriptionProfile(object):
 		# collect extended attribute values from groups
 		profiles = list()
 		for dn in dns:
-			group = UDMHelper.get_udm_group(dn)
+			group = UDMHelper().get_udm_group(dn)
 			try:
 				profile = group['UniventionOffice365Profile']
 				if profile:

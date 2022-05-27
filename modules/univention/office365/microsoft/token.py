@@ -85,8 +85,6 @@ class Token(UserDict):
 		# with open(token_file_tmp, 'w') as f:
 		# 	f.write(json.dumps(response))
 		# move the temporary file to the final destination
-		os.chmod(token_file_tmp, 0o700)
-		os.chown(token_file_tmp, uid, gid)
 		shutil.move(token_file_tmp, self._token_cache)
 
 	def store_tokens(self, **kwargs):

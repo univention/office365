@@ -41,18 +41,29 @@ import time
 import subprocess
 from datetime import datetime
 from operator import itemgetter
+from types import TracebackType
 
 import univention.admin.syntax as udm_syntax
 import univention.testing.strings as uts
 import univention.testing.utils as utils
+from typing import Any, Dict, List, Type, Union
 
 from univention.config_registry import handler_set
 
-from univention.office365.azure_handler import ResourceNotFoundError
-from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
+# from univention.office365.azure_handler import ResourceNotFoundError
+# from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
+
+from univention.office365.connector.account_connector import AccountConnector
 from univention.office365.logging2udebug import get_logger, LevelDependentFormatter
-from univention.office365.api.exceptions import GraphError
-from univention.office365.listener import Office365Listener
+# from univention.office365.api.exceptions import GraphError
+# from univention.office365.listener import Office365Listener
+from univention.office365.microsoft.account import AzureAccount
+
+from univention.office365.microsoft.core import MSGraphApiCore
+from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError
+from univention.office365.microsoft.objects.azureobjects import AzureObject, GroupAzure, UserAzure
+from univention.office365.udmwrapper.udmobjects import UDMOfficeUser
+from univention.office365.utils.utils import create_random_pw
 
 udm_syntax.update_choices()
 blacklisted_ul = ["SD", "SY", "KP", "CU", "IR"]  # some usageLocations are not valid (https://www.microsoft.com/en-us/microsoft-365/business/microsoft-office-license-restrictions), collecting them here
@@ -112,7 +123,8 @@ listener_attributes_data = dict(
 
 
 class AzureDirectoryTestObjects(object):
-	def __init__(self, otype, a_handler, obj_ids=None):
+	def __init__(self, otype, core, azure_objects=None):
+		# type: (str, MSGraphApiCore, List[AzureObject]) -> None
 		"""
 		Context manager that deletes the azure objects when leaving it.
 		:param otype: str: type of object to delete ("user", "group")
@@ -122,68 +134,74 @@ class AzureDirectoryTestObjects(object):
 		"""
 		assert otype in ["user", "group"]
 		self._otype = otype
-		assert isinstance(obj_ids, list)
-		self._obj_ids = obj_ids
-		self._a_handler = a_handler
+		self._otype_cls = UserAzure if otype == "user" else GroupAzure
+		assert isinstance(azure_objects, list)
+		self._azure_objects = azure_objects
+		self._core = core
 
 	def __enter__(self):
+		# type: () -> AzureDirectoryTestObjects
 		return self
 
 	def __exit__(self, exc_type, exc_value, traceback):
-		if not self._a_handler:
+		# type: (Type, Exception, TracebackType) -> None
+		if not self._core:
 			return
-		for obj_id in self._obj_ids:
-			print(">>> Deleting test-{} '{}'...".format(self._otype, obj_id))
+		for azure_object in self._azure_objects:
+			print(">>> Deleting test-{} '{}'...".format(self._otype, azure_object.id))
 			try:
-				obj = getattr(self._a_handler, "delete_{}".format(self._otype))(obj_id)
-			except ResourceNotFoundError:
-				print(">>> OK: Doesn't exist (anymore): {} '{}'.".format(self._otype, obj_id))
+				azure_object.set_core(self._core)
+				azure_object.deactivate(rename=True)
+			except MSGraphError:
+				print(">>> OK: Doesn't exist (anymore): {} '{}'.".format(self._otype, azure_object.id))
 				continue
 
-			if self._otype == "user" and obj and obj["accountEnabled"]:
-				print(">>> Fail: could not delete test-{} '{}': {}".format(self._otype, obj_id, obj))
+			if isinstance(azure_object, UserAzure) and azure_object.accountEnabled:
+				print(">>> Fail: could not delete test-{} '{}': {}".format(self._otype, azure_object.id, azure_object))
 			else:
-				print(">>> OK: deactivated test-{} '{}'.".format(self._otype, obj_id))
+				print(">>> OK: deactivated test-{} '{}'.".format(self._otype, azure_object.id))
 
 
 class AzureDirectoryTestUsers(AzureDirectoryTestObjects):
-	def __init__(self, a_handler, user_ids=None):
+	def __init__(self, core, azure_objects=None):
+		# type: (MSGraphApiCore, List[UserAzure]) -> None
 		"""
 		Context manager that deletes the azure users when leaving it.
 		:param a_handler: AzureHandler object
 		:param user_ids: list of user IDs to delete from azure
 		when leaving the context manager
 		"""
-		super(AzureDirectoryTestUsers, self).__init__("user", a_handler, user_ids)
+		super(AzureDirectoryTestUsers, self).__init__("user", core, azure_objects)
 
 
 class AzureDirectoryTestGroups(AzureDirectoryTestObjects):
-	def __init__(self, a_handler, group_ids=None):
+	def __init__(self, core, azure_objects=None):
+		# type: (MSGraphApiCore, List[GroupAzure]) -> None
 		"""
 		Context manager that deletes the azure groups when leaving it.
 		:param a_handler: AzureHandler object
 		:param group_ids: list of group IDs to delete from azure
 		when leaving the context manager
 		"""
-		super(AzureDirectoryTestGroups, self).__init__("group", a_handler, group_ids)
+		super(AzureDirectoryTestGroups, self).__init__("group", core, azure_objects)
 
 
 def print_users(users, complete=False, short=False):
+	# type: (Union[List[UserAzure], UserAzure], bool, bool) -> None
 	if not users:
 		print("None.")
 		return
-	if isinstance(users, list):
-		users = users
-	elif isinstance(users, dict) and "odata.metadata" in users and users["odata.metadata"].endswith("@Element"):
+	if isinstance(users, UserAzure):
 		users = [users]
-	else:
-		users = users["value"]
+	elif isinstance(users, list):
+		users = users
 	for user in users:
+		assert isinstance(user, UserAzure)
 		print(u"objectType: {0} objectId: {1} accountEnabled: {2} displayName: '{3}'".format(
-			user["objectType"],
-			user["objectId"],
-			user["accountEnabled"],
-			user["displayName"])
+			"user",
+			user.id,
+			user.accountEnabled,
+			user.displayName)
 		)
 		if short:
 			pass
@@ -192,26 +210,26 @@ def print_users(users, complete=False, short=False):
 			print("")
 		else:
 			for attr in ["accountEnabled", "displayName", "mail", "odata.type", "otherMails", "userPrincipalName"]:
-				if attr in user:
-					print(u"      {0}: {1}".format(attr, user[attr]))
+				if hasattr(user, attr):
+					print(u"      {0}: {1}".format(attr, getattr(user, attr)))
 				else:
 					print("      no attr {0}".format(attr))
 			print("      assignedPlans:")
-			for plan in user["assignedPlans"]:
+			for plan in user.assignedPlans:
 				print(u"            service: {0} \t capabilityStatus: {1}".format(
 					plan["service"],
 					plan["capabilityStatus"]
 				))
-			if not user["assignedPlans"]:
+			if not user.assignedPlans:
 				print("            None")
 			print("      provisionedPlans:")
-			for plan in user["provisionedPlans"]:
+			for plan in user.provisionedPlans:
 				print(u"            service: {0} \t capabilityStatus: {1} \t provisioningStatus: {2}".format(
 					plan["service"],
 					plan["capabilityStatus"],
 					plan["provisioningStatus"]
 				))
-			if not user["provisionedPlans"]:
+			if not user.provisionedPlans:
 				print("            None")
 
 
@@ -226,17 +244,20 @@ def azure_group_args():
 	)
 
 
-def azure_user_args(azure_handler, minimal=True):
+def azure_user_args(core, minimal=True):
+	# type: (MSGraphApiCore, bool) -> Dict[str, Any]
 	local_part_email = uts.random_username()
-	domain = azure_handler.get_verified_domain_from_disk()
+	domains = core.list_verified_domains()["value"]
+	assert len(domains) > 0, "Verified domains is empty"
+	domain = domains[0]["id"]
 	res = dict(
 		accountEnabled=True,
 		displayName=uts.random_string(),
-		immutableId=base64.b64encode(uts.random_string().encode("UTF-8")).decode("ASCII"),
+		onPremisesImmutableId=base64.b64encode(uts.random_string().encode("UTF-8")).decode("ASCII"),
 		mailNickname=local_part_email,
 		passwordProfile=dict(
-			password=azure_handler.create_random_pw(),
-			forceChangePasswordNextLogin=False
+			password=create_random_pw(),
+			forceChangePasswordNextSignIn=False
 		),
 		userPrincipalName="{0}@{1}".format(local_part_email, domain)
 	)
@@ -422,21 +443,23 @@ def setup_logging():
 	return logger
 
 
-def setup_externally_configured_adconnections():
+def setup_externally_configured_adconnections(logger):
 	try:
 		if not os.path.exists("/etc/univention-office365/o365domain"):
-			AzureADConnectionHandler.create_new_adconnection("o365domain", restart_listener=False)
-		if not AzureAuth.is_initialized("o365domain"):
-			newconf_dir = AzureADConnectionHandler.get_conf_path("CONFDIR", "o365domain")
+			AccountConnector.create_new_adconnection(logger, "o365domain", restart_listener=False)
+		account = AzureAccount("o365domain", lazy_load=True)
+		if not account.is_initialized():
+			newconf_dir = account.conf_dirs.get("CONFDIR")
 			srcpath = "/etc/univention-office365/o365-dev-univention-de"
 			shutil.rmtree(newconf_dir, ignore_errors=True)
 			shutil.copytree(srcpath, newconf_dir)
 			ucrv_set = 'office365/adconnection/alias/o365domain=initialized'
 			handler_set([ucrv_set])
 		if not os.path.exists("/etc/univention-office365/azuretestdomain"):
-			AzureADConnectionHandler.create_new_adconnection("azuretestdomain", restart_listener=False)
-		if not AzureAuth.is_initialized("azuretestdomain"):
-			newconf_dir = AzureADConnectionHandler.get_conf_path("CONFDIR", "azuretestdomain")
+			AccountConnector.create_new_adconnection(logger, "azuretestdomain", restart_listener=False)
+		account = AzureAccount("azuretestdomain", lazy_load=True)
+		if not account.is_initialized():
+			newconf_dir = account.conf_dirs.get("CONFDIR")
 			srcpath = "/etc/univention-office365/u-azure-test-de"
 			shutil.rmtree(newconf_dir, ignore_errors=True)
 			shutil.copytree(srcpath, newconf_dir)
@@ -457,14 +480,14 @@ def setup_externally_configured_adconnections():
 	return True
 
 
-def remove_externally_configured_adconnections():
-	try:
-		if AzureAuth.is_initialized("o365domain"):
-			AzureADConnectionHandler.remove_adconnection("o365domain")
-		if AzureAuth.is_initialized("azuretestdomain"):
-			AzureADConnectionHandler.remove_adconnection("azuretestdomain")
-	except Exception:
-		return False
+def remove_externally_configured_adconnections(logger):
+	account = AzureAccount("o365domain")
+	account_connector = AccountConnector(logger)
+	if account.is_initialized():
+		account_connector.remove_adconnection("o365domain")
+	account = AzureAccount("azuretestdomain")
+	if account.is_initialized():
+		account_connector.remove_adconnection("azuretestdomain")
 	return True
 
 
@@ -552,11 +575,12 @@ def check_user_location(office_listener, user_id, ucr_usageLocation, fail_msg):
 	return azure_user
 
 
-def check_user_id_from_azure(office_listener, adconnection_alias, user_dn, fail_msg=None):
+def check_user_id_from_azure(adconnection_alias, user_dn, fail_msg=None):
 	fail_msg = fail_msg or "User was not created properly (no UniventionOffice365ObjectID)."
 	print("*** Checking that user was created (UniventionOffice365ObjectID in UDM object)...")
-	udm_user = office_listener.udm.get_udm_user(user_dn)
-	user_id = Office365Listener.decode_o365data(udm_user.get("UniventionOffice365Data"))[adconnection_alias]['objectId']
+	udm_user = UDMOfficeUser({}, None, dn=user_dn)
+	with udm_user.set_current_alias(adconnection_alias):
+		user_id = udm_user.azure_object_id
 	if not user_id:
 		utils.fail(fail_msg)
 	return user_id

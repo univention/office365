@@ -14,7 +14,7 @@ from univention.office365.ucr_helper import UCRHelper
 
 # TODO move to UCRHelper
 from univention.office365.udm_helper import UDMHelper
-
+from univention.office365.utils.utils import listener_restart
 
 '''
  # Connections to Azure
@@ -134,12 +134,12 @@ class ConnectionsPool(UserDict):
 		self[alias] = Connection(new_account["adconnection_id"], new_account)
 
 		# update in udm directory
-		UDMHelper.create_udm_adconnection(alias, description)
+		UDMHelper().create_udm_adconnection(alias, description)
 
 		# set the needed variable in UCR for UMC
 		UCRHelper.configure_wizard_for_adconnection(alias)
 		if restart_listener:
-			utils.listener_restart()
+			listener_restart()
 
 	def rename(self, old_alias, new_alias):
 		# type: (str, str) -> None
@@ -164,7 +164,7 @@ class ConnectionsPool(UserDict):
 		shutil.move(old_adconnection_path, new_adconnection_path)
 
 		UCRHelper.rename_adconnection(old_adconnection_path, new_adconnection_path)
-		utils.listener_restart()
+		listener_restart()
 
 		self.connections[new_alias] = self.connections[old_alias]
 		del self.connections[old_alias]
@@ -180,10 +180,10 @@ class ConnectionsPool(UserDict):
 		if not os.path.exists(target_path):
 			self.logger.info('Configuration files for the Azure AD connection in %s do not exist. Removing Azure AD connection anyway...', target_path)
 
-		UDMHelper.remove_udm_adconnection(alias)
+		UDMHelper().remove_udm_adconnection(alias)
 		shutil.rmtree(target_path)
 		UCRHelper.remove_adconnection(alias)
-		utils.listener_restart()
+		listener_restart()
 
 
 
@@ -209,16 +209,17 @@ class AccountConnector(object):
 		return res
 
 	# Only called by the script manage_adconnections
-	def create_new_adconnection(self, adconnection_alias, make_default=False, description="", restart_listener=True):
-		# type: (str, bool, str, bool) -> None
+	@staticmethod
+	def create_new_adconnection(logger, adconnection_alias, make_default=False, description="", restart_listener=True):
+		# type: (Logger, str, bool, str, bool) -> None
 		aliases = UCRHelper.get_adconnection_aliases()
 		if adconnection_alias in aliases:
-			self.logger.error('Azure AD connection alias %s is already listed in UCR %s.', adconnection_alias, UCRHelper.adconnection_alias_ucrv)
+			logger.error('Azure AD connection alias %s is already listed in UCR %s.', adconnection_alias, UCRHelper.adconnection_alias_ucrv)
 			return None
 		new_account = AzureAccount(adconnection_alias, lazy_load=True)
 		target_path = new_account.conf_dirs['CONFDIR']
 		if os.path.exists(target_path):
-			self.logger.error('Path %s already exists, but no UCR configuration for the Azure AD connection was found.', target_path)
+			logger.error('Path %s already exists, but no UCR configuration for the Azure AD connection was found.', target_path)
 			return None
 
 		# Create de needed files
@@ -235,12 +236,12 @@ class AccountConnector(object):
 		UCRHelper.set_ucr_for_new_connection(adconnection_alias, make_default)
 
 		# update in udm directory
-		UDMHelper.create_udm_adconnection(adconnection_alias, description)
+		UDMHelper().create_udm_adconnection(adconnection_alias, description)
 
 		# set the needed variable in UCR for UMC
 		UCRHelper.configure_wizard_for_adconnection(adconnection_alias)
 		if restart_listener:
-			utils.listener_restart()
+			listener_restart()
 
 	def rename_adconnection(self, old_adconnection_alias, new_adconnection_alias):
 		# type: (str, str) -> None
@@ -263,7 +264,7 @@ class AccountConnector(object):
 		shutil.move(old_adconnection_path, new_adconnection_path)
 
 		UCRHelper.rename_adconnection(old_adconnection_path, new_adconnection_path)
-		utils.listener_restart()
+		listener_restart()
 
 	def remove_adconnection(self, adconnection_alias):
 		# type: (str) -> None
@@ -277,7 +278,7 @@ class AccountConnector(object):
 		if not os.path.exists(target_path):
 			self.logger.info('Configuration files for the Azure AD connection in %s do not exist. Removing Azure AD connection anyway...', target_path)
 
-		UDMHelper.remove_udm_adconnection(adconnection_alias)
+		UDMHelper().remove_udm_adconnection(adconnection_alias)
 		shutil.rmtree(target_path)
 		UCRHelper.remove_adconnection(adconnection_alias)
-		utils.listener_restart()
+		listener_restart()

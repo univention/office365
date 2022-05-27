@@ -104,8 +104,10 @@ class AzureAccount(UserDict):
 		ids_json = JsonStorage(self.conf_dirs["IDS_FILE"]).read()
 		# TODO: remove this when the old API is not mantained anymore
 		# TODO: add to migration script
-		ids_json['application_id'] = ids_json['client_id']  # name has changed with graph!
-		ids_json['directory_id'] = ids_json['adconnection_id']  # also known as 'tenant id'
+		if "client_id" in ids_json:
+			ids_json['application_id'] = ids_json['client_id']  # name has changed with graph!
+		if "adconnection_id" in ids_json:
+			ids_json['directory_id'] = ids_json['adconnection_id']  # also known as 'tenant id'
 		self.update(ids_json)
 
 	@staticmethod

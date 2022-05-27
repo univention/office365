@@ -332,20 +332,25 @@ class UserAzure(AzureObject):
 		# type: ('AzureObject') -> None
 		""""""
 		data = (self - other).get_not_none_values_as_dict()
-		can_only_be_created_not_modified = ["mobile", "passwordProfile"]
+		can_only_be_created_not_modified = ["mobile", "passwordProfile", "id", "assignedLicenses"]
 		for attrib in can_only_be_created_not_modified:
 			if attrib in data:
 				# read text at beginning delete_user()
 				del data[attrib]
-		self._core.modify_user(self.id, data)
-		self._update_from_dict(data)
+		print("="*50)
+		print(self.id or other.id)
+		print(data)
+		print("="*50)
+		if data:
+			self._core.modify_user(self.id or other.id, data)
+			self._update_from_dict(data)
 
 	# TODO update user with the response ??
 
 	def deactivate(self, rename=False):
 		# type: (bool) -> None
 		""""""
-		modifications_user = UserAzure(assignedLicenses=[], accountEnabled=False, otherMails=[])
+		modifications_user = UserAzure(accountEnabled=False, otherMails=[])
 		if rename:
 			if re.match(r'^ZZZ_deleted_.+_.+', self.userPrincipalName):
 				# this shouldn't happen
@@ -362,8 +367,12 @@ class UserAzure(AzureObject):
 		groups = self._core.member_of(self.id)
 		for group in groups["value"]:
 			self._core.remove_group_member(group["id"], self.id)
-		for _license in self.assignedLicenses:
-			self.remove_license(_license["skuId"])
+		for _license in self.get_assignedLicenses():
+			self.remove_license(_license)
+
+	def get_assignedLicenses(self):
+		for _license in self._core.get_user(self.id, selection="assignedLicenses")["assignedLicenses"]:
+			yield SubscriptionAzure(skuId=_license["skuId"])
 
 	def reactivate(self, rename=False):
 		# type: (bool) -> None
@@ -372,7 +381,7 @@ class UserAzure(AzureObject):
 
 	@classmethod
 	def get(cls, core, oid):
-		# type: (MSGraphApiCore, str) -> 'AzureObject'
+		# type: (MSGraphApiCore, str) -> UserAzure
 		""""""
 		user = cls()
 		attrs = [x.name for x in attr.fields(cls) if x.name not in ["mailboxSettings"]]
@@ -534,7 +543,7 @@ class GroupAzure(AzureObject):
 
 	@classmethod
 	def get(cls, core, oid):
-		# type: (MSGraphApiCore, str) -> 'AzureObject'
+		# type: (MSGraphApiCore, str) -> GroupAzure
 		""""""
 		attrs = [x.name for x in attr.fields(cls) if x.name not in ["hasMembersWithLicenseErrors", "allowExternalSenders", "autoSubscribeNewMembers", "hideFromAddressLists", "hideFromOutlookClients", "isSubscribedByMail", "unseenCount"]]
 		response = core.get_group(group_id=oid, selection=",".join(attrs))

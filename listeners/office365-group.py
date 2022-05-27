@@ -4,10 +4,11 @@ import univention.listener
 
 from univention.office365.connector.connector import GroupConnector
 from univention.office365.ucr_helper import UCRHelper
+from univention.office365.udm_helper import UDMHelper
 from univention.office365.udmwrapper.udmobjects import UDMOfficeGroup
 from univention.office365.logging2udebug import get_logger
 
-logger = get_logger("office365", "o365")
+logger = get_logger("office365", "o365-group")
 
 connector = GroupConnector(logger=logger)
 
@@ -17,7 +18,7 @@ class ListenerModuleTemplate(univention.listener.ListenerModuleHandler):
 	class Configuration(object):
 		name = 'office365-group'
 		description = 'sync groups to office 365'
-		if UCRHelper.group_sync:
+		if not UCRHelper.group_sync:
 			ldap_filter = '(entryCSN=)'  # not matching anything, evaluated by UDL filter implementation
 			logger.warn("office 365 group listener deactivated by UCR office365/groups/sync")
 		elif connector.has_initialized_connections():
@@ -32,6 +33,10 @@ class ListenerModuleTemplate(univention.listener.ListenerModuleHandler):
 		self.logger = logger
 		self.connector = connector
 		super(ListenerModuleTemplate, self).__init__(args, kwargs)
+
+	def pre_run(self):
+		if self._ldap_credentials:
+			UDMHelper.ldap_cred = self._ldap_credentials
 
 	def create(self, dn, new):
 		# type:  (str, Dict[str, List[bytes]]) -> None

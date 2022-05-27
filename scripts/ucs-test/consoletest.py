@@ -213,7 +213,7 @@ if __name__ == "__main__":
 					"immutableId": base64.b64encode(str(random.randint(100000000, 999999999)).encode("ASCII")).decode("ASCII"),
 					"passwordProfile": {
 						"password": "univention.99",
-						"forceChangePasswordNextLogin": False},
+						"forceChangePasswordNextSignIn": False},
 					"userPrincipalName": "{0}@{1}".format(name, core.account.get_domain())}
 				new_user = UserAzure(**attributes)
 				new_user.set_core(core)

@@ -22,7 +22,7 @@ adconnection2 = uts.random_username()
 adconnection3 = uts.random_username()
 
 for adconnection in (adconnection1, adconnection2, adconnection3):
-	AzureADConnectionHandler.create_new_adconnection(adconnection)
+	AzureADConnectionHandler.create_new_adconnection(logger, adconnection)
 	CONFDIR = AzureADConnectionHandler.get_conf_path("CONFDIR", adconnection)
 	print('*** adconnection={!r} CONFDIR={!r}'.format(adconnection, CONFDIR))
 	# os.mkdir(CONFDIR)
