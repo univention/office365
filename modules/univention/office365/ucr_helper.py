@@ -139,6 +139,7 @@ class UCRHelperC(ConfigRegistry):
 		return res
 	
 	def get_usage_location(self):
+		self.load()  # TODO set load as decorator
 		res = self.get(self.usage_location_ucrv) or self.get(self.ssl_country_ucrv) 
 		if not res or len(res) != 2:
 			raise RuntimeError("Invalid usageLocation '{}' - user cannot be created.".format(res))

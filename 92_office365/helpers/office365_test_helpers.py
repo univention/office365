@@ -617,12 +617,13 @@ def azure_user_enabled(office_listener, user_id):
 	return azure_user
 
 
-def check_azure_user_change(office_listener, user_id, attribute_name, attribute_value):
+def check_azure_user_change(core, user_id, attribute_name, attribute_value):
 	print("*** Checking value of usageLocation...")
-	azure_user = office_listener.ah.list_users(objectid=user_id)
-	if not azure_user[attribute_name] == attribute_value:
+	azure_user = UserAzure.get(core, user_id)
+	if getattr(azure_user, attribute_name) != attribute_value:
 		utils.fail("'{}' was not correctly set (is: {}, should be: {}).".format(
-			attribute_name, azure_user[attribute_name], attribute_value))
+			attribute_name, getattr(azure_user, attribute_name), attribute_value))
+		raise
 
 
 def check_user_was_deleted(office_listener, user_id):
