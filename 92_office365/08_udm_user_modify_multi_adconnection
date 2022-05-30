@@ -61,7 +61,7 @@ with utils.AutomaticListenerRestart():
 					"office365/attributes/mapping/displayName=displayName",
 					"office365/attributes/mapping/employeeType=jobTitle",
 					"office365/attributes/mapping/givenName=givenName",
-					"office365/attributes/mapping/mobile=mobile",
+					"office365/attributes/mapping/mobile=mobilePhone",
 					"office365/attributes/mapping/mail=otherMails",
 					"office365/attributes/mapping/mailAlternativeAddress=otherMails",
 					"office365/attributes/mapping/mailPrimaryAddress=otherMails",
@@ -70,7 +70,7 @@ with utils.AutomaticListenerRestart():
 					"office365/attributes/mapping/st=usageLocation",
 					"office365/attributes/mapping/street=streetAddress",
 					"office365/attributes/mapping/sn=surname",
-					"office365/attributes/mapping/telephoneNumber=telephoneNumber",
+					"office365/attributes/mapping/telephoneNumber=businessPhones",
 					"office365/attributes/sync=l,st,displayName,employeeType,givenName,mailPrimaryAddress,mobile,mailAlternativeAddress,mail,postalCode,roomNumber,st,street,sn,telephoneNumber",
 					"office365/debug/werror=yes",
 				])

@@ -578,6 +578,9 @@ class UserConnector(Connector):
 					else:
 						data[azure_key].append(value)
 				else:
+					self.logger.error("="*50)
+					self.logger.error("Key: %r Value: %r Type: %r Expected_type: %r", azure_key, value, type(value), user_azure_fields.get(azure_key))
+					self.logger.error("="*50)
 					if not isinstance(value, user_azure_fields.get(azure_key)):
 						old_value = value
 						if hasattr(value, "__len__"):
@@ -605,7 +608,7 @@ class UserConnector(Connector):
 									displayName=data.get("displayName","no name"),
 									usageLocation=udm_user.get("country"), )
 		if set_password:
-			mandatory_attributes.update(dict(passwordProfile=dict(password=create_random_pw(), forceChangePasswordNextSignIn=False)))
+			mandatory_attributes.update(dict(passwordProfile=dict(password=create_random_pw(), forceChangePasswordNextSignInWithMfa=False)))
 		data.update(mandatory_attributes)
 		if len(data.get("businessPhones", [])) > 1:
 			data["businessPhones"] = [data["businessPhones"][0]]

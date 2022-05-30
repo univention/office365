@@ -46,7 +46,7 @@ from types import TracebackType
 import univention.admin.syntax as udm_syntax
 import univention.testing.strings as uts
 import univention.testing.utils as utils
-from typing import Any, Dict, List, Type, Union
+from typing import Any, Dict, List, Type, Union, Tuple
 
 from univention.config_registry import handler_set
 
@@ -70,25 +70,25 @@ blacklisted_ul = ["SD", "SY", "KP", "CU", "IR"]  # some usageLocations are not v
 usage_locations_code = list(set(x[0] for x in udm_syntax.Country.choices) - set(blacklisted_ul))
 
 udm2azure = dict(
-	firstname=lambda x: itemgetter("givenName")(x),
-	lastname=lambda x: itemgetter("surname")(x),
+	firstname=lambda x: x.givenName,
+	lastname=lambda x: x.surname,
 	set=dict(
-		city=lambda x: itemgetter("city")(x),
-		country=lambda x: itemgetter("usageLocation")(x),
-		displayName=lambda x: itemgetter("displayName")(x),
-		employeeType=lambda x: itemgetter("jobTitle")(x),
-		mailPrimaryAddress=lambda x: itemgetter("otherMails")(x),
-		postcode=lambda x: itemgetter("postalCode")(x),
-		roomNumber=lambda x: itemgetter("officeLocation")(x),
-		street=lambda x: itemgetter("streetAddress")(x)
+		city=lambda x: x.city,
+		country=lambda x: x.usageLocation,
+		displayName=lambda x: x.displayName,
+		employeeType=lambda x: x.jobTitle,
+		mailPrimaryAddress=lambda x: x.otherMails,
+		postcode=lambda x: x.postalCode,
+		roomNumber=lambda x: x.officeLocation,
+		street=lambda x: x.streetAddress
 	),
 	append=dict(
-		mailAlternativeAddress=lambda x: itemgetter("otherMails")(x),
-		mobileTelephoneNumber=lambda x: itemgetter("mobile")(x),
-		phone=lambda x: itemgetter("telephoneNumber")(x)
+		mailAlternativeAddress=lambda x: x.otherMails,
+		mobileTelephoneNumber=lambda x: x.mobilePhone,
+		phone=lambda x: x.businessPhones,
 	)
 )
-udm2azure["append"]["e-mail"] = lambda x: itemgetter("otherMails")(x)
+udm2azure["append"]["e-mail"] = lambda x: x.otherMails
 
 listener_attributes_data = dict(
 	anonymize=[],
@@ -105,13 +105,13 @@ listener_attributes_data = dict(
 		mail="otherMails",
 		mailAlternativeAddress="otherMails",
 		mailPrimaryAddress="mail",
-		mobile="mobile",
+		mobile="mobilePhone",
 		postalCode="postalCode",
 		roomNumber="officeLocation",
 		sn="surname",
 		st="usageLocation",
 		street="streetAddress",
-		telephoneNumber="telephoneNumber",
+		telephoneNumber="businessPhones",
 	),
 	never=[],
 	static=[],
@@ -257,7 +257,7 @@ def azure_user_args(core, minimal=True):
 		mailNickname=local_part_email,
 		passwordProfile=dict(
 			password=create_random_pw(),
-			forceChangePasswordNextSignIn=False
+			forceChangePasswordNextSignInWithMfa=False
 		),
 		userPrincipalName="{0}@{1}".format(local_part_email, domain)
 	)
@@ -277,7 +277,7 @@ def azure_user_args(core, minimal=True):
 			usageLocation=random.choice(usage_locations_code),
 			streetAddress=uts.random_string(),
 			surname=uts.random_string(),
-			telephoneNumber=uts.random_string(),
+			businessPhones=uts.random_string(),
 		))
 	return res
 
@@ -369,9 +369,10 @@ def create_team_member(udm, ucr, alias, group_dn=None):
 
 
 def check_udm2azure_user(udm_args, azure_user, complete=True):
+	# type: (Dict[str, Any], UserAzure, bool) -> Tuple[bool, List[Tuple[str,str,str]]]
 	res = list()
 	fail = False
-	for k, v in [("firstname", udm2azure["firstname"]), ("lastname", udm2azure["lastname"])]:
+	for k, from_azure in [("firstname", udm2azure["firstname"]), ("lastname", udm2azure["lastname"])]:
 		try:
 			udm_value = udm_args[k]
 		except KeyError:
@@ -379,12 +380,12 @@ def check_udm2azure_user(udm_args, azure_user, complete=True):
 				fail = True
 				res.append((k, "value was not set", "cannot compare"))
 			continue
-		azure_value = v(azure_user)
+		azure_value = from_azure(azure_user)
 		if udm_value != azure_value:
 			fail = True
 			res.append((k, udm_value, azure_value))
 
-	for k, v in udm2azure["set"].items():
+	for k, from_azure in udm2azure["set"].items():
 		try:
 			udm_value = udm_args["set"][k]
 		except KeyError:
@@ -393,7 +394,7 @@ def check_udm2azure_user(udm_args, azure_user, complete=True):
 				res.append((k, "value was not set", "cannot compare"))
 			continue
 		try:
-			azure_value = v(azure_user)
+			azure_value = from_azure(azure_user)
 		except KeyError:
 			fail = True
 			res.append((k, "value was not set", "cannot compare"))
@@ -406,7 +407,7 @@ def check_udm2azure_user(udm_args, azure_user, complete=True):
 			fail = True
 			res.append((k, udm_value, azure_value))
 
-	for k, v in udm2azure["append"].items():
+	for k, from_azure in udm2azure["append"].items():
 		try:
 			udm_values = udm_args["append"][k]
 		except KeyError:
@@ -414,11 +415,15 @@ def check_udm2azure_user(udm_args, azure_user, complete=True):
 				fail = True
 				res.append((k, "value was not set", "cannot compare"))
 			continue
-		azure_values = v(azure_user)
-		if k in ["mobileTelephoneNumber", "phone"]:
+		azure_values = from_azure(azure_user)
+		if k == "phone":
 			if len(udm_value) == 0:
 				fail = True
 				res.append((k, "value was not set", "cannot compare"))
+			if all([x not in udm_values for x in azure_values]):
+				fail = True
+				res.append((k, udm_value, azure_values))
+		elif k == "mobileTelephoneNumber":
 			if azure_values not in udm_values:
 				fail = True
 				res.append((k, udm_value, azure_values))

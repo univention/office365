@@ -332,7 +332,7 @@ class UserAzure(AzureObject):
 		# type: ('AzureObject') -> None
 		""""""
 		data = (self - other).get_not_none_values_as_dict()
-		can_only_be_created_not_modified = ["mobile", "passwordProfile", "id", "assignedLicenses"]
+		can_only_be_created_not_modified = ["mobilePhone", "passwordProfile", "id", "assignedLicenses"]
 		for attrib in can_only_be_created_not_modified:
 			if attrib in data:
 				# read text at beginning delete_user()
@@ -393,7 +393,7 @@ class UserAzure(AzureObject):
 	def reset_password(self):
 		# type: () -> None
 		# self._core.reset_password(self.id, self.passwordProfile["password"], create_random_pw())
-		self.update(UserAzure(passwordProfile=dict(password=create_random_pw(), forceChangePasswordNextSignIn=False)))
+		self.update(UserAzure(passwordProfile=dict(password=create_random_pw(), forceChangePasswordNextSignInWithMfa=False)))
 		# reset the user password to a random string, to reset the attribute when
 		# the last userpassword change happened, pwdLastSet. Bug #49699
 		# "Either delegated scope User.ReadWrite.All or Directory.AccessAsUser.All is required to reset a user's password."

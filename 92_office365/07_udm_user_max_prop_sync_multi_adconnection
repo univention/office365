@@ -15,16 +15,19 @@ from univention.config_registry import handler_set, handler_unset
 
 from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user, setup_logging, check_user_id_from_azure
 from helpers.retry import retry_call
-from univention.office365.listener import Office365Listener
-from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
-
+from univention.office365.microsoft.account import AzureAccount
+from univention.office365.microsoft.core import MSGraphApiCore
+from univention.office365.microsoft.objects.azureobjects import UserAzure
+from univention.office365.ucr_helper import UCRHelper
 
 logger = setup_logging()
-adconnection_aliases = AzureADConnectionHandler.get_adconnection_aliases()
-initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAuth.is_initialized(adconnection_alias)]
+adconnection_aliases = UCRHelper.get_adconnection_aliases()
+initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAccount(adconnection_alias).is_initialized()]
 
 print("*** adconnection_aliases={!r}.".format(adconnection_aliases))
 print("*** initialized_adconnections={!r}.".format(initialized_adconnections))
+
+initialized_adconnections = ["o365domain"]  # TODO Fixme remove this line and check that the azuretestdomain has the necessary permissions
 
 with utils.AutomaticListenerRestart():
 	with udm_test.UCSTestUDM() as udm:
@@ -36,7 +39,8 @@ with utils.AutomaticListenerRestart():
 			for adconnection_alias in initialized_adconnections:
 				print("*** Running for adconnection_alias={!r}.".format(adconnection_alias))
 
-				ol = Office365Listener(_listener(), "ucs-test", listener_attributes_data, {}, "dn", adconnection_alias)
+				core = MSGraphApiCore(AzureAccount(adconnection_alias))
+				# ol = Office365Listener(_listener(), "ucs-test", listener_attributes_data, {}, "dn", adconnection_alias)
 
 				print("*** Setting UCRs for maximum property sync...")
 				to_unset = ["office365/attributes/anonymize", "office365/attributes/never",
@@ -48,7 +52,7 @@ with utils.AutomaticListenerRestart():
 					"office365/attributes/mapping/displayName=displayName",
 					"office365/attributes/mapping/employeeType=jobTitle",
 					"office365/attributes/mapping/givenName=givenName",
-					"office365/attributes/mapping/mobile=mobile",
+					"office365/attributes/mapping/mobile=mobilePhone",
 					"office365/attributes/mapping/mail=otherMails",
 					"office365/attributes/mapping/mailAlternativeAddress=otherMails",
 					"office365/attributes/mapping/mailPrimaryAddress=otherMails",
@@ -57,7 +61,7 @@ with utils.AutomaticListenerRestart():
 					"office365/attributes/mapping/st=usageLocation",
 					"office365/attributes/mapping/street=streetAddress",
 					"office365/attributes/mapping/sn=surname",
-					"office365/attributes/mapping/telephoneNumber=telephoneNumber",
+					"office365/attributes/mapping/telephoneNumber=businessPhones",
 					"office365/attributes/sync=l,st,displayName,employeeType,givenName,mailPrimaryAddress,mobile,mailAlternativeAddress,mail,postalCode,roomNumber,st,street,sn,telephoneNumber",
 					"office365/debug/werror=yes",
 				])
@@ -71,10 +75,10 @@ with utils.AutomaticListenerRestart():
 				user_dn, username = udm.create_user(check_for_drs_replication=True, **user_args)
 
 				fail_msg = "User was not created properly (no O365Data->adconnection_alias->UniventionOffice365ObjectID)."
-				user_id = retry_call(check_user_id_from_azure, fargs=[ol, adconnection_alias, user_dn, fail_msg], tries=5, delay=2)
+				user_id = retry_call(check_user_id_from_azure, fargs=[adconnection_alias, user_dn, fail_msg], tries=5, delay=2)
 
 				print("*** Checking sync of all properties...")
-				azure_user = ol.ah.list_users(objectid=user_id)
+				azure_user = UserAzure.get(core, user_id)
 				success, errors = check_udm2azure_user(user_args, azure_user, complete=True)
 				if success:
 					print("*** all attributes were synced correctly for adconnection_alias={!r}".format(adconnection_alias))
