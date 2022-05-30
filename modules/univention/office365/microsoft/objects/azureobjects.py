@@ -315,6 +315,12 @@ class UserAzure(AzureObject):
 							# update the azure user with the new values
 							user_azure.update(self)
 							return
+						elif d.get("code") == "ObjectConflict" and d.get("target") == "onPremisesImmutableId":
+							user_azure = self.get_by_onPremisesImmutableID(self._core, self.onPremisesImmutableId)
+							self.id = user_azure.id
+							# update the azure user with the new values
+							user_azure.update(self)
+							return
 				# Only if the user fails to be created and don't exist in azure either
 				raise
 		self._update_from_dict(response)
@@ -389,6 +395,17 @@ class UserAzure(AzureObject):
 		user._update_from_dict(response)
 		user.set_core(core)
 		return user
+
+	@classmethod
+	def get_by_onPremisesImmutableID(cls, core, immutableId):
+		# type: (MSGraphApiCore, str) -> Optional[UserAzure]
+		response = core.list_users(params="$filter=onPremisesImmutableID eq '{}'".format(immutableId))
+		users_value = response.get("value", [])
+		if len(users_value) == 1:
+			user = UserAzure(**users_value[0])
+			user.set_core(core)
+			return user
+		return
 
 	def reset_password(self):
 		# type: () -> None

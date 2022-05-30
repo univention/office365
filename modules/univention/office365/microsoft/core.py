@@ -890,12 +890,12 @@ class MSGraphApiCore:
 	def list_groups_by_displayname(self, name):
 		# type: (str) -> Dict
 		"""List all groups"""
-		return self.list_groups(params="?$filter=displayName eq '{}'".format(name))
+		return self.list_groups(params="$filter=displayName eq '{}'".format(name))
 
-	def list_users(self):
-		# type: () -> Dict
+	def list_users(self, params=None):
+		# type: (str) -> Dict
 		"""List all users"""
-		return self._call_graph_api('GET', URLs.users(), expected_status=[200], page=True)
+		return self._call_graph_api('GET', URLs.users(params=params), expected_status=[200], page=True)
 
 	def list_verified_domains(self):
 		# type: () -> Dict
