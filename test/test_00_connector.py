@@ -56,7 +56,7 @@ UCRHelper.get_service_plan_names = mock.MagicMock(return_value=[spn.strip() for 
 # "office365/attributes/mapping/displayName=displayName",
 # "office365/attributes/mapping/employeeType=jobTitle",
 # "office365/attributes/mapping/givenName=givenName",
-# "office365/attributes/mapping/mobile=mobile",
+# "office365/attributes/mapping/mobile=mobilePhone",
 # "office365/attributes/mapping/mail=otherMails",
 # "office365/attributes/mapping/mailAlternativeAddress=otherMails",
 # "office365/attributes/mapping/mailPrimaryAddress=otherMails",
@@ -86,7 +86,7 @@ def ucr_helper():
 				"displayName": "displayName",
 				"employeeType": "jobTitle",
 				"givenName": "givenName",
-				"mobile": "mobile",
+				"mobile": "mobilePhone",
 				"mail": "otherMails",
 				"mailAlternativeAddress": "otherMails",
 				"mailPrimaryAddress": "otherMails",
@@ -95,7 +95,7 @@ def ucr_helper():
 				"st": "usageLocation",
 				"street": "streetAddress",
 				"sn": "surname",
-				"telephoneNumber": "telephoneNumber",
+				"telephoneNumber": "businessPhones",
 			},
 			{
 				"roomNumber": "asdf",
@@ -130,7 +130,7 @@ class TestConnectorAttributes:
 		assert a.never == {"mail", "postalCode"}
 		assert a.sync == {"l", "st", "displayName", "employeeType", "givenName", "mailPrimaryAddress", "mobile", "mailAlternativeAddress", "mail", "postalCode", "roomNumber", "st", "street", "sn", "telephoneNumber"}
 		assert a.static == {"roomNumber": "asdf", "postalCode": "asdf", "l": "asdf"}
-		assert a.mapping == {"l": "city", "displayName": "displayName", "employeeType": "jobTitle", "givenName": "givenName", "mobile": "mobile", "mail": "otherMails", "mailAlternativeAddress": "otherMails", "mailPrimaryAddress": "otherMails", "postalCode": "postalCode",
+		assert a.mapping == {"l": "city", "displayName": "displayName", "employeeType": "jobTitle", "givenName": "givenName", "mobile": "mobilePhone", "mail": "otherMails", "mailAlternativeAddress": "otherMails", "mailPrimaryAddress": "otherMails", "postalCode": "postalCode",
 							 "roomNumber": "officeLocation", "st": "usageLocation", "street": "streetAddress", "sn": "surname", "telephoneNumber": "telephoneNumber"}
 		assert a.multiple == {'otherMails': ['mail', 'mailAlternativeAddress', 'mailPrimaryAddress']}
 
