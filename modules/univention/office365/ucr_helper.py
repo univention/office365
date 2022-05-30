@@ -12,6 +12,8 @@ class UCRHelperC(ConfigRegistry):
 	adconnection_filter_ucrv = 'office365/adconnection/filter'
 	adconnection_alias_ucrv = 'office365/adconnection/alias/'
 	adconnection_wizard_ucrv = 'office365/adconnection/wizard'
+	usage_location_ucrv = "office365/attributes/usageLocation"
+	ssl_country_ucrv = "ssl/country"
 	office365_migrate_adconnection_ucrv = 'office365/migrate/adconnectionalias'
 	default_adconnection_alias_ucrv = 'office365/defaultalias'
 	default_adconnection_name = "defaultADconnection"
@@ -134,6 +136,12 @@ class UCRHelperC(ConfigRegistry):
 				res_redacted[k] = v.replace(password[0], '*****', 1)
 
 		logger.info('proxy settings: %r', res_redacted)
+		return res
+	
+	def get_usage_location(self):
+		res = self.get(self.usage_location_ucrv) or self.get(self.ssl_country_ucrv) 
+		if not res or len(res) != 2:
+			raise RuntimeError("Invalid usageLocation '{}' - user cannot be created.".format(res))
 		return res
 
 
