@@ -70,7 +70,7 @@ with utils.AutomaticListenerRestart():
 				"office365/attributes/mapping/mailAlternativeAddress=otherMails",
 				"office365/attributes/mapping/mailPrimaryAddress=otherMails",
 				"office365/attributes/mapping/postalCode=postalCode",
-				"office365/attributes/mapping/roomNumber=physicalDeliveryOfficeName",
+				"office365/attributes/mapping/roomNumber=officeLocation",
 				"office365/attributes/mapping/st=usageLocation",
 				"office365/attributes/mapping/street=streetAddress",
 				"office365/attributes/mapping/sn=surname",

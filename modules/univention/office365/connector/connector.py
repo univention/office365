@@ -6,8 +6,9 @@ from logging import Logger
 from typing import List, Mapping, Dict, Set, Any, Optional
 import abc
 import six
-from ldap.filter import filter_format
+import univention.admin
 
+from ldap.filter import filter_format
 from univention.office365.microsoft.account import AzureAccount
 from univention.office365.microsoft.core import MSGraphApiCore
 from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError, AddLicenseError
@@ -108,7 +109,7 @@ class ConnectorAttributes(UserDict):
 
 		ucr = UCRHelper
 
-		self.not_migrated_to_v3 = ucr.is_false(UCRHelper.offic365_migrate_adconnection_ucrv)
+		self.not_migrated_to_v3 = ucr.is_false(UCRHelper.office365_migrate_adconnection_ucrv)
 
 		for attribute in ['anonymize', 'never', 'sync']:
 			setattr(self, attribute, set(UCRHelper.ucr_split_value("office365/attributes/{}".format(attribute))))
@@ -141,19 +142,19 @@ class ConnectorAttributes(UserDict):
 	@property
 	def all(self):
 		# type: () -> Set[str]
-		return (set(self.static) | self.sync | self.anonymize) - self.never
+		return (set(self.static) | self.sync | self.anonymize | set(self.mapping.keys()) | set(self.multiple.keys())) - self.never
 
 	def _sanitize(self):
 		# type: () -> None
 		# check the attributes that are in all but have no mapping and are not system attributes
 		no_mapping = [attribute for attribute in self.all if attribute not in self.mapping.keys() and attribute not in self.system]
 		if no_mapping:
-			self.logger.warn("No mappings for attributes %r found - ignoring.", no_mapping)
+			self.logger.warning("No mappings for attributes %r found - ignoring.", no_mapping)
 			[self.anonymize, self.static, self.sync] = utils.remove_elements_from_containers(containers=[self.anonymize, self.static, self.sync], elements=no_mapping)
 
 		dangerous_attrs = ["univentionOffice365ObjectID", "UniventionOffice365Data"]
 		if any([a in dangerous_attrs for a in self.all]):
-			self.logger.warn("Nice try.")
+			self.logger.warning("Nice try.")
 			[self.sync, self.static, self.anonymize] = utils.remove_elements_from_containers(containers=[self.sync, self.static, self.anonymize], elements=dangerous_attrs)
 
 	def _disjoint_attributes(self):
@@ -194,7 +195,7 @@ class Connector:
 		self.accounts = []  # type: List[AzureAccount]
 		self._load_filtered_accounts()
 		self.cores = {account.alias: MSGraphApiCore(account) for account in self.accounts}  # type: Dict[str, MSGraphApiCore]
-		self.attrs = ConnectorAttributes(self.logger)  # type: ConnectorAttributes
+		self.attrs = ConnectorAttributes(logger=self.logger)  # type: ConnectorAttributes
 
 	def has_initialized_connections(self):
 		# type: () -> bool
@@ -330,9 +331,9 @@ class UserConnector(Connector):
 		users_subscription_profiles = SubscriptionProfile.get_profiles_for_groups(users_group_dns)
 		self.logger.info('SubscriptionProfiles found for %r (%s): %r', udm_user['uid'], udm_user.current_connection_alias, users_subscription_profiles)
 		if not users_subscription_profiles:
-			self.logger.warn('No SubscriptionProfiles: using all available subscriptions (%s).', udm_user.current_connection_alias)
+			self.logger.warning('No SubscriptionProfiles: using all available subscriptions (%s).', udm_user.current_connection_alias)
 			if len(subs_available) > 1:
-				self.logger.warn(msg_multiple_subscriptions)
+				self.logger.warning(msg_multiple_subscriptions)
 			azure_user.add_license(subs_available[0])
 			return
 
@@ -346,7 +347,7 @@ class UserConnector(Connector):
 					subscription_profile.skuId = selected_subs_sku.skuId
 					subscription_profile_to_use = subscription_profile
 			else:
-				self.logger.warn(
+				self.logger.warning(
 					'Subscription from profile %r (%s) could not be found in the enabled subscriptions in Azure.',
 					subscription_profile, udm_user.current_connection_alias)
 				selected_subs_sku = None
@@ -372,10 +373,13 @@ class UserConnector(Connector):
 		azure_user.add_license(selected_subs_sku, deactivate_plan_ids)
 
 	@staticmethod
-	def prepare_azure_attributes(azure_user):
-		# type: (UserAzure) -> Mapping[str,str]
+	def prepare_azure_attributes(azure_user, to_remove=False):
+		# type: (UserAzure, bool) -> Mapping[str,str]
 		""""""
-		return {"objectId": azure_user.id, "userPrincipalName": azure_user.userPrincipalName}
+		if to_remove:
+			return {"objectId": azure_user.id}
+		else:
+			return {"objectId": azure_user.id, "userPrincipalName": azure_user.userPrincipalName}
 
 	def new_or_reactivate_user(self, udm_object):
 		# type: (UDMOfficeUser) -> None
@@ -388,7 +392,7 @@ class UserConnector(Connector):
 			try:
 				self._assign_subscription(udm_user=udm_object, azure_user=user_azure)
 			except AddLicenseError as exc:
-				self.logger.warn('Could not add license for subscription %r to user %r: %s', exc.user_id, exc.sku_id, exc)
+				self.logger.warning('Could not add license for subscription %r to user %r: %s', exc.user_id, exc.sku_id, exc)
 			user_azure.invalidate_all_tokens()
 		except NoAllocatableSubscriptions:
 			# TODO warning
@@ -440,7 +444,7 @@ class UserConnector(Connector):
 			# https://support.microsoft.com/en-us/kb/3004133
 			# http://stackoverflow.com/questions/31834003/azure-ad-change-user-password-from-custom-app
 			#
-			# So for now use deactivte_user() instead of _delete_objects().
+			# So for now use deactivate_user() instead of _delete_objects().
 			#
 			# TODO: try/except? check if resource not found or deleted ok
 			# user_azure.delete()
@@ -482,7 +486,7 @@ class UserConnector(Connector):
 			with new_object.set_current_alias(alias), old_object.set_current_alias(alias):
 				old_azure = self.parse(old_object)
 				old_azure.deactivate(rename=True)
-				new_object.modify_azure_attributes(None)
+				new_object.modify_azure_attributes(self.prepare_azure_attributes(old_azure, to_remove=True))
 
 		#####
 		# Modify attrs
@@ -551,6 +555,9 @@ class UserConnector(Connector):
 		# build data dict to build AzureObject
 		data = {}
 		user_azure_fields = UserAzure.get_fields()
+		self.logger.error("="*50)
+		self.logger.error(user_azure_fields)
+		self.logger.error("="*50)
 		for udm_key, azure_key in self.attrs.mapping.items():
 			if udm_key in res:
 				value = res.get(udm_key)
@@ -572,7 +579,7 @@ class UserConnector(Connector):
 						data[azure_key].append(value)
 				else:
 					if not isinstance(value, user_azure_fields.get(azure_key)):
-						print(f"Warning not same type {azure_key}: {value} not is a {user_azure_fields.get(azure_key)}")
+						old_value = value
 						if hasattr(value, "__len__"):
 							if len(value) == 0:
 								value = None
@@ -581,6 +588,7 @@ class UserConnector(Connector):
 								value = value[0]
 							else:
 								value = value[0]
+						self.logger.warning("Warning not same type {azure_key}: {old_value} not is a {type}. Taken {new_value}".format(azure_key=azure_key, old_value=old_value, type=user_azure_fields.get(azure_key), new_value=value))
 					if hasattr(value, "__len__"):
 						if len(value) == 0:
 							value = None
@@ -599,6 +607,10 @@ class UserConnector(Connector):
 		if set_password:
 			mandatory_attributes.update(dict(passwordProfile=dict(password=create_random_pw(), forceChangePasswordNextSignIn=False)))
 		data.update(mandatory_attributes)
+		if len(data.get("businessPhones", [])) > 1:
+			data["businessPhones"] = [data["businessPhones"][0]]
+		if "otherMails" in data:
+			data["otherMails"] = list(set(data["otherMails"]))
 		user_azure = UserAzure(**data)
 		user_azure.set_core(core)
 		return user_azure
@@ -617,7 +629,7 @@ class UserConnector(Connector):
 			assert alias in self.cores, "Alias {} not exist".format(alias)
 			user_azure = self.parse(udm_object)
 			user_azure.deactivate(rename=True)
-			udm_object.modify_azure_attributes(None)
+			udm_object.modify_azure_attributes(self.prepare_azure_attributes(user_azure, to_remove=True))
 
 			self.logger.info(
 				"User deactivation success. userPrincipalName: %r objectId: %r dn: %s adconnection: %s",
@@ -700,7 +712,7 @@ class GroupConnector(Connector):
 		group_azure = self.parse(udm_object)
 		group_azure.create_or_modify()
 		udm_object.modify_azure_attributes(self.prepare_azure_attributes(group_azure))
-		self.add_ldap_members_to_azure_group(udm_object, group_azure.id)
+		self.add_ldap_members_to_azure_group(udm_object, group_azure)
 		return group_azure
 
 	def add_ldap_members_to_azure_group(self, udm_object, azure_object):
@@ -712,7 +724,7 @@ class GroupConnector(Connector):
 		:param object_id: Azure object ID of group to add users/groups to
 		:return: None
 		"""
-		self.logger.debug("group_dn=%r object_id=%r adconnection_alias=%r", udm_object.dn, azure_object.id, self.current_connection_alias)
+		self.logger.debug("group_dn=%r object_id=%r adconnection_alias=%r", udm_object.dn, azure_object.id, udm_object.current_connection_alias)
 
 		users_and_groups_to_add = udm_object.get_users_from_ldap()
 
@@ -789,7 +801,7 @@ class GroupConnector(Connector):
 						try:
 							azure_group = GroupAzure.get(self.cores[new_udm_group.current_connection_alias], object_id)
 						except MSGraphError:
-							self.logger.warn("Office365Listener.modify_group() azure group doesn't exist (anymore), creating it instead.")
+							self.logger.warning("Office365Listener.modify_group() azure group doesn't exist (anymore), creating it instead.")
 							azure_group = self._create_group(new_udm_group)
 						# modification_attributes_udm_group = new_udm_group
 
@@ -953,7 +965,7 @@ class GroupConnector(Connector):
 
 	# From: univention.office365.listener.Office365Listener.modify_group
 	def check_and_modify_members(self, old_udm_group, new_udm_group, azure_group):
-		# type: (UDMOfficeGroup, UDMOfficeGroup, UDMOfficeGroup, GroupAzure) -> None
+		# type: (UDMOfficeGroup, UDMOfficeGroup, GroupAzure) -> None
 		alias = new_udm_group.current_connection_alias
 		added_members_dn, removed_members_dn = old_udm_group.members_changes(new_udm_group)
 		self.logger.debug("dn=%r added_members=%r removed_members=%r", old_udm_group.dn, added_members_dn, removed_members_dn)
@@ -987,11 +999,15 @@ class GroupConnector(Connector):
 		for removed_member_dn in removed_members_dn:
 			if removed_member_dn in old_udm_group.get_users():
 				# it's a user
-				udm_user = UDMOfficeUser({}, new_udm_group.ldap_cred, dn=removed_member_dn)
+				try:
+					udm_user = UDMOfficeUser({}, new_udm_group.ldap_cred, dn=removed_member_dn)  # TODO find the way to get azure id without UDMUser maybe with caching the last remove operation
+				except univention.admin.uexceptions.noObject as exc:
+					self.logger.warning("User dn: %r not exist in UDM, aborting remove member.", removed_member_dn)
+					continue
 				if udm_user.azure_object_id:
 					azure_group.remove_member(udm_user.azure_object_id)
 				else:
-					self.logger.warn("Office365Listener.modify_group(), removing members: couldn't figure out object name from dn %r", removed_member_dn)
+					self.logger.warning("Office365Listener.modify_group(), removing members: couldn't figure out object name from dn %r", removed_member_dn)
 			elif removed_member_dn in old_udm_group.get_nested_group():
 				# it's a group
 				# check if this group or any of its nested groups has azure_users
@@ -1003,7 +1019,7 @@ class GroupConnector(Connector):
 				if member_id:
 					azure_group.remove_member(member_id)
 				else:
-					self.logger.warn("Office365Listener.modify_group(), removing members: couldn't figure out object name from dn %r", removed_member_dn)
+					self.logger.warning("Office365Listener.modify_group(), removing members: couldn't figure out object name from dn %r", removed_member_dn)
 			else:
 				raise RuntimeError("Office365Listener.modify_group() {!r} from old[uniqueMember] not in "
 								   "'nestedGroup' or 'users' ({!r}).".format(removed_member_dn, alias))

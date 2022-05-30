@@ -61,7 +61,7 @@ UCRHelper.get_service_plan_names = mock.MagicMock(return_value=[spn.strip() for 
 # "office365/attributes/mapping/mailAlternativeAddress=otherMails",
 # "office365/attributes/mapping/mailPrimaryAddress=otherMails",
 # "office365/attributes/mapping/postalCode=postalCode",
-# "office365/attributes/mapping/roomNumber=physicalDeliveryOfficeName",
+# "office365/attributes/mapping/roomNumber=officeLocation",
 # "office365/attributes/mapping/st=usageLocation",
 # "office365/attributes/mapping/street=streetAddress",
 # "office365/attributes/mapping/sn=surname",
@@ -91,7 +91,7 @@ def ucr_helper():
 				"mailAlternativeAddress": "otherMails",
 				"mailPrimaryAddress": "otherMails",
 				"postalCode": "postalCode",
-				"roomNumber": "physicalDeliveryOfficeName",
+				"roomNumber": "officeLocation",
 				"st": "usageLocation",
 				"street": "streetAddress",
 				"sn": "surname",
@@ -131,7 +131,7 @@ class TestConnectorAttributes:
 		assert a.sync == {"l", "st", "displayName", "employeeType", "givenName", "mailPrimaryAddress", "mobile", "mailAlternativeAddress", "mail", "postalCode", "roomNumber", "st", "street", "sn", "telephoneNumber"}
 		assert a.static == {"roomNumber": "asdf", "postalCode": "asdf", "l": "asdf"}
 		assert a.mapping == {"l": "city", "displayName": "displayName", "employeeType": "jobTitle", "givenName": "givenName", "mobile": "mobile", "mail": "otherMails", "mailAlternativeAddress": "otherMails", "mailPrimaryAddress": "otherMails", "postalCode": "postalCode",
-							 "roomNumber": "physicalDeliveryOfficeName", "st": "usageLocation", "street": "streetAddress", "sn": "surname", "telephoneNumber": "telephoneNumber"}
+							 "roomNumber": "officeLocation", "st": "usageLocation", "street": "streetAddress", "sn": "surname", "telephoneNumber": "telephoneNumber"}
 		assert a.multiple == {'otherMails': ['mail', 'mailAlternativeAddress', 'mailPrimaryAddress']}
 
 	def test__sanitize(self, ucr_helper):
