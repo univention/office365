@@ -79,7 +79,7 @@ udm2azure = dict(
 		employeeType=lambda x: itemgetter("jobTitle")(x),
 		mailPrimaryAddress=lambda x: itemgetter("otherMails")(x),
 		postcode=lambda x: itemgetter("postalCode")(x),
-		roomNumber=lambda x: itemgetter("physicalDeliveryOfficeName")(x),
+		roomNumber=lambda x: itemgetter("officeLocation")(x),
 		street=lambda x: itemgetter("streetAddress")(x)
 	),
 	append=dict(
@@ -107,7 +107,7 @@ listener_attributes_data = dict(
 		mailPrimaryAddress="mail",
 		mobile="mobile",
 		postalCode="postalCode",
-		roomNumber="physicalDeliveryOfficeName",
+		roomNumber="officeLocation",
 		sn="surname",
 		st="usageLocation",
 		street="streetAddress",
@@ -273,7 +273,7 @@ def azure_user_args(core, minimal=True):
 			],
 			mobile=uts.random_string(),
 			postalCode=uts.random_string(),
-			physicalDeliveryOfficeName=uts.random_string(),
+			officeLocation=uts.random_string(),
 			usageLocation=random.choice(usage_locations_code),
 			streetAddress=uts.random_string(),
 			surname=uts.random_string(),

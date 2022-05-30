@@ -3,7 +3,7 @@ import sys
 import time
 from abc import abstractmethod
 import abc
-from typing import List, Dict, Any, Union, Optional
+from typing import List, Dict, Any, Union, Optional, Type
 
 # from dataclasses import dataclass, fields
 import attr
@@ -101,7 +101,7 @@ class AzureObject(metaclass=abc.ABCMeta):
 
 	@classmethod
 	def get_fields(cls):
-		# type: () -> Dict[str, str]
+		# type: () -> Dict[str, Type]
 		return {x.name: x.validator.type[0] for x in attr.fields(cls)}
 
 	def get_not_none_values_as_dict(self):

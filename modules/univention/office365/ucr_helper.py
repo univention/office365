@@ -24,7 +24,7 @@ class UCRHelperC(ConfigRegistry):
 		key = "value1, value2, value3 "
 		returns ["value1", "value2", "value3"]
 		"""
-		return [x.strip() for x in self.get(key).strip().split(",") if x.strip()]
+		return [x.strip() for x in self.get(key, "").strip().split(",") if x.strip()]
 
 	def ucr_entries_to_dict(self, key_pattern):
 		# type: (str) -> Dict

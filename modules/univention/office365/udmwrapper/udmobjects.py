@@ -243,8 +243,9 @@ class UDMOfficeObject(UserDict):
 			# get the old dict of azure data for all connections
 			# update the old dict with the new one
 			old_azure_data.update(new_azure_data)
-		else:
-			old_azure_data.pop(self.current_connection_alias)
+		# else:
+		# 	old_azure_data[self.current_connection_alias] =
+		# 	old_azure_data.pop(self.current_connection_alias)
 		self.udm_object_reference["UniventionOffice365Data"] = UniventionOffice365Data.to_ldap_str(old_azure_data)
 
 	def modify_azure_attributes(self, azure_object_dict):
@@ -451,7 +452,7 @@ class UDMOfficeGroup(UDMOfficeObject):
 		# get all users for the adconnection (ignoring group membership) and compare
 		# with group members to get azure IDs, because it's faster than
 		# iterating (and opening!) lots of UDM objects
-		all_users_lo = self.udm_connector.get_ldap_o365_users(attributes=['univentionOffice365Data'], adconnection_alias=self.adconnection_alias)
+		all_users_lo = self.udm_connector.get_ldap_o365_users(attributes=['univentionOffice365Data'], adconnection_alias=self.current_connection_alias)
 		all_user_dns = set(all_users_lo.keys())
 		member_dns = all_user_dns.intersection(set(self.get_users()))
 
