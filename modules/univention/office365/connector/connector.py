@@ -472,6 +472,17 @@ class UserConnector(Connector):
 			Attrs modify
 		"""
 		# TODO: use some kind of cache for the parsed objects (udm_object => parsed_object)
+		if not old_object.should_sync() and new_object.should_sync():
+			for alias in new_object.aliases():
+				self.new_or_reactivate_user(new_object)
+				return
+		elif old_object.should_sync() and not new_object.should_sync():
+			for alias in old_object.aliases():
+				old_azure = self.parse(old_object)
+				old_azure.deactivate(rename=True)
+				new_object.modify_azure_attributes(self.prepare_azure_attributes(old_azure, to_remove=True))
+				return
+
 		#####
 		# NEW or REACTIVATED account
 		#####

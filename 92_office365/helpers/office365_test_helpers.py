@@ -598,20 +598,23 @@ def check_user_in_group_from_azure(office_listener, group_dn, user_dn):
 		utils.fail("User has groups: %r, expected %r." % (udm_user['groups'], [group_dn]))
 	return udm_user
 
+
 def __is_azure_user_enabled(azure_user):
 	print_users(azure_user, short=True)
-	return azure_user["accountEnabled"]
+	return azure_user.accountEnabled
 
 
-def azure_user_disabled(office_listener, user_id):
-	azure_user = office_listener.ah.list_users(objectid=user_id)
+def azure_user_disabled(core, user_id):
+	# type: (MSGraphApiCore, str) -> UserAzure
+	azure_user = UserAzure.get(core, user_id)
 	if __is_azure_user_enabled(azure_user):
 		utils.fail("Account was not deactivated.")
 	return azure_user
 
 
-def azure_user_enabled(office_listener, user_id):
-	azure_user = office_listener.ah.list_users(objectid=user_id)
+def azure_user_enabled(core, user_id):
+	# type: (MSGraphApiCore, str) -> UserAzure
+	azure_user = UserAzure.get(core, user_id)
 	if not __is_azure_user_enabled(azure_user):
 		utils.fail("Account was not activated.")
 	return azure_user

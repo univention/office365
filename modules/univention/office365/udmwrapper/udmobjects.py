@@ -353,7 +353,7 @@ class UDMOfficeUser(UDMOfficeObject):
 
 	def is_deactivated_locked_or_expired(self):
 		# type: () -> bool
-		return self.deactivated or self.locked or self.is_expired()
+		return bool(int(self.get("disabled"))) or bool(int(self.get("locked"))) or self.is_expired()
 
 	def is_expired(self):
 		# type: () -> bool
@@ -367,6 +367,9 @@ class UDMOfficeUser(UDMOfficeObject):
 	def is_enable(self):
 		# type: () -> bool
 		return bool(int(getattr(self, "UniventionOffice365Enabled", "0")))
+
+	def should_sync(self):
+		return not self.is_deactivated_locked_or_expired() and self.is_enable()
 
 
 class UDMOfficeGroup(UDMOfficeObject):
