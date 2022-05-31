@@ -133,6 +133,8 @@ class UDMOfficeObject(UserDict):
 		self.udm_connector = UDMHelper(ldap_cred)
 		try:
 			self.udm_object_reference = self.udm_connector.get_udm_object(self.MODULE, self.dn, attributes=ldap_fields)
+			if not ldap_fields:
+				self.update(self.udm_object_reference.oldattr)
 		except:
 			self.logger.error("=" * 50)
 			self.logger.error(self.MODULE)
@@ -427,7 +429,6 @@ class UDMOfficeGroup(UDMOfficeObject):
 
 	def is_team(self):
 		# type: () -> bool
-		self.logger.info("udm_object_reference: %r", self.udm_object_reference.__dict__)
 		return bool(int(self.udm_object_reference.get('UniventionMicrosoft365Team', "0")))
 
 	def get_owners_dn(self):

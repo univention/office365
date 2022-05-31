@@ -712,7 +712,6 @@ class GroupConnector(Connector):
 
 				self.logger.info("Created group with displayName: %r (%r) adconnection: %s", group_azure.displayName, group_azure.id, alias)
 				# check if the new group is also a team - and needs to be configured as team
-				self.logger.info("Is team %r", udm_object.is_team())
 				if udm_object.is_team():
 					self.convert_group_to_team(udm_object, group_azure)
 			# TODO: check if we need to add grpup owners to the team here
@@ -948,24 +947,27 @@ class GroupConnector(Connector):
 
 	# TODO: from univention.office365.listener.Office365Listener.modify_group
 	def check_and_modify_owners(self, old_udm_group, new_udm_group, azure_group):
-		# type: (UDMOfficeGroup, UDMOfficeGroup, UDMOfficeGroup, GroupAzure) -> None
+		# type: (UDMOfficeGroup, UDMOfficeGroup, GroupAzure) -> None
 		alias = old_udm_group.current_connection_alias
 		added_owners, removed_owners = old_udm_group.owners_changes(new_udm_group)
 
 		for owner in added_owners:
 			try:
-				self.logger.info("Add owner %r to group %r from Azure AD '%r'", owner.dn, azure_group.displayName, alias)
-				azure_group.add_owner(owner.azure_object_id)
+				self.logger.info("Add owner %r to group %r from Azure AD %r", owner.dn, azure_group.displayName, alias)
+				with owner.set_current_alias(alias):
+					azure_group.add_owner(owner.azure_object_id)
 			except MSGraphError as g_exc:
-				self.logger.error("Error while adding group owner to %r: %r.", azure_group.displayName, g_exc)
+				self.logger.error("Error while adding group owner to %r: ", azure_group.displayName)
+				self.logger.error(g_exc)
 
 		for owner in removed_owners:
 			try:
-				self.logger.info("Remove owner %r from group %r from Azure AD '%r'", owner.dn, azure_group.displayName, old_udm_group.current_connection_alias)
-				azure_group.remove_member(owner.azure_object_id)
+				self.logger.info("Remove owner %r from group %r from Azure AD %r", owner.dn, azure_group.displayName, old_udm_group.current_connection_alias)
+				with owner.set_current_alias(alias):
+					azure_group.remove_member(owner.azure_object_id)
 			except MSGraphError as g_exc:
-				self.logger.error("Error while removing group owner to %r: %r.", azure_group.displayName, g_exc)
-
+				self.logger.error("Error while removing group owner to %r: ", azure_group.displayName)
+				self.logger.error(g_exc)
 	# TODO it's really need???
 	# Do not sync this to any azure attribute directly
 	# modification_attributes_udm_group.remove("univentionMicrosoft365GroupOwners")

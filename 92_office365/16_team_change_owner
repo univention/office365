@@ -9,11 +9,11 @@
 import univention.testing.utils as utils
 import univention.testing.ucr as ucr_test
 import univention.testing.udm as udm_test
-from univention.office365.api.graph import Graph
 from univention.config_registry import handler_set
 
 import helpers.office365_test_helpers as o365helpers
-
+from univention.office365.microsoft.account import AzureAccount
+from univention.office365.microsoft.core import MSGraphApiCore
 
 with utils.AutomaticListenerRestart():
 	with udm_test.UCSTestUDM() as udm:
@@ -25,11 +25,7 @@ with utils.AutomaticListenerRestart():
 
 			alias = 'o365domain'
 
-			graph = Graph(
-				ucr=ucr,
-				name=__name__,
-				connection_alias=alias
-			)
+			core = MSGraphApiCore(AzureAccount(alias))
 
 			handler_set(["office365/groups/sync=yes"])
 			utils.restart_listener()
@@ -41,15 +37,15 @@ with utils.AutomaticListenerRestart():
 			print("*** Creating Team ***")
 			group_dn, group_name = o365helpers.create_team(udm, ucr, owner_dn=user_dn, users=[user_dn])
 
-			created_team = o365helpers.check_team_created(graph, group_name)
+			created_team = o365helpers.check_team_created(core, group_name)
 
-			team_id = created_team['id']
-			owner = o365helpers.check_team_owner(graph, team_id, username)
+			team_id = created_team.id
+			owner = o365helpers.check_team_owner(core, team_id, username)
 
 			print("*** Change owner ***")
 			udm.modify_object(modulename="groups/group", dn=group_dn, set=dict(
 				UniventionMicrosoft365Team=1,
 				UniventionMicrosoft365GroupOwners=user2_dn,))
 
-			owner = o365helpers.check_team_owner(graph, team_id, username2)
+			owner = o365helpers.check_team_owner(core, team_id, username2)
 			print("*** All went well.")
