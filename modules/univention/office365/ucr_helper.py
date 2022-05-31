@@ -105,6 +105,14 @@ class UCRHelperC(ConfigRegistry):
 		# type: () -> str
 		return self.get(self.adconnection_wizard_ucrv) or None
 
+	def adconnection_id_to_alias(self, logger, adconnection_id):
+		# type: (method, str) -> str
+		for alias, t_id in self.get_adconnection_aliases().items():
+			if t_id == adconnection_id:
+				return alias
+		logger.error('Unknown Azure AD connection ID %r.', adconnection_id)
+		return None
+
 	def get_http_proxies(self, logger):
 		# type: () -> Dict[str,str]
 		res = dict()
