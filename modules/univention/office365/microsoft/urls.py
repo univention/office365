@@ -22,7 +22,6 @@ class URLs:
 		self.base_url = base_url
 
 	@classmethod
-	@property
 	def resource_url(cls):
 		# type: () -> str
 		return cls.__resource_url
