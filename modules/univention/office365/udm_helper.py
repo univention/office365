@@ -171,6 +171,10 @@ class UDMHelper(object):
 		# type: (str, Optional[Dict[str, Any]]) -> Any
 		return self.get_udm_object("users/user", userdn, attributes)
 
+	def get_udm_officeprofile(self, profiledn, attributes=None):
+		# type: (str, Optional[Dict[str, Any]]) -> Any
+		return self.get_udm_object('office365/profile', profiledn, attributes)
+
 	def _find_udm_objects(self, module_s, filter_s, base):
 		# type: (str, str, str) -> List[Any]
 		"""
