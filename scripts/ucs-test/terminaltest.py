@@ -41,6 +41,7 @@ from argparse import RawTextHelpFormatter
 
 from univention.office365.microsoft.account import AzureAccount
 from univention.office365.microsoft.core import MSGraphApiCore
+from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError
 
 
 def get_all_aliases():
@@ -225,7 +226,7 @@ if __name__ == "__main__":
 					try_to_prettyprint(f(*a))  # call a function with parameters
 
 				logger.info("@ finished: {method}()".format(method=arg))
-			except MSGraphApiCore as e:
+			except MSGraphError as e:
 				logger.exception(e)
 				# logger.exception(" {type} In '{method}': {error}".format(
 				# 	type=type(e).__name__,

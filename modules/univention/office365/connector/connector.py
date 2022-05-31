@@ -566,9 +566,6 @@ class UserConnector(Connector):
 		# build data dict to build AzureObject
 		data = {}
 		user_azure_fields = UserAzure.get_fields()
-		self.logger.error("="*50)
-		self.logger.error(user_azure_fields)
-		self.logger.error("="*50)
 		for udm_key, azure_key in self.attrs.mapping.items():
 			if udm_key in res:
 				value = res.get(udm_key)
@@ -589,9 +586,6 @@ class UserConnector(Connector):
 					else:
 						data[azure_key].append(value)
 				else:
-					self.logger.error("="*50)
-					self.logger.error("Key: %r Value: %r Type: %r Expected_type: %r", azure_key, value, type(value), user_azure_fields.get(azure_key))
-					self.logger.error("="*50)
 					if not isinstance(value, user_azure_fields.get(azure_key)):
 						old_value = value
 						if hasattr(value, "__len__"):
@@ -718,8 +712,9 @@ class GroupConnector(Connector):
 
 				self.logger.info("Created group with displayName: %r (%r) adconnection: %s", group_azure.displayName, group_azure.id, alias)
 				# check if the new group is also a team - and needs to be configured as team
+				self.logger.info("Is team %r", udm_object.is_team())
 				if udm_object.is_team():
-					self.convert_group_to_team(udm_object, group_azure, async_task=True)
+					self.convert_group_to_team(udm_object, group_azure)
 			# TODO: check if we need to add grpup owners to the team here
 
 	def _create_group(self, udm_object):
@@ -768,7 +763,9 @@ class GroupConnector(Connector):
 			try:
 				if udm_object.is_team():
 					try:
-						TeamAzure(id=udm_object.azure_object_id).deactivate()
+						team = TeamAzure(id=udm_object.azure_object_id)
+						team.set_core(self.cores[alias])
+						team.deactivate()
 						self.logger.info("Deleted team %r from Azure AD %r", udm_object.get("cn"), alias)
 					except MSGraphError as g_exc:
 						self.logger.error("Error while deleting team %r: %r.", udm_object.get("cn"), g_exc)

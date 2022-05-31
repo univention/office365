@@ -166,8 +166,8 @@ class AzureObject(metaclass=abc.ABCMeta):
 
 	@classmethod
 	@abstractmethod
-	def get(cls, core, oid):
-		# type: (MSGraphApiCore, str) -> 'AzureObject'
+	def get(cls, core, oid, selection=None):
+		# type: (MSGraphApiCore, str, Optional[List[str]]) -> 'AzureObject'
 		""""""
 
 	@staticmethod
@@ -386,12 +386,11 @@ class UserAzure(AzureObject):
 		raise NotImplementedError()
 
 	@classmethod
-	def get(cls, core, oid):
-		# type: (MSGraphApiCore, str) -> UserAzure
+	def get(cls, core, oid, selection=None):
+		# type: (MSGraphApiCore, str, Optional[List[str]]) -> UserAzure
 		""""""
 		user = cls()
-		attrs = [x.name for x in attr.fields(cls) if x.name not in ["mailboxSettings"]]
-		response = core.get_user(oid, selection=",".join(attrs))
+		response = core.get_user(oid, selection=",".join(selection) if selection else None)
 		user._update_from_dict(response)
 		user.set_core(core)
 		return user
@@ -559,8 +558,8 @@ class GroupAzure(AzureObject):
 		raise NotImplementedError()
 
 	@classmethod
-	def get(cls, core, oid):
-		# type: (MSGraphApiCore, str) -> GroupAzure
+	def get(cls, core, oid, selection=None):
+		# type: (MSGraphApiCore, str, Optional[List[str]]) -> GroupAzure
 		""""""
 		attrs = [x.name for x in attr.fields(cls) if x.name not in ["hasMembersWithLicenseErrors", "allowExternalSenders", "autoSubscribeNewMembers", "hideFromAddressLists", "hideFromOutlookClients", "isSubscribedByMail", "unseenCount"]]
 		response = core.get_group(group_id=oid, selection=",".join(attrs))
@@ -583,8 +582,8 @@ class GroupAzure(AzureObject):
 		# type: (str, bool) -> Optional[MSGraphCoreTask]
 		""""""
 		if async_task:
-			return MSGraphCoreTask(self._core.account.alias, "add_group_owner", (self.id, owner_id))
-		self._core.add_group_owner(self.id, owner_id)
+			return MSGraphCoreTask(self._core.account.alias, "add_group_owner", dict(group_id=self.id, owner_id=owner_id))
+		self._core.add_group_owner(group_id=self.id, owner_id=owner_id)
 
 	def remove_owner(self, owner_id):
 		# type: () -> None
@@ -644,7 +643,6 @@ class GroupAzure(AzureObject):
 		groups_response = core.list_groups()
 		groups_value = groups_response.get("value", [])
 		if groups_value:
-			print(groups_value[0])
 			groups = [GroupAzure(**x) for x in groups_value]
 			[x.set_core(core) for x in groups]
 			return groups
@@ -816,21 +814,21 @@ class TeamAzure(AzureObject):
 
 	@staticmethod
 	def list(core):
-		# type: (MSGraphApiCore) -> List['TeamAzure']
+		# type: (MSGraphApiCore) -> List[GroupAzure]
 		""""""
 		response = core.list_teams(paging=True)
 		TeamAzure.wait_for_operation(core, response)
 		teams = []
 		for team_dict in response["value"]:
-			team = TeamAzure()
+			team = GroupAzure()
 			team._update_from_dict(team_dict)
 			team.set_core(core)
 			teams.append(team)
 		return teams
 
 	@classmethod
-	def get(cls, core, oid):
-		# type: (MSGraphApiCore, str) -> AzureObject
+	def get(cls, core, oid, selection=None):
+		# type: (MSGraphApiCore, str, Optional[List[str]]) -> AzureObject
 		""""""
 		response = core.get_team(group_id=oid)
 		TeamAzure.wait_for_operation(core, response)
@@ -888,8 +886,8 @@ class SubscriptionAzure(AzureObject):
 		raise NotImplementedError
 
 	@classmethod
-	def get(cls, core, oid):
-		# type: (MSGraphApiCore,str) -> 'SubscriptionAzure'
+	def get(cls, core, oid, selection=None):
+		# type: (MSGraphApiCore, str, Optional[List[str]]) -> 'SubscriptionAzure'
 		""""""
 		subscription_response = core.get_subscriptionSku(subs_sku_id=oid)
 		subscription_response.pop("@odata.context")

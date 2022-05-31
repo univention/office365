@@ -704,7 +704,7 @@ class MSGraphApiCore:
 
 		return self._call_graph_api(
 			'GET',
-			URLs.groups("$filter=resourceProvisioningOptions/Any(x:x eq 'Team')&$select=id"),
+			URLs.groups("$filter=resourceProvisioningOptions/Any(x:x eq 'Team')"),
 			expected_status=[200],
 			page=paging
 		)

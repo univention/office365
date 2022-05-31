@@ -7,6 +7,9 @@ from univention.office365.microsoft.core import MSGraphApiCore
 from univention.office365.asyncqueue.tasks.task import Task
 from logging import Logger
 
+from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError
+
+
 class MSGraphCoreTask(Task):
 	def __init__(self, ad_connection_alias, method_name, method_args, sub_tasks=None):
 		# type: (str, str, Union[List, Dict, Tuple], List["MSGraphCoreTask"]) -> None
@@ -14,11 +17,6 @@ class MSGraphCoreTask(Task):
 		self.ad_connection_alias = ad_connection_alias
 		self.method_name = method_name
 		self.method_args = method_args
-		self.logger = None  # type: Optional[Logger]
-
-	def set_logger(self, logger):
-		# type: ("logging.Logger") -> None
-		self.logger = logger
 
 	def __dict__(self):
 		# type: () -> Dict[str, Union[str, MSGraphCoreTask]]
@@ -42,11 +40,12 @@ class MSGraphCoreTask(Task):
 		data["sub_tasks"] = [MSGraphCoreTask.from_dict(x) for x in data["sub_tasks"]]
 		return cls(**data)
 
-	@retrying.retry(wait_exponential_multiplier=1000, wait_exponential_max=10000, stop_max_attempt_number=5)
+	@retrying.retry(wait_exponential_multiplier=3000, wait_exponential_max=15000, stop_max_attempt_number=10)
 	def run(self):
 		# type: () -> bool
 		core = MSGraphApiCore(AzureAccount(self.ad_connection_alias))
 		method = getattr(core, self.method_name)
+		self.logger.info("Calling to alias = %s MSGraphApiCore.%s with %r", self.ad_connection_alias, self.method_name, self.method_args)
 		try:
 			if isinstance(self.method_args, dict):
 				method(**self.method_args)
@@ -55,8 +54,10 @@ class MSGraphCoreTask(Task):
 			else:
 				return False
 				# raise TypeError("No valid type %s for args of %s" % (type(self.method_args), self.method_name))
-		except MSGraphApiCore as e:
+		except MSGraphError as e:
 			if self.logger:
-				self.logger.error("Error while procesing task %r: %r.", self.dump(), e)
+				self.logger.error("Error while procesing task %r:", self.dump())
+				self.logger.error(e)
+				raise
 			return False
 		return True

@@ -13,7 +13,7 @@ import univention.testing.ucr as ucr_test
 import univention.testing.udm as udm_test
 import univention.testing.utils as utils
 
-from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user, setup_logging, check_user_id_from_azure, check_user_was_deleted
+from helpers.office365_test_helpers import udm_user_args, check_udm2azure_user, setup_logging, check_user_id_from_azure, check_user_was_deleted, azure_user_selection
 from helpers.retry import retry_call
 from univention.office365.microsoft.account import AzureAccount
 from univention.office365.microsoft.core import MSGraphApiCore
@@ -61,7 +61,7 @@ with udm_test.UCSTestUDM() as udm:
 		azure_user_id1 = retry_call(check_user_id_from_azure, fargs=[adconnection_alias1, user_dn, fail_msg], tries=5, delay=2)
 
 		print("*** Checking sync of user properties...")
-		azure_user = UserAzure.get(core, azure_user_id1)
+		azure_user = UserAzure.get(core, azure_user_id1, selection=azure_user_selection)
 		success, errors = check_udm2azure_user(user_args, azure_user, complete=False)
 		if success:
 			print("*** attributes were synced correctly for adconnection_alias={!r}".format(adconnection_alias1))
@@ -86,7 +86,7 @@ with udm_test.UCSTestUDM() as udm:
 			utils.fail("UniventionOffice365ObjectID did not change.")
 
 		print("*** Checking sync of user properties (to adconnection_alias2)...")
-		azure_user2 = UserAzure.get(core2, azure_user_id2)
+		azure_user2 = UserAzure.get(core2, azure_user_id2, selection=azure_user_selection)
 		user_args2 = copy.deepcopy(user_args)
 		user_args2["set"]["UniventionOffice365ADConnectionAlias"] = adconnection_alias2
 		success, errors = check_udm2azure_user(user_args2, azure_user2, complete=False)
@@ -95,3 +95,5 @@ with udm_test.UCSTestUDM() as udm:
 		else:
 			utils.fail("One or more properties were not synced correctly for adconnection_alias2={!r}:\n{}".format("\n".join(map(str, errors)), adconnection_alias2))
 		print("*** All went well.")
+
+

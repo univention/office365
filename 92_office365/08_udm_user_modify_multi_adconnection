@@ -16,7 +16,7 @@ import univention.testing.utils as utils
 from typing import Dict, Any
 from univention.config_registry import handler_set, handler_unset
 
-from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user, setup_logging, check_user_id_from_azure
+from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user, setup_logging, check_user_id_from_azure, azure_user_selection
 from helpers.retry import retry_call
 from univention.office365.microsoft.account import AzureAccount
 from univention.office365.microsoft.core import MSGraphApiCore
@@ -36,7 +36,7 @@ print("*** initialized_adconnections={!r}.".format(initialized_adconnections))
 
 def _test(core, udm_args, user_id, check_complete):
 	# type: (MSGraphApiCore, Dict[str, Any], str, bool) -> None
-	a_user = UserAzure.get(core, user_id)
+	a_user = UserAzure.get(core, user_id, selection=azure_user_selection)
 	success, errors = check_udm2azure_user(udm_args, a_user, check_complete)
 	if success:
 		print("*** all attributes were synced correctly")
