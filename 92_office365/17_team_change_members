@@ -9,11 +9,11 @@
 import univention.testing.utils as utils
 import univention.testing.ucr as ucr_test
 import univention.testing.udm as udm_test
-from univention.office365.api.graph import Graph
 from univention.config_registry import handler_set
 
 import helpers.office365_test_helpers as o365helpers
-
+from univention.office365.microsoft.account import AzureAccount
+from univention.office365.microsoft.core import MSGraphApiCore
 
 with utils.AutomaticListenerRestart():
 	with udm_test.UCSTestUDM() as udm:
@@ -25,36 +25,32 @@ with utils.AutomaticListenerRestart():
 
 			alias = 'o365domain'
 
-			graph = Graph(
-				ucr=ucr,
-				name=__name__,
-				connection_alias=alias
-			)
+			core = MSGraphApiCore(AzureAccount(alias))
 
 			handler_set(["office365/groups/sync=yes"])
 			utils.restart_listener()
 
 			print("*** Creating members ***")
-			user_dn, username = o365helpers.create_team_member(udm, ucr, alias)
-			user2_dn, username2 = o365helpers.create_team_member(udm, ucr, alias)
-			user3_dn, username3 = o365helpers.create_team_member(udm, ucr, alias)
+			user_dn, _ = o365helpers.create_team_member(udm, ucr, alias)
+			user2_dn, _ = o365helpers.create_team_member(udm, ucr, alias)
+			user3_dn, _ = o365helpers.create_team_member(udm, ucr, alias)
 
 			print("*** Creating Team ***")
 			group_dn, group_name = o365helpers.create_team(udm, ucr, owner_dn=user_dn, users=[user2_dn, user3_dn])
-			created_team = o365helpers.check_team_created(graph, group_name)
-			team_id = created_team['id']
+			created_team = o365helpers.check_team_created(core, group_name)
+			team_id = created_team.id
 
-			team_members = o365helpers.check_team_members(graph, team_id, 3)
+			team_members = o365helpers.check_team_members(core, team_id, 3)
 
 			print("*** Creating new members ***")
-			user_dn, username = o365helpers.create_team_member(udm, ucr, alias, group_dn)
-			user2_dn, username2 = o365helpers.create_team_member(udm, ucr, alias, group_dn)
-			user3_dn, username3 = o365helpers.create_team_member(udm, ucr, alias, group_dn)
+			user_dn, _ = o365helpers.create_team_member(udm, ucr, alias, group_dn)
+			user2_dn, _ = o365helpers.create_team_member(udm, ucr, alias, group_dn)
+			user3_dn, _ = o365helpers.create_team_member(udm, ucr, alias, group_dn)
 
-			team_members = o365helpers.check_team_members(graph, team_id, 6)
+			_ = o365helpers.check_team_members(core, team_id, 6)
 
 			udm.remove_object('users/user', dn=user2_dn)
 			udm.remove_object('users/user', dn=user3_dn)
 
-			team_members = o365helpers.check_team_members(graph, team_id, 4)
+			_ = o365helpers.check_team_members(core, team_id, 4)
 			print("*** All went well.")

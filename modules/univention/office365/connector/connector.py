@@ -408,13 +408,17 @@ class UserConnector(Connector):
 				# Create a UDM representation of the group
 				udm_office_group = UDMOfficeGroup({}, ldap_cred=udm_object.ldap_cred, dn=group_dn)
 				# If the group have any nested user that is in azure, group needs to be synced
-				if udm_office_group.has_azure_users():
-					with udm_office_group.set_current_alias(alias):
-						# if the group is not synced for the current connection, sync it
-						if alias not in udm_office_group.adconnection_aliases:
-							self.group_connector.create(udm_office_group)
+				with udm_office_group.set_current_alias(alias):
+					# if the group is not synced for the current connection, sync it
+					if alias not in udm_office_group.adconnection_aliases:
+						group_azure = self._create_group(udm_office_group)
 
-						self.group_connector.add_member(udm_office_group, udm_object)
+						self.logger.info("Created group with displayName: %r (%r) adconnection: %s", group_azure.displayName, group_azure.id, alias)
+						# check if the new group is also a team - and needs to be configured as team
+						if udm_office_group.is_team():
+							self.convert_group_to_team(udm_office_group, group_azure)
+
+					self.group_connector.add_member(udm_office_group, udm_object)
 
 	# new_or_reactivate_user
 	def create(self, udm_object):

@@ -895,7 +895,7 @@ class SubscriptionAzure(AzureObject):
 
 	@staticmethod
 	def list(core):
-		# type: (MSGraphApiCore) -> List['SubscriptionAzure']
+		# type: (MSGraphApiCore) -> List[SubscriptionAzure]
 		""""""
 		subscriptions_response = core.list_subscriptions()
 		subscriptions = [SubscriptionAzure(**subscription) for subscription in subscriptions_response["value"]]
@@ -904,7 +904,7 @@ class SubscriptionAzure(AzureObject):
 
 	@staticmethod
 	def get_enabled(core, service_plan_names):
-		# type: (MSGraphApiCore, List[str]) -> List['SubscriptionAzure']
+		# type: (MSGraphApiCore, List[str]) -> List[SubscriptionAzure]
 		"""TODO"""
 		subscriptions_response = core.list_subscriptions()
 		# subscriptions = [SubscriptionAzure(**subscription) for subscription in subscriptions_response["value"] if subscription["appliesTo"] == "User" and subscription["capabilityStatus"] == "Enabled" and any([plan["servicePlanName"] in service_plan_names for plan in subscription["servicePlans"]])]
@@ -918,7 +918,7 @@ class SubscriptionAzure(AzureObject):
 						sub_sku = SubscriptionAzure(**subscription)
 						sub_sku.set_core(core)
 						subscriptions.append(sub_sku)
-		# 				break
+						break
 		return subscriptions
 
 	def has_free_seats(self):
