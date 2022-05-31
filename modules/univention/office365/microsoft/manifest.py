@@ -17,7 +17,7 @@ class Manifest(object):
 		# type: ("SupportsRead", str, str, "logging.Logger") -> None
 		self.logger = logger or get_logger("office365", "o365")
 		self.adconnection_id = adconnection_id
-		self.adconnection_alias = UCRHelper.adconnection_id_to_alias(adconnection_id)
+		self.adconnection_alias = UCRHelper.adconnection_id_to_alias(logger, adconnection_id)
 		self.domain = domain
 		self.logger.info('Manifest() for adconnection_alias=%r adconnection_id=%r domain=%r', self.adconnection_alias, adconnection_id, domain)
 		try:
