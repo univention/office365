@@ -533,11 +533,12 @@ def wait_for_seconds(func):
 
 
 @wait_for_seconds
-def check_team_owner(graph, team_id, owner_name):
+def check_team_owner(core, team_id, owner_name):
+	# type: (MSGraphApiCore, str, str) -> bool
 	''' Checking if Team Owner is set to the correct user'''
 	try:
-		team_members = graph.list_team_members(team_id)
-	except GraphError:
+		team_members = core.list_team_members(team_id)
+	except MSGraphError:
 		return False
 
 	for member in team_members['value']:
@@ -553,7 +554,7 @@ def check_team_members(graph, team_id, member_count):
 		team_members = graph.list_team_members(team_id)
 		if team_members['@odata.count'] == member_count:
 			return team_members
-	except GraphError:
+	except MSGraphError:
 		return False
 
 
@@ -565,6 +566,18 @@ def check_team_created(core, group_name):
 	for team in teams:
 		if team.displayName == group_name:
 			return team
+	else:
+		return None
+
+
+@wait_for_seconds
+def check_group_created(core, group_name):
+	# type: (MSGraphApiCore, str) -> Optional[GroupAzure]
+	''' Checking if Group is created and converted to a Team'''
+	groups = GroupAzure.list(core)
+	for group in groups:
+		if group.displayName == group_name:
+			return group
 	else:
 		return None
 

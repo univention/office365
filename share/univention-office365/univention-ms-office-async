@@ -46,6 +46,7 @@ from univention.listener.handler_logging import get_logger
 from univention.office365.asyncqueue import ASYNC_DATA_DIR, ASYNC_FAILED_DIR
 from univention.office365.asyncqueue.queues.jsonfilesqueue import JsonFilesQueue
 from univention.office365.asyncqueue.tasks.azuretask import MSGraphCoreTask
+from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError
 
 
 def worker(once, logger):
@@ -63,7 +64,12 @@ def worker(once, logger):
 		task = MSGraphCoreTask.from_dict(q.dequeue())
 		task.set_logger(logger)
 		logger.debug('Job {}: found'.format(task.dump()))
-		if task.process():
+		ret = False
+		try:
+			ret = task.process()
+		except MSGraphError as e:
+			logger.error(e)
+		if ret:
 			logger.info('Job {}: successful'.format(task.dump()))
 		else:
 			filename = q.enqueue(task, error=True)

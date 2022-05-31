@@ -57,7 +57,6 @@ class MSGraphCoreTask(Task):
 		except MSGraphError as e:
 			if self.logger:
 				self.logger.error("Error while procesing task %r:", self.dump())
-				self.logger.error(e)
 				raise
 			return False
 		return True
