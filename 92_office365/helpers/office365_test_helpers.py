@@ -46,7 +46,7 @@ from types import TracebackType
 import univention.admin.syntax as udm_syntax
 import univention.testing.strings as uts
 import univention.testing.utils as utils
-from typing import Any, Dict, List, Type, Union, Tuple
+from typing import Any, Dict, List, Type, Union, Tuple, Optional
 
 from univention.config_registry import handler_set
 
@@ -61,7 +61,7 @@ from univention.office365.microsoft.account import AzureAccount
 
 from univention.office365.microsoft.core import MSGraphApiCore
 from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError
-from univention.office365.microsoft.objects.azureobjects import AzureObject, GroupAzure, UserAzure
+from univention.office365.microsoft.objects.azureobjects import AzureObject, GroupAzure, UserAzure, TeamAzure
 from univention.office365.udm_helper import UDMHelper
 from univention.office365.udmwrapper.udmobjects import UDMOfficeUser
 from univention.office365.utils.utils import create_random_pw
@@ -69,6 +69,20 @@ from univention.office365.utils.utils import create_random_pw
 udm_syntax.update_choices()
 blacklisted_ul = ["SD", "SY", "KP", "CU", "IR"]  # some usageLocations are not valid (https://www.microsoft.com/en-us/microsoft-365/business/microsoft-office-license-restrictions), collecting them here
 usage_locations_code = list(set(x[0] for x in udm_syntax.Country.choices) - set(blacklisted_ul))
+
+azure_user_selection = ["assignedLicenses",
+				 "otherMails",
+				 "businessPhones",
+				 "displayName",
+				 "givenName",
+				 "jobTitle",
+				 "mail",
+				 "mobilePhone",
+				 "officeLocation",
+				 "preferredLanguage",
+				 "surname",
+				 "userPrincipalName",
+				 "id"]
 
 udm2azure = dict(
 	firstname=lambda x: x.givenName,
@@ -544,22 +558,24 @@ def check_team_members(graph, team_id, member_count):
 
 
 @wait_for_seconds
-def check_team_created(graph, group_name):
+def check_team_created(core, group_name):
+	# type: (MSGraphApiCore, str) -> Optional[GroupAzure]
 	''' Checking if Group is created and converted to a Team'''
-	teams = graph.list_teams()
-	for team in teams['value']:
-		if team['displayName'] == group_name and 'Team' in team['resourceProvisioningOptions']:
+	teams = TeamAzure.list(core)
+	for team in teams:
+		if team.displayName == group_name:
 			return team
 	else:
 		return None
 
 
 @wait_for_seconds
-def check_team_archived(graph, group_name):
+def check_team_archived(core, group_name):
+	# type: (MSGraphApiCore, str) -> bool
 	''' Checking if Team is removed'''
-	teams = graph.list_teams()
+	teams = TeamAzure.list(core)
 	for team in teams['value']:
-		if team['displayName'] == group_name and 'Team' in team['resourceProvisioningOptions']:
+		if team['displayName'] == group_name:
 			return False
 	else:
 		return True
@@ -608,7 +624,7 @@ def __is_azure_user_enabled(azure_user):
 
 def azure_user_disabled(core, user_id):
 	# type: (MSGraphApiCore, str) -> UserAzure
-	azure_user = UserAzure.get(core, user_id)
+	azure_user = UserAzure.get(core, user_id, selection=azure_user_selection)
 	if __is_azure_user_enabled(azure_user):
 		utils.fail("Account was not deactivated.")
 	return azure_user
@@ -616,7 +632,7 @@ def azure_user_disabled(core, user_id):
 
 def azure_user_enabled(core, user_id):
 	# type: (MSGraphApiCore, str) -> UserAzure
-	azure_user = UserAzure.get(core, user_id)
+	azure_user = UserAzure.get(core, user_id, selection=azure_user_selection)
 	if not __is_azure_user_enabled(azure_user):
 		utils.fail("Account was not activated.")
 	return azure_user
@@ -625,7 +641,7 @@ def azure_user_enabled(core, user_id):
 def check_azure_user_change(core, user_id, attribute_name, attribute_value):
 	# type: (MSGraphApiCore, str, str, Any) -> None
 	print("*** Checking value of usageLocation...")
-	azure_user = UserAzure.get(core, user_id)
+	azure_user = UserAzure.get(core, user_id, selection=azure_user_selection)
 	if getattr(azure_user, attribute_name) != attribute_value:
 		utils.fail("'{}' was not correctly set (is: {}, should be: {}).".format(
 			attribute_name, getattr(azure_user, attribute_name), attribute_value))
@@ -636,7 +652,7 @@ def check_user_was_deleted(core, user_id):
 	# type: (MSGraphApiCore, str) -> None
 	print("*** Checking that user was deleted in old adconnection...")
 	try:
-		deleted_user = UserAzure.get(core, user_id)
+		deleted_user = UserAzure.get(core, user_id, selection=azure_user_selection)
 		if deleted_user.accountEnabled:
 			utils.fail("User was not deleted.")
 		else:

@@ -15,7 +15,7 @@ import univention.testing.udm as udm_test
 import univention.testing.utils as utils
 from typing import Union, Dict, Any
 
-from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_user_id_from_azure, check_user_in_group_from_azure
+from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_user_id_from_azure, check_user_in_group_from_azure, azure_user_selection
 from helpers.retry import retry_call
 from univention.office365.microsoft.account import AzureAccount
 from univention.office365.microsoft.core import MSGraphApiCore
@@ -108,7 +108,7 @@ with utils.AutomaticListenerRestart():
 					ids_to_plan_names[plan['servicePlanId']] = plan['servicePlanName']
 
 			time.sleep(10)
-			azure_user = UserAzure.get(core, user_id)
+			azure_user = UserAzure.get(core, user_id, selection=azure_user_selection)
 
 			# deleting as early as possible to free license, and because cleanup fails sometimes
 			print("*** Deleting user...")
@@ -183,7 +183,7 @@ with utils.AutomaticListenerRestart():
 						(udm_user['username'], profile_kwargs, subscription))
 
 				time.sleep(10)
-				azure_user = UserAzure.get(core, user_id)
+				azure_user = UserAzure.get(core, user_id, selection=azure_user_selection)
 
 				# deleting as early as possible to free license, and because cleanup fails sometimes
 				print("*** Deleting user...")

@@ -15,7 +15,7 @@ import univention.testing.udm as udm_test
 import univention.testing.utils as utils
 from typing import Any, Dict
 
-from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user, check_user_id_from_azure, azure_user_disabled, azure_user_enabled
+from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user, check_user_id_from_azure, azure_user_disabled, azure_user_enabled, azure_user_selection
 from helpers.retry import retry_call
 from univention.office365.microsoft.account import AzureAccount
 from univention.office365.microsoft.core import MSGraphApiCore
@@ -57,7 +57,7 @@ with utils.AutomaticListenerRestart():
 			user_id = retry_call(check_user_id_from_azure, fargs=[adconnection_alias, user_dn], tries=6, delay=5)
 
 			print("*** Checking sync of properties...")
-			azure_user = UserAzure.get(core, user_id)
+			azure_user = UserAzure.get(core, user_id, selection=azure_user_selection)
 			_test(user_args, azure_user, check_complete=False)
 
 			print("*** Deactivating office365-option (should deactivate azure-user)...")

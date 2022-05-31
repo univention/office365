@@ -16,7 +16,7 @@ from typing import Any, Dict
 from univention.config_registry import handler_set, handler_unset
 
 from helpers.retry import retry_call
-from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user,  check_user_id_from_azure, check_azure_user_change, usage_locations_code
+from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user, check_user_id_from_azure, check_azure_user_change, usage_locations_code, azure_user_selection
 from univention.office365.microsoft.account import AzureAccount
 from univention.office365.microsoft.core import MSGraphApiCore
 from univention.office365.microsoft.objects.azureobjects import UserAzure
@@ -95,7 +95,7 @@ with utils.AutomaticListenerRestart():
 			user_id = retry_call(check_user_id_from_azure, fargs=[adconnection_alias, user_dn], tries=5, delay=2)
 
 			print("*** Checking sync of all properties...")
-			azure_user = UserAzure.get(core, user_id)
+			azure_user = UserAzure.get(core, user_id, selection=azure_user_selection)
 			_test(user_args, azure_user, check_complete=True)
 			retry_call(check_azure_user_change, fargs=[core, user_id, "usageLocation", udm_country], tries=5, delay=2)
 

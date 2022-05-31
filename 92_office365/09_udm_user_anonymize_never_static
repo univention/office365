@@ -14,7 +14,7 @@ import univention.testing.strings as uts
 import univention.testing.utils as utils
 from univention.config_registry import handler_set, handler_unset
 
-from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user, check_user_id_from_azure
+from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user, check_user_id_from_azure, azure_user_selection
 from helpers.retry import retry_call
 from univention.office365.microsoft.account import AzureAccount
 from univention.office365.microsoft.core import MSGraphApiCore
@@ -83,7 +83,7 @@ with utils.AutomaticListenerRestart():
 				user_id = retry_call(check_user_id_from_azure, fargs=[adconnection_alias, user_dn, fail_msg], tries=5, delay=2)
 
 				print("*** Checking sync of properties...")
-				azure_user = UserAzure.get(core, user_id)
+				azure_user = UserAzure.get(core, user_id, selection=azure_user_selection)
 				success, errors = check_udm2azure_user(user_args, azure_user, complete=True)
 				if success:
 					utils.fail("UCRVs office365/attributes/{anonymize, static, never} were ignored.")

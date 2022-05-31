@@ -5,7 +5,7 @@ import json
 import zlib
 from six.moves import UserDict
 from logging import Logger
-from typing import List, Mapping, Any, Iterator, Optional, Dict, Set, Tuple
+from typing import List, Mapping, Any, Iterator, Optional, Dict, Set, Tuple, Union
 from enum import Enum
 
 from ldap.filter import escape_filter_chars
@@ -55,7 +55,7 @@ class UniventionOffice365Data(UserDict):
 	interface for the different versions.
 	"""
 	def __init__(self, data):
-		# type: (Dict[str,str]) -> None 
+		# type: (Dict[str, Union[Dict[str,str], str]]) -> None
 		super(UniventionOffice365Data, self).__init__(data)
 
 	@classmethod
@@ -427,7 +427,8 @@ class UDMOfficeGroup(UDMOfficeObject):
 
 	def is_team(self):
 		# type: () -> bool
-		return bool(int(self.udm_object_reference.get('UniventionOffice365Team', "0")))
+		self.logger.info("udm_object_reference: %r", self.udm_object_reference.__dict__)
+		return bool(int(self.udm_object_reference.get('UniventionMicrosoft365Team', "0")))
 
 	def get_owners_dn(self):
 		# type: () -> List[str]
@@ -462,10 +463,14 @@ class UDMOfficeGroup(UDMOfficeObject):
 		users_to_add = []
 		for dn, attr in all_users_lo.items():
 			if dn in member_dns:
-				user = UDMOfficeUser(ldap_fields=attr, ldap_cred=self.ldap_cred)
-				with user.set_current_alias(self.current_connection_alias):
-					if user.azure_object_id:
-						users_to_add.append(user.azure_object_id)
+				if "univentionOffice365Data" in attr:
+					encode_office365_data = attr.get("univentionOffice365Data")
+					if len(encode_office365_data) == 1:
+						office365_data = UniventionOffice365Data.from_ldap(encode_office365_data[0])
+						if office365_data and self.current_connection_alias in office365_data:
+							adconnection_data = office365_data[self.current_connection_alias]
+							if "objectId" in adconnection_data and "userPrincipalName" in adconnection_data:
+								users_to_add.append(adconnection_data["objectId"])
 		return users_to_add
 
 	def has_azure_users(self):

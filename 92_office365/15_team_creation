@@ -8,14 +8,16 @@
 
 from __future__ import print_function
 
+import time
+
 import univention.testing.ucr as ucr_test
 import univention.testing.udm as udm_test
 import univention.testing.utils as utils
-from univention.office365.api.graph import Graph
 from univention.config_registry import handler_set
 
 import helpers.office365_test_helpers as o365helpers
-
+from univention.office365.microsoft.account import AzureAccount
+from univention.office365.microsoft.core import MSGraphApiCore
 
 with utils.AutomaticListenerRestart():
 	with udm_test.UCSTestUDM() as udm:
@@ -27,11 +29,7 @@ with utils.AutomaticListenerRestart():
 
 			alias = 'o365domain'
 
-			graph = Graph(
-				ucr=ucr,
-				name=__name__,
-				connection_alias=alias
-			)
+			core = MSGraphApiCore(AzureAccount(alias))
 
 			handler_set(["office365/groups/sync=yes"])
 			utils.restart_listener()
@@ -41,5 +39,5 @@ with utils.AutomaticListenerRestart():
 			print("*** Creating Team ***")
 			team_dn, team_name = o365helpers.create_team(udm, ucr, owner_dn=user_dn, users=[user_dn])
 
-			team = o365helpers.check_team_created(graph, team_name)
+			team = o365helpers.check_team_created(core, team_name)
 			print("*** All went well.")

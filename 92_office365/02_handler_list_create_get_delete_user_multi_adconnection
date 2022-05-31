@@ -11,7 +11,7 @@ import time
 import univention.testing.ucr as ucr_test
 import univention.testing.utils as utils
 
-from helpers.office365_test_helpers import AzureDirectoryTestUsers, azure_user_args, print_users, setup_logging
+from helpers.office365_test_helpers import AzureDirectoryTestUsers, azure_user_args, print_users, setup_logging, azure_user_selection
 from univention.office365.microsoft.account import AzureAccount
 from univention.office365.microsoft.core import MSGraphApiCore
 from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError
@@ -52,7 +52,7 @@ for adconnection_alias in initialized_adconnections:
 	print_users(new_user1, complete=False, short=True)
 
 	with AzureDirectoryTestUsers(core=core, azure_objects=[new_user1]):
-		new_user2 = UserAzure.get(core, new_user1.id)
+		new_user2 = UserAzure.get(core, new_user1.id, selection=azure_user_selection)
 		for k, v in args.items():
 			if k == "passwordProfile":
 				continue
@@ -74,7 +74,7 @@ for adconnection_alias in initialized_adconnections:
 		time.sleep(10)
 
 		try:
-			deleted_user = UserAzure.get(core, new_user1.id)
+			deleted_user = UserAzure.get(core, new_user1.id, selection=azure_user_selection)
 			if deleted_user.accountEnabled:
 				utils.fail("User was not deleted.")
 			else:

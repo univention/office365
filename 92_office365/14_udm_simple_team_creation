@@ -42,3 +42,4 @@ with udm_test.UCSTestUDM() as udm:
 		print("*** Creating Microsoft Team with Owner ***")
 		group_dn = udm.create_group(check_for_drs_replication=True, **group_args)
 		print("*** All went well.")
+		# TODO check that the team was created
