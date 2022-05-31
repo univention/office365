@@ -62,6 +62,7 @@ from univention.office365.microsoft.account import AzureAccount
 from univention.office365.microsoft.core import MSGraphApiCore
 from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError
 from univention.office365.microsoft.objects.azureobjects import AzureObject, GroupAzure, UserAzure
+from univention.office365.udm_helper import UDMHelper
 from univention.office365.udmwrapper.udmobjects import UDMOfficeUser
 from univention.office365.utils.utils import create_random_pw
 
@@ -591,9 +592,10 @@ def check_user_id_from_azure(adconnection_alias, user_dn, fail_msg=None):
 	return user_id
 
 
-def check_user_in_group_from_azure(office_listener, group_dn, user_dn):
+def check_user_in_group_from_azure(udm, group_dn, user_dn):
+	# type: (UDMHelper, str, str) -> "user.User"
 	print("*** Checking that user was created (UniventionOffice365ObjectID in UDM object)...")
-	udm_user = office_listener.udm.get_udm_user(user_dn)
+	udm_user = udm.get_udm_user(user_dn)
 	if udm_user['groups'] != [group_dn]:
 		utils.fail("User has groups: %r, expected %r." % (udm_user['groups'], [group_dn]))
 	return udm_user
