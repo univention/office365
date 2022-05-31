@@ -588,8 +588,8 @@ def check_team_archived(core, group_name):
 	# type: (MSGraphApiCore, str) -> bool
 	''' Checking if Team is removed'''
 	teams = TeamAzure.list(core)
-	for team in teams['value']:
-		if team['displayName'] == group_name:
+	for team in teams:
+		if team.displayName == group_name:
 			return False
 	else:
 		return True
