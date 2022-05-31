@@ -548,10 +548,11 @@ def check_team_owner(core, team_id, owner_name):
 
 
 @wait_for_seconds
-def check_team_members(graph, team_id, member_count):
+def check_team_members(core, team_id, member_count):
+	# type: (MSGraphApiCore, str, int) -> Union[bool, Dict[str, Any]]
 	''' Checking if the correct number of Team members is set'''
 	try:
-		team_members = graph.list_team_members(team_id)
+		team_members = core.list_team_members(team_id)
 		if team_members['@odata.count'] == member_count:
 			return team_members
 	except MSGraphError:
