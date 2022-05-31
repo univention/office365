@@ -623,6 +623,7 @@ def azure_user_enabled(core, user_id):
 
 
 def check_azure_user_change(core, user_id, attribute_name, attribute_value):
+	# type: (MSGraphApiCore, str, str, Any) -> None
 	print("*** Checking value of usageLocation...")
 	azure_user = UserAzure.get(core, user_id)
 	if getattr(azure_user, attribute_name) != attribute_value:
@@ -631,13 +632,14 @@ def check_azure_user_change(core, user_id, attribute_name, attribute_value):
 		raise
 
 
-def check_user_was_deleted(office_listener, user_id):
+def check_user_was_deleted(core, user_id):
+	# type: (MSGraphApiCore, str) -> None
 	print("*** Checking that user was deleted in old adconnection...")
 	try:
-		deleted_user = office_listener.ah.list_users(objectid=user_id)
-		if deleted_user["accountEnabled"]:
+		deleted_user = UserAzure.get(core, user_id)
+		if deleted_user.accountEnabled:
 			utils.fail("User was not deleted.")
 		else:
 			print("OK: user was deleted.")
-	except ResourceNotFoundError:
+	except MSGraphError:
 		print("OK: user was deleted.")

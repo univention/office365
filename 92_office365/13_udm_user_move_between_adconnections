@@ -15,14 +15,15 @@ import univention.testing.utils as utils
 
 from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user, setup_logging, check_user_id_from_azure, check_user_was_deleted
 from helpers.retry import retry_call
-from univention.office365.listener import Office365Listener
-from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
-from univention.office365.azure_handler import ResourceNotFoundError
-
+from univention.office365.microsoft.account import AzureAccount
+from univention.office365.microsoft.core import MSGraphApiCore
+from univention.office365.microsoft.objects.azureobjects import UserAzure
+from univention.office365.ucr_helper import UCRHelper
 
 logger = setup_logging()
-adconnection_aliases = AzureADConnectionHandler.get_adconnection_aliases()
-initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAuth.is_initialized(adconnection_alias)]
+adconnection_aliases = UCRHelper.get_adconnection_aliases()
+initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAccount(adconnection_alias).is_initialized()]
+# initialized_adconnections = ["o365domain"]  # TODO Fixme remove this line and check that the azuretestdomain has the necessary permissions
 
 print("*** adconnection_aliases={!r}.".format(adconnection_aliases))
 print("*** initialized_adconnections={!r}.".format(initialized_adconnections))
@@ -47,7 +48,7 @@ with udm_test.UCSTestUDM() as udm:
 		print("*** adconnection_alias2={!r}".format(adconnection_alias2))
 		print("*** adconnection_alias3={!r}".format(adconnection_alias3))
 
-		ol = Office365Listener(_listener(), "ucs-test", listener_attributes_data, {}, "dn", adconnection_alias1)
+		core = MSGraphApiCore(AzureAccount(adconnection_alias1))
 
 		user_args = udm_user_args(ucr, minimal=True)
 		user_args["set"]["UniventionOffice365Enabled"] = 1
@@ -57,10 +58,10 @@ with udm_test.UCSTestUDM() as udm:
 		user_dn, username = udm.create_user(check_for_drs_replication=True, **user_args)
 
 		fail_msg = "User was not created properly (no UniventionOffice365ObjectID)."
-		azure_user_id1 = retry_call(check_user_id_from_azure, fargs=[ol, adconnection_alias1, user_dn, fail_msg], tries=5, delay=2)
+		azure_user_id1 = retry_call(check_user_id_from_azure, fargs=[adconnection_alias1, user_dn, fail_msg], tries=5, delay=2)
 
 		print("*** Checking sync of user properties...")
-		azure_user = ol.ah.list_users(objectid=azure_user_id1)
+		azure_user = UserAzure.get(core, azure_user_id1)
 		success, errors = check_udm2azure_user(user_args, azure_user, complete=False)
 		if success:
 			print("*** attributes were synced correctly for adconnection_alias={!r}".format(adconnection_alias1))
@@ -73,19 +74,19 @@ with udm_test.UCSTestUDM() as udm:
 		user_args2 = dict(set=dict(UniventionOffice365ADConnectionAlias=adconnection_alias2), append=dict())
 		udm.modify_object(modulename="users/user", dn=user_dn, **user_args2)
 
-		retry_call(check_user_was_deleted, fargs=[ol, azure_user["objectId"]], tries=5, delay=2)
+		retry_call(check_user_was_deleted, fargs=[core, azure_user.id], tries=5, delay=2)
 
 		print("*** Checking that user was created in new Azure AD connection (2) (UniventionOffice365ObjectID must differ)...")
-		ol = Office365Listener(_listener(), "ucs-test", listener_attributes_data, {}, "dn", adconnection_alias2)
+		core2 = MSGraphApiCore(AzureAccount(adconnection_alias2))
 
 		fail_msg = "User was not created properly (no UniventionOffice365ObjectID)."
-		azure_user_id2 = retry_call(check_user_id_from_azure, fargs=[ol, adconnection_alias2, user_dn, fail_msg], tries=5, delay=2)
+		azure_user_id2 = retry_call(check_user_id_from_azure, fargs=[adconnection_alias2, user_dn, fail_msg], tries=5, delay=2)
 
 		if azure_user_id1 == azure_user_id2:
 			utils.fail("UniventionOffice365ObjectID did not change.")
 
 		print("*** Checking sync of user properties (to adconnection_alias2)...")
-		azure_user2 = ol.ah.list_users(objectid=azure_user_id2)
+		azure_user2 = UserAzure.get(core2, azure_user_id2)
 		user_args2 = copy.deepcopy(user_args)
 		user_args2["set"]["UniventionOffice365ADConnectionAlias"] = adconnection_alias2
 		success, errors = check_udm2azure_user(user_args2, azure_user2, complete=False)
