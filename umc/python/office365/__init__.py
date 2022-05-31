@@ -116,7 +116,7 @@ class Instance(Base):
 			adconnection_id = request.body.get('adconnection_id') or 'common'
 			adconnection_id = parse.urlparse(adconnection_id).path.strip('/').split('/')[0]
 			with open(request.options[0]['tmpfile']) as fd:
-				manifest = Manifest(fd, adconnection_id, request.body['domain'])
+				manifest = Manifest(fd, self.adconnection_alias, adconnection_id, request.body['domain'])
 			manifest.transform()
 		except ManifestError as exc:
 			raise UMC_Error(str(exc))
