@@ -86,7 +86,7 @@ class Instance(Base):
 
 	def init(self):
 		self.azure_response = None
-		self.adconnection_alias = UCRHelper.adconnection_wizard
+		self.adconnection_alias = UCRHelper.adconnection_wizard()
 		self.fqdn = '%s.%s' % (ucr.get('hostname'), ucr.get('domainname'))
 		MODULE.process('adconnection_alias={!r}'.format(self.adconnection_alias))
 
