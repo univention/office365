@@ -219,7 +219,7 @@ class AzureAccount(UserDict):
 			'nonce': nonce,
 			'prompt': 'admin_consent',
 			'response_mode': 'form_post',
-			'resource': URLs.resource_url
+			'resource': URLs.resource_url()
 		}
 		return oauth2_auth_url.format(adconnection=adconnection, params=urlencode(params))
 
