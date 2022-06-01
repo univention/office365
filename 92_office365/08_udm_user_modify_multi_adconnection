@@ -26,7 +26,7 @@ from univention.office365.ucr_helper import UCRHelper
 logger = setup_logging()
 adconnection_aliases = UCRHelper.get_adconnection_aliases()
 initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAccount(adconnection_alias).is_initialized()]
-initialized_adconnections = ["o365domain"]  # TODO Fixme remove this line and check that the azuretestdomain has the necessary permissions
+
 
 assert initialized_adconnections, "run ./01_initialize_external_testenv first!"
 

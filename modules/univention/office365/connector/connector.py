@@ -323,7 +323,7 @@ class UserConnector(Connector):
 
 		subs_available = SubscriptionAzure.get_enabled(self.cores[udm_user.current_connection_alias], UCRHelper.get_service_plan_names())
 		subs_available_index = {subs_sku.skuPartNumber: subs_sku for subs_sku in subs_available}
-		self.logger.debug('seats in subscriptions_online: %r', subs_available_index)
+		self.logger.debug('seats in subscriptions_online: %r', list(subs_available_index.keys()))
 		if len(subs_available) == 0:
 			raise NoAllocatableSubscriptions(azure_user, msg_no_allocatable_subscriptions, udm_user.current_connection_alias)
 
@@ -493,30 +493,31 @@ class UserConnector(Connector):
 		#####
 		# NEW or REACTIVATED account
 		#####
-		for alias in new_object.get_diff_aliases(old_object):
-			with new_object.set_current_alias(alias):
-				self.new_or_reactivate_user(new_object)
+		if new_object.should_sync():
+			for alias in new_object.get_diff_aliases(old_object):
+				with new_object.set_current_alias(alias):
+					self.new_or_reactivate_user(new_object)
 
-		#####
-		# Remove connection
-		#####
-		for alias in old_object.get_diff_aliases(new_object):
-			with new_object.set_current_alias(alias), old_object.set_current_alias(alias):
-				old_azure = self.parse(old_object)
-				old_azure.deactivate(rename=True)
-				new_object.modify_azure_attributes(self.prepare_azure_attributes(old_azure, to_remove=True))
+			#####
+			# Remove connection
+			#####
+			for alias in old_object.get_diff_aliases(new_object):
+				with new_object.set_current_alias(alias), old_object.set_current_alias(alias):
+					old_azure = self.parse(old_object)
+					old_azure.deactivate(rename=True)
+					new_object.modify_azure_attributes(self.prepare_azure_attributes(old_azure, to_remove=True))
 
-		#####
-		# Modify attrs
-		#####
-		for alias in new_object.alias_to_modify(old_object):
-			with new_object.set_current_alias(alias), old_object.set_current_alias(alias):
-				old_azure = self.parse(old_object, set_password=False)
-				new_azure = self.parse(new_object, set_password=False)
-				old_azure.update(new_azure)
-				if new_azure.userPrincipalName != old_azure.userPrincipalName:
-					new_object.modify_azure_attributes(self.prepare_azure_attributes(new_azure))
-				self.logger.info("User modification success. userPrincipalName: %r objectId: %r dn: %s adconnection: %s", new_azure.userPrincipalName, new_azure.id, new_object.dn, new_object.current_connection_alias)
+			#####
+			# Modify attrs
+			#####
+			for alias in new_object.alias_to_modify(old_object):
+				with new_object.set_current_alias(alias), old_object.set_current_alias(alias):
+					old_azure = self.parse(old_object, set_password=False)
+					new_azure = self.parse(new_object, set_password=False)
+					old_azure.update(new_azure)
+					if new_azure.userPrincipalName != old_azure.userPrincipalName:
+						new_object.modify_azure_attributes(self.prepare_azure_attributes(new_azure))
+					self.logger.info("User modification success. userPrincipalName: %r objectId: %r dn: %s adconnection: %s", new_azure.userPrincipalName, new_azure.id, new_object.dn, new_object.current_connection_alias)
 
 
 	# def _attributes_to_update(self, considered_attributes, new_object, old_object):

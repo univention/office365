@@ -26,7 +26,7 @@ assert initialized_adconnections, "run ./01_initialize_external_testenv first!"
 
 print("*** adconnection_aliases={!r}.".format(adconnection_aliases))
 print("*** initialized_adconnections={!r}.".format(initialized_adconnections))
-initialized_adconnections = ["o365domain"]  # TODO Fixme remove this line and check that the azuretestdomain has the necessary permissions
+
 for adconnection_alias in initialized_adconnections:
 	print("*** Running for adconnection_alias={!r}.".format(adconnection_alias))
 
