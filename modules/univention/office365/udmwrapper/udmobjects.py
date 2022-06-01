@@ -91,6 +91,7 @@ class UniventionOffice365Data(UserDict):
 			})
 
 
+# TODO: Implement a .get classmethod with the dn as we have in AzureObjects
 class UDMOfficeObject(UserDict):
 	"""
 	Represents an UDM object with Azure data stored in it.
@@ -420,6 +421,7 @@ class UDMOfficeGroup(UDMOfficeObject):
 		univentionOffice365ADConnectionAlias = cache.get_sub_cache('reverseUniventionOffice365ADConnectionAlias')
 		group_users = set(x.lower() for x in users_in_group(self.dn))
 		# TODO: Check if adconnection_alias is the current_connection_alias or the list of all connection_aliases
+		print(self.current_connection_alias)
 		alias_users = set(x.lower() for x in univentionOffice365ADConnectionAlias.get(self.current_connection_alias))
 		# the intersection of the two sets is the users in the group AND have an azure account associated
 		for user in group_users & alias_users:

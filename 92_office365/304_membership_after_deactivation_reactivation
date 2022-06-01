@@ -25,6 +25,7 @@ from univention.office365.microsoft.objects.azureobjects import UserAzure, Group
 from univention.office365.ucr_helper import UCRHelper
 from univention.office365.udmwrapper.udmobjects import UDMOfficeGroup
 
+# TODO: Move to fixture
 logger = setup_logging()
 adconnection_aliases = UCRHelper.get_adconnection_aliases()
 initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAccount(adconnection_alias).is_initialized()]

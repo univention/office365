@@ -596,11 +596,9 @@ def check_team_archived(core, group_name):
 
 
 @wait_for_seconds
-def check_user_office365_data_updated(ol, user_dn):
+def check_user_office365_data_updated(user_dn):
 	''' Checking if Office365Data is updated'''
-
-	udm_user = ol.udm.get_udm_user(user_dn)
-	return udm_user.get("UniventionOffice365Data", None)
+	return UDMOfficeUser({}, None, user_dn).azure_data or None
 
 
 def check_user_location(office_listener, user_id, ucr_usageLocation, fail_msg):
