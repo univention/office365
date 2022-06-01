@@ -191,11 +191,11 @@ class AzureObject(metaclass=abc.ABCMeta):
 		self._core.remove_license(self.id, subs_sku.skuId)
 
 	def member_of(self, ids_only=False):
-		# type: () -> Union[List[GroupAzure], List[str]]
+		# type: (bool) -> Union[List[GroupAzure], List[str]]
 		""""""
 		groups_response = self._core.member_of(self.id)
 		if ids_only:
-			return [g["value"] for g in groups_response]
+			return [g["id"] for g in groups_response["value"]]
 		groups = []
 		for group_response in groups_response["value"]:
 			group = GroupAzure()
