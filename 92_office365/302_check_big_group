@@ -7,9 +7,6 @@
 ##   - univention-office365
 
 import time
-import json
-import zlib
-import base64
 
 import univention.testing.strings as uts
 import univention.testing.ucr as ucr_test
@@ -17,22 +14,28 @@ import univention.testing.udm as udm_test
 import univention.testing.utils as utils
 from univention.config_registry import handler_set, handler_unset
 
-from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user, setup_logging, check_user_office365_data_updated
-from univention.office365.listener import Office365Listener
-from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
+from helpers.office365_test_helpers import udm_user_args, setup_logging, check_user_office365_data_updated
+from univention.office365.microsoft.account import AzureAccount
+from univention.office365.microsoft.core import MSGraphApiCore
+from univention.office365.microsoft.objects.azureobjects import UserAzure
+from univention.office365.ucr_helper import UCRHelper
 
+# TODO: Move to fixture
+from univention.office365.udmwrapper.udmobjects import UDMOfficeUser, UDMOfficeGroup
 
 logger = setup_logging()
-adconnection_aliases = AzureADConnectionHandler.get_adconnection_aliases()
-initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAuth.is_initialized(adconnection_alias)]
+adconnection_aliases = UCRHelper.get_adconnection_aliases()
+initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAccount(adconnection_alias).is_initialized()]
 assert initialized_adconnections, "run ./01_initialize_external_testenv first!"
+
+print("*** adconnection_aliases={!r}.".format(adconnection_aliases))
+print("*** initialized_adconnections={!r}.".format(initialized_adconnections))
+initialized_adconnections = ["o365domain"]  # TODO Fixme remove this line and check that the azuretestdomain has the necessary permissions
 
 USERS = 125
 THRESHOLD = 600
 
-print("*** adconnection_aliases={!r}.".format(adconnection_aliases))
-print("*** initialized_adconnections={!r}.".format(initialized_adconnections))
-
+# TODO: what is this? Add explanation or remove.
 # 7m47,000s disabled delete_empty_group in office365/listener.py and disabled get_groups_direct_members in add_objects_to_azure_group
 # 8m51,217 disabled delete_empty_group in office365/listener.py
 # 45m17,538s diasbled get_groups_direct_members in add_objects_to_azure_group
@@ -42,14 +45,12 @@ with utils.AutomaticListenerRestart():
 	with udm_test.UCSTestUDM() as udm:
 		with ucr_test.UCSTestConfigRegistry() as ucr:
 			ucr.load()
-			class _listener(object):
-				configRegistry = ucr
 
 			handler_set(["office365/groups/sync=yes"])
 			utils.restart_listener()
 
 			adconnection_alias = initialized_adconnections[0]
-			ol = Office365Listener(_listener(), "ucs-test", listener_attributes_data, {}, "dn", adconnection_alias)
+			core = MSGraphApiCore(AzureAccount(adconnection_alias))
 
 			start_time = time.time()
 
@@ -76,7 +77,7 @@ with utils.AutomaticListenerRestart():
 			# wait for users to be created in azure
 			user_dn, username = users[-1]
 			print("*** Checking user Office365Data is updated")
-			check_user_office365_data_updated(ol, user_dn)
+			check_user_office365_data_updated(user_dn)
 			# for i in range(3600):
 			# 	print('waiting for last user to be created in azure')
 			# 	time.sleep(1)
@@ -88,7 +89,7 @@ with utils.AutomaticListenerRestart():
 			user_ids = list()
 			for user_dn, username in users:
 				print(user_dn)
-				udm_user = ol.udm.get_udm_user(user_dn)
+				udm_user = UDMOfficeUser({}, None, user_dn)
 				# check only users that were created in azure
 				# sometimes we get
 				# https://graph.windows.net/d66c72f6-8dee-47ed-ac2b-7fdbe8b8a5d4/groups/91a21f17-464e-42f8-a077-82aa5f641637/$links/members?api-version=1.6
@@ -104,21 +105,21 @@ with utils.AutomaticListenerRestart():
 				# RuntimeError: Office365Listener.create_user() created user 'ru9lgd9wiu@univention-azure-tests.de' cannot be retrieved ('azuretestdomain').
 				print(udm_user.get("UniventionOffice365Data"))
 				if udm_user.get("UniventionOffice365Data"):
-					user_id = Office365Listener.decode_o365data(udm_user.get("UniventionOffice365Data"))[adconnection_alias]['objectId']
+					user_id = udm_user.azure_object_id
 					user_ids.append(user_id)
 					assert user_id
-					azure_user = ol.ah.list_users(objectid=user_id)
+					azure_user = UserAzure.get(core, user_id)
 					assert azure_user
 
 			# get group id
-			udm_group = ol.udm.get_udm_group(group_dn)
-			group_objectid = Office365Listener.decode_o365data(udm_group.get("UniventionOffice365Data"))[adconnection_alias]['objectId']
-			print('ObjectId for group {}: {}'.format(group_dn, group_objectid))
+			udm_group = UDMOfficeGroup({}, None, group_dn)
+			group_object_id = udm_group.azure_object_id
+			print('ObjectId for group {}: {}'.format(group_dn, group_object_id))
 
 			# check users are member of group
 			for i in user_ids:
-				print(ol.ah.member_of_groups(i).get('value', []))
-				assert group_objectid in ol.ah.member_of_groups(i).get('value', [])
+				print(azure_user.member_of(ids_only=True))
+				assert group_object_id in azure_user.member_of(ids_only=True)
 
 			# check duration
 			end_time = time.time()
