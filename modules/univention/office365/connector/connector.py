@@ -411,14 +411,14 @@ class UserConnector(Connector):
 				with udm_office_group.set_current_alias(alias):
 					# if the group is not synced for the current connection, sync it
 					if alias not in udm_office_group.adconnection_aliases:
-						group_azure = self._create_group(udm_office_group)
+						group_azure = self.group_connector._create_group(udm_office_group)
 
 						self.logger.info("Created group with displayName: %r (%r) adconnection: %s", group_azure.displayName, group_azure.id, alias)
 						# check if the new group is also a team - and needs to be configured as team
 						if udm_office_group.is_team():
-							self.convert_group_to_team(udm_office_group, group_azure)
-
-					self.group_connector.add_member(udm_office_group, udm_object)
+							self.group_connector.convert_group_to_team(udm_office_group, group_azure)
+					else:
+						self.group_connector.add_member(udm_office_group, udm_object)
 
 	# new_or_reactivate_user
 	def create(self, udm_object):
@@ -762,7 +762,7 @@ class GroupConnector(Connector):
 		for alias in udm_object.aliases(set(self.cores.keys())):
 			if not udm_object.azure_object_id:
 				self.logger.error("Couldn't find object_id for group %r (%s), cannot delete.", udm_object.get("cn"), alias)
-				return
+				continue
 			try:
 				if udm_object.is_team():
 					try:
@@ -797,7 +797,7 @@ class GroupConnector(Connector):
 					if not self.attrs & modification_attributes_udm_group:
 						self.logger.debug("No modifications found, ignoring.")
 						new_udm_group.modify_azure_attributes(self.prepare_azure_attributes(GroupAzure(id=object_id)))
-						return
+						continue
 
 					# TODO We believe that it's unneeded
 					# for ignore_attribute in ["univentionMicrosoft365Team"]:
@@ -968,7 +968,7 @@ class GroupConnector(Connector):
 			try:
 				self.logger.info("Remove owner %r from group %r from Azure AD %r", owner.dn, azure_group.displayName, old_udm_group.current_connection_alias)
 				with owner.set_current_alias(alias):
-					azure_group.remove_member(owner.azure_object_id)
+					azure_group.remove_owner(owner.azure_object_id)
 			except MSGraphError as g_exc:
 				self.logger.error("Error while removing group owner to %r: ", azure_group.displayName)
 				self.logger.error(g_exc)
@@ -993,14 +993,22 @@ class GroupConnector(Connector):
 		for added_member_dn in added_members_dn:
 			if added_member_dn in new_udm_group.get_users():
 				# it's a user
-				udm_user = UDMOfficeUser({}, new_udm_group.ldap_cred, dn=added_member_dn)
+				try:
+					udm_user = UDMOfficeUser({}, new_udm_group.ldap_cred, dn=added_member_dn)
+				except univention.admin.uexceptions.noObject as e:
+					self.logger.warning("UDM User: %r has been removed. Not syncing with azure %r", added_member_dn, alias)
+					continue
 				if udm_user.is_enable():
 					if udm_user.azure_object_id:
 						users_and_groups_to_add.append(udm_user.azure_object_id)
 			elif added_member_dn in new_udm_group.get_nested_group():
 				# it's a group
 				# check if this group or any of its nested groups has azure_users
-				udm_office_add_member_group = UDMOfficeGroup({}, new_udm_group.ldap_cred, added_member_dn)
+				try:
+					udm_office_add_member_group = UDMOfficeGroup({}, new_udm_group.ldap_cred, added_member_dn)
+				except univention.admin.uexceptions.noObject as e:
+					self.logger.warning("UDM Group: %r has been removed. Not syncing with azure %r", added_member_dn, alias)
+					continue
 				for group in udm_office_add_member_group.get_nested_groups_with_azure_users():
 					if isinstance(group, UDMOfficeGroup):
 						if not group.azure_object_id:
@@ -1029,7 +1037,11 @@ class GroupConnector(Connector):
 			elif removed_member_dn in old_udm_group.get_nested_group():
 				# it's a group
 				# check if this group or any of its nested groups has azure_users
-				udm_office_remove_member_group = UDMOfficeGroup({}, new_udm_group.ldap_cred, removed_member_dn)
+				try:
+					udm_office_remove_member_group = UDMOfficeGroup({}, new_udm_group.ldap_cred, removed_member_dn)
+				except univention.admin.uexceptions.noObject as exc:
+					self.logger.warning("Group dn: %r not exist in UDM, aborting remove member.", removed_member_dn)
+					continue
 				member_id = udm_office_remove_member_group.azure_object_id
 				if not member_id:
 					azure_remove_member_group = GroupAzure.get_by_name(self.cores[alias], udm_office_remove_member_group.displayName)
