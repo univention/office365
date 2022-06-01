@@ -243,7 +243,7 @@ class AzureAccount(UserDict):
 			raise WriteScriptError(_("Error converting identity provider certificate."), adconnection_alias=self.alias)
 
 		saml_uri_supplement = ""
-		if self.alias != UCRHelper.default_adconnection:
+		if self.alias != UCRHelper.default_adconnection_name:
 			saml_uri_supplement = '/%s' % self.alias
 
 		issuer = 'https://{ssohost}/simplesamlphp{supplement}/saml2/idp/metadata.php'.format(ssohost=UCRHelper.get('ucs/server/sso/fqdn', 'ucs-sso.{domain}'.format(domain=UCRHelper.get('domainname'))), supplement=saml_uri_supplement)
