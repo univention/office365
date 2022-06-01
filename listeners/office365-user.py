@@ -38,7 +38,8 @@ class ListenerModuleTemplate(univention.listener.ListenerModuleHandler):
 		# type:  (str, Dict[str, List[bytes]]) -> None
 		self.logger.info('create dn: %r', dn)
 		udm_user = UDMOfficeUser(ldap_fields=new, ldap_cred=self._ldap_credentials, dn=dn, logger=logger)
-		self.connector.create(udm_object=udm_user)
+		if udm_user.should_sync():
+			self.connector.create(udm_object=udm_user)
 
 	def modify(self, dn, old, new, old_dn):
 		# type:  (str, Dict[str, List[bytes]], Dict[str, List[bytes]], Optional[str]) -> None
@@ -55,4 +56,5 @@ class ListenerModuleTemplate(univention.listener.ListenerModuleHandler):
 		# type:  (str, Dict[str, List[bytes]]) -> None
 		self.logger.info('remove dn: %r', dn)
 		udm_user = UDMOfficeUser(ldap_fields=old, ldap_cred=self._ldap_credentials, dn=dn, logger=logger)
-		self.connector.delete(udm_object=udm_user)
+		if udm_user.should_sync():
+			self.connector.delete(udm_object=udm_user)

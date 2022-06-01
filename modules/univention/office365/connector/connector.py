@@ -211,7 +211,8 @@ class Connector:
 			if alias in self.cores.keys():
 				res += filter_format('(univentionOffice365ADConnectionAlias=%s)', (alias,))
 			else:
-				raise Exception('Alias {!r} from UCR {!r} is not initialized. Exiting.'.format(alias, filtered_in_aliases))
+				self.logger.warning('Alias {!r} from UCR {!r} is not initialized. Exiting.'.format(alias, UCRHelper.adconnection_filter_ucrv))
+				continue
 		if len(res.split('=')) > 2:
 			res = '(|{})'.format(res)
 		return res
@@ -224,7 +225,8 @@ class Connector:
 				raise Exception('Alias {!r} from UCR {!r} not listed in UCR {!r}. Exiting.'.format(alias, UCRHelper.adconnection_filter_ucrv, UCRHelper.adconnection_alias_ucrv))
 			account = AzureAccount(alias)
 			if not account.is_initialized():
-				raise Exception('Alias {!r} from UCR {!r} is not initialized. Exiting.'.format(alias, UCRHelper.adconnection_filter_ucrv))
+				self.logger.warning('Alias {!r} from UCR {!r} is not initialized. Exiting.'.format(alias, UCRHelper.adconnection_filter_ucrv))
+				continue
 			self.accounts.append(account)
 
 	@abstractmethod
@@ -427,8 +429,9 @@ class UserConnector(Connector):
 		Given an UDMOfficeUser object, create a new user in Azure.
 
 		"""
-		for alias in udm_object.aliases():
-			self.new_or_reactivate_user(udm_object)
+		if udm_object.should_sync():
+			for alias in udm_object.aliases():
+				self.new_or_reactivate_user(udm_object)
 
 	# univention.office365.azure_handler.AzureHandler.delete_user
 	def delete(self, udm_object):
@@ -491,7 +494,7 @@ class UserConnector(Connector):
 		# NEW or REACTIVATED account
 		#####
 		for alias in new_object.get_diff_aliases(old_object):
-			with new_object.set_current_alias(alias), old_object.set_current_alias(alias):
+			with new_object.set_current_alias(alias):
 				self.new_or_reactivate_user(new_object)
 
 		#####
@@ -1088,7 +1091,15 @@ class GroupConnector(Connector):
 		alias = udm_office_group.current_connection_alias or alias
 		with udm_office_group.set_current_alias(alias):
 			azure_group = self.parse(udm_office_group)
-			azure_group.add_member(udm_office_user.azure_object_id)
+			try:
+				azure_group.add_member(udm_office_user.azure_object_id)
+			except MSGraphError as e:
+				if hasattr(e.response, "json"):
+					body = e.response.json()
+					if body.get("error",{}).get("message", "") == "One or more added object references already exist for the following modified properties: 'members'.":
+						self.logger.warning("User %r has already been member of %r" % (azure_group.id, udm_office_user.azure_object_id))
+						return
+				raise
 
 	def remove_member(self, udm_office_group, udm_office_user, alias=None):
 		# type: (UDMOfficeGroup, UDMOfficeUser, Optional[str]) -> None

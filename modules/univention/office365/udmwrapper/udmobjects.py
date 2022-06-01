@@ -132,16 +132,9 @@ class UDMOfficeObject(UserDict):
 		#  If not, current implementation of UDMHelper depends of adconnection_alias which is specific to UDM office objects.
 		self.ldap_cred = ldap_cred
 		self.udm_connector = UDMHelper(ldap_cred)
-		try:
-			self.udm_object_reference = self.udm_connector.get_udm_object(self.MODULE, self.dn, attributes=ldap_fields)
-			if not ldap_fields:
-				self.update(self.udm_object_reference.oldattr)
-		except:
-			self.logger.error("=" * 50)
-			self.logger.error(self.MODULE)
-			self.logger.error(self.dn)
-			self.logger.error("=" * 50)
-			raise
+		self.udm_object_reference = self.udm_connector.get_udm_object(self.MODULE, self.dn, attributes=ldap_fields)
+		if not ldap_fields:
+			self.update(self.udm_object_reference.oldattr)
 		# self.adconnection_aliases = self.udm_object_reference.get("UniventionOffice365ADConnectionAlias", [])   # type List[str]
 		self.current_connection_alias = None
 
@@ -241,14 +234,14 @@ class UDMOfficeObject(UserDict):
 		# TODO move out azure_object_dict = {"objectId": azure_object_dict["id"], "userPrincipalName": azure_object_dict["userPrincipalName"]}
 		# Create azure data entry for adconnection_alias
 		old_azure_data = self.azure_data
+		assert self.current_connection_alias
 		if azure_object_dict:
-			new_azure_data = {self.current_connection_alias: azure_object_dict or {}}
+			new_azure_data = {self.current_connection_alias: azure_object_dict}
 			# get the old dict of azure data for all connections
 			# update the old dict with the new one
 			old_azure_data.update(new_azure_data)
-		# else:
-		# 	old_azure_data[self.current_connection_alias] =
-		# 	old_azure_data.pop(self.current_connection_alias)
+		else:
+			old_azure_data.pop(self.current_connection_alias)
 		self.udm_object_reference["UniventionOffice365Data"] = UniventionOffice365Data.to_ldap_str(old_azure_data)
 
 	def modify_azure_attributes(self, azure_object_dict):
@@ -405,7 +398,8 @@ class UDMOfficeGroup(UDMOfficeObject):
 		"""
 		"""
 		if azure_group_dict is not None:
-			self.udm_object_reference["UniventionOffice365ADConnectionAlias"].append(self.current_connection_alias)
+			if self.current_connection_alias not in self.udm_object_reference["UniventionOffice365ADConnectionAlias"]:
+				self.udm_object_reference["UniventionOffice365ADConnectionAlias"].append(self.current_connection_alias)
 		else:
 			self.udm_object_reference["UniventionOffice365ADConnectionAlias"] = [x for x in self.adconnection_aliases if x != self.current_connection_alias]
 		super(UDMOfficeGroup, self).modify_azure_attributes(azure_group_dict)
@@ -421,11 +415,10 @@ class UDMOfficeGroup(UDMOfficeObject):
 		univentionOffice365ADConnectionAlias = cache.get_sub_cache('reverseUniventionOffice365ADConnectionAlias')
 		group_users = set(x.lower() for x in users_in_group(self.dn))
 		# TODO: Check if adconnection_alias is the current_connection_alias or the list of all connection_aliases
-		print(self.current_connection_alias)
 		alias_users = set(x.lower() for x in univentionOffice365ADConnectionAlias.get(self.current_connection_alias))
 		# the intersection of the two sets is the users in the group AND have an azure account associated
 		for user in group_users & alias_users:
-			if bool(int(univentionOffice365Enabled.get(user))):
+			if bool(int(univentionOffice365Enabled.get(user) or 0)):
 				return True
 		return False
 
