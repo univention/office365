@@ -63,7 +63,7 @@ from univention.office365.microsoft.core import MSGraphApiCore
 from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError
 from univention.office365.microsoft.objects.azureobjects import AzureObject, GroupAzure, UserAzure, TeamAzure
 from univention.office365.udm_helper import UDMHelper
-from univention.office365.udmwrapper.udmobjects import UDMOfficeUser
+from univention.office365.udmwrapper.udmobjects import UDMOfficeUser, UniventionOffice365Data
 from univention.office365.utils.utils import create_random_pw
 
 udm_syntax.update_choices()
@@ -597,8 +597,12 @@ def check_team_archived(core, group_name):
 
 @wait_for_seconds
 def check_user_office365_data_updated(user_dn):
+	# type: (str) -> bool
 	''' Checking if Office365Data is updated'''
-	return UDMOfficeUser({}, None, user_dn).azure_data or None
+	if UDMOfficeUser({}, None, user_dn).azure_data:
+		return True
+	else:
+		return False
 
 
 def check_user_location(office_listener, user_id, ucr_usageLocation, fail_msg):

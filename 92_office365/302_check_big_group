@@ -30,7 +30,6 @@ assert initialized_adconnections, "run ./01_initialize_external_testenv first!"
 
 print("*** adconnection_aliases={!r}.".format(adconnection_aliases))
 print("*** initialized_adconnections={!r}.".format(initialized_adconnections))
-initialized_adconnections = ["o365domain"]  # TODO Fixme remove this line and check that the azuretestdomain has the necessary permissions
 
 USERS = 125
 THRESHOLD = 600
@@ -86,7 +85,7 @@ with utils.AutomaticListenerRestart():
 			# 		break
 
 			# get user ids
-			user_ids = list()
+			users_azure = list()
 			for user_dn, username in users:
 				print(user_dn)
 				udm_user = UDMOfficeUser({}, None, user_dn)
@@ -103,23 +102,23 @@ with utils.AutomaticListenerRestart():
 				#   File "/usr/lib/pymodules/python2.7/univention/office365/listener.py", line 172, in create_user
 				#      attributes["userPrincipalName"], self.adconnection_alias)
 				# RuntimeError: Office365Listener.create_user() created user 'ru9lgd9wiu@univention-azure-tests.de' cannot be retrieved ('azuretestdomain').
-				print(udm_user.get("UniventionOffice365Data"))
-				if udm_user.get("UniventionOffice365Data"):
+				with udm_user.set_current_alias(adconnection_alias):
 					user_id = udm_user.azure_object_id
-					user_ids.append(user_id)
 					assert user_id
 					azure_user = UserAzure.get(core, user_id)
 					assert azure_user
-
+					users_azure.append(azure_user)
 			# get group id
 			udm_group = UDMOfficeGroup({}, None, group_dn)
-			group_object_id = udm_group.azure_object_id
+			with udm_group.set_current_alias(adconnection_alias):
+				group_object_id = udm_group.azure_object_id
+				assert group_object_id
 			print('ObjectId for group {}: {}'.format(group_dn, group_object_id))
 
 			# check users are member of group
-			for i in user_ids:
-				print(azure_user.member_of(ids_only=True))
-				assert group_object_id in azure_user.member_of(ids_only=True)
+			for azure_user in users_azure:
+				member_of = azure_user.member_of(ids_only=True)
+				assert group_object_id in member_of
 
 			# check duration
 			end_time = time.time()
