@@ -11,6 +11,7 @@ from six import reraise
 
 from univention.office365.microsoft.core import MSGraphApiCore
 from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError, AddLicenseError
+from univention.office365.microsoft.exceptions.exceptions import GraphRessourceNotFroundError
 from univention.office365.utils.utils import create_random_pw
 from univention.office365.asyncqueue.tasks.azuretask import MSGraphCoreTask
 
@@ -513,14 +514,14 @@ class GroupAzure(AzureObject):
 
 	@classmethod
 	def get_by_name(cls, core, displayName):
-		# type: (MSGraphApiCore, str) -> Optional[GroupAzure]
+		# type: (MSGraphApiCore, str) -> GroupAzure
 		response = core.list_groups("$filter=displayName eq '{value}'".format(value=displayName))
 		if response["value"]:
 			group = cls()
 			group._update_from_dict(response["value"][0])
 			group.set_core(core)
 			return group
-		return None
+		raise GraphRessourceNotFroundError("Object with displayName: %r not found in azure %r" % (core.account.alias, displayName))
 
 	# TODO update user with the response ??
 	def exist(self):

@@ -18,6 +18,7 @@ from univention.config_registry import handler_set, handler_unset
 from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user, setup_logging
 from univention.office365.microsoft.account import AzureAccount
 from univention.office365.microsoft.core import MSGraphApiCore
+from univention.office365.microsoft.exceptions.exceptions import GraphRessourceNotFroundError
 from univention.office365.microsoft.objects.azureobjects import GroupAzure
 from univention.office365.ucr_helper import UCRHelper
 from univention.office365.udmwrapper.udmobjects import UDMOfficeUser, UDMOfficeGroup
@@ -63,7 +64,7 @@ with utils.AutomaticListenerRestart():
 				set=dict(
 					name=group_name,
 					description=description
-					),
+				),
 				position="cn=groups,{}".format(ucr.get("ldap/base")),
 				check_for_drs_replication=True
 			)
@@ -88,8 +89,9 @@ with utils.AutomaticListenerRestart():
 				utils.fail("Created group {!r} has no objectId in UDM Data object  ({!r}).".format(group_name, adconnection_alias1))
 
 			print("*** Checking that group was created in azure (list)...")
-			azure_group = GroupAzure.get_by_name(core_1, group_name)
-			if not azure_group:
+			try:
+				azure_group = GroupAzure.get_by_name(core_1, group_name)
+			except GraphRessourceNotFroundError as e:
 				utils.fail("Created group {!r} cannot be retrieved from azure ({!r}).".format(group_name, adconnection_alias1))
 
 			print("*** Checking that user is in group...")
@@ -103,9 +105,11 @@ with utils.AutomaticListenerRestart():
 
 
 			print("*** Checking that group was NOT created in azure AD2 (list)...")
-			azure_group_none = GroupAzure.get_by_name(core_2, group_name)
-			if azure_group_none:
+			try:
+				azure_group_none = GroupAzure.get_by_name(core_2, group_name)
 				utils.fail("Created group {!r} was retrieved from azure ({!r}). But it should not have been synced there.".format(group_name, adconnection_alias2))
+			except GraphRessourceNotFroundError as e:
+				pass
 
 			# Sync and check user+group for second azure AD
 			group_name_two = uts.random_name()
@@ -115,7 +119,7 @@ with utils.AutomaticListenerRestart():
 				set=dict(
 					name=group_name_two,
 					description=description_two
-					),
+				),
 				position="cn=groups,{}".format(ucr.get("ldap/base")),
 				check_for_drs_replication=True
 			)
@@ -143,8 +147,9 @@ with utils.AutomaticListenerRestart():
 				utils.fail("Created group {!r} has no objectId in UDM Data object  ({!r}).".format(group_name_two, adconnection_alias2))
 
 			print("*** Checking that group 2 was created in azure (list)...")
-			azure_group_two = GroupAzure.get_by_name(core_2, group_name_two)
-			if not azure_group_two:
+			try:
+				azure_group_two = GroupAzure.get_by_name(core_2, group_name_two)
+			except GraphRessourceNotFroundError as e:
 				utils.fail("Created group {!r} cannot be retrieved from azure ({!r}).".format(group_name_two, adconnection_alias2))
 
 			print("*** Checking that user 2 is in group 2...")
@@ -157,9 +162,11 @@ with utils.AutomaticListenerRestart():
 				utils.fail("Group {!r} does not contain the user object for user {!r} ({!r}).".format(group_name_two, username_two, adconnection_alias1))
 
 			print("*** Checking that group 2 was NOT created in azure AD1 (list)...")
-			azure_group_none = GroupAzure.get_by_name(core_1, group_name_two)
-			if azure_group_none:
+			try:
+				azure_group_none = GroupAzure.get_by_name(core_1, group_name_two)
 				utils.fail("Created group {!r} was retrieved from azure ({!r}). But it should not have been synced there.".format(group_name_two, adconnection_alias1))
+			except GraphRessourceNotFroundError as e:
+				pass
 			print("*** All went well.")
 
 # Cleanup

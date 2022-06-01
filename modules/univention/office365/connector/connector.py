@@ -12,7 +12,7 @@ from ldap.filter import filter_format
 from univention.office365.microsoft.account import AzureAccount
 from univention.office365.microsoft.core import MSGraphApiCore
 from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError, AddLicenseError
-from univention.office365.microsoft.exceptions.exceptions import NoAllocatableSubscriptions
+from univention.office365.microsoft.exceptions.exceptions import NoAllocatableSubscriptions, GraphRessourceNotFroundError
 from univention.office365.connector import utils
 from univention.office365.microsoft.objects.azureobjects import UserAzure, AzureObject, GroupAzure, SubscriptionAzure, TeamAzure
 from univention.office365.udmwrapper.udmobjects import UDMOfficeUser, UDMOfficeGroup, UDMOfficeObject
@@ -1044,7 +1044,10 @@ class GroupConnector(Connector):
 					continue
 				member_id = udm_office_remove_member_group.azure_object_id
 				if not member_id:
-					azure_remove_member_group = GroupAzure.get_by_name(self.cores[alias], udm_office_remove_member_group.displayName)
+					try:
+						azure_remove_member_group = GroupAzure.get_by_name(self.cores[alias], udm_office_remove_member_group.displayName)
+					except GraphRessourceNotFroundError as e:
+						azure_remove_member_group = None
 					member_id = azure_remove_member_group.id if azure_remove_member_group else None
 				if member_id:
 					azure_group.remove_member(member_id)
