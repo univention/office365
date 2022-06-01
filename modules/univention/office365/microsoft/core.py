@@ -586,7 +586,7 @@ class MSGraphApiCore:
 			expected_status=[204]
 		)
 
-	def member_of(self, object_id):  # TODO añadir bool para listar todos los objetos
+	def member_of(self, object_id):
 		# type: (str) -> Dict
 		""""""
 		return self._call_graph_api(

@@ -82,7 +82,8 @@ azure_user_selection = ["assignedLicenses",
 				 "preferredLanguage",
 				 "surname",
 				 "userPrincipalName",
-				 "id"]
+				 "id",
+				 "accountEnabled"]
 
 udm2azure = dict(
 	firstname=lambda x: x.givenName,

@@ -9,11 +9,14 @@ from typing import List, Dict, Any, Union, Optional, Type
 import attr
 from six import reraise
 
+from univention.office365.logging2udebug import get_logger
 from univention.office365.microsoft.core import MSGraphApiCore
 from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError, AddLicenseError
 from univention.office365.microsoft.exceptions.exceptions import GraphRessourceNotFroundError
 from univention.office365.utils.utils import create_random_pw
 from univention.office365.asyncqueue.tasks.azuretask import MSGraphCoreTask
+
+logger = get_logger("office365", "azure_objects")
 
 delete_name_pattern = "ZZZ_deleted_{time}_{orig}"
 
@@ -129,7 +132,6 @@ class AzureObject(metaclass=abc.ABCMeta):
 	def wait_for_operation(core, response):
 		# type: (MSGraphApiCore, Dict[str, Any]) -> None
 		if "operations" in response.get("Location", ""):
-			print(response.get("Location"))
 			while True:
 				try:
 					r = core.wait_for_operation(response.get("Location"))
@@ -346,10 +348,6 @@ class UserAzure(AzureObject):
 			if attrib in data:
 				# read text at beginning delete_user()
 				del data[attrib]
-		print("="*50)
-		print(self.id or other.id)
-		print(data)
-		print("="*50)
 		if data:
 			self._core.modify_user(self.id or other.id, data)
 			self._update_from_dict(data)
@@ -375,7 +373,11 @@ class UserAzure(AzureObject):
 		# TODO check if the assignedLicenses is clean
 		groups = self._core.member_of(self.id)
 		for group in groups["value"]:
-			self._core.remove_group_member(group["id"], self.id)
+			try:
+				self._core.remove_group_member(group["id"], self.id)
+			except MSGraphError as e:
+				logger.warning("Member %r can't be remove from group %r" % (self.id, group["id"]))
+				continue
 		for _license in self.get_assignedLicenses():
 			self.remove_license(_license)
 
