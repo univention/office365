@@ -150,7 +150,7 @@ class Office365ADConnectionsHook(simpleHook):
 			return ml
 
 		# Update the UniventionOffice365ADConnectionAlias list
-		old = [x.encode('UTF-8') for x in module.get("UniventionOffice365ADConnectionAlias")]
+		old = [x.encode('UTF-8') for x in module.get("UniventionOffice365ADConnectionAlias", [])]
 		new = [x.encode('UTF-8') for x in adconnection_aliases_new]
 		if new != old:
 			ml.append(("univentionOffice365ADConnectionAlias", old, new))
