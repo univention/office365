@@ -161,6 +161,7 @@ class AzureAccount(UserDict):
 		# type: () -> bool
 		""""""
 		self.logger.debug('adconnection_alias=%r', self.alias)
+		self.load_ids_from_file()
 		try:
 			return all([self.get(x, False) for x in ["client_id", "adconnection_id", "reply_url", "domain"]])
 		except KeyError as exc:
@@ -193,6 +194,7 @@ class AzureAccount(UserDict):
 				raise ADConnectionIDError(_("ADConnection-ID '{}' has wrong format.".format(tid)))
 
 		JsonStorage(self.conf_dirs['IDS_FILE']).write(**kwargs)
+		self.update(kwargs)
 
 	def get_domain(self):
 		# type: () -> None

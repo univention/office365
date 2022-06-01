@@ -15,20 +15,26 @@ import atexit
 import univention.testing.strings as uts
 import univention.testing.utils as utils
 
-from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
+from univention.office365.connector.account_connector import AccountConnector
+from univention.office365.logging2udebug import get_logger
+from univention.office365.microsoft.account import AzureAccount
 
 adconnection1 = uts.random_username()
 adconnection2 = uts.random_username()
 adconnection3 = uts.random_username()
 
+logger = get_logger("ucs-test", "o365")
+
+account_connector = AccountConnector(logger)
 for adconnection in (adconnection1, adconnection2, adconnection3):
-	AzureADConnectionHandler.create_new_adconnection(logger, adconnection)
-	CONFDIR = AzureADConnectionHandler.get_conf_path("CONFDIR", adconnection)
+	AccountConnector.create_new_adconnection(logger, adconnection)
+	new_account = AzureAccount(adconnection, lazy_load=True)
+	CONFDIR = new_account.conf_dirs.get("CONFDIR")
 	print('*** adconnection={!r} CONFDIR={!r}'.format(adconnection, CONFDIR))
 	# os.mkdir(CONFDIR)
 
 	DATETIME_FORMAT = "%Y-%m-%d_%H:%M:%S"
-	IDS_FILE = AzureADConnectionHandler.get_conf_path("IDS_FILE", adconnection)
+	IDS_FILE = new_account.conf_dirs.get("IDS_FILE")
 	IDS_FILE_BAK = "{}.bak_{}".format(IDS_FILE, datetime.datetime.now().strftime(DATETIME_FORMAT.replace(" ", "_")))
 
 	try:
@@ -47,30 +53,30 @@ for adconnection in (adconnection1, adconnection2, adconnection3):
 			except IOError:
 				pass
 
-	AzureAuth.uninitialize(adconnection)
 
-	if AzureAuth.is_initialized(adconnection):
+	new_account.uninitialize()
+
+	if new_account.is_initialized():
 		utils.fail("App should not be initialized.")
 
 	test_ids = dict(
 		adconnection_id=str(uuid.uuid1()),
 		client_id=uts.random_string(),
 		reply_url=uts.random_string(),
-		domain="{}.{}".format(uts.random_string(), uts.random_string())
+		domain="{}.{}".format(uts.random_string(), uts.random_string()),
+		adconnection_alias = adconnection
 	)
 
-	AzureAuth.store_azure_ids(adconnection_alias=adconnection, **test_ids)
-	AzureAuth.store_tokens(adconnection_alias=adconnection, consent_given=True)
+	new_account.store_ids(**test_ids)
+	new_account.token.store_tokens(adconnection_alias=adconnection, consent_given=True)
 
-	if not AzureAuth.is_initialized(adconnection):
-		utils.fail("App should be initialized.")
+	if not new_account.is_initialized():
+		utils.fail("App should be initialized. %r" % new_account)
 
-	loaded_ids = AzureAuth.load_azure_ids(adconnection)
-
-	if not loaded_ids == test_ids:
+	if not all([v == new_account[k] for k, v in test_ids.items()]):
 		utils.fail("Stored and loaded data differ.")
 
-	AzureADConnectionHandler.remove_adconnection(adconnection)
+	account_connector.remove_adconnection(adconnection)
 
 
 print("*** All went well.")
