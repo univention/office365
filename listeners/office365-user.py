@@ -36,13 +36,13 @@ class ListenerModuleTemplate(univention.listener.ListenerModuleHandler):
 
 	def create(self, dn, new):
 		# type:  (str, Dict[str, List[bytes]]) -> None
-		self.logger.debug('create dn: %r', dn)
+		self.logger.info('create dn: %r', dn)
 		udm_user = UDMOfficeUser(ldap_fields=new, ldap_cred=self._ldap_credentials, dn=dn, logger=logger)
 		self.connector.create(udm_object=udm_user)
 
 	def modify(self, dn, old, new, old_dn):
 		# type:  (str, Dict[str, List[bytes]], Dict[str, List[bytes]], Optional[str]) -> None
-		self.logger.debug('modify dn: %r', dn)
+		self.logger.info('modify dn: %r', dn)
 		new_udm_user = UDMOfficeUser(ldap_fields=new, ldap_cred=self._ldap_credentials, dn=dn, logger=logger)
 		old_udm_user = UDMOfficeUser(ldap_fields=old, ldap_cred=self._ldap_credentials, dn=old_dn or dn, logger=logger)
 		self.connector.modify(new_object=new_udm_user, old_object=old_udm_user)
@@ -53,7 +53,6 @@ class ListenerModuleTemplate(univention.listener.ListenerModuleHandler):
 
 	def remove(self, dn, old):
 		# type:  (str, Dict[str, List[bytes]]) -> None
-		self.logger.debug('remove dn: %r', dn)
-		self.logger.error('remove dn: %r', dn)
+		self.logger.info('remove dn: %r', dn)
 		udm_user = UDMOfficeUser(ldap_fields=old, ldap_cred=self._ldap_credentials, dn=dn, logger=logger)
 		self.connector.delete(udm_object=udm_user)

@@ -165,7 +165,7 @@ class UDMOfficeObject(UserDict):
 			elif item in self.udm_object_reference.oldattr:
 				return self.udm_object_reference.oldattr[item]
 			else:
-				raise Exception("{item} not found in object {dn}".format(item=item, dn=self.dn))
+				raise KeyError("{item} not found in object {dn}".format(item=item, dn=self.dn))
 
 	def __hash__(self):
 		# type: () -> int
@@ -443,7 +443,7 @@ class UDMOfficeGroup(UDMOfficeObject):
 
 	def get_members(self):
 		# type: () -> List[str]
-		members = [x.decode("utf-8") for x in getattr(self, "uniqueMember", [])]
+		members = [x.decode("utf-8") for x in self.get("uniqueMember", [])]
 		return members
 
 	def get_nested_group(self):
@@ -562,7 +562,6 @@ class UDMOfficeGroup(UDMOfficeObject):
 		"""
 		_, removed = self.owners_changes(target)
 		return removed
-
 
 	def members_changes(self, target):
 		# type: (UDMOfficeGroup) -> Tuple[Set[str], Set[str]]
