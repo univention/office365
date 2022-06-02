@@ -136,12 +136,22 @@ class UDMOfficeObject(UserDict):
 		if not ldap_fields:
 			self.update(self.udm_object_reference.oldattr)
 		# self.adconnection_aliases = self.udm_object_reference.get("UniventionOffice365ADConnectionAlias", [])   # type List[str]
-		self.current_connection_alias = None
+		self._current_connection_alias = None
 
 	@property
 	def entryUUID(self):
 		# type: () -> str
 		return self.udm_object_reference.oldattr["entryUUID"][0].decode('UTF-8')
+
+	@property
+	def current_connection_alias(self):
+		if not self._current_connection_alias:
+			self.logger.warning("Object %r has not assigned current_connection_alias")
+		return self._current_connection_alias
+
+	@current_connection_alias.setter
+	def current_connection_alias(self, value):
+		self._current_connection_alias = value
 
 	def __getattr__(self, item):
 		# type: (str) -> Any

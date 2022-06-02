@@ -14,7 +14,7 @@ import univention.testing.udm as udm_test
 import univention.testing.utils as utils
 from univention.config_registry import handler_set, handler_unset
 
-from helpers.office365_test_helpers import udm_user_args, setup_logging, check_user_office365_data_updated
+from helpers.office365_test_helpers import udm_user_args, setup_logging, check_user_office365_data_updated, check_member_of
 from univention.office365.microsoft.account import AzureAccount
 from univention.office365.microsoft.core import MSGraphApiCore
 from univention.office365.microsoft.objects.azureobjects import UserAzure
@@ -66,48 +66,31 @@ with utils.AutomaticListenerRestart():
 			username = uts.random_name()
 			users = []
 			for i in range(USERS):
-				user_args = udm_user_args(ucr, minimal=True)
-				user_args["username"] = '{}{}'.format(username, i)
+				user_args = udm_user_args(ucr, minimal=True, sufix=str(i))
 				user_args["set"]["UniventionOffice365Enabled"] = 1
 				user_args["set"]["UniventionOffice365ADConnectionAlias"] = adconnection_alias
 				user_args["set"]["primaryGroup"] = group_dn
 				users.append(udm.create_user(**user_args))
 
 			# wait for users to be created in azure
-			user_dn, username = users[-1]
+			user_dn, _ = users[-1]
 			print("*** Checking user Office365Data is updated")
 			check_user_office365_data_updated(user_dn)
-			# for i in range(3600):
-			# 	print('waiting for last user to be created in azure')
-			# 	time.sleep(1)
-			# 	udm_user = ol.udm.get_udm_user(user_dn)
-			# 	if udm_user.get("UniventionOffice365Data", None):
-			# 		break
 
 			# get user ids
 			users_azure = list()
-			for user_dn, username in users:
+			for user_dn, _ in users:
 				print(user_dn)
 				udm_user = UDMOfficeUser({}, None, user_dn)
+
 				# check only users that were created in azure
-				# sometimes we get
-				# https://graph.windows.net/d66c72f6-8dee-47ed-ac2b-7fdbe8b8a5d4/groups/91a21f17-464e-42f8-a077-82aa5f641637/$links/members?api-version=1.6
-				# url
-				# https://graph.windows.net/d66c72f6-8dee-47ed-ac2b-7fdbe8b8a5d4/groups/28936900-35a4-4328-8668-165aaaf0f5a3/$links/members?api-version=1.6
-				# Traceback (most recent call last):
-				#   File "/usr/lib/univention-directory-listener/system/office365-user.py", line 435, in handler
-				#     new_or_reactivate_user(ol, dn, new, old)
-				#   File "/usr/lib/univention-directory-listener/system/office365-user.py", line 250, in new_or_reactivate_user
-				#      new_user = ol.create_user(new)
-				#   File "/usr/lib/pymodules/python2.7/univention/office365/listener.py", line 172, in create_user
-				#      attributes["userPrincipalName"], self.adconnection_alias)
-				# RuntimeError: Office365Listener.create_user() created user 'ru9lgd9wiu@univention-azure-tests.de' cannot be retrieved ('azuretestdomain').
 				with udm_user.set_current_alias(adconnection_alias):
 					user_id = udm_user.azure_object_id
 					assert user_id
-					azure_user = UserAzure.get(core, user_id)
-					assert azure_user
+					azure_user = UserAzure(id=user_id)
+					azure_user.set_core(core)
 					users_azure.append(azure_user)
+
 			# get group id
 			udm_group = UDMOfficeGroup({}, None, group_dn)
 			with udm_group.set_current_alias(adconnection_alias):

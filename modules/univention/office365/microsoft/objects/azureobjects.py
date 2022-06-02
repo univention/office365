@@ -340,7 +340,7 @@ class UserAzure(AzureObject):
 	# TODO update user with the response ??
 
 	def update(self, other):
-		# type: ('AzureObject') -> None
+		# type: ('AzureObject') -> Dict[str, Any]
 		""""""
 		data = (self - other).get_not_none_values_as_dict()
 		can_only_be_created_not_modified = ["mobilePhone", "passwordProfile", "id", "assignedLicenses"]
@@ -351,6 +351,7 @@ class UserAzure(AzureObject):
 		if data:
 			self._core.modify_user(self.id or other.id, data)
 			self._update_from_dict(data)
+			return data
 
 	# TODO update user with the response ??
 
