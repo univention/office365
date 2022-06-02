@@ -146,7 +146,7 @@ class UDMOfficeObject(UserDict):
 	@property
 	def current_connection_alias(self):
 		if not self._current_connection_alias:
-			self.logger.warning("Object %r has not assigned current_connection_alias")
+			self.logger.warning("Object %r has not assigned current_connection_alias", self.id)
 		return self._current_connection_alias
 
 	@current_connection_alias.setter
@@ -181,7 +181,7 @@ class UDMOfficeObject(UserDict):
 	@contextlib.contextmanager
 	def set_current_alias(self, alias):
 		# type: (str) -> None
-		alias_bk, self.current_connection_alias = self.current_connection_alias, alias
+		alias_bk, self._current_connection_alias = self._current_connection_alias, alias
 		yield
 		self.current_connection_alias = alias_bk
 

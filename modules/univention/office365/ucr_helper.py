@@ -45,6 +45,7 @@ class UCRHelperC(ConfigRegistry):
 		Extract the AD connection aliases from UCR. Name of the ad connection is the key and ('initialized' or 'uninitialized') is the value.
 		@return: dict filtered with only ad connection aliases
 		"""
+		self.load()
 		return {k[len(self.adconnection_alias_ucrv):]: v for k, v in self.items() if k.startswith(self.adconnection_alias_ucrv)}
 
 	def get_adconnection_filtered_in(self):

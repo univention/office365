@@ -207,7 +207,8 @@ class Connector:
 		filtered_in_aliases = UCRHelper.get_adconnection_filtered_in()
 		for alias in filtered_in_aliases:
 			if alias not in self.all_alias_connections:
-				raise Exception('Alias {!r} from UCR {!r} not listed in UCR {!r}. Exiting.'.format(alias, UCRHelper.adconnection_filter_ucrv, UCRHelper.adconnection_alias_ucrv))
+				self.logger.warning('Alias {!r} from UCR {!r} not listed in UCR {!r}. Exiting.'.format(alias, UCRHelper.adconnection_filter_ucrv, UCRHelper.adconnection_alias_ucrv))
+				continue
 			if alias in self.cores.keys():
 				res += filter_format('(univentionOffice365ADConnectionAlias=%s)', (alias,))
 			else:
@@ -222,7 +223,8 @@ class Connector:
 		filtered_in_aliases = UCRHelper.get_adconnection_filtered_in() or list(self.all_alias_connections.keys())
 		for alias in filtered_in_aliases:
 			if alias not in self.all_alias_connections.keys():
-				raise Exception('Alias {!r} from UCR {!r} not listed in UCR {!r}. Exiting.'.format(alias, UCRHelper.adconnection_filter_ucrv, UCRHelper.adconnection_alias_ucrv))
+				self.logger.warning('Alias {!r} from UCR {!r} not listed in UCR {!r}. Exiting.'.format(alias, UCRHelper.adconnection_filter_ucrv, UCRHelper.adconnection_alias_ucrv))
+				continue
 			account = AzureAccount(alias)
 			if not account.is_initialized():
 				self.logger.warning('Alias {!r} from UCR {!r} is not initialized. Exiting.'.format(alias, UCRHelper.adconnection_filter_ucrv))

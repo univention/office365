@@ -18,6 +18,7 @@ import univention.testing.utils as utils
 from univention.office365.connector.account_connector import AccountConnector
 from univention.office365.logging2udebug import get_logger
 from univention.office365.microsoft.account import AzureAccount
+from univention.office365.ucr_helper import UCRHelper
 
 adconnection1 = uts.random_username()
 adconnection2 = uts.random_username()
@@ -64,7 +65,7 @@ for adconnection in (adconnection1, adconnection2, adconnection3):
 		client_id=uts.random_string(),
 		reply_url=uts.random_string(),
 		domain="{}.{}".format(uts.random_string(), uts.random_string()),
-		adconnection_alias = adconnection
+		adconnection_alias=adconnection
 	)
 
 	new_account.store_ids(**test_ids)
@@ -77,6 +78,8 @@ for adconnection in (adconnection1, adconnection2, adconnection3):
 		utils.fail("Stored and loaded data differ.")
 
 	account_connector.remove_adconnection(adconnection)
+	assert not os.path.exists(os.path.join(AzureAccount.config_base_path, adconnection))
+	assert adconnection not in UCRHelper.get_adconnection_aliases(), "Adconnection %r already exist in UCR" % adconnection
 
 
 print("*** All went well.")
