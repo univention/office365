@@ -466,10 +466,7 @@ class MSGraphApiCore:
 		assert isinstance(object_ids, (list, tuple, set))
 
 		# remove from list object_ids already added.
-		object_ids = set(object_ids)
-		object_ids = object_ids - set([x["id"] for x in self.list_group_members(group_id)["value"]])
-		object_ids = list(object_ids)
-
+		object_ids = list(set(object_ids) - {x["id"] for x in self.list_group_members(group_id)["value"]})
 		for i in range(0, len(object_ids), 20):
 			batch = object_ids[i:min(i+20, len(object_ids))]
 

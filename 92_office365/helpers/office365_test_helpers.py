@@ -306,11 +306,11 @@ def azure_user_args(core, minimal=True):
 	return res
 
 
-def udm_user_args(ucr, minimal=True):
-	_username = uts.random_username()
+def udm_user_args(ucr, minimal=True, sufix=""):
+	_username = uts.random_username() + sufix
 	res = dict(
-		firstname=uts.random_string(),
-		lastname=uts.random_string(),
+		firstname=uts.random_string() + sufix,
+		lastname=uts.random_string() + sufix,
 		username=_username,
 		set=dict(
 			displayName=_username,
@@ -567,6 +567,17 @@ def check_team_members(core, team_id, member_count):
 	except MSGraphError:
 		return False
 
+
+@wait_for_seconds
+def check_member_of(azure_user, group_id):
+	# type: (UserAzure, str) -> Union[bool, Dict[str, Any]]
+	''' Checking if group_id in member_of'''
+	try:
+		member_of = azure_user.member_of(ids_only=True)
+		if group_id in member_of:
+			return True
+	except MSGraphError:
+		return False
 
 @wait_for_seconds
 def check_team_created(core, group_name):

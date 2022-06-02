@@ -143,7 +143,7 @@ class UCRHelperC(ConfigRegistry):
 			if password:
 				res_redacted[k] = v.replace(password[0], '*****', 1)
 
-		logger.info('proxy settings: %r', res_redacted)
+		logger.debug('proxy settings: %r', res_redacted)
 		return res
 	
 	def get_usage_location(self):

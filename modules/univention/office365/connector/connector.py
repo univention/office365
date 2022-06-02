@@ -124,14 +124,14 @@ class ConnectorAttributes(UserDict):
 			if len(temp_dict[v]) > 1:
 				self.multiple[v] = temp_dict[v]
 
-		self.logger.info("listener observing attributes: %r", [a for a in self.all if a not in self.system])
-		self.logger.info("listener is also observing: %r", sorted(list(self.system)))
-		self.logger.info("attributes mapping UCS->AAD: %r", self.mapping)
-		self.logger.info("attributes to sync anonymized: %r", self.anonymize)
-		self.logger.info("attributes to never sync: %r", self.never)
-		self.logger.info("attributes to statically set in AAD: %r", self.static)
-		self.logger.info("attributes to sync: %r", self.sync)
-		self.logger.info("attributes to sync from multiple sources: %r", self.multiple)
+		self.logger.debug("listener observing attributes: %r", [a for a in self.all if a not in self.system])
+		self.logger.debug("listener is also observing: %r", sorted(list(self.system)))
+		self.logger.debug("attributes mapping UCS->AAD: %r", self.mapping)
+		self.logger.debug("attributes to sync anonymized: %r", self.anonymize)
+		self.logger.debug("attributes to never sync: %r", self.never)
+		self.logger.debug("attributes to statically set in AAD: %r", self.static)
+		self.logger.debug("attributes to sync: %r", self.sync)
+		self.logger.debug("attributes to sync from multiple sources: %r", self.multiple)
 		# just for log readability
 		# TODO: this are currently sets and can't be sorted
 		# attrs.sort()
@@ -142,7 +142,7 @@ class ConnectorAttributes(UserDict):
 	@property
 	def all(self):
 		# type: () -> Set[str]
-		return (set(self.static) | self.sync | self.anonymize | set(self.mapping.keys()) | set(self.multiple.keys())) - self.never
+		return (set(self.static) | self.sync | self.anonymize | set(self.mapping.keys())) - self.never
 
 	def _sanitize(self):
 		# type: () -> None
@@ -396,9 +396,8 @@ class UserConnector(Connector):
 			except AddLicenseError as exc:
 				self.logger.warning('Could not add license for subscription %r to user %r: %s', exc.user_id, exc.sku_id, exc)
 			user_azure.invalidate_all_tokens()
-		except NoAllocatableSubscriptions:
-			# TODO warning
-			pass
+		except NoAllocatableSubscriptions as exc:
+			self.logger.warning('(%r) Not subscription located for user %r: %s', exc.adconnection_alias, exc.user.id, exc)
 		udm_object.create_azure_attributes(self.prepare_azure_attributes(user_azure), alias)
 		self.logger.info("User creation success. userPrincipalName: %r objectId: %r dn: %s adconnection: %s", user_azure.userPrincipalName, user_azure.id, udm_object.dn, udm_object.current_connection_alias)
 		# create groups (if any) and if must be synced "office365/groups/sync".
@@ -490,10 +489,10 @@ class UserConnector(Connector):
 				new_object.modify_azure_attributes(self.prepare_azure_attributes(old_azure, to_remove=True))
 				return
 
-		#####
-		# NEW or REACTIVATED account
-		#####
 		if new_object.should_sync():
+			#####
+			# NEW or REACTIVATED account
+			#####
 			for alias in new_object.get_diff_aliases(old_object):
 				with new_object.set_current_alias(alias):
 					self.new_or_reactivate_user(new_object)
@@ -514,11 +513,13 @@ class UserConnector(Connector):
 				with new_object.set_current_alias(alias), old_object.set_current_alias(alias):
 					old_azure = self.parse(old_object, set_password=False)
 					new_azure = self.parse(new_object, set_password=False)
-					old_azure.update(new_azure)
-					if new_azure.userPrincipalName != old_azure.userPrincipalName:
-						new_object.modify_azure_attributes(self.prepare_azure_attributes(new_azure))
-					self.logger.info("User modification success. userPrincipalName: %r objectId: %r dn: %s adconnection: %s", new_azure.userPrincipalName, new_azure.id, new_object.dn, new_object.current_connection_alias)
-
+					data = old_azure.update(new_azure)
+					if data:
+						if new_azure.userPrincipalName != old_azure.userPrincipalName:
+							new_object.modify_azure_attributes(self.prepare_azure_attributes(new_azure))
+						self.logger.info("User modification success. userPrincipalName: %r objectId: %r dn: %s adconnection: %s", new_azure.userPrincipalName, new_azure.id, new_object.dn, new_object.current_connection_alias)
+					else:
+						self.logger.info("User have no data to be modified. %r objectId: %r dn: %s adconnection: %s", new_azure.userPrincipalName, new_azure.id, new_object.dn, new_object.current_connection_alias)
 
 	# def _attributes_to_update(self, considered_attributes, new_object, old_object):
 	# 	# type: (Iterable, UDMOfficeUser, UDMOfficeUser) -> List[str]
@@ -798,9 +799,10 @@ class GroupConnector(Connector):
 					object_id = old_udm_group.azure_object_id or new_udm_group.azure_object_id
 
 					# No modification to be considered
-					if not self.attrs & modification_attributes_udm_group:
-						self.logger.debug("No modifications found, ignoring.")
-						new_udm_group.modify_azure_attributes(self.prepare_azure_attributes(GroupAzure(id=object_id)))
+					if not (self.attrs & modification_attributes_udm_group):
+						self.logger.info("No modifications found, ignoring.")
+						if object_id:
+							new_udm_group.modify_azure_attributes(self.prepare_azure_attributes(GroupAzure(id=object_id)))
 						continue
 
 					# TODO We believe that it's unneeded
@@ -990,7 +992,7 @@ class GroupConnector(Connector):
 		# type: (UDMOfficeGroup, UDMOfficeGroup, GroupAzure) -> None
 		alias = new_udm_group.current_connection_alias
 		added_members_dn, removed_members_dn = old_udm_group.members_changes(new_udm_group)
-		self.logger.debug("dn=%r added_members=%r removed_members=%r", old_udm_group.dn, added_members_dn, removed_members_dn)
+		self.logger.info("dn=%r added_members=%r removed_members=%r", old_udm_group.dn, added_members_dn, removed_members_dn)
 		# add new members to Azure
 		users_and_groups_to_add = []
 
@@ -1003,8 +1005,9 @@ class GroupConnector(Connector):
 					self.logger.warning("UDM User: %r has been removed. Not syncing with azure %r", added_member_dn, alias)
 					continue
 				if udm_user.is_enable():
-					if udm_user.azure_object_id:
-						users_and_groups_to_add.append(udm_user.azure_object_id)
+					with udm_user.set_current_alias(alias):
+						if udm_user.azure_object_id:
+							users_and_groups_to_add.append(udm_user.azure_object_id)
 			elif added_member_dn in new_udm_group.get_nested_group():
 				# it's a group
 				# check if this group or any of its nested groups has azure_users
@@ -1013,12 +1016,13 @@ class GroupConnector(Connector):
 				except univention.admin.uexceptions.noObject as e:
 					self.logger.warning("UDM Group: %r has been removed. Not syncing with azure %r", added_member_dn, alias)
 					continue
-				for group in udm_office_add_member_group.get_nested_groups_with_azure_users():
-					if isinstance(group, UDMOfficeGroup):
-						if not group.azure_object_id:
-							self._create_group(group)
-						if group.dn in udm_office_add_member_group.get_nested_group():
-							users_and_groups_to_add.append(group.azure_object_id)
+				with udm_office_add_member_group.set_current_alias(alias):
+					for group in udm_office_add_member_group.get_nested_groups_with_azure_users():
+						if isinstance(group, UDMOfficeGroup):
+							if not group.azure_object_id:
+								self._create_group(group)
+							if group.dn in udm_office_add_member_group.get_nested_group():
+								users_and_groups_to_add.append(group.azure_object_id)
 			else:
 				raise RuntimeError("Office365Listener.modify_group() {!r} from new[uniqueMember] not in "
 								   "'nestedGroup' or 'users' ({!r}).".format(added_member_dn, alias))

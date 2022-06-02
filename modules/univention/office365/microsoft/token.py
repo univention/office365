@@ -48,7 +48,7 @@ class Token(UserDict):
 		# expires_on = datetime.fromisoformat(token['expires_on'])
 
 		# write some information about the token in use into the log file
-		logger.info(
+		logger.debug(
 			'The access token for `{alias}` looks'
 			' similar to: `{starts}-trimmed-{ends}`.'
 			' It is valid until {expires_on}'.format(
