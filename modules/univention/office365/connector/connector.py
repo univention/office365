@@ -68,7 +68,7 @@ To keep these attributes in memory and to be able to operate on them, a `Connect
 '''
 
 
-class ConnectorAttributes(object, UserDict):
+class ConnectorAttributes(UserDict):
 	system = {
 		"krb5KDCFlags",
 		"krb5PasswordEnd",
@@ -89,8 +89,10 @@ class ConnectorAttributes(object, UserDict):
 
 	def __init__(self, lazy_load=False, logger=None):
 		# type: (bool, Optional["logging.Logger"]) -> None
-		super(ConnectorAttributes, self).__init__()
-		UserDict.__init__(self)
+		if six.PY2:
+			UserDict.__init__(self)
+		else:
+			super(ConnectorAttributes, self).__init__()
 		self.anonymize = set()
 		self.never = set()
 		self.sync = set()

@@ -4,6 +4,7 @@ import pwd
 import shutil
 from logging import Logger
 
+import six
 from six.moves import UserDict, UserString
 from typing import Dict, Tuple, List
 
@@ -49,14 +50,16 @@ class Connection(object):
 		self.core = core or MSGraphApiCore(account)
 
 
-class ConnectionsPool(object, UserDict):
+class ConnectionsPool(UserDict):
 	"""
 	Class to manage the connections to the AD.
 	"""
 	def __init__(self, logger=None):
 		# type: (Logger) -> None
-		super(ConnectionsPool, self).__init__()
-		UserDict.__init__(self)
+		if six.PY2:
+			UserDict.__init__(self)
+		else:
+			super(ConnectionsPool, self).__init__()
 		self.logger = logger or get_logger("office3365", "o365")
 		self.connections = {}  # type: Dict[str, Connection]
 		self.current = None
