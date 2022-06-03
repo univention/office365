@@ -6,12 +6,15 @@ import pickle
 import shutil
 import tempfile
 import time
-from abc import ABC, abstractmethod
+import abc
+from abc import abstractmethod
+import six
 
 from typing import Any
 
 
-class AbstractQueue(ABC):
+@six.add_metaclass(abc.ABCMeta)
+class AbstractQueue(object):
 	def __init__(self, queue_name):
 		# type: (str) -> None
 		self.name = queue_name

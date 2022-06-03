@@ -43,6 +43,7 @@ from datetime import datetime
 from operator import itemgetter
 from types import TracebackType
 
+import six
 import univention.admin.syntax as udm_syntax
 import univention.testing.strings as uts
 import univention.testing.utils as utils
@@ -277,7 +278,7 @@ def azure_user_args(core, minimal=True):
 	res = dict(
 		accountEnabled=True,
 		displayName=uts.random_string(),
-		onPremisesImmutableId=base64.b64encode(uts.random_string().encode("UTF-8")).decode("ASCII"),
+		onPremisesImmutableId=base64.b64encode(uts.random_string()) if six.PY2 else base64.b64encode(uts.random_string().encode("UTF-8")).decode("ASCII"),
 		mailNickname=local_part_email,
 		passwordProfile=dict(
 			password=create_random_pw(),

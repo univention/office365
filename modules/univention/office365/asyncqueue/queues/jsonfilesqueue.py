@@ -7,9 +7,12 @@ import time
 
 from typing import Optional, List, Any, Dict
 
+import six
+
 from univention.office365.asyncqueue import ASYNC_DATA_DIR
 from univention.office365.asyncqueue.queues.asyncqueue import AbstractQueue
 from univention.office365.asyncqueue.tasks.task import Task
+from univention.office365.utils.utils import jsonify
 
 
 class JsonFilesQueue(AbstractQueue):
@@ -20,8 +23,10 @@ class JsonFilesQueue(AbstractQueue):
 		self.failed_path = os.path.join(self.path, 'failed')
 		self.no_delete = no_delete
 		self.logger = logger or logging.getLogger(__name__)
-		os.makedirs(self.path, exist_ok=True)
-		os.makedirs(self.failed_path, exist_ok=True)
+		if not os.path.exists(self.path):
+			os.makedirs(self.path)
+		if not os.path.exists(self.failed_path):
+			os.makedirs(self.failed_path)
 
 	def enqueue(self, item, error=False):
 		# type: (Task, bool) -> str
@@ -40,6 +45,8 @@ class JsonFilesQueue(AbstractQueue):
 		next_job = self.find_jobs()[0]
 		with open(next_job, 'r') as f:
 			json_data = json.load(f)
+			if six.PY2:
+				json_data = jsonify(json_data, "utf-8")
 			self.delete_job(next_job)
 			return json_data
 
@@ -67,37 +74,3 @@ class JsonFilesQueue(AbstractQueue):
 			if os.path.exists(job):
 				self.logger.info('Job {}: removing'.format(job))
 				os.remove(job)
-
-	def verify_job(self, job):
-		# type: (str) -> bool
-		try:
-			dumped = json.load(open(job))
-		except ValueError as err:
-			self.logger.error('Job {}: failed to parse json {}'.format(job, err))
-			self.delete_job(job)
-			return False
-		if not dumped.get('api_version'):
-			self.logger.error('Job {}: mandatory attribute api_version missing'.format(job))
-			self.delete_job(job)
-			return False
-		if dumped['api_version'] != 1:
-			self.logger.error('Job {}: invalid api_version {}'.format(job, dumped['api_version']))
-			self.delete_job(job)
-			return False
-		for attr in ['function_name', 'ad_connection_alias']:
-			if not dumped.get(attr):
-				self.logger.error('Job {}: mandatory attribute {} missing'.format(job, attr))
-				self.delete_job(job)
-				return False
-		if not dumped['ad_connection_alias'] in self.initialized_adconnections:
-			self.get_ad_connections()
-			if not dumped['ad_connection_alias'] in self.initialized_adconnections:
-				self.logger.error('Job {}: invalid connection alias {}'.format(job, dumped['ad_connection_alias']))
-				self.delete_job(job)
-				return False
-		func = getattr(self.initialized_adconnections[dumped['ad_connection_alias']], dumped.get('function_name'), None)
-		if not func:
-			self.logger.error('Job {}: invalid function name {}'.format(job, dumped.get('function_name')))
-			self.delete_job(job)
-			return False
-		return True

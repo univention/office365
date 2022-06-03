@@ -42,3 +42,28 @@ def token_decode_b64(base64data):
 
 	decoded = base64.b64decode(base64data)
 	return decoded.decode('utf-8')
+
+
+def jsonify(data, encoding):
+	if isinstance(data, (list, tuple)):
+		new_data = []
+		for x in data:
+			new_data.append(jsonify(x, encoding))
+		return new_data
+	elif isinstance(data, set):
+		new_data = set()
+		for x in data:
+			new_data.add(jsonify(x, encoding))
+		return new_data
+	elif isinstance(data, dict):
+		new_data = dict()
+		for k, v in data.items():
+			new_data[ jsonify(k, encoding)] = jsonify(v, encoding)
+		return new_data
+	elif isinstance(data, type(u"")):
+		try:
+			return data.encode(encoding)
+		except UnicodeEncodeError as e:
+			return data.encode("utf-8")
+	else:
+		return data

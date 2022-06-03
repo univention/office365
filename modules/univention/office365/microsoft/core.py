@@ -1,5 +1,8 @@
 import json
 from typing import Dict, List, Union
+
+import six
+import yaml
 from six.moves.urllib.parse import quote
 
 import requests
@@ -8,11 +11,12 @@ from univention.office365.microsoft.exceptions.core_exceptions import MSGraphErr
 from univention.office365.microsoft.account import AzureAccount
 from univention.office365.microsoft.urls import URLs
 from univention.office365.logging2udebug import get_logger
+from univention.office365.utils.utils import jsonify
 
 logger = get_logger("office365", "core")
 
 
-class MSGraphApiCore:
+class MSGraphApiCore(object):
 	"""
 	This class is the core of the MSGraph API.
 	Most of the methods are wrappers around the requests to the MSGraph API.
@@ -764,7 +768,9 @@ class MSGraphApiCore:
 			if hasattr(self, "account") and not self.account.renewing:
 				if not self.account.check_token():
 					self.get_token()  #TODO implement handlers
-				headers.update({'Authorization': 'Bearer {}'.format(self.account.token['access_token'])})
+				headers.update({'Authorization': 'Bearer {}'.format(self.account.token['access_token']),
+								"Content-Type": "application/json; charset=utf-8",
+								"Accept": "application/json; charset=utf-8"})
 			try:
 				response = requests.request(
 					method=method,
@@ -781,7 +787,7 @@ class MSGraphApiCore:
 					continue
 				raise
 
-			logger.info(
+			logger.debug(
 				"status: %r (%s) (%s %s)",
 				response.status_code,
 				"OK" if 200 <= response.status_code <= 299 else "FAIL",
@@ -808,7 +814,15 @@ class MSGraphApiCore:
 		else:
 			try:
 				response_json = response.json()
-
+				# print(help(response))
+				# print(response.apparent_encoding)
+				# print(response.content)
+				# print(response.text)
+				# print(response_json)
+				if six.PY2:
+					response_json = jsonify(response_json, response.apparent_encoding)
+					# print(response_json)
+					# exit(-1)
 				if 'value' in values:
 					values['value'].extend(response_json['value'])
 				else:
@@ -826,6 +840,7 @@ class MSGraphApiCore:
 					return values, url
 
 			except ValueError as exc:
+				raise
 				raise MSGraphError(
 					response,
 					"Response payload was not parseable by the json parser: {error}".format(

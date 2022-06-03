@@ -6,7 +6,7 @@ from typing import Dict, Optional, Any, List, Callable
 class MSGraphError(Exception):
 
 	def __init__(self, response, message="", expected_status=None):
-		# type: (requests.Response, str, Dict) -> None
+		# type: (requests.Response, str, List) -> None
 		"""
 			The Graph API (as well as the Azure API) is consistent in that way,
 			that both return a small number of success values as http response

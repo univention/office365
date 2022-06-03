@@ -2,7 +2,10 @@ import base64
 import contextlib
 import datetime
 import json
+import pprint
 import zlib
+
+import six
 from six.moves import UserDict
 from logging import Logger
 from typing import List, Mapping, Any, Iterator, Optional, Dict, Set, Tuple, Union
@@ -12,8 +15,10 @@ from ldap.filter import escape_filter_chars
 from univention.ldap_cache.cache import get_cache
 from univention.ldap_cache.frontend import users_in_group
 
+import univention
 from univention.office365.logging2udebug import get_logger
 from univention.office365.udm_helper import UDMHelper
+from univention.office365.utils.utils import jsonify
 
 
 class Version(Enum):
@@ -47,7 +52,7 @@ from Azure in a LDAP User or Group object.
 
 """
 
-class UniventionOffice365Data(UserDict):
+class UniventionOffice365Data(object, UserDict):
 	"""
 	A class that holds the Office365 data for a UDM object.
 	The representation of this data have changed in several versions of the connector.
@@ -56,7 +61,8 @@ class UniventionOffice365Data(UserDict):
 	"""
 	def __init__(self, data):
 		# type: (Dict[str, Union[Dict[str,str], str]]) -> None
-		super(UniventionOffice365Data, self).__init__(data)
+		super(UniventionOffice365Data, self).__init__()
+		UserDict.__init__(self, data)
 
 	@classmethod
 	def from_ldap(cls, ldap_data):
@@ -68,6 +74,8 @@ class UniventionOffice365Data(UserDict):
 		result = base64.b64decode(ldap_data)
 		result = zlib.decompress(result)
 		result = json.loads(result.decode("ASCII"))
+		if six.PY2:
+			result = jsonify(result, "ASCII")
 		return UniventionOffice365Data(result)
 		# self.update(json.loads(zlib.decompress(base64.b64decode(ldap_data))))
 
@@ -92,7 +100,7 @@ class UniventionOffice365Data(UserDict):
 
 
 # TODO: Implement a .get classmethod with the dn as we have in AzureObjects
-class UDMOfficeObject(UserDict):
+class UDMOfficeObject(object, UserDict):
 	"""
 	Represents an UDM object with Azure data stored in it.
 	This is the parent class of UDMOfficeUser and UDMOfficeGroup and implements the common methods for both.
@@ -123,7 +131,8 @@ class UDMOfficeObject(UserDict):
 	def __init__(self, ldap_fields, ldap_cred=None, dn='', logger=None):
 		# type: (Dict[str, List[bytes]], Optional[Dict[str, Any]], str, Optional[Logger]) -> None
 		self.dn = dn
-		super(UDMOfficeObject, self).__init__(ldap_fields)
+		super(UDMOfficeObject, self).__init__()
+		UserDict.__init__(self, ldap_fields)
 		self.logger = logger or get_logger("office365", "o365")
 		# not_migrated_to_v3: on v3 UniventionOffice365Data contains a dict with multiple adconnection_alias and for each of them the data of an azure user.
 
@@ -141,12 +150,14 @@ class UDMOfficeObject(UserDict):
 	@property
 	def entryUUID(self):
 		# type: () -> str
+		if six.PY2:
+			return self.udm_object_reference.oldattr["entryUUID"][0]
 		return self.udm_object_reference.oldattr["entryUUID"][0].decode('UTF-8')
 
 	@property
 	def current_connection_alias(self):
 		if not self._current_connection_alias:
-			self.logger.warning("Object %r has not assigned current_connection_alias", self.id)
+			self.logger.warning("Object %r has not assigned current_connection_alias", self.dn)
 		return self._current_connection_alias
 
 	@current_connection_alias.setter
@@ -156,6 +167,13 @@ class UDMOfficeObject(UserDict):
 	def __getattr__(self, item):
 		# type: (str) -> Any
 		return self.__getitem__(item)
+
+	def get(self, item, default=None):
+		# type: (str, Any) -> Any
+		try:
+			return self.__getitem__(item)
+		except KeyError:
+			return default
 
 	def __getitem__(self, item):
 		# type: (str) -> Any
@@ -252,7 +270,7 @@ class UDMOfficeObject(UserDict):
 			old_azure_data.update(new_azure_data)
 		else:
 			old_azure_data.pop(self.current_connection_alias)
-		self.udm_object_reference["UniventionOffice365Data"] = UniventionOffice365Data.to_ldap_str(old_azure_data)
+		self.udm_object_reference["UniventionOffice365Data"] = UniventionOffice365Data(old_azure_data).to_ldap_str()
 
 	def modify_azure_attributes(self, azure_object_dict):
 		# type: (Optional[Mapping]) -> None
@@ -278,11 +296,8 @@ class UDMOfficeObject(UserDict):
 	def azure_object_id(self):
 		# type: () -> Optional[str]
 		try:
-			if self.is_version(Version.V3):
-				azure_data = self.azure_data
-				return azure_data[self.current_connection_alias]["objectId"]
-			elif self.is_version(Version.V1):  # TODO maybe a migrate script is needed
-				return self.udm_object_reference["UniventionOffice365ObjectID"]
+			azure_data = self.azure_data
+			return azure_data[self.current_connection_alias]["objectId"]
 		except KeyError:
 			return None
 
@@ -515,7 +530,11 @@ class UDMOfficeGroup(UDMOfficeObject):
 
 		if not has_user:
 			for userdn in self.get_users():
-				udm_user = UDMOfficeUser(ldap_fields={}, ldap_cred=self.ldap_cred, dn=userdn)
+				try:
+					udm_user = UDMOfficeUser(ldap_fields={}, ldap_cred=self.ldap_cred, dn=userdn)
+				except univention.admin.uexceptions.noObject as e:
+					self.logger.warning("UDM User: %r has been removed. In nested_groups_with_azure_users %r", userdn, self.current_connection_alias)
+					continue
 				if udm_user.is_enable():
 					if self.current_connection_alias in udm_user.adconnection_aliases:
 						yield self
