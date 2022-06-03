@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from typing import Union, List, Dict, Tuple, Optional
 
 import requests

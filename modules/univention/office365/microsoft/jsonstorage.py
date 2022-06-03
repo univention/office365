@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import grp
 import json
 import logging

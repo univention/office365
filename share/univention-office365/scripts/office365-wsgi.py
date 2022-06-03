@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import textwrap
 
 from typing import List, Any, Callable, Dict

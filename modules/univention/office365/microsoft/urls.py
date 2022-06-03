@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import six.moves.urllib.parse as urlparse
 
 #TODO: implement variable version not only v1.0
