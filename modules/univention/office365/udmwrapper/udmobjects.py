@@ -53,7 +53,7 @@ from Azure in a LDAP User or Group object.
 
 """
 
-class UniventionOffice365Data(object, UserDict):
+class UniventionOffice365Data(UserDict):
 	"""
 	A class that holds the Office365 data for a UDM object.
 	The representation of this data have changed in several versions of the connector.
@@ -62,8 +62,11 @@ class UniventionOffice365Data(object, UserDict):
 	"""
 	def __init__(self, data):
 		# type: (Dict[str, Union[Dict[str,str], str]]) -> None
-		super(UniventionOffice365Data, self).__init__()
-		UserDict.__init__(self, data)
+
+		if six.PY2:
+			UserDict.__init__(self, data)
+		else:
+			super(UniventionOffice365Data, self).__init__(data)
 
 	@classmethod
 	def from_ldap(cls, ldap_data):
@@ -101,7 +104,7 @@ class UniventionOffice365Data(object, UserDict):
 
 
 # TODO: Implement a .get classmethod with the dn as we have in AzureObjects
-class UDMOfficeObject(object, UserDict):
+class UDMOfficeObject(UserDict):
 	"""
 	Represents an UDM object with Azure data stored in it.
 	This is the parent class of UDMOfficeUser and UDMOfficeGroup and implements the common methods for both.
@@ -132,8 +135,10 @@ class UDMOfficeObject(object, UserDict):
 	def __init__(self, ldap_fields, ldap_cred=None, dn='', logger=None):
 		# type: (Dict[str, List[bytes]], Optional[Dict[str, Any]], str, Optional[Logger]) -> None
 		self.dn = dn
-		super(UDMOfficeObject, self).__init__()
-		UserDict.__init__(self, ldap_fields)
+		if six.PY2:
+			UserDict.__init__(self, ldap_fields)
+		else:
+			super(UDMOfficeObject, self).__init__(ldap_fields)
 		self.logger = logger or get_logger("office365", "o365")
 		# not_migrated_to_v3: on v3 UniventionOffice365Data contains a dict with multiple adconnection_alias and for each of them the data of an azure user.
 

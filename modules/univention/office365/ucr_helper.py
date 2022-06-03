@@ -6,7 +6,6 @@ from typing import Dict
 
 from univention.config_registry import ConfigRegistry, handler_set, handler_unset
 from univention.config_registry.frontend import ucr_update
-from univention.testing.ucr import UCSTestConfigRegistry
 
 class UCRHelperC(ConfigRegistry):
 	group_sync_ucrv = "office365/groups/sync"
@@ -156,8 +155,6 @@ class UCRHelperC(ConfigRegistry):
 		return res
 
 
-class UCRHelperC_test(UCRHelperC, UCSTestConfigRegistry):
-	""""""
 """
 Singleton instance
 A module is only loaded once, so we can use an instance defined here as a singleton.
