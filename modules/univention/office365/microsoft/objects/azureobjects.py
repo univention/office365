@@ -3,6 +3,7 @@ import sys
 import time
 from abc import abstractmethod
 import abc
+import six
 from typing import List, Dict, Any, Union, Optional, Type
 
 # from dataclasses import dataclass, fields
@@ -61,7 +62,8 @@ delete_name_pattern = "ZZZ_deleted_{time}_{orig}"
 """
 
 @attr.s
-class AzureObject(metaclass=abc.ABCMeta):
+@six.add_metaclass(abc.ABCMeta)
+class AzureObject(object):
 	"""
 	Base class for all Azure objects.
 	The valid Azure attributes are defined in the class attributes.
@@ -495,9 +497,6 @@ class GroupAzure(AzureObject):
 	onPremisesDomainName = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  #: str
 	onPremisesNetBiosName = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  #: str
 	onPremisesSamAccountName = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  #: str
-	onPremisesSecurityIdentifier = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  #: str
-	onPremisesSyncEnabled = attr.ib(validator=attr.validators.instance_of((bool, type(None))), default=None)  #: bool
-	preferredDataLocation = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  #: str
 	theme = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  #: str
 
 	def create(self):

@@ -40,7 +40,7 @@ If several operations need to be performed on the same connection, the pool cont
 '''
 
 
-class Connection:
+class Connection(object):
 	def __init__(self, id, account, core=None):
 		# type: (str, AzureAccount, MSGraphApiCore) -> None
 		self.id = id
@@ -48,13 +48,14 @@ class Connection:
 		self.core = core or MSGraphApiCore(account)
 
 
-class ConnectionsPool(UserDict):
+class ConnectionsPool(object, UserDict):
 	"""
 	Class to manage the connections to the AD.
 	"""
 	def __init__(self, logger=None):
 		# type: (Logger) -> None
 		super(ConnectionsPool, self).__init__()
+		UserDict.__init__(self)
 		self.logger = logger or get_logger("office3365", "o365")
 		self.connections = {}  # type: Dict[str, Connection]
 		self.current = None

@@ -45,12 +45,13 @@ oauth2_token_issuer = "https://sts.windows.net/{adconnection_id}/"
 federation_metadata_url = "https://login.microsoftonline.com/{adconnection_id}/federationmetadata/2007-06/federationmetadata.xml"
 
 
-class AzureAccount(UserDict):
+class AzureAccount(object, UserDict):
 	config_base_path = OFFICE365_API_PATH
 
 	def __init__(self, alias, config_base_path=OFFICE365_API_PATH, logger=None, lazy_load=False):
 		# type: (str, str, "logging.Logger", bool) -> None
 		super(AzureAccount, self).__init__()
+		UserDict.__init__(self)
 		self.alias = alias
 		self.config_base_path = config_base_path or self.config_base_path
 		self.__token = None

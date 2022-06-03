@@ -9,7 +9,7 @@ from univention.office365.logging2udebug import get_logger
 from univention.office365.ucr_helper import UCRHelper
 
 
-class URLs:
+class URLs(object):
 	"""
 	Class to hold all the URLs for the API.
 	"""

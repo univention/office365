@@ -67,7 +67,7 @@ To keep these attributes in memory and to be able to operate on them, a `Connect
 '''
 
 
-class ConnectorAttributes(UserDict):
+class ConnectorAttributes(object, UserDict):
 	system = {
 		"krb5KDCFlags",
 		"krb5PasswordEnd",
@@ -89,6 +89,7 @@ class ConnectorAttributes(UserDict):
 	def __init__(self, lazy_load=False, logger=None):
 		# type: (bool, Optional["logging.Logger"]) -> None
 		super(ConnectorAttributes, self).__init__()
+		UserDict.__init__(self)
 		self.anonymize = set()
 		self.never = set()
 		self.sync = set()
@@ -169,7 +170,7 @@ class ConnectorAttributes(UserDict):
 
 
 @six.add_metaclass(abc.ABCMeta)
-class Connector:
+class Connector(object):
 	"""
 	Base class for all connectors.
 	The connector is responsible for the interaction between the UDM Objects and Azure ones.

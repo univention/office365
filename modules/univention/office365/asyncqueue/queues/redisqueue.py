@@ -9,7 +9,7 @@ from univention.office365.asyncqueue.queues.asyncqueue import AbstractQueue
 class RedisQueue(AbstractQueue):
 	def __init__(self, queue_name, redis_client):
 		# type: (str, redis.Redis) -> None
-		super().__init__(queue_name)
+		super(RedisQueue, self).__init__(queue_name)
 		self.redis_client = redis_client or redis.Redis()
 
 	def push(self, item):

@@ -493,7 +493,7 @@ class TestGroupConnector:
 		azure_group = mock.MagicMock()
 		azure_group.id = "azure_object_id"
 		self.gc.parse = mock.MagicMock(return_value=azure_group)
-		udm_fake_group.udm_object_reference["UniventionOffice365Data"] = UniventionOffice365Data.to_ldap_str({'o365domain': {'objectId': 'the_object_id'}})
+		udm_fake_group.udm_object_reference["UniventionOffice365Data"] = UniventionOffice365Data({'o365domain': {'objectId': 'the_object_id'}}).to_ldap_str()
 		with mock.patch("univention.office365.connector.connector.TeamAzure") as mock_team:
 			self.gc.delete(udm_fake_group)
 			mock_team.return_value.deactivate.assert_called_once()

@@ -19,12 +19,13 @@ gid = grp.getgrnam("nogroup").gr_gid
 logger = get_logger("office365", "o365")
 
 
-class Token(UserDict):
+class Token(object, UserDict):
 	"""
 	A class to store the token data and provide a method to save it to a file.
 	"""
 	def __init__(self, connection_alias, base_path=None, **kwargs):
-		super().__init__(**kwargs)
+		super(Token, self).__init__(**kwargs)
+		UserDict.__init__(self, **kwargs)
 		self.connection_alias = connection_alias
 		base_path = base_path or "/etc/univention-office365/"
 		self._token_cache = os.path.join(base_path, "{alias}/token.json".format(alias=connection_alias))

@@ -1,15 +1,19 @@
+# -*- coding: utf-8 -*-
 import concurrent
 import multiprocessing
-from abc import abstractmethod, ABC
+from abc import abstractmethod
+import abc
 import random
 
 import requests
 import retrying
 from typing import List, Dict, Union
-
+import six
 PROCESSES = multiprocessing.cpu_count() - 1
 
-class Task(ABC):
+
+@six.add_metaclass(abc.ABCMeta)
+class Task(object):
 
 	def __init__(self, sub_tasks=None):
 		# type: (List[Task]) -> None
