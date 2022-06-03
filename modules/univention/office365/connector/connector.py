@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import uuid
 from abc import abstractmethod
 from six.moves import UserDict

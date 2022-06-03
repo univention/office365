@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 '''
 	Folder to group files together for the Microsoft Graph API
 '''

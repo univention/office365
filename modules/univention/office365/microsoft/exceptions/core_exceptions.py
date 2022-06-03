@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import json
 import requests
 from typing import Dict, Optional, Any, List, Callable

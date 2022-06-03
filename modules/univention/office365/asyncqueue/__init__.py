@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 
 ASYNC_DATA_DIR = '/var/lib/univention-office365/async'
