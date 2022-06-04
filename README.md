@@ -2,7 +2,7 @@
 
 This package provides functionality to synchronize UCS user and group accounts
 to Azure AD to provision Microsoft 365 accounts for them.
-The accounts can be configured for synchonization to multiple Azure AD domains.
+The accounts can be configured for synchronization to multiple Azure AD domains.
 
 This package contains a UMC wizard, extended attributes and hooks for user and
 group accounts and listener modules to do the actual synchronization.
@@ -17,11 +17,11 @@ which can only be installed on UCS Systems with role Master or Backup.
 # User Story
 
 * After installation of this App UCS user accounts have a new Tab "Microsoft 365"
-  in UMC, which offers a checkbox to Enable the Syncronization of the account
+  in UMC, which offers a checkbox to Enable the Synchronization of the account
   to an Azure Active Directory. Below that checkbox, the "alias" name of a
   target Azure AD can be selected. If none is selected, then a default
   specified via UCR variable "office365/defaultalias" will be selected.
-* Before syncronization can start to work, an App-specific wizard needs to be
+* Before synchronization can start to work, an App-specific wizard needs to be
   run to configure ("initialize") the Azure AD Connection.
   The UCR variable "office365/adconnection/wizard" specifies the alias name
   of the Azure AD Connection that it will configure.
@@ -33,52 +33,52 @@ which can only be installed on UCS Systems with role Master or Backup.
   migrates the existing initialized AD Connection to "defaultADconnection",
   by creating an udm object of type "office365/ad-connection" and setting the
   UCR variable: "office365/adconnection/alias/defaultADconnection".
-  Optionally the migration can be started manually at a later stange by running
+  Optionally the migration can be started manually at a later stage by running
   the command
   /usr/share/univention-office365/scripts/migrate_to_adconnectionalias
-* Group Synchonization doesn't happen by default. The UCR variable
+* Group Synchronization doesn't happen by default. The UCR variable
   "office365/groups/sync" needs to activated for this. After changing that
   UCR variable the Univention Directory Listener Needs to be restarted.
   Group synchronization may put some load on the server, because the selection
-  of which goups to synchronize happens automatically, by checking nested group
+  of which groups to synchronize happens automatically, by checking nested group
   memberships of user accounts that are enabled for synchronization.
 * In LDAP, enabled user accounts are marked by the attribute
   "univentionOffice365Enabled". The target Azure ADs can be seen in the
   multivalue LDAP attribute "univentionOffice365ADConnectionAlias".
-  After successfull synchronization, the Listener modules store the
+  After successful synchronization, the Listener modules store the
   Azure AD object IDs at the corresponding UCS user and group objects.
   These object IDs are specific for each target Azure AD instance.
   This information is used for internal book-keeping and not easily accessible
-  via LDAP search, because it is stored as encoded as base64(zipped(json(dict)))
+  via LDAP search, because it is stored encoded as base64(zipped(json(dict)))
   in an LDAP attribute "univentionOffice365Data". For user objects this
   encoded dictionary additionally includes the Azure AD specific userPrincipalNames,
   which are visible in the UMC users/user tab "Microsoft 365". Their presence
-  in the UMC provides a possiblity to quickly check, if the initial
+  in the UMC provides the possibility to quickly check, if the initial
   synchronization of an account has been successful.
 * The connector is able to configure O365 subscriptions at user objects. Subscriptions are
-  only assigned when a user is enabled for Azure synchronisation, reenabling a user also
-  configures subscriptions. By default it is it is tried to enable a subscription with the
+  only assigned when a user is enabled for Azure synchronisation, re-enabling a user also
+  configures subscriptions. By default, it is tried to enable a subscription with the
   following Azure-internal identifiers:
   'SHAREPOINTWAC, SHAREPOINTWAC_DEVELOPER, OFFICESUBSCRIPTION'.
   The default can be overruled by UCR office365/subscriptions/service_plan_names. To see
   available subscriptions use the tool print_subscriptions.
-  Fine grained subscription policies can be set with UDM objects of the type
-  office365/profile. Here, a subscription name and individualy white- or blacklisted
+  Fine-grained subscription policies can be set with UDM objects of the type
+  office365/profile. Here, a subscription name and individually white or blacklisted
   service plans can be configured. These profiles can be set at udm groups/group objects.
   When a member of such a group is enabled for synchronisation, the user listener will
-  search for the first group where a office365/profile is set, and configure the azure
+  search for the first group where an office365/profile is set, and configure the azure
   user object accordingly.
 * It is possible to use external Office clients with the Connector, like mobile apps
   or Office Desktop products. A respective subscription / service plan is required in Azure.
-  These external programs need their activation tokens reset in a 90 day period, or will
-  require frequent (mulitple per hour) logins with Azure credentials to continue working.
-  A cronjob exists which calls o365_usertokens, to reset these tokens in a configureable
+  These external programs need their activation tokens reset in a 90-day period, or will
+  require frequent (multiple per hour) logins with Azure credentials to continue working.
+  A cronjob exists which calls o365_usertokens, to reset these tokens in a configurable
   interval. After the tokens for a user are reset, the user has to re-authenticate once.
 * The connector never syncs the user password (hash). A SAML service provider is configured
-  to handle login against the UCS SAML Identity Provider. When configuring mulitple AD
+  to handle login against the UCS SAML Identity Provider. When configuring multiple AD
   connections, additional SAML SPs have to be configured as per documentation. To
   configure the SAML connection, the wizard offers a powershell script that has to be
-  executed on a MS Windows OS.
+  executed on an MS Windows OS.
 
 # Product Tests
 
@@ -191,7 +191,7 @@ To create a team, all group owners must have a license that includes Teams.
 
 ## Implementation State
 
-Currently there is
+Currently, there is
 
 * a commandline simulation for the listener module, usage: consoletest.py
 * a WSGI script simulating the UMC wizard: wizard/umc_wizard.py
