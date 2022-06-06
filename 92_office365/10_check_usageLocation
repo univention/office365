@@ -66,9 +66,6 @@ with utils.AutomaticListenerRestart():
 		with ucr_test.UCSTestConfigRegistry() as ucr:
 			ucr.load()
 
-			class _listener(object):
-				configRegistry = ucr
-
 			# Only test one connection, not all...
 			adconnection_alias = random.choice(initialized_adconnections)
 

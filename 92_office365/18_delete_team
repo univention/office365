@@ -30,9 +30,6 @@ with utils.AutomaticListenerRestart():
 		with udm_test.UCSTestUDM() as udm:
 			ucr.load()
 
-			class _listener(object):
-				configRegistry = ucr
-
 			alias = 'o365domain'
 
 			core = MSGraphApiCore(AzureAccount(alias))

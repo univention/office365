@@ -51,8 +51,6 @@ with utils.AutomaticListenerRestart():
 	with udm_test.UCSTestUDM() as udm:
 		with ucr_test.UCSTestConfigRegistry() as ucr:
 			ucr.load()
-			class _listener(object):
-				configRegistry = ucr
 
 			handler_set(["office365/groups/sync=yes"])
 			utils.restart_listener()

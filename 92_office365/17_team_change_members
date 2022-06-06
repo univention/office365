@@ -31,9 +31,6 @@ with utils.AutomaticListenerRestart():
 		with ucr_test.UCSTestConfigRegistry() as ucr:
 			ucr.load()
 
-			class _listener(object):
-				configRegistry = ucr
-
 			alias = 'o365domain'
 
 			core = MSGraphApiCore(AzureAccount(alias))
