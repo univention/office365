@@ -6,6 +6,17 @@
 ## packages:
 ##   - univention-office365
 
+"""
+This test is used to test the anonymization, blocking and static sync settings.
+The next operations are performed on the two preconfigured connections to Azure:
+- unset and set the needed UCR variables #TODO: why is it needed? Maybe it was prior to context managers?
+- create UDM user
+- wait for the user to be replicated in Azure
+- retrieve the user from Azure and check the id
+- compare all the properties of the user in UDM and Azure
+- check the anonymization, blocking and static sync of settings
+"""
+
 import time
 
 import univention.testing.ucr as ucr_test

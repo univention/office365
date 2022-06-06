@@ -6,6 +6,31 @@
 ## packages:
 ##   - univention-office365
 
+
+"""
+This test is used to create and modify user in azure, check values usageLocation takes
+The usageLocation for an user in Azure can be set from different values in the system with the next priority:
+1. The UDM attribute `st`
+2. From UCR (univention.office365.ucr_helper.UCRHelperC.get_usage_location):
+  2.1 The UCR variable `office365/attributes/usageLocation`
+  2.2 The UCR variable `ssl/country`
+
+The next operations are performed on the two preconfigured connections to Azure:
+- unset and set the needed UCR variables #TODO: why is it needed? Maybe it was prior to context managers?
+- modify UCR variable related with usageLocation #TODO: what is this property for? How is it used?
+- create UDM user
+- wait for the user to be replicated in Azure
+- retrieve the user from Azure and check the id
+- check that the usageLocation is set to the same value as in UDM user st attribute
+- modify the UDM user to clear the st attribute
+- check that the usageLocation is set to the same value as in UCR variable `office365/attributes/usageLocation`
+- clear the UCR variable `office365/attributes/usageLocation`
+- modify the UDM user to set the `st` attribute again
+- modify the UDM user to clear the `st` attribute
+- check that the usageLocation is set to the same value as in UCR variable `ssl/country`
+"""
+
+
 import time
 import random
 

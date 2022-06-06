@@ -6,6 +6,19 @@
 ## packages:
 ##   - univention-office365
 
+"""
+This test is used to check the user and group sync to Azure.
+- Use both o365domain and azuretestdomain connections
+- Set the UCR variable office365/groups/sync=yes
+- Create a group in UDM
+- Create a user in UDM with the group assigned and the UniventionOffice365Enabled=1 and the UniventionOffice365ADConnectionAlias=o365domain
+- Check that the user in UDM is updated with the appropriate object id
+- Check that the group in UDM is updated with the appropriate object id
+- Get the group from azure
+- List the members of the group and check that the user is in the list
+- Repeat the same operation but with the other connection
+- Check that no user or group is mixed created in the other connection
+"""
 import time
 import copy
 

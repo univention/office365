@@ -6,6 +6,29 @@
 ## packages:
 ##   - univention-office365
 
+"""
+This test is used to test account deactivation, locking, expiration.
+- one random connection is selected between the initialized connections.
+- create UDM user
+- wait for the user to be replicated in Azure
+- retrieve the user from Azure and check the id
+- check properties in UDM and Azure
+- deactivate user in UDM with UniventionOffice365Enabled=0
+- check replication in Azure
+- activate user in UDM with UniventionOffice365Enabled=1
+- check replication in Azure
+- modify userexpiry in UDM to deactivate user in Azure
+- check replication in Azure
+- modify userexpiry in UDM to activate user in Azure
+- check replication in Azure
+- modify disabled property in UDM with multiple different values
+- check replication in Azure
+- modify disabled property in UDM to none to reactivate
+- check replication in Azure
+- modify locked property in UDM to multiple different to deactivate
+- check replication in Azure
+- modify locked property in UDM to none to reactivate
+"""
 import time
 import datetime
 import random
@@ -26,7 +49,7 @@ adconnection_aliases = UCRHelper.get_adconnection_aliases()
 initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAccount(adconnection_alias).is_initialized()]
 
 
-
+# TODO: deduplicate
 def _test(udm_args, a_user, check_complete):
 	# type: (Dict[str, Any], UserAzure, bool) -> None
 	success, errors = check_udm2azure_user(udm_args, a_user, check_complete)
@@ -35,7 +58,7 @@ def _test(udm_args, a_user, check_complete):
 	else:
 		utils.fail("One or more properties were not synced correctly:\n{}".format("\n".join(map(str, errors))))
 
-
+# Create function and parametrize
 with utils.AutomaticListenerRestart():
 	with udm_test.UCSTestUDM() as udm:
 		with ucr_test.UCSTestConfigRegistry() as ucr:

@@ -6,6 +6,17 @@
 ## packages:
 ##   - univention-office365
 
+"""
+This test is used to check the team creation in Azure.
+- create a UDM user
+- create a UDM group with UniventionMicrosoft365Team=1
+- sync the group to Azure and check fail because no owner is set for the group
+- Create new group with UniventionMicrosoft365Team=1 and UniventionMicrosoft365GroupOwners=<user_dn>
+- No check is done because the creation of teams is async, and it would take too long to check the team in Azure
+#TODO: check if this would be needed?
+			handler_set(["office365/groups/sync=yes"])
+			utils.restart_listener()
+"""
 import univention.testing.strings as uts
 import univention.testing.ucr as ucr_test
 import univention.testing.udm as udm_test

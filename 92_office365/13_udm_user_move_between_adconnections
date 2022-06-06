@@ -6,6 +6,19 @@
 ## packages:
 ##   - univention-office365
 
+
+"""
+This test is used to check license and plan info for replicated users.
+- both initialized connections are used in this test
+- create UDM user with UniventionOffice365ADConnectionAlias=<connection1>
+- wait for the user to be replicated in Azure
+- retrieve the user from Azure and check the id
+- change the UniventionOffice365ADConnectionAlias to <connection2>
+- check that the user was removed from Azure connection1 and added to connection2
+- check that the UniventionOffice365ObjectID has changed
+- check the properties of the moved user in UDM and Azure
+"""
+
 import time
 import copy
 
@@ -37,6 +50,7 @@ with udm_test.UCSTestUDM() as udm:
 		class _listener(object):
 			configRegistry = ucr
 
+		# TODO: remove adconnection_alias3?
 		adconnection_alias1 = initialized_adconnections[0]
 		adconnection_alias2 = initialized_adconnections[1]
 		if len(initialized_adconnections) > 2:

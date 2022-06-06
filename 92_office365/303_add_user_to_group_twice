@@ -6,6 +6,17 @@
 ## packages:
 ##   - univention-office365
 
+"""
+This test is used to check the behavior when a user is added to a group twice.
+- Set the UCR variable office365/groups/sync=yes
+- Use only the o365domain connection
+- Create a group in UDM
+- Create an user1 in UDM with the group assigned as primaryGroup, the UniventionOffice365Enabled=1 and the UniventionOffice365ADConnectionAlias and the group assigned as primaryGroup
+- Create an user2 in UDM with the group assigned as primaryGroup, the UniventionOffice365Enabled=1 and the UniventionOffice365ADConnectionAlias and the group assigned as primaryGroup
+- Check that the last user in UDM is updated with the appropriate azure data.
+- Try to add the users several times to the group
+- Check the group id is listed in the users member_of lists
+"""
 import time
 
 import univention.testing.strings as uts
@@ -96,6 +107,7 @@ with utils.AutomaticListenerRestart():
 			azure_group.add_members([user_id_1, user_id_2])
 			azure_group.add_members([user_id_1, user_id_2])
 
+			# TODO: Wouldn't it be true also if the users are added several times to the group?
 			# check both users are member of group
 			assert group_object_id in azure_user1.member_of(ids_only=True)
 			assert group_object_id in azure_user2.member_of(ids_only=True)

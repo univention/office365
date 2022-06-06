@@ -7,6 +7,21 @@
 ##   - univention-office365
 ## bugs: [52159]
 
+"""
+This test is used to check that the user is member of a group after deactivation and reactivation.
+- Set the UCR variable office365/groups/sync=yes
+- Use both the o365domain and o365adconnection connections
+- Create TWO groups in UDM
+- Create a user in group2 and adconnection1
+- Create a user in group1 and group2 and adconnection1
+- Check replication of the users/group to respective connections
+- Check that the azure users are member of the group
+- Deactivate the user1
+- Create two new groups during deactivation
+- Create a new user in the one of the new groups and in adconnection2
+- Reactivate the deactivated user
+- Check that the user is member of the groups
+"""
 import time
 
 import univention.testing.strings as uts
@@ -102,6 +117,8 @@ def test_membership(ucr, udm, check):
 
 	# check that user is not member of any group
 	assert len(azure_user.member_of(ids_only=True)) == 0
+
+	# TODO: Does the groups list the deactivated user as a member?
 
 	# create a udm group to check azure group creation during re-activation
 	group_name_new = uts.random_name()

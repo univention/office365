@@ -6,6 +6,23 @@
 ## packages:
 ##   - univention-office365
 
+"""
+For Groups
+No UDM involved currently.
+This test is used to list, create, retrieve, modify and delete group in Azure AD with multi connection support.
+The next operations are performed on the two preconfigured connections to Azure:
+- list groups and store
+- create group
+- retrieve group by id
+- check the group's attributes
+- modify group
+- retrieve group again and check the attributes
+- list groups again and store
+- check the difference between the two lists > 0 and the id of the last one added must be the same as the last retrieved.
+- delete group
+- try to retrieve the group again and check that it is not found, or it's disabled.
+"""
+
 import time
 
 import univention.testing.ucr as ucr_test
@@ -21,7 +38,7 @@ from univention.office365.microsoft.exceptions.core_exceptions import MSGraphErr
 from univention.office365.microsoft.objects.azureobjects import GroupAzure
 from univention.office365.ucr_helper import UCRHelper
 
-
+# TODO: too similar to the operation done with the users, join both.
 def test_grp(grp, args):
 	# type: (GroupAzure, Dict[str, Any]) -> None
 	for k, v in args.items():

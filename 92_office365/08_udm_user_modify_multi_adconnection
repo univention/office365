@@ -1,11 +1,26 @@
 #!/usr/share/ucs-test/runner python
 ## -*- coding: utf-8 -*-
-## desc: create and modify user in azure, check property-sync
+## desc: create and modify user in UDM, replicate in azure, check property-sync
 ## tags: [apptest]
 ## exposure: dangerous
 ## packages:
 ##   - univention-office365
 
+"""
+This test is used to create and modify user in UDM, replicate in azure, check property-sync.
+The next operations are performed on the two preconfigured connections to Azure:
+- unset and set the needed UCR variables #TODO: why is it needed?
+- create UDM user with some properties
+- wait for the user to be replicated in Azure
+- retrieve the user from Azure and check the id
+- compare all the properties of the user in UDM and Azure
+- add new properties to UDM user
+- wait for the user to be replicated in Azure
+- compare all the properties of the user in UDM and Azure
+- add new properties to UDM user
+- wait for the user to be replicated in Azure
+- compare all the properties of the user in UDM and Azure
+"""
 import copy
 import pprint
 import time
@@ -56,7 +71,7 @@ with utils.AutomaticListenerRestart():
 				print("*** Running for adconnection_alias={!r}.".format(adconnection_alias))
 
 				core = MSGraphApiCore(AzureAccount(adconnection_alias))
-
+				# TODO: repeated. Needed? Join.
 				print("*** Setting UCRs for maximum property sync...")
 				to_unset = ["office365/attributes/anonymize", "office365/attributes/never",
 					"office365/groups/sync", "office365/subscriptions/service_plan_names"]
