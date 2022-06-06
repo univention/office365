@@ -652,6 +652,7 @@ class GroupAzure(AzureObject):
 			groups = [GroupAzure(**x) for x in groups_value]
 			[x.set_core(core) for x in groups]
 			return groups
+		return groups_value
 
 	def is_delete(self):
 		# type: () -> bool

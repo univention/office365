@@ -201,7 +201,7 @@ class Connector(object):
 		self.cores = {account.alias: MSGraphApiCore(account) for account in self.accounts}  # type: Dict[str, MSGraphApiCore]
 		self.attrs = ConnectorAttributes(logger=self.logger)  # type: ConnectorAttributes
 		default_adconnection = UCRHelper.get_default_adconnection()
-		self.default_adconnection = {default_adconnection} if default_adconnection else set()
+		self.default_adconnection = {default_adconnection} if default_adconnection and default_adconnection in self.cores else set()
 
 	def has_initialized_connections(self):
 		# type: () -> bool
@@ -407,7 +407,7 @@ class UserConnector(Connector):
 			user_azure.invalidate_all_tokens()
 		except NoAllocatableSubscriptions as exc:
 			self.logger.warning('(%r) Not subscription located for user %r: %s', exc.adconnection_alias, exc.user.id, exc)
-		udm_object.create_azure_attributes(self.prepare_azure_attributes(user_azure), alias)
+		udm_object.modify_azure_attributes(self.prepare_azure_attributes(user_azure))
 		self.logger.info("User creation success. userPrincipalName: %r objectId: %r dn: %s adconnection: %s", user_azure.userPrincipalName, user_azure.id, udm_object.dn, udm_object.current_connection_alias)
 		# create groups (if any) and if must be synced "office365/groups/sync".
 		# Check old office365-user.py:new_or_reactivate_user
@@ -810,7 +810,7 @@ class GroupConnector(Connector):
 					# No modification to be considered
 					if not (self.attrs & modification_attributes_udm_group):
 						self.logger.info("No modifications found, ignoring.")
-						if object_id:
+						if object_id and object_id != new_udm_group.azure_object_id:
 							new_udm_group.modify_azure_attributes(self.prepare_azure_attributes(GroupAzure(id=object_id)))
 						continue
 
@@ -1017,6 +1017,10 @@ class GroupConnector(Connector):
 					with udm_user.set_current_alias(alias):
 						if udm_user.azure_object_id:
 							users_and_groups_to_add.append(udm_user.azure_object_id)
+						else:
+							self.logger.warning("UDM User: %r azure_object_id is None. Not syncing with azure %r", added_member_dn, alias)
+				else:
+					self.logger.warning("UDM User: %r Is disabled. Not syncing with azure %r", added_member_dn, alias)
 			elif added_member_dn in new_udm_group.get_nested_group():
 				# it's a group
 				# check if this group or any of its nested groups has azure_users
@@ -1036,6 +1040,7 @@ class GroupConnector(Connector):
 				raise RuntimeError("Office365Listener.modify_group() {!r} from new[uniqueMember] not in "
 								   "'nestedGroup' or 'users' ({!r}).".format(added_member_dn, alias))
 
+		self.logger.info("Members to add %r", users_and_groups_to_add)
 		azure_group.add_members(users_and_groups_to_add)
 
 		# remove members

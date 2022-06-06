@@ -753,7 +753,7 @@ class MSGraphApiCore(object):
 		response_handlers = response_handlers or {}
 		values = {}  # holds data from pagination
 		msg = MSGraphApiCore._fprints_hide_pw(data, "GraphAPI: {method} {url}".format(method=method, url=url))
-		logger.debug(msg)
+		logger.info(msg)
 
 		# prepare the http headers, which we are going to send with any request
 		# the access_token should have been initialized in the constructor.
