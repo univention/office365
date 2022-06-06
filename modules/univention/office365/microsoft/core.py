@@ -770,8 +770,7 @@ class MSGraphApiCore(object):
 				if not self.account.check_token():
 					self.get_token()  #TODO implement handlers
 				headers.update({'Authorization': 'Bearer {}'.format(self.account.token['access_token']),
-								"Content-Type": "application/json; charset=utf-8",
-								"Accept": "application/json; charset=utf-8"})
+								"Content-Type": "application/json"})
 			try:
 				response = requests.request(
 					method=method,
