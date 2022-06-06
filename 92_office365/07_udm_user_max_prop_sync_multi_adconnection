@@ -43,8 +43,6 @@ with utils.AutomaticListenerRestart():
 	with udm_test.UCSTestUDM() as udm:
 		with ucr_test.UCSTestConfigRegistry() as ucr:
 			ucr.load()
-			class _listener(object):
-				configRegistry = ucr
 
 			for adconnection_alias in initialized_adconnections:
 				print("*** Running for adconnection_alias={!r}.".format(adconnection_alias))

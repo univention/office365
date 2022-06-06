@@ -47,8 +47,6 @@ if len(initialized_adconnections) < 2:
 with udm_test.UCSTestUDM() as udm:
 	with ucr_test.UCSTestConfigRegistry() as ucr:
 		ucr.load()
-		class _listener(object):
-			configRegistry = ucr
 
 		# TODO: remove adconnection_alias3?
 		adconnection_alias1 = initialized_adconnections[0]

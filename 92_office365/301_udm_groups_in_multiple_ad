@@ -48,8 +48,6 @@ with utils.AutomaticListenerRestart():
 	with udm_test.UCSTestUDM() as udm:
 		with ucr_test.UCSTestConfigRegistry() as ucr:
 			ucr.load()
-			class _listener(object):
-				configRegistry = ucr
 
 			handler_set(["office365/groups/sync=yes"])
 			utils.restart_listener()
@@ -129,6 +127,7 @@ with utils.AutomaticListenerRestart():
 				utils.fail("Group {!r} does not contain the user object for user {!r} ({!r}).".format(group_name, username, adconnection_alias2))
 			print("*** All went well.")
 
+# TODO: is it really needed with the Context Managers?
 # Cleanup
 to_unset = ["office365/groups/sync"]
 handler_unset(to_unset)
