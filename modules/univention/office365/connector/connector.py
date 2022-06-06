@@ -1044,10 +1044,11 @@ class GroupConnector(Connector):
 				except univention.admin.uexceptions.noObject as exc:
 					self.logger.warning("User dn: %r not exist in UDM, aborting remove member.", removed_member_dn)
 					continue
-				if udm_user.azure_object_id:
-					azure_group.remove_member(udm_user.azure_object_id)
-				else:
-					self.logger.warning("Office365Listener.modify_group(), removing members: couldn't figure out object name from dn %r", removed_member_dn)
+				with udm_user.set_current_alias(alias):
+					if udm_user.azure_object_id:
+						azure_group.remove_member(udm_user.azure_object_id)
+					else:
+						self.logger.warning("Office365Listener.modify_group(), removing members: couldn't figure out object name from dn %r", removed_member_dn)
 			elif removed_member_dn in old_udm_group.get_nested_group():
 				# it's a group
 				# check if this group or any of its nested groups has azure_users
@@ -1056,10 +1057,11 @@ class GroupConnector(Connector):
 				except univention.admin.uexceptions.noObject as exc:
 					self.logger.warning("Group dn: %r not exist in UDM, aborting remove member.", removed_member_dn)
 					continue
-				member_id = udm_office_remove_member_group.azure_object_id
+				with udm_office_remove_member_group.set_current_alias(alias):
+					member_id = udm_office_remove_member_group.azure_object_id
 				if not member_id:
 					try:
-						azure_remove_member_group = GroupAzure.get_by_name(self.cores[alias], udm_office_remove_member_group.displayName)
+						azure_remove_member_group = GroupAzure.get_by_name(self.cores[alias], udm_office_remove_member_group.cn)
 					except GraphRessourceNotFroundError as e:
 						azure_remove_member_group = None
 					member_id = azure_remove_member_group.id if azure_remove_member_group else None
