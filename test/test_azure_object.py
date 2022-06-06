@@ -5,6 +5,7 @@ import random
 import string
 import sys
 import time
+import uuid
 
 import pytest
 import requests
@@ -38,8 +39,33 @@ sys.modules['os'].chown = mock.MagicMock()
 from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError
 from univention.office365.microsoft.objects.azureobjects import UserAzure, GroupAzure, TeamAzure, SubscriptionAzure
 from univention.office365.microsoft.account import AzureAccount
-from univention.office365.microsoft.core import MSGraphApiCore
+from univention.office365.microsoft.core import MSGraphApiCore, URLs
 from test import ALIASDOMAIN, DOMAIN_PATH, DOMAIN, OWNER_ID
+
+URLs.proxies = mock.MagicMock(return_value={})
+
+azure_user_selection = ["assignedLicenses",
+				 "otherMails",
+				 "businessPhones",
+				 "displayName",
+				 "givenName",
+				 "jobTitle",
+				 "mail",
+				 "mobilePhone",
+				 "officeLocation",
+				 "preferredLanguage",
+				 "surname",
+				 "userPrincipalName",
+				 "id",
+				 "accountEnabled",
+				 "onPremisesImmutableId",
+				 "mailNickname",
+				 "city",
+				 "usageLocation",
+				 "postalCode",
+				 "streetAddress",
+				 "assignedPlans"
+				]
 
 
 @contextlib.contextmanager
@@ -48,7 +74,8 @@ def new_user(core, name):
 	username = "user_{team_name}".format(team_name=name)
 	user_email = "{username}@{domain}".format(username=username, domain=DOMAIN)
 
-	user = UserAzure(accountEnabled=True,
+	user = UserAzure(onPremisesImmutableId=str(uuid.uuid4()),
+					 accountEnabled=True,
 					 displayName=username,
 					 mailNickname=username,
 					 userPrincipalName=user_email,
@@ -78,6 +105,8 @@ def new_team_from_group(core, team_name):
 		with new_group(core, team_name) as group:
 			group.add_owner(user.id)
 			team = TeamAzure.create_from_group(core, group.id)
+			if team.isArchived:
+				team.reactivate()
 			try:
 				team.wait_for_team()
 				yield team
@@ -164,7 +193,7 @@ class TestUserAzure(TestObjectAzure):
 		""""""
 		username = "test_create"
 		with new_user(self.core, username) as user:
-			user_get = UserAzure.get(self.core, user.id)
+			user_get = UserAzure.get(self.core, user.id, selection=azure_user_selection)
 			assert user.id == user_get.id
 
 	@my_vcr.use_cassette('vcr_cassettes/TestUserAzure/test_delete.yml')
@@ -174,10 +203,10 @@ class TestUserAzure(TestObjectAzure):
 		username = "test_delete"
 		user_id = None
 		with new_user(self.core, username) as user:
-			user_get = UserAzure.get(self.core, user.id)
+			user_get = UserAzure.get(self.core, user.id, selection=azure_user_selection)
 			assert user.id == user_get.id
 			user_id = user.id
-		user = UserAzure.get(self.core, user_id)
+		user = UserAzure.get(self.core, user_id, selection=azure_user_selection)
 		assert "ZZZ_delete" in user.displayName
 
 	@my_vcr.use_cassette('vcr_cassettes/TestUserAzure/test_update.yml')
@@ -187,7 +216,7 @@ class TestUserAzure(TestObjectAzure):
 		username = "test_update"
 		with new_user(self.core, username) as user:
 			user.update(UserAzure(postalCode="10004"))
-			user_get = UserAzure.get(self.core, user.id)
+			user_get = UserAzure.get(self.core, user.id, selection=azure_user_selection)
 			assert user_get.postalCode == user.postalCode
 
 	@my_vcr.use_cassette('vcr_cassettes/TestUserAzure/test_deactivate.yml')
@@ -197,7 +226,7 @@ class TestUserAzure(TestObjectAzure):
 		username = "test_deactivate"
 		with new_user(self.core, username) as user:
 			user.deactivate()
-			user_get = UserAzure.get(self.core, user.id)
+			user_get = UserAzure.get(self.core, user.id, selection=azure_user_selection)
 			assert user_get.accountEnabled == False
 
 	@pytest.mark.skip
@@ -208,10 +237,10 @@ class TestUserAzure(TestObjectAzure):
 		username = "test_reactivate"
 		with new_user(self.core, username) as user:
 			user.deactivate()
-			user_get = UserAzure.get(self.core, user.id)
+			user_get = UserAzure.get(self.core, user.id, selection=azure_user_selection)
 			assert user_get.accountEnabled == False
 			user.reactivate()
-			user_get = UserAzure.get(self.core, user.id)
+			user_get = UserAzure.get(self.core, user.id, selection=azure_user_selection)
 			assert user_get.accountEnabled == True
 
 	@my_vcr.use_cassette('vcr_cassettes/TestUserAzure/test_get.yml')
@@ -219,7 +248,7 @@ class TestUserAzure(TestObjectAzure):
 		# type: () -> None
 		username = "test_get"
 		with new_user(self.core, username) as user:
-			user_get = UserAzure.get(self.core, user.id)
+			user_get = UserAzure.get(self.core, user.id, selection=azure_user_selection)
 			assert user.id == user_get.id
 
 	@my_vcr.use_cassette('vcr_cassettes/TestUserAzure/test_member_of.yml')
@@ -248,7 +277,7 @@ class TestUserAzure(TestObjectAzure):
 		""""""
 		username = "test_reset_password"
 		with new_user(self.core, username) as user:
-			user_get = UserAzure.get(self.core, user.id)
+			user_get = UserAzure.get(self.core, user.id, selection=azure_user_selection)
 			user.reset_password()
 			assert user.passwordProfile["password"] != user_get.passwordProfile["password"]
 
@@ -264,7 +293,7 @@ class TestUserAzure(TestObjectAzure):
 					break
 
 			user.add_license(subs_sku=subs_sku)
-			user_get = UserAzure.get(self.core, user.id)
+			user_get = UserAzure.get(self.core, user.id, selection=azure_user_selection)
 			assert subs_sku.skuId in [x["skuId"] for x in user_get.assignedLicenses]
 			user.remove_license(subs_sku=subs_sku)
 
@@ -287,12 +316,32 @@ class TestUserAzure(TestObjectAzure):
 					break
 
 			user.add_license(subs_sku=subs_sku)
-			user_get = UserAzure.get(self.core, user.id)
+			user_get = UserAzure.get(self.core, user.id, selection=azure_user_selection)
 			assert subs_sku.skuId in [x["skuId"] for x in user_get.assignedLicenses]
 			user.remove_license(subs_sku=subs_sku)
-			user_get = UserAzure.get(self.core, user.id)
+			user_get = UserAzure.get(self.core, user.id, selection=azure_user_selection)
 			assert subs_sku.skuId not in [x["skuId"] for x in user_get.assignedLicenses]
 
+	@my_vcr.use_cassette('vcr_cassettes/TestUserAzure/test_get_assignedLicenses.yml')
+	def test_get_assignedLicenses(self):
+		""""""
+		with new_user(self.core, "test_get_assignedLicenses") as user:  # type: UserAzure
+			subs_sku = SubscriptionAzure.list(self.core)
+			for sku in subs_sku:
+				if sku.has_free_seats():
+					subs_sku = sku
+					break
+			user.add_license(subs_sku=subs_sku)
+			assert len(list(user.get_assignedLicenses())) > 0
+			user.remove_license(subs_sku=subs_sku)
+
+	@my_vcr.use_cassette('vcr_cassettes/TestUserAzure/test_get_by_onPremisesImmutableID.yml')
+	def test_get_by_onPremisesImmutableID(self):
+		""""""
+		with new_user(self.core, "onPremisesImmutableID") as user:  # type: UserAzure
+			user = UserAzure.get(self.core, user.id, selection=azure_user_selection)
+			user2 = UserAzure.get_by_onPremisesImmutableID(self.core, user.onPremisesImmutableId)
+			assert user.id == user2.id
 
 class TestGroupAzure(TestObjectAzure):
 
@@ -634,7 +683,14 @@ class TestTeamAzure(TestObjectAzure):
 			with new_team_from_group(self.core, "test_delete_member") as team:
 				response = team.add_member(user2.id)
 				assert user2.id in [x.id for x in team.list_team_members()]
-				team.delete_member(response["id"])
+				while True:
+					try:
+						team.delete_member(response["id"])
+						break
+					except MSGraphError as e:
+						if not(hasattr(e.response, "json") and e.response.json().get("error", {}).get("code", None) == "Forbidden"):
+							raise
+						time.sleep(10)
 				assert user2.id not in [x.id for x in team.list_team_members()]
 
 	@my_vcr.use_cassette('vcr_cassettes/TestTeamAzure/test_list_team_members.yml')

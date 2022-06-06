@@ -1,14 +1,5 @@
-import importlib
-import os
-import pickle
-import sys
 from six.moves import UserDict
 
-import pytest
-from mock import mock
-from mock.mock import MagicMock
-from six import text_type
-import importlib
 import os
 import pickle
 import sys
@@ -16,7 +7,6 @@ import sys
 import pytest
 from mock import mock
 from mock.mock import MagicMock
-from six import text_type
 from typing import Callable, Any, Dict, Union, List
 
 ldap_cred = {}
@@ -50,7 +40,8 @@ def create_udm_object(cls, file, mapping):
 		udm_object.udm_object_reference.oldattr = ldap_dict
 		udm_object.udm_object_reference.mapping = mock.MagicMock()
 		udm_object.udm_object_reference.mapping.unmapName = lambda x: unmapName[x] if x in unmapName else ""
-		udm_object.udm_object_reference.get_usage_location = mock.MagicMock(return_value="DE")
+		from univention.office365.ucr_helper import UCRHelper
+		UCRHelper.get_usage_location = mock.MagicMock(return_value="DE")
 		udm_object.udm_object_reference["groups"] = ["cn=test,dc=test,dc=test"]
 		return udm_object
 	return _create_udm_object

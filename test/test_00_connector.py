@@ -45,7 +45,7 @@ sys.modules['univention.lib.i18n'] = mock.MagicMock()
 import univention.office365.connector.connector
 univention.office365.connector.connector.filter_format = lambda x, y: x % y
 from univention.office365.connector.connector import UserConnector, GroupConnector, ConnectorAttributes, UCRHelper, SubscriptionProfile
-from univention.office365.microsoft.objects.azureobjects import UserAzure
+from univention.office365.microsoft.objects.azureobjects import UserAzure, GroupAzure
 from univention.office365.udmwrapper.udmobjects import UniventionOffice365Data
 UCRHelper.get_adconnection_filtered_in = mock.MagicMock(return_value=[])
 # UCRHelper["office365/subscriptions/service_plan_names"] = None
@@ -65,7 +65,7 @@ UCRHelper.get_service_plan_names = mock.MagicMock(return_value=[spn.strip() for 
 # "office365/attributes/mapping/st=usageLocation",
 # "office365/attributes/mapping/street=streetAddress",
 # "office365/attributes/mapping/sn=surname",
-# "office365/attributes/mapping/telephoneNumber=telephoneNumber",
+# "office365/attributes/mapping/telephoneNumber=businessPhones",
 # "office365/attributes/sync=l,st,displayName,employeeType,givenName,mailPrimaryAddress,mobile,mailAlternativeAddress,mail,postalCode,roomNumber,st,street,sn,telephoneNumber",
 # "office365/attributes/anonymize=givenName,street,postalCode",
 # "office365/attributes/never=mail,postalCode",
@@ -131,7 +131,7 @@ class TestConnectorAttributes:
 		assert a.sync == {"l", "st", "displayName", "employeeType", "givenName", "mailPrimaryAddress", "mobile", "mailAlternativeAddress", "mail", "postalCode", "roomNumber", "st", "street", "sn", "telephoneNumber"}
 		assert a.static == {"roomNumber": "asdf", "postalCode": "asdf", "l": "asdf"}
 		assert a.mapping == {"l": "city", "displayName": "displayName", "employeeType": "jobTitle", "givenName": "givenName", "mobile": "mobilePhone", "mail": "otherMails", "mailAlternativeAddress": "otherMails", "mailPrimaryAddress": "otherMails", "postalCode": "postalCode",
-							 "roomNumber": "officeLocation", "st": "usageLocation", "street": "streetAddress", "sn": "surname", "telephoneNumber": "telephoneNumber"}
+							 "roomNumber": "officeLocation", "st": "usageLocation", "street": "streetAddress", "sn": "surname", "telephoneNumber": "businessPhones"}
 		assert a.multiple == {'otherMails': ['mail', 'mailAlternativeAddress', 'mailPrimaryAddress']}
 
 	def test__sanitize(self, ucr_helper):
@@ -163,7 +163,7 @@ class TestUserConnector:
 		# type: () -> None
 		self.uc = UserConnector({'o365domain': "initialized"})
 		_attrs = {
-			'anonymize': {},
+			'anonymize': set(),
 			'listener': {'displayName',
 						 'employeeType',
 						 'givenName',
@@ -205,8 +205,8 @@ class TestUserConnector:
 						'st': 'usageLocation',
 						'street': 'streetAddress',
 						'telephoneNumber': 'businessPhones'},
-			'never': {},
-			'static': {},
+			'never': set(),
+			'static': set(),
 			'sync': {'displayName',
 					 'employeeType',
 					 'givenName',
@@ -304,6 +304,7 @@ class TestUserConnector:
 		self.uc.parse = mock.MagicMock(side_effect=[azure_user, mock.MagicMock()])
 		self.uc._assign_subscription = mock.MagicMock()
 		self.uc.prepare_azure_attributes = mock.MagicMock(return_value={})
+		self.uc.group_connector = mock.MagicMock()
 		self.uc.new_or_reactivate_user(udm_fake_user)
 		self.uc.parse.assert_called_once()
 		azure_user.create_or_modify.assert_called_once()
@@ -328,7 +329,6 @@ class TestUserConnector:
 		self.uc.parse = mock.MagicMock(side_effect=[azure_user, mock.MagicMock()])
 		self.uc.delete(udm_fake_user)
 		azure_user.deactivate.assert_called_once()
-		udm_fake_user.modify_azure_attributes.assert_called_once_with(None)
 
 
 	def test_deactivate(self, create_udm_user_object):
@@ -339,7 +339,6 @@ class TestUserConnector:
 		self.uc.parse = mock.MagicMock(side_effect=[azure_user, mock.MagicMock()])
 		self.uc.delete(udm_fake_user)
 		azure_user.deactivate.assert_called_once()
-		udm_fake_user.modify_azure_attributes.assert_called_once_with(None)
 
 
 	def test_modify(self, create_udm_user_object):
@@ -450,7 +449,7 @@ class TestGroupConnector:
 		assert result == azure_group
 		azure_group.create_or_modify.assert_called_once()
 		self.gc.parse.assert_called_once_with(udm_fake_group)
-		self.gc.add_ldap_members_to_azure_group.assert_called_once_with(udm_fake_group, azure_group.id)
+		self.gc.add_ldap_members_to_azure_group.assert_called_once_with(udm_fake_group, azure_group)
 
 	def test_convert_group_to_team(self, create_udm_group_object):
 		# type: (Callable) -> None
@@ -471,7 +470,6 @@ class TestGroupConnector:
 			azure_group.add_owner.assert_has_calls([call(ANY, async_task=False) for x in owners])
 			mock_team.create_from_group.assert_called_once_with(ANY, azure_group.id)
 
-
 	def test_create(self, create_udm_group_object):
 		# type: (Callable) -> None
 		udm_fake_group = create_udm_group_object()
@@ -483,7 +481,7 @@ class TestGroupConnector:
 		self.gc.convert_group_to_team = mock.MagicMock()
 		self.gc.create(udm_fake_group)
 		self.gc._create_group.assert_called_once_with(udm_fake_group)
-		self.gc.convert_group_to_team.assert_called_once_with(udm_fake_group, azure_group, async_task=True)
+		self.gc.convert_group_to_team.assert_called_once_with(udm_fake_group, azure_group)
 
 	def test_delete(self, create_udm_group_object):
 		# type: (Callable) -> None
@@ -616,10 +614,14 @@ class TestGroupConnector:
 
 		udm_fake_group_new.get_users = mock.MagicMock(return_value={'uid=domvzkat0s,cn=users,dc=test-idelgado-com,dc=intranet'})
 		udm_fake_group_new.get_nested_group = mock.MagicMock(return_value={'uid=onetobeadded,cn=groups,dc=test-idelgado-com,dc=intranet'})
-
-		self.gc.check_and_modify_members(udm_fake_group_old, udm_fake_group_new, azure_group)
-		azure_group.add_members.assert_called_once()
-		azure_group.remove_member.assert_called_once()
+		udm_fake_group_new.current_connection_alias = "azuretestdomain"
+		with mock.patch("univention.office365.connector.connector.UDMOfficeGroup", mock.MagicMock(return_value=create_udm_group_object())),\
+				mock.patch("univention.office365.connector.connector.GroupAzure.get_by_name", mock.MagicMock(return_value=None)):
+			self.gc.cores["azuretestdomain"] = self.gc.cores["o365domain"]
+			self.gc.check_and_modify_members(udm_fake_group_old, udm_fake_group_new, azure_group)
+			self.gc.cores.pop("azuretestdomain")
+			azure_group.add_members.assert_called_once()
+			azure_group.remove_member.assert_called_once()
 
 		# Check for empty group (removed_members_dn and not added_members_dn)
 		self.gc.delete_empty_group = mock.MagicMock()
@@ -628,10 +630,13 @@ class TestGroupConnector:
 		udm_fake_group_old.get_nested_group = mock.MagicMock(return_value={'uid=onetoremove,cn=groups,dc=test-idelgado-com,dc=intranet'})
 
 		udm_fake_group_new.get_members = mock.MagicMock(return_value={'uid=domvzkat0s,cn=users,dc=test-idelgado-com,dc=intranet'})
-		udm_fake_group_old.get_users = mock.MagicMock(return_value={'uid=domvzkat0s,cn=users,dc=test-idelgado-com,dc=intranet'})
-		self.gc.check_and_modify_members(udm_fake_group_old, udm_fake_group_new, azure_group)
-		azure_group.remove_member.assert_called_once()
-		self.gc.delete_empty_group.assert_called_once_with(azure_group, udm_fake_group_new)
+		udm_fake_group_new.get_users = mock.MagicMock(return_value={'uid=domvzkat0s,cn=users,dc=test-idelgado-com,dc=intranet'})
+		udm_fake_group_new.current_connection_alias = "azuretestdomain"
+		with mock.patch("univention.office365.connector.connector.UDMOfficeGroup",
+						mock.MagicMock(return_value=create_udm_group_object())), mock.patch("univention.office365.connector.connector.GroupAzure.get_by_name", mock.MagicMock(return_value=None)):
+			self.gc.check_and_modify_members(udm_fake_group_old, udm_fake_group_new, azure_group)
+			azure_group.remove_member.assert_called_once()
+			self.gc.delete_empty_group.assert_called_once_with(azure_group, udm_fake_group_new)
 
 
 	def test_check_and_modify_attributes(self, create_udm_group_object):
@@ -673,7 +678,7 @@ class TestGroupConnector:
 
 		# Check no modifications
 		self.gc.modify(udm_fake_group_old, udm_fake_group_new)
-		udm_fake_group_new.modify_azure_attributes.assert_called_once()
+		udm_fake_group_new.modify_azure_attributes.assert_not_called()
 
 
 		# Check modifications TODO:
