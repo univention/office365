@@ -283,8 +283,10 @@ class UDMOfficeObject(UserDict):
 		"""
 		azure_object_dict: is the dict representing the response of azure to a get object call
 		"""
+		old_azure_data = self.azure_data
 		self._update_azure_data(azure_object_dict)
-		self.udm_object_reference.modify()
+		if old_azure_data != self.azure_data:
+			self.udm_object_reference.modify()
 
 	def deactivate_azure_attributes(self):
 		# type: () -> None
@@ -292,11 +294,11 @@ class UDMOfficeObject(UserDict):
 
 	def create_azure_attributes(self, azure_object_dict, new_connection_alias=None):
 		# type: (Mapping[str, Any], Optional[str]) -> None
-		old_current_connection_alias = self.current_connection_alias
 		if new_connection_alias:
-			self.current_connection_alias = new_connection_alias
-		self.modify_azure_attributes(azure_object_dict)
-		self.current_connection_alias = old_current_connection_alias
+			with self.set_current_alias(new_connection_alias):
+				self.modify_azure_attributes(azure_object_dict)
+		else:
+			self.modify_azure_attributes(azure_object_dict)
 
 	@property
 	def azure_object_id(self):
