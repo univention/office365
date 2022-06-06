@@ -6,6 +6,17 @@
 ## packages:
 ##   - univention-office365
 
+"""
+This test is used to check the team members change in Azure.
+- Use o365domain connection
+- Create user1, user2, user3 in UDM with UniventionMicrosoft365Team=1
+- Create group in UDM with UniventionMicrosoft365Team=1 and UniventionMicrosoft365GroupMembers=[user2_dn, user3_dn] and UniventionMicrosoft365GroupOwners=user_dn
+- Check that the team have 3 members (It's using the wait_for_seconds decorator to wait for the team to be created up to 500 seconds)
+- Create another 3 users in UDM with UniventionMicrosoft365Team=1 and members of the group
+- Check that the team have 6 members
+- Remove 2 users from the UDM group
+- Check that the team have 4 members
+"""
 import univention.testing.utils as utils
 import univention.testing.ucr as ucr_test
 import univention.testing.udm as udm_test

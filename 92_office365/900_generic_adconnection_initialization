@@ -6,6 +6,18 @@
 ## packages:
 ##   - univention-office365
 
+"""
+This test is used to test uninitialize, initialize, load and store with multi Azure AD connection support
+The next operations done for tree new connections to Azure:
+- Create a new connection
+- Create a new account for that connection
+- Uninitialize the account and check
+- Store account test data
+- Check that the account is now initalized
+- Check that the stored data is correct
+- Remove the connection
+- Check that the account and connection are removed
+"""
 import os
 import uuid
 import datetime

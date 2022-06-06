@@ -475,6 +475,7 @@ def setup_logging():
 
 def setup_externally_configured_adconnections(logger):
 	try:
+		# TODO: Move the path to an external config file
 		if not os.path.exists("/etc/univention-office365/o365domain"):
 			AccountConnector.create_new_adconnection(logger, "o365domain", restart_listener=False)
 		account = AzureAccount("o365domain", lazy_load=True)
@@ -485,6 +486,7 @@ def setup_externally_configured_adconnections(logger):
 			shutil.copytree(srcpath, newconf_dir)
 			ucrv_set = 'office365/adconnection/alias/o365domain=initialized'
 			handler_set([ucrv_set])
+
 		if not os.path.exists("/etc/univention-office365/azuretestdomain"):
 			AccountConnector.create_new_adconnection(logger, "azuretestdomain", restart_listener=False)
 		account = AzureAccount("azuretestdomain", lazy_load=True)
@@ -496,6 +498,7 @@ def setup_externally_configured_adconnections(logger):
 			ucrv_set = 'office365/adconnection/alias/azuretestdomain=initialized'
 			handler_set([ucrv_set])
 
+		# TODO: Move the path to an external config file
 		for root, dirs, files in os.walk("/etc/univention-office365"):
 			for d in dirs:
 				os.chown(os.path.join(root, d), pwd.getpwnam('listener').pw_uid, 0)

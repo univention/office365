@@ -6,6 +6,18 @@
 ## packages:
 ##   - univention-office365
 
+"""
+This test is used to check the team owner change in Azure.
+- Use o365domain connection
+- set the UCR variable office365/groups/sync=yes
+- Create user1 in UDM
+- Create user2 in UDM
+- Create group in UDM with UniventionMicrosoft365Team=1 and UniventionMicrosoft365GroupOwners=user_dn
+- Check the creation of the team in Azure (It's using the wait_for_seconds decorator to wait for the team to be created up to 500 seconds)
+- check team owner in Azure
+- change team owner to user2_dn in UDM
+- check team owner in Azure
+"""
 import univention.testing.utils as utils
 import univention.testing.ucr as ucr_test
 import univention.testing.udm as udm_test

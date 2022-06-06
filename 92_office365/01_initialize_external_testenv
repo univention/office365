@@ -6,6 +6,15 @@
 ## packages:
 ##   - univention-office365
 
+"""
+This test is used to configure the external connections for this connector instance.
+This script expect the existence of two preconfigured connections to Azure to be in /etc/univention-office365/
+The original names of those directories are: o365-dev-univention-de and u-azure-test-de
+For initialization of the test environment, the content of these directories is copied to
+o365domain and azuretestdomain respectively and the UCRv office365/adconnection/alias/azuretestdomain=initialized and 'office365/adconnection/alias/o365domain=initialized'
+set.
+TODO: convert this to a session scoped fixture, and yield to remove the directories and unset the UCR variables back to their original values.
+"""
 from helpers.office365_test_helpers import setup_logging, setup_externally_configured_adconnections
 import univention.testing.utils as utils
 

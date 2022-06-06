@@ -6,6 +6,20 @@
 ## packages:
 ##   - univention-office365
 
+"""
+For Users
+No UDM involved currently.
+This test is used to list, create, retrieve, modify and delete user in Azure AD with multi connection support.
+The next operations are performed on the two preconfigured connections to Azure:
+- list users and store
+- create user
+- retrieve user by id
+- check the user's attributes
+- list users again and store
+- check the difference between the two lists > 0 and the id of the last one added must be the same as the one created/retrieved.
+- delete user
+- try to retrieve the user again and check that it is not found, or it's disabled.
+"""
 import time
 
 import univention.testing.ucr as ucr_test

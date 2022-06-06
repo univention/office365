@@ -6,6 +6,15 @@
 ## packages:
 ##   - univention-office365
 
+
+"""
+This test is used to check the team creation in Azure.
+- use the o365domain connection
+- set the UCR variable office365/groups/sync=yes
+- create user in UDM
+- create group in UDM with UniventionMicrosoft365Team=1 and UniventionMicrosoft365GroupOwners=user_dn
+- Check the creation of the team in Azure (It's using the wait_for_seconds decorator to wait for the team to be created up to 500 seconds)
+"""
 from __future__ import print_function
 
 import time

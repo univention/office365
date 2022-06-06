@@ -6,6 +6,16 @@
 ## packages:
 ##   - univention-office365
 
+"""
+This test is used to check that users synced in two ADs have their group created in both.
+- Use both o365domain and azuretestdomain connections
+- Set the UCR variable office365/groups/sync=yes
+- Create a group in UDM
+- Create a user in UDM with the group assigned and the UniventionOffice365Enabled=1 and the UniventionOffice365ADConnectionAlias with BOTH o365domain and azuretestdomain
+- Check that the user in UDM is updated with the appropriate object id
+- Check that the group in UDM is updated and replicated to both connections
+- Check that the group in each connection contains exactly one member
+"""
 import time
 import copy
 
@@ -24,7 +34,6 @@ from univention.office365.udmwrapper.udmobjects import UDMOfficeUser, UDMOfficeG
 
 logger = setup_logging()
 # TODO: Move to fixture
-logger = setup_logging()
 adconnection_aliases = UCRHelper.get_adconnection_aliases()
 initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAccount(adconnection_alias).is_initialized()]
 assert initialized_adconnections, "run ./01_initialize_external_testenv first!"

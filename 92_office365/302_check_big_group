@@ -6,6 +6,17 @@
 ## packages:
 ##   - univention-office365
 
+
+"""
+This test is used to check the synchronization and performance for groups with more than 100 members.
+- Use only the o365domain connection
+- Set the UCR variable office365/groups/sync=yes
+- Create a group in UDM
+- Create a >100 users in UDM with the group assigned as primaryGroup, the UniventionOffice365Enabled=1 and the UniventionOffice365ADConnectionAlias with o365domain
+- Check that the last user in UDM is updated with the appropriate azure data.
+- Check that the group in UDM is updated and replicated to o365domain
+- For each user in UDM check that the group is in the list returned by memberOf
+"""
 import time
 
 import univention.testing.strings as uts

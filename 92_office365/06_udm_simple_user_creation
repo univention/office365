@@ -1,11 +1,19 @@
 #!/usr/share/ucs-test/runner python3
 ## -*- coding: utf-8 -*-
-## desc: create user in azure, check Data attribute
+## desc: create user UDM, replicate in azure, check data attribute
 ## tags: [apptest]
 ## exposure: dangerous
 ## packages:
 ##   - univention-office365
 
+
+"""
+This test is used to create user UDM, replicate in azure, check data attribute.
+The next operations are performed on the two preconfigured connections to Azure:
+- create UDM user
+- wait for the user to be replicated in Azure
+- retrieve the user from Azure and check the id
+"""
 import time
 
 import univention.testing.ucr as ucr_test
@@ -31,6 +39,7 @@ with utils.AutomaticListenerRestart():
 			class _listener(object):
 				configRegistry = ucr
 
+			# TODO: Move to an assert before the context managers
 			if not initialized_adconnections:
 				utils.fail("No configured AD connection, can not start test!")
 

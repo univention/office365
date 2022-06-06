@@ -6,6 +6,16 @@
 ## packages:
 ##   - univention-office365
 
+
+"""
+This test is used to check the team deletion in Azure.
+- use the o365domain connection
+- set the UCR variable office365/groups/sync=yes
+- create user in UDM and set UniventionMicrosoft365Team=1
+- create group in UDM with UniventionMicrosoft365Team=1 and UniventionMicrosoft365GroupOwners=user_dn
+- check the team creation in Azure
+- check the team deletion in Azure after the UDM context manager deletes the created team
+"""
 import univention.testing.utils as utils
 import univention.testing.ucr as ucr_test
 import univention.testing.udm as udm_test

@@ -6,6 +6,16 @@
 ## packages:
 ##   - univention-office365
 
+
+"""
+This test is used to create user UDM, replicate in azure, check data attribute.
+The next operations are performed on the two preconfigured connections to Azure:
+- unset and set the needed UCR variables #TODO: why is it needed? Maybe it was prior to context managers?
+- create UDM user
+- wait for the user to be replicated in Azure
+- retrieve the user from Azure and check the id
+- compare all the properties of the user in UDM and Azure
+"""
 import time
 
 import univention.testing.ucr as ucr_test
@@ -28,7 +38,7 @@ print("*** adconnection_aliases={!r}.".format(adconnection_aliases))
 print("*** initialized_adconnections={!r}.".format(initialized_adconnections))
 
 
-
+# TODO: The two context managers and the for loop for the adconnection_aliases are repeated almost all tests that involve UDM
 with utils.AutomaticListenerRestart():
 	with udm_test.UCSTestUDM() as udm:
 		with ucr_test.UCSTestConfigRegistry() as ucr:

@@ -6,6 +6,27 @@
 ## packages:
 ##   - univention-office365
 
+"""
+This test is used to check license and plan info for replicated users.
+- o365domain is selected or one random connection between the initialized connections.
+- create UDM group
+- create UDM user with the previously created group as primary group
+- wait for the user to be replicated in Azure
+- retrieve the user from Azure and check the id
+- check that the user is in the group
+- get the available subscriptions in azure
+- retrieve the user from Azure
+- check that the user assigned license is the last one in the available subscriptions
+- check that all the plans assigned to the user are capabilityStatus=Enabled
+---
+- create UDM profile
+- assign to the created group
+- get the subscriptions for the group
+- check that the group has the same subscriptions as the profile
+- create a new user in the group
+- check that the user has the same subscriptions as the group
+- check enabled, whitelisted and blacklisted plans
+"""
 import time
 import random
 
@@ -192,7 +213,7 @@ with utils.AutomaticListenerRestart():
 				if id_to_subscription_name[azure_user.assignedLicenses[0]['skuId']] != subscription.subscription:
 					utils.fail(
 						'Azure user was assigned wrong license.\n'
-						'azure_user.ssignedLicenses%r\n'
+						'azure_user.assignedLicenses%r\n'
 						'subscription.subscription=%r' %
 						(azure_user.assignedLicenses, subscription.subscription))
 
