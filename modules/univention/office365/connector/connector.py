@@ -200,6 +200,8 @@ class Connector(object):
 		self._load_filtered_accounts()
 		self.cores = {account.alias: MSGraphApiCore(account) for account in self.accounts}  # type: Dict[str, MSGraphApiCore]
 		self.attrs = ConnectorAttributes(logger=self.logger)  # type: ConnectorAttributes
+		default_adconnection = UCRHelper.get_default_adconnection()
+		self.default_adconnection = {default_adconnection} if default_adconnection else set()
 
 	def has_initialized_connections(self):
 		# type: () -> bool
@@ -393,7 +395,8 @@ class UserConnector(Connector):
 		# type: (UDMOfficeUser) -> None
 		""""""
 		alias = udm_object.current_connection_alias
-		assert alias in self.cores, "Alias {} not exist in {}".format(alias, self.cores)
+		if alias not in self.cores:
+			self.logger.warning("Skipping alias {} not exist in initialized aliases {}".format(alias, self.cores.keys()))
 		user_azure = self.parse(udm_object)
 		user_azure.create_or_modify()
 		try:
@@ -435,7 +438,7 @@ class UserConnector(Connector):
 
 		"""
 		if udm_object.should_sync():
-			for alias in udm_object.aliases():
+			for alias in udm_object.aliases(udm_object.adconnection_aliases or self.default_adconnection):
 				self.new_or_reactivate_user(udm_object)
 
 	# univention.office365.azure_handler.AzureHandler.delete_user
@@ -485,15 +488,15 @@ class UserConnector(Connector):
 		"""
 		# TODO: use some kind of cache for the parsed objects (udm_object => parsed_object)
 		if not old_object.should_sync() and new_object.should_sync():
-			for alias in new_object.aliases():
+			for alias in new_object.aliases(new_object.adconnection_aliases or self.default_adconnection):
 				self.new_or_reactivate_user(new_object)
-				return
+			return
 		elif old_object.should_sync() and not new_object.should_sync():
 			for alias in old_object.aliases():
 				old_azure = self.parse(old_object)
 				old_azure.deactivate(rename=True)
 				new_object.modify_azure_attributes(self.prepare_azure_attributes(old_azure, to_remove=True))
-				return
+			return
 
 		if new_object.should_sync():
 			#####

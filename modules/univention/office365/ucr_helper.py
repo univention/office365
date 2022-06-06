@@ -2,7 +2,7 @@
 import os
 import re
 import subprocess
-from typing import Dict
+from typing import Dict, Optional
 
 from univention.config_registry import ConfigRegistry, handler_set, handler_unset
 from univention.config_registry.frontend import ucr_update
@@ -148,12 +148,17 @@ class UCRHelperC(ConfigRegistry):
 		return res
 	
 	def get_usage_location(self):
+		# type: () -> str
 		self.load()  # TODO set load as decorator
 		res = self.get(self.usage_location_ucrv) or self.get(self.ssl_country_ucrv) 
 		if not res or len(res) != 2:
 			raise RuntimeError("Invalid usageLocation '{}' - user cannot be created.".format(res))
 		return res
 
+	def get_default_adconnection(self):
+		# type: () -> Optional[str]
+		self.load()
+		return self.get(self.default_adconnection_alias_ucrv)
 
 """
 Singleton instance
