@@ -206,13 +206,22 @@ class TestUDMOfficeObjects:
 		udm_user1.udm_object_reference["UniventionOffice365ObjectID"] = "test_UniventionOffice365ObjectID"
 		assert udm_user1.is_version(Version.V1)
 
+	def test_diff_keys(self, udm_object):
+		# type: (Callable) -> None
+		udm_user1 = udm_object()
+		udm_user2 = udm_object()
+		assert len(list(udm_user1.diff_keys(udm_user2))) == 0
+		udm_user1.udm_object_reference.oldattr["displayName"] = "new_displayName"
+		assert udm_user1.diff_keys(udm_user2) == {"displayName"}
+
+
 
 
 class TestUdmOfficeUser:
 
 	def test_completity(self):
 		# type: () -> None
-		diff = all_methods_called(self.__class__, UDMOfficeUser, ["is_version", "items", "popitem", "create_azure_attributes", "alias_to_modify", "keys", "clear", "get_diff_aliases", "setdefault", "modified_fields", "modify_azure_attributes", "deactivate_azure_attributes", "copy", "aliases", "alias_to_deactivate", "update", "get", "pop", "fromkeys", "values", "set_current_alias"])
+		diff = all_methods_called(self.__class__, UDMOfficeUser, ["is_version", "items", "popitem", "create_azure_attributes", "alias_to_modify", "keys", "clear", "get_diff_aliases", "setdefault", "modified_fields", "modify_azure_attributes", "deactivate_azure_attributes", "copy", "aliases", "alias_to_deactivate", "update", "get", "pop", "fromkeys", "values", "set_current_alias", "diff_keys"])
 		assert len(diff) == 0, "Functions no tested [" + ", ".join(diff) + "]"
 
 	def test_from_udm(self, create_udm_user_object):
@@ -244,7 +253,9 @@ class TestUdmOfficeUser:
 		# type: (Tuple, Callable) -> None
 		""""""
 		udm_user_object = create_udm_user_object()
-		udm_user_object.locked, udm_user_object.deactivated, expired = params
+		locked, disabled, expired = params
+		udm_user_object.udm_object_reference["locked"] = "1" if locked else "0"
+		udm_user_object.udm_object_reference["disabled"] = "1" if disabled else "0"
 		if expired:
 			udm_user_object.udm_object_reference["userexpiry"] = (datetime.datetime.today() - relativedelta(days=1)).strftime('%Y-%m-%d')
 		else:
@@ -259,11 +270,42 @@ class TestUdmOfficeUser:
 		udm_user_object.udm_object_reference['UniventionOffice365Enabled'] = "0"
 		assert not udm_user_object.is_enable()
 
+	@pytest.mark.parametrize("params", [(True, False, False, False),
+										(True, False, False, True),
+										(True, False, True, False),
+										(True, False, True, True),
+										(True, True, False, False),
+										(True, True, False, True),
+										(True, True, True, False),
+										(True, True, True, True),
+										(False, False, False, False),
+										(False, False, False, True),
+										(False, False, True, False),
+										(False, False, True, True),
+										(False, True, False, False),
+										(False, True, False, True),
+										(False, True, True, False),
+										(False, True, True, True), ])
+	def test_should_sync(self, params, create_udm_user_object):
+		# type: (Tuple[bool, bool, bool, bool], Callable) -> None
+		udm_user_object = create_udm_user_object()
+		locked, disabled, expired, enabled = params
+		udm_user_object.udm_object_reference["locked"] = "1" if locked else "0"
+		udm_user_object.udm_object_reference["disabled"] = "1" if disabled else "0"
+		if expired:
+			udm_user_object.udm_object_reference["userexpiry"] = (datetime.datetime.today() - relativedelta(days=1)).strftime('%Y-%m-%d')
+		else:
+			udm_user_object.udm_object_reference["userexpiry"] = (datetime.datetime.today() + relativedelta(days=1)).strftime('%Y-%m-%d')
+		udm_user_object.udm_object_reference["UniventionOffice365Enabled"] = "1" if enabled else "0"
+		assert udm_user_object.is_deactivated_locked_or_expired() == (locked or disabled or expired)
+		assert udm_user_object.is_enable() == enabled
+		assert udm_user_object.should_sync() == ((not(locked or disabled or expired)) and enabled)
+
 class TestUdmOfficeGroup:
 
 	def test_completity(self):
 		# type: () -> None
-		diff = all_methods_called(self.__class__, UDMOfficeGroup, ["fromkeys", "keys", "items", "values", "create_azure_attributes", "modified_fields", "copy", "aliases", "popitem", "pop", "setdefault", "update", "deactivate_azure_attributes", "clear", "alias_to_deactivate", "alias_to_modify", "is_version", "get_diff_aliases", "get", "set_current_alias", "get_other_by_displayName"])
+		diff = all_methods_called(self.__class__, UDMOfficeGroup, ["fromkeys", "keys", "items", "values", "create_azure_attributes", "modified_fields", "copy", "aliases", "popitem", "pop", "setdefault", "update", "deactivate_azure_attributes", "clear", "alias_to_deactivate", "alias_to_modify", "is_version", "get_diff_aliases", "get", "set_current_alias", "get_other_by_displayName", "diff_keys"])
 		assert len(diff) == 0, "Functions no tested [" + ", ".join(diff) + "]"
 
 	def test_modify_azure_attributes(self, create_udm_group_object):
@@ -297,7 +339,7 @@ class TestUdmOfficeGroup:
 		""""""
 		udm_group_object = create_udm_group_object()
 		assert not udm_group_object.is_team()
-		udm_group_object.udm_object_reference['UniventionOffice365Team'] = '1'
+		udm_group_object.udm_object_reference['UniventionMicrosoft365Team'] = '1'
 		assert udm_group_object.is_team()
 
 	def test_get_owners_dn(self, create_udm_group_object):

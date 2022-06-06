@@ -138,7 +138,7 @@ listener_attributes_data = dict(
 		street="streetAddress",
 		telephoneNumber="businessPhones",
 	),
-	never=[],
+	never=set(),
 	static=[],
 	sync=[
 		"city", "displayName", "e-mail", "employeeType", "givenName", "jpegPhoto", "mailAlternativeAddress",
