@@ -3,38 +3,62 @@ interactions:
     body: null
     headers:
       Accept:
-      - '*/*'
+      - application/json; charset=utf-8
       Accept-Encoding:
       - gzip, deflate
       Authorization:
       - XXXXXX
       Connection:
       - keep-alive
+      Content-Type:
+      - application/json; charset=utf-8
       User-Agent:
       - Univention Microsoft 365 Connector
     method: GET
-    uri: https://graph.microsoft.com/v1.0/groups?$filter=resourceProvisioningOptions/Any(x:x%20eq%20'Team')&$select=id
+    uri: https://graph.microsoft.com/v1.0/groups?$filter=resourceProvisioningOptions/Any(x:x%20eq%20'Team')
   response:
     body:
       string: !!binary |
-        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
+        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
     headers:
       Cache-Control:
       - no-cache
@@ -43,7 +67,7 @@ interactions:
       Content-Type:
       - application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8
       Date:
-      - Fri, 13 May 2022 11:32:59 GMT
+      - Mon, 06 Jun 2022 06:26:06 GMT
       OData-Version:
       - '4.0'
       Strict-Transport-Security:
@@ -53,11 +77,11 @@ interactions:
       Vary:
       - Accept-Encoding
       client-request-id:
-      - 39cfbf49-0b98-4045-b164-720ca5afecd7
+      - 5ee4200d-63e6-4e24-b83e-9fc4e571e236
       request-id:
-      - 39cfbf49-0b98-4045-b164-720ca5afecd7
+      - 5ee4200d-63e6-4e24-b83e-9fc4e571e236
       x-ms-ags-diagnostic:
-      - '{"ServerInfo":{"DataCenter":"North Europe","Slice":"E","Ring":"4","ScaleUnit":"000","RoleInstance":"DU6PEPF0000350E"}}'
+      - '{"ServerInfo":{"DataCenter":"North Europe","Slice":"E","Ring":"4","ScaleUnit":"005","RoleInstance":"DU6PEPF00002C50"}}'
       x-ms-resource-unit:
       - '1'
     status:
