@@ -187,6 +187,7 @@ class AzureAccount(UserDict):
 		with open(self.conf_dirs['MANIFEST_FILE'], 'w') as fd:
 			json.dump(manifest.as_dict(), fd, indent=2, separators=(',', ': '), sort_keys=True)
 		os.chmod(self.conf_dirs['MANIFEST_FILE'], S_IRUSR | S_IWUSR)
+		self.store_ids(adconnection_alias=self.alias, client_id=manifest.app_id, adconnection_id=manifest.adconnection_id, reply_url=manifest.reply_url, domain=manifest.domain)
 
 	def store_ids(self, **kwargs):
 		# type: (Dict) -> None
