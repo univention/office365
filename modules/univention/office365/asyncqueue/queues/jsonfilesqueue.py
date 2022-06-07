@@ -38,7 +38,7 @@ class JsonFilesQueue(AbstractQueue):
 			json.dump(item.__dict__(), fd, sort_keys=True, indent=4)
 		shutil.move(filename_tmp, filename)
 		if self.logger:
-			self.logger.info('created async job {}'.format(filename))
+			self.logger.debug('created async job {}'.format(filename))
 		return filename
 
 	def dequeue(self):
@@ -73,5 +73,5 @@ class JsonFilesQueue(AbstractQueue):
 		# type: (str) -> None
 		if not self.no_delete:
 			if os.path.exists(job):
-				self.logger.info('Job {}: removing'.format(job))
+				self.logger.debug('Job {}: removing'.format(job))
 				os.remove(job)

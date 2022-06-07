@@ -48,6 +48,7 @@ with utils.AutomaticListenerRestart():
 			created_team = o365helpers.check_team_created(core, group_name)
 			team_id = created_team.id
 
+			print("*** Checking that team has 3 members ***")
 			team_members = o365helpers.check_team_members(core, team_id, 3)
 
 			print("*** Creating new members ***")
@@ -55,10 +56,13 @@ with utils.AutomaticListenerRestart():
 			user2_dn, _ = o365helpers.create_team_member(udm, ucr, alias, group_dn)
 			user3_dn, _ = o365helpers.create_team_member(udm, ucr, alias, group_dn)
 
+			print("*** Checking that team has 6 members ***")
 			_ = o365helpers.check_team_members(core, team_id, 6)
 
+			print("*** Remove 2 users ***")
 			udm.remove_object('users/user', dn=user2_dn)
 			udm.remove_object('users/user', dn=user3_dn)
 
+			print("*** Checking that team has 4 members ***")
 			_ = o365helpers.check_team_members(core, team_id, 4)
 			print("*** All went well.")

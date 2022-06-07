@@ -344,6 +344,10 @@ class UserConnector(Connector):
 			self.logger.warning('No SubscriptionProfiles: using all available subscriptions (%s).', udm_user.current_connection_alias)
 			if len(subs_available) > 1:
 				self.logger.warning(msg_multiple_subscriptions)
+			for selected_subs in subs_available:
+				if selected_subs.has_free_seats():
+					azure_user.add_license(selected_subs)
+					return
 			azure_user.add_license(subs_available[0])
 			return
 
@@ -403,7 +407,7 @@ class UserConnector(Connector):
 			try:
 				self._assign_subscription(udm_user=udm_object, azure_user=user_azure)
 			except AddLicenseError as exc:
-				self.logger.warning('Could not add license for subscription %r to user %r: %s', exc.user_id, exc.sku_id, exc)
+				self.logger.warning('Could not add license for subscription %r to user %r: %s', exc.sku_id, exc.user_id, exc)
 			user_azure.invalidate_all_tokens()
 		except NoAllocatableSubscriptions as exc:
 			self.logger.warning('(%r) Not subscription located for user %r: %s', exc.adconnection_alias, exc.user.id, exc)
@@ -417,6 +421,7 @@ class UserConnector(Connector):
 			for group_dn in udm_object.get("groups"):
 				# Create a UDM representation of the group
 				udm_office_group = UDMOfficeGroup({}, ldap_cred=udm_object.ldap_cred, dn=group_dn)
+				self.logger.info("Create: Add member %r to group %r in alias %r", udm_object.dn, group_dn, alias)
 				# If the group have any nested user that is in azure, group needs to be synced
 				with udm_office_group.set_current_alias(alias):
 					# if the group is not synced for the current connection, sync it
@@ -757,10 +762,12 @@ class GroupConnector(Connector):
 
 		for group in udm_object.get_nested_groups_with_azure_users():
 			if group is not udm_object:
-				if not group.azure_object_id:
+				group_id = group.azure_object_id
+				if not group_id:
 					azure_group = self._create_group(group)
+					group_id = azure_group.id
 				if group.dn in udm_object.get_nested_group():
-					users_and_groups_to_add.append(group.azure_object_id)
+					users_and_groups_to_add.append(group_id)
 
 		# add users to groups
 		azure_object.add_members(users_and_groups_to_add)
@@ -1001,7 +1008,7 @@ class GroupConnector(Connector):
 		# type: (UDMOfficeGroup, UDMOfficeGroup, GroupAzure) -> None
 		alias = new_udm_group.current_connection_alias
 		added_members_dn, removed_members_dn = old_udm_group.members_changes(new_udm_group)
-		self.logger.info("dn=%r added_members=%r removed_members=%r", old_udm_group.dn, added_members_dn, removed_members_dn)
+		self.logger.info("alias=%r dn=%r added_members=%r removed_members=%r", alias, old_udm_group.dn, added_members_dn, removed_members_dn)
 		# add new members to Azure
 		users_and_groups_to_add = []
 
@@ -1018,7 +1025,7 @@ class GroupConnector(Connector):
 						if udm_user.azure_object_id:
 							users_and_groups_to_add.append(udm_user.azure_object_id)
 						else:
-							self.logger.warning("UDM User: %r azure_object_id is None. Not syncing with azure %r", added_member_dn, alias)
+							self.logger.warning("UDM User: %r azure_object_id is None. azure_data : %r Not syncing with azure %r", added_member_dn, udm_user.azure_data,  alias)
 				else:
 					self.logger.warning("UDM User: %r Is disabled. Not syncing with azure %r", added_member_dn, alias)
 			elif added_member_dn in new_udm_group.get_nested_group():
@@ -1040,8 +1047,9 @@ class GroupConnector(Connector):
 				raise RuntimeError("Office365Listener.modify_group() {!r} from new[uniqueMember] not in "
 								   "'nestedGroup' or 'users' ({!r}).".format(added_member_dn, alias))
 
-		self.logger.info("Members to add %r", users_and_groups_to_add)
-		azure_group.add_members(users_and_groups_to_add)
+		if users_and_groups_to_add:
+			self.logger.info("Members to add %r", users_and_groups_to_add)
+			azure_group.add_members(users_and_groups_to_add)
 
 		# remove members
 		for removed_member_dn in removed_members_dn:
@@ -1110,7 +1118,7 @@ class GroupConnector(Connector):
 		"""
 		assert udm_office_group.current_connection_alias or alias
 		alias = udm_office_group.current_connection_alias or alias
-		with udm_office_group.set_current_alias(alias):
+		with udm_office_group.set_current_alias(alias), udm_office_user.set_current_alias(alias):
 			azure_group = self.parse(udm_office_group)
 			try:
 				azure_group.add_member(udm_office_user.azure_object_id)
@@ -1120,7 +1128,7 @@ class GroupConnector(Connector):
 					if body.get("error",{}).get("message", "") == "One or more added object references already exist for the following modified properties: 'members'.":
 						self.logger.warning("User %r has already been member of %r" % (azure_group.id, udm_office_user.azure_object_id))
 						return
-				raise
+				self.logger.error("Error {}", e)
 
 	def remove_member(self, udm_office_group, udm_office_user, alias=None):
 		# type: (UDMOfficeGroup, UDMOfficeUser, Optional[str]) -> None
