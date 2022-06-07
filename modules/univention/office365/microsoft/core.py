@@ -752,8 +752,8 @@ class MSGraphApiCore(object):
 		assert len(expected_status) > 0, "expected_status is required"
 		response_handlers = response_handlers or {}
 		values = {}  # holds data from pagination
-		msg = MSGraphApiCore._fprints_hide_pw(data, "GraphAPI: {method} {url}".format(method=method, url=url))
-		logger.info(msg)
+		msg = MSGraphApiCore._fprints_hide_pw(data, "GraphAPI: {method} {url}".format(method=method, url=url) + " {data}")
+		logger.debug(msg)
 
 		# prepare the http headers, which we are going to send with any request
 		# the access_token should have been initialized in the constructor.
@@ -862,6 +862,11 @@ class MSGraphApiCore(object):
 		:return: msg formatted
 		"""
 		tmppw = None
+		if isinstance(data, str):
+			try:
+				data = json.loads(data)
+			except json.decoder.JSONDecodeError:
+				pass
 		if isinstance(data, dict) and "passwordProfile" in data and "password" in data["passwordProfile"]:
 			tmppw = data["passwordProfile"]["password"]
 			data["passwordProfile"]["password"] = "******"
@@ -897,7 +902,8 @@ class MSGraphApiCore(object):
 	def list_groups(self, params=""):
 		# type: (str) -> Dict
 		"""List all groups"""
-		return self._call_graph_api('GET', URLs.groups(params=params), expected_status=[200], page=True)
+		headers = {"ConsistencyLevel": "eventual"} if "search" in params else None
+		return self._call_graph_api('GET', URLs.groups(params=params), headers=headers, expected_status=[200], page=True)
 
 	def list_groups_by_displayname(self, name):
 		# type: (str) -> Dict

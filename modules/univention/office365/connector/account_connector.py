@@ -183,7 +183,7 @@ class ConnectionsPool(UserDict):
 
 		target_path = os.path.join(AzureAccount.config_base_path, alias)
 		if not os.path.exists(target_path):
-			self.logger.info('Configuration files for the Azure AD connection in %s do not exist. Removing Azure AD connection anyway...', target_path)
+			self.logger.warning('Configuration files for the Azure AD connection in %s do not exist. Removing Azure AD connection anyway...', target_path)
 
 		UDMHelper().remove_udm_adconnection(alias)
 		shutil.rmtree(target_path)
@@ -281,7 +281,7 @@ class AccountConnector(object):
 
 		target_path = os.path.join(AzureAccount.config_base_path, adconnection_alias)
 		if not os.path.exists(target_path):
-			self.logger.info('Configuration files for the Azure AD connection in %s do not exist. Removing Azure AD connection anyway...', target_path)
+			self.logger.warning('Configuration files for the Azure AD connection in %s do not exist. Removing Azure AD connection anyway...', target_path)
 
 		UDMHelper().remove_udm_adconnection(adconnection_alias)
 		shutil.rmtree(target_path)
