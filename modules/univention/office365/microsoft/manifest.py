@@ -52,13 +52,6 @@ class Manifest(object):
 
 		permissions = {
 			# Permission: Azure Active Directory Graph
-			"00000002-0000-0000-c000-000000000000": {
-				"resourceAppId": "00000002-0000-0000-c000-000000000000",
-				"resourceAccess": [
-					# Permission Name: Directory.ReadWrite.All, Type: Application
-					{"id": "78c8a3c8-a07e-4b9e-af1b-b5ccab50a175", "type": "Role"}]},
-			# Permission: Microsoft Graph
-			"00000003-0000-0000-c000-000000000000": {
 				"resourceAppId": "00000003-0000-0000-c000-000000000000",
 				"resourceAccess": [
 					# Permission Name: Directory.ReadWrite.All, Type: Application
@@ -68,15 +61,13 @@ class Manifest(object):
 					# Permission Name: User.ReadWrite.All, Type: Application
 					{"id": "741f803b-c850-494e-b5df-cde7c675a1ca", "type": "Role"},
 					# Permission Name: TeamMember.ReadWrite.All, Type: Application
-					{"id": "0121dc95-1b9f-4aed-8bac-58c5ac466691", "type": "Role"}]}}
+					{"id": "0121dc95-1b9f-4aed-8bac-58c5ac466691", "type": "Role"}]}
 
-		apps = list(permissions.keys())
-		for appid in permissions.keys():
-			for access in self.manifest['requiredResourceAccess']:
-				if appid == access['resourceAppId']:
-					# append permissions without duplicates
-					[access["resourceAccess"].append(p) for p in permissions[appid]["resourceAccess"] if p not in access["resourceAccess"]]
-					apps.remove(appid)
-		for appid in apps:
-			self.manifest['requiredResourceAccess'].append(permissions[appid])
+		for access in self.manifest['requiredResourceAccess']:
+			if permissions["resourceAppId"] == access['resourceAppId']:
+				# append permissions without duplicates
+				[access["resourceAccess"].append(p) for p in permissions["resourceAccess"] if p not in access["resourceAccess"]]
+				break
+		else:
+			self.manifest['requiredResourceAccess'].append(permissions)
 
