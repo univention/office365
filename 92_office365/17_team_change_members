@@ -7,6 +7,20 @@
 ##   - univention-office365
 
 """
+KNOWN ISSUES:
+It's one of the mos common flaky tests.
+In the described operations over the group, in some batches, the check for the right number of members fails after long retries.
+The creation of the members in the group needs to be synced into teams.
+This is an asynchronous operation, and can take as long as 15 minutes (more in our own experience).
+For some reason, sometimes, some user looks to get incomplete data (no principal email is set in azure, and this looks somehow related).
+Other times all goes well.
+Useful links:
+· https://docs.microsoft.com/en-us/graph/api/team-post?view=graph-rest-1.0&tabs=http#example-4-create-a-team-from-group
+· https://docs.microsoft.com/en-us/graph/api/resources/teamsasyncoperation?view=graph-rest-1.0
+· https://stackoverflow.com/questions/61607263/microsoft-team-creation-using-rest-api-taking-more-time#comment109256187_61607263
+· https://sharepoint.stackexchange.com/questions/227716/team-and-groups-members-out-of-sync
+· https://docs.microsoft.com/en-us/graph/known-issues
+
 This test is used to check the team members change in Azure.
 - Use o365domain connection
 - Create user1, user2, user3 in UDM with UniventionMicrosoft365Team=1
