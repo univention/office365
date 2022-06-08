@@ -235,11 +235,11 @@ class AzureAccount(UserDict):
 	def write_saml_setup_script(self):
 		# type: () -> None
 		# TODO should be moved to UCRHelper and AzureAccount
-		ucs_sso_fqdn = UCRHelper.get('ucs/server/sso/fqdn', "%s.%s" % (UCRHelper.get('hostname', 'undefined'), UCRHelper.get('domainname', 'undefined')))
+		ucs_sso_fqdn = UCRHelper.get_ucs_sso_fqdn()
 		cert = ""
 		try:
-			cert_path = SAML_SETUP_SCRIPT_CERT_PATH.format(domainname=UCRHelper.get('domainname', 'undefined'), adconnection_alias='_{}'.format(self.alias) if self.alias else '')
-			with open(UCRHelper.get('saml/idp/certificate/certificate', cert_path), 'rb') as fd:
+			cert_path = SAML_SETUP_SCRIPT_CERT_PATH.format(domainname=UCRHelper.get_domainname(), adconnection_alias='_{}'.format(self.alias) if self.alias else '')
+			with open(UCRHelper.get_saml_certificate(default=cert_path), 'rb') as fd:
 				raw_cert = fd.read()
 		except IOError as exc:
 			self.logger.exception("while reading certificate: %s", exc)
@@ -255,7 +255,7 @@ class AzureAccount(UserDict):
 		if self.alias != UCRHelper.default_adconnection_name:
 			saml_uri_supplement = '/%s' % self.alias
 
-		issuer = 'https://{ssohost}/simplesamlphp{supplement}/saml2/idp/metadata.php'.format(ssohost=UCRHelper.get('ucs/server/sso/fqdn', 'ucs-sso.{domain}'.format(domain=UCRHelper.get('domainname'))), supplement=saml_uri_supplement)
+		issuer = 'https://{ssohost}/simplesamlphp{supplement}/saml2/idp/metadata.php'.format(ssohost=UCRHelper.get_ssohost(), supplement=saml_uri_supplement)
 
 		# The raw base64 encoded certificate is required
 		cert = cert.replace('-----BEGIN CERTIFICATE-----', '').replace('-----END CERTIFICATE-----', '').replace('\n', '')
