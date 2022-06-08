@@ -547,11 +547,6 @@ class UDMOfficeGroup(UDMOfficeObject):
 					if self.current_connection_alias in udm_user.adconnection_aliases:
 						yield self
 						break
-					elif not udm_user.adconnection_aliases and getattr(udm_user, "UniventionOffice365ObjectID", [''])[0]:
-						# TODO In the unmigrated phase this is the state of users.
-						# This special elif can be removed later iff we have ensured that all customers have actually migrated
-						yield self
-						break
 		else:
 			yield self
 
