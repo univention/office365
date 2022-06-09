@@ -428,6 +428,28 @@ class MSGraphApiCore(object):
 			expected_status=[201]
 		)
 
+	def add_team_members(self, team_id, users_id):
+		# type: (str, List[str]) -> Dict
+		""" https://docs.microsoft.com/en-us/graph/api/team-post-members
+
+			PERMISSIONS
+			-----------
+			Application
+				TeamMember.ReadWrite.All
+		"""
+		values = [ {"@odata.type": "microsoft.graph.aadUserConversationMember", "roles":[], "user@odata.bind": "https://graph.microsoft.com/v1.0/users('{user_id}')".format(user_id=x)} for x in users_id ]
+		return self._call_graph_api(
+			'POST',
+			URLs.teams(path='{object_id}/members/add'.format(object_id=team_id)),
+			data=json.dumps(
+				{
+					"values": values
+				}
+			),
+			headers={'Content-Type': 'application/json'},
+			expected_status=[200,207]
+		)
+
 	def add_group_member(self, group_id, object_id):
 		# type: (str, str) -> Dict
 		"""
