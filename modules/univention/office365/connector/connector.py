@@ -12,7 +12,7 @@ import univention.admin
 from ldap.filter import filter_format
 from univention.office365.microsoft.account import AzureAccount
 from univention.office365.microsoft.core import MSGraphApiCore
-from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError, AddLicenseError
+from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError, AddLicenseError, ItemNotFound
 from univention.office365.microsoft.exceptions.exceptions import NoAllocatableSubscriptions, GraphRessourceNotFroundError
 from univention.office365.connector import utils
 from univention.office365.microsoft.objects.azureobjects import UserAzure, AzureObject, GroupAzure, SubscriptionAzure, TeamAzure
@@ -756,9 +756,21 @@ class GroupConnector(Connector):
 		:param object_id: Azure object ID of group to add users/groups to
 		:return: None
 		"""
+		alias = udm_object.current_connection_alias
 		self.logger.debug("group_dn=%r object_id=%r adconnection_alias=%r", udm_object.dn, azure_object.id, udm_object.current_connection_alias)
 
 		users_and_groups_to_add = udm_object.get_users_from_ldap()
+
+		if udm_object.is_team():
+			try:
+				team = TeamAzure.get(self.cores[alias], oid=azure_object.id)
+				users_and_groups_to_add = team.add_members(users_and_groups_to_add)
+				if users_and_groups_to_add:
+					self.logger.warning("Add team member fail %r, trying to add member to group", users_and_groups_to_add)
+			except ItemNotFound as e:
+				self.logger.warning("Team not exist yet, trying to add member to group")
+			except MSGraphError as e:
+				self.logger.warning("Add team member not possible, trying to add member to group. %s", e)
 
 		for group in udm_object.get_nested_groups_with_azure_users():
 			if group is not udm_object:
@@ -770,7 +782,11 @@ class GroupConnector(Connector):
 					users_and_groups_to_add.append(group_id)
 
 		# add users to groups
-		azure_object.add_members(users_and_groups_to_add)
+		if users_and_groups_to_add:
+			try:
+				azure_object.add_members(users_and_groups_to_add)
+			except MSGraphError as e:
+				self.logger.error("Added members failed\n%s", e)
 
 		# search tree upwards, create groups as we go, don't add users
 		for group in udm_object.get_groups_member_of_not_in_azure():
@@ -821,11 +837,6 @@ class GroupConnector(Connector):
 							new_udm_group.modify_azure_attributes(self.prepare_azure_attributes(GroupAzure(id=object_id)))
 						continue
 
-					# TODO We believe that it's unneeded
-					# for ignore_attribute in ["univentionMicrosoft365Team"]:
-					# 	if ignore_attribute in modification_attributes:
-					# 		modification_attributes.remove(ignore_attribute)
-
 					# We are getting the group from azure and not parsing it from UDM objects
 					# because it could be removed manually from azure but exists in UDM. In this case
 					# we create the group again in Azure.
@@ -855,11 +866,11 @@ class GroupConnector(Connector):
 					# except MSGraphError:
 					# 	pass
 
-					# Check team modifications
-					self.check_and_modify_teams(old_udm_group, new_udm_group, azure_group)
-
 					# Check owners modifications
 					self.check_and_modify_owners(old_udm_group, new_udm_group, azure_group)
+
+					# Check team modifications
+					self.check_and_modify_teams(old_udm_group, new_udm_group, azure_group)
 
 					# Check members modifications
 					self.check_and_modify_members(old_udm_group, new_udm_group, azure_group)
@@ -965,9 +976,11 @@ class GroupConnector(Connector):
 		# Remove Team from group
 		elif old_udm_group.is_team() and not new_udm_group.is_team():
 			try:
-				team_azure = TeamAzure(id=azure_group.id)
+				team_azure = TeamAzure.get(self.cores[alias], oid=azure_group.id)
 				team_azure.deactivate()
 				self.logger.info("Deleted team %r from Azure AD %r", azure_group.displayName, alias)
+			except ItemNotFound as e:
+				self.logger.warning("Team %r not exist.", azure_group.id)
 			except MSGraphError as g_exc:
 				self.logger.error("Error while deleting team %r: %r.", azure_group.displayName, g_exc)
 
@@ -1010,7 +1023,8 @@ class GroupConnector(Connector):
 		added_members_dn, removed_members_dn = old_udm_group.members_changes(new_udm_group)
 		self.logger.info("alias=%r dn=%r added_members=%r removed_members=%r", alias, old_udm_group.dn, added_members_dn, removed_members_dn)
 		# add new members to Azure
-		users_and_groups_to_add = []
+		users_to_add = []
+		groups_to_add = []
 
 		for added_member_dn in added_members_dn:
 			if added_member_dn in new_udm_group.get_users():
@@ -1023,7 +1037,7 @@ class GroupConnector(Connector):
 				if udm_user.is_enable():
 					with udm_user.set_current_alias(alias):
 						if udm_user.azure_object_id:
-							users_and_groups_to_add.append(udm_user.azure_object_id)
+							users_to_add.append(udm_user.azure_object_id)
 						else:
 							self.logger.warning("UDM User: %r azure_object_id is None. azure_data : %r Not syncing with azure %r", added_member_dn, udm_user.azure_data,  alias)
 				else:
@@ -1041,14 +1055,35 @@ class GroupConnector(Connector):
 						if not group.azure_object_id:
 							self._create_group(group)
 						if group.dn in udm_office_add_member_group.get_nested_group():
-							users_and_groups_to_add.append(group.azure_object_id)
+							groups_to_add.append(group.azure_object_id)
 			else:
 				raise RuntimeError("Office365Listener.modify_group() {!r} from new[uniqueMember] not in "
 								   "'nestedGroup' or 'users' ({!r}).".format(added_member_dn, alias))
-
+		users_and_groups_to_add = users_to_add + groups_to_add
 		if users_and_groups_to_add:
 			self.logger.info("Members to add %r", users_and_groups_to_add)
-			azure_group.add_members(users_and_groups_to_add)
+			if not new_udm_group.is_team():
+				try:
+					azure_group.add_members(users_and_groups_to_add)
+				except MSGraphError as e:
+					self.logger.error("Added members failed\n%s", e)
+			else:
+				try:
+					team = TeamAzure.get(self.cores[alias], oid=azure_group.id)
+					users_id_errors = team.add_members(users_to_add)
+					if users_id_errors:
+						self.logger.warning("Add team member fail %r, trying to add member to group", users_id_errors)
+					users_and_groups_to_add = users_id_errors + groups_to_add
+				except ItemNotFound as e:
+					self.logger.warning("Team not exist yet, trying to add member to group")
+				except MSGraphError as e:
+					self.logger.warning("Add team member not possible, trying to add member to group. %s", e)
+				finally:
+					if users_and_groups_to_add:
+						try:
+							azure_group.add_members(users_and_groups_to_add)
+						except MSGraphError as e:
+							self.logger.error("Added members failed\n%s", e)
 
 		# remove members
 		for removed_member_dn in removed_members_dn:
@@ -1120,7 +1155,18 @@ class GroupConnector(Connector):
 		with udm_office_group.set_current_alias(alias), udm_office_user.set_current_alias(alias):
 			azure_group = self.parse(udm_office_group)
 			try:
-				azure_group.add_member(udm_office_user.azure_object_id)
+				if not udm_office_group.is_team():
+					azure_group.add_member(udm_office_user.azure_object_id)
+				else:
+					try:
+						team = TeamAzure.get(self.cores[alias], oid=azure_group.id)
+						team.add_member(udm_office_user.azure_object_id)
+					except ItemNotFound as e:
+						self.logger.warning("Team not exist yet, trying to add member to group")
+					except MSGraphError as e:
+						self.logger.warning("Add team member not possible, trying to add member to group. %s", e)
+						azure_group.add_member(udm_office_user.azure_object_id)
+
 			except MSGraphError as e:
 				if hasattr(e.response, "json"):
 					body = e.response.json()

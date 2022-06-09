@@ -799,6 +799,12 @@ class TeamAzure(AzureObject):
 		TeamAzure.wait_for_operation(self._core, response)
 		return response
 
+	def add_members(self, users_id):
+		# type: (List[str]) -> List[str]
+		""""""
+		response = self._core.add_team_members(self.id, users_id)
+		return [x["userId"] for x in response["value"] if x["error"] != None]
+
 	def delete_member(self, membership_id):
 		# type: (str) -> None
 		"""

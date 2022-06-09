@@ -3,6 +3,8 @@ import json
 import requests
 from typing import Dict, Optional, Any, List, Callable
 
+from univention.office365.utils.utils import jsonify
+
 
 class MSGraphError(Exception):
 
@@ -109,6 +111,11 @@ class InvalidRequest(GenericGraphError):
 	"""
 	description = "The request is malformed or incorrect."
 
+class NotFound(GenericGraphError):
+	"""
+		The resource could not be found.
+	"""
+	description = "The resource could not be found."
 
 class ItemNotFound(GenericGraphError):
 	"""
@@ -203,19 +210,19 @@ def exception_decorator(func):
 		try:
 			return func(*args, **kwargs)
 		except MSGraphError as e:
-			if hasattr(e, "response"):
-				response = e.response
-				headers = response.headers
-				if headers.get("Content-Type", "") == "application/json":
-					json_data = response.json()
-					error_code = json_data.get("error", {}).get("code", None)
-					if error_code:
-						exception_class = getattr(__import__(__name__), error_code[0].upper() + error_code[1:], None)
-						if exception_class:
-							raise exception_class(e)
-						else:
-							raise
-				else:
-					raise
+			if hasattr(e, "response") and hasattr(e.response, "json") and e.response.json():
+				json_data = jsonify(e.response.json())
+				error = json_data.get("error", {})
+				error_code = error.get("code", None)
+				innererror = error.get("innererror", {}).get("code", None)
+				if innererror:
+					exception_class = globals().get(innererror[0].upper() + innererror[1:], None)
+					if exception_class:
+						raise exception_class(e)
+				if error_code:
+					exception_class = globals().get(error_code[0].upper() + error_code[1:], None)
+					if exception_class:
+						raise exception_class(e)
+			raise e
 
 	return inner
