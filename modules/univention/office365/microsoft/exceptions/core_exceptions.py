@@ -211,7 +211,7 @@ def exception_decorator(func):
 			return func(*args, **kwargs)
 		except MSGraphError as e:
 			if hasattr(e, "response") and hasattr(e.response, "json") and e.response.json():
-				json_data = jsonify(e.response.json())
+				json_data = jsonify(e.response.json(), "utf-8")
 				error = json_data.get("error", {})
 				error_code = error.get("code", None)
 				innererror = error.get("innererror", {}).get("code", None)
