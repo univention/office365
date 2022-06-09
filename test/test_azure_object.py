@@ -674,6 +674,15 @@ class TestTeamAzure(TestObjectAzure):
 				team.add_member(user2.id)
 				assert user2.id in [x.id for x in team.list_team_members()]
 
+	@my_vcr.use_cassette('vcr_cassettes/TestTeamAzure/test_add_members.yml')
+	def test_add_members(self):
+		# type: () -> None
+		""""""
+		with new_user(self.core, "test_add_members2") as user2:
+			with new_team_from_group(self.core, "test_add_members") as team:
+				team.add_members([user2.id])
+				assert user2.id in [x.id for x in team.list_team_members()]
+
 	# @pytest.mark.skip
 	@my_vcr.use_cassette('vcr_cassettes/TestTeamAzure/test_delete_member.yml')
 	def test_delete_member(self):

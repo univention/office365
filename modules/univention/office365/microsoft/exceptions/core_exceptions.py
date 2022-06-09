@@ -3,6 +3,8 @@ import json
 import requests
 from typing import Dict, Optional, Any, List, Callable
 
+import six
+
 from univention.office365.utils.utils import jsonify
 
 
@@ -210,11 +212,14 @@ def exception_decorator(func):
 		try:
 			return func(*args, **kwargs)
 		except MSGraphError as e:
-			if hasattr(e, "response") and hasattr(e.response, "json") and e.response.json():
-				json_data = jsonify(e.response.json(), "utf-8")
+			if hasattr(e, "response") and e.response.headers.get("Content-Type", "") == "application/json" and hasattr(e.response, "json") and e.response.json():
+				if six.PY2:
+					json_data = jsonify(e.response.json(), "utf-8")
+				else:
+					json_data = e.response.json()
 				error = json_data.get("error", {})
 				error_code = error.get("code", None)
-				innererror = error.get("innererror", {}).get("code", None)
+				innererror = error.get("innererror", error.get("innerError", {})).get("code", None)
 				if innererror:
 					exception_class = globals().get(innererror[0].upper() + innererror[1:], None)
 					if exception_class:

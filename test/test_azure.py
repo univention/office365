@@ -39,7 +39,7 @@ from univention.office365.microsoft.account import AzureAccount
 from univention.office365.microsoft.urls import URLs
 URLs.proxies = mock.MagicMock(return_value={})
 from univention.office365.microsoft.core import MSGraphApiCore
-from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError
+from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError, ItemNotFound
 from test import ALIASDOMAIN, DOMAIN_PATH, DOMAIN
 
 @contextlib.contextmanager
@@ -540,6 +540,24 @@ class TestAzure:
 				while True:
 					try:
 						self.core.add_team_member(group_id, result_user["id"])
+						break
+					except MSGraphError:
+						time.sleep(10)
+						time_slept += 10
+						if time_slept >= 180:
+							raise
+
+	@my_vcr.use_cassette('vcr_cassettes/TestAzure/test_add_team_members.yml')
+	def test_add_team_members(self):
+		# type: () -> None
+		""" """
+		team_name = "test_add_team_member"
+		with new_user(self.core, team_name) as result_user:
+			with new_team(self.core, team_name, result_user["id"]) as (team, group_id):
+				time_slept = 0
+				while True:
+					try:
+						self.core.add_team_members(group_id, [result_user["id"]])
 						break
 					except MSGraphError:
 						time.sleep(10)
