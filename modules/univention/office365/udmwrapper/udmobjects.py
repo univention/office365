@@ -205,7 +205,7 @@ class UDMOfficeObject(UserDict):
 	@contextlib.contextmanager
 	def set_current_alias(self, alias):
 		# type: (str) -> None
-		alias_bk, self._current_connection_alias = self._current_connection_alias, alias
+		alias_bk, self.current_connection_alias = self._current_connection_alias, alias
 		yield
 		self.current_connection_alias = alias_bk
 
@@ -216,7 +216,7 @@ class UDMOfficeObject(UserDict):
 
 	@property
 	def azure_data(self):
-		# type: () -> UniventionOffice365Data
+		# type: () -> Dict[str, Any]
 		try:
 			return UniventionOffice365Data.from_ldap(self.udm_object_reference["UniventionOffice365Data"]) or {}
 		except (zlib.error) :

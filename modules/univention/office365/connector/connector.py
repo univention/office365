@@ -427,7 +427,8 @@ class UserConnector(Connector):
 					if alias not in udm_office_group.adconnection_aliases:
 						group_azure = self.group_connector._create_group(udm_office_group)
 
-						self.logger.info("Created group with displayName: %r (%r) adconnection: %s", group_azure.displayName, group_azure.id, alias)
+						self.logger.info("Created group with displayName: %r (%r) adconnection: %s", group_azure.displayName, group_azure.id, udm_object.azure_object_id)
+
 						# check if the new group is also a team - and needs to be configured as team
 						if udm_office_group.is_team():
 							self.group_connector.convert_group_to_team(udm_office_group, group_azure)
@@ -497,9 +498,10 @@ class UserConnector(Connector):
 			return
 		elif old_object.should_sync() and not new_object.should_sync():
 			for alias in old_object.aliases():
-				old_azure = self.parse(old_object)
-				old_azure.deactivate(rename=True)
-				new_object.modify_azure_attributes(self.prepare_azure_attributes(old_azure, to_remove=True))
+				with new_object.set_current_alias(alias):
+					old_azure = self.parse(old_object)
+					old_azure.deactivate(rename=True)
+					new_object.modify_azure_attributes(self.prepare_azure_attributes(old_azure, to_remove=True))
 			return
 
 		if new_object.should_sync():
@@ -935,7 +937,7 @@ class GroupConnector(Connector):
 			self.logger.info("Removing empty group %r (%s)...", azure_group.id, udm_group.current_connection_alias)
 			azure_group.remove_direct_members()
 			azure_group.deactivate()
-			if not udm_group:
+			if udm_group is None:
 				self.logger.error("Office365Listener.delete_empty_group() failed to find own group: %r, ignoring.", azure_group.id)
 			else:
 				udm_group.deactivate_azure_attributes()
@@ -1172,7 +1174,7 @@ class GroupConnector(Connector):
 					if body.get("error",{}).get("message", "") == "One or more added object references already exist for the following modified properties: 'members'.":
 						self.logger.warning("User %r has already been member of %r" % (azure_group.id, udm_office_user.azure_object_id))
 						return
-				self.logger.error("Error {}", e)
+				self.logger.error("Error %s", e)
 
 	def remove_member(self, udm_office_group, udm_office_user, alias=None):
 		# type: (UDMOfficeGroup, UDMOfficeUser, Optional[str]) -> None
