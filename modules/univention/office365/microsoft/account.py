@@ -6,6 +6,7 @@ import pwd
 import shutil
 import sys
 import time
+import traceback
 import uuid
 
 import six
@@ -57,6 +58,18 @@ class AzureAccount(UserDict):
 			UserDict.__init__(self)
 		else:
 			super(AzureAccount, self).__init__()
+		if alias is None:
+			logger.error("get_conf_path called with None in alias argument")
+			for line_traceback in traceback.format_stack(limit=10):
+				logger.error(line_traceback)
+			if UCRHelper.adconnection_wizard() is None:
+				extra_info = _('The reason might be that the Univention Configuration Registry variable {ucr_wizard} is not set.\n'
+							   'If it\'s not, you can set to the default value "{ad_default}"\n'
+							   'Command to check: ucr get {ucr_wizard}\n'
+							   'Command to set: "ucr set {ucr_wizard}={ad_default}"').format(ucr_wizard=UCRHelper.adconnection_wizard_ucrv, ad_default=UCRHelper.default_adconnection_name)
+			else:
+				extra_info = _('The reason might be that the Univention Configuration Registry variable {ucr_wizard} is set to "{ucr_wizard_value}".\n').format(ucr_wizard=UCRHelper.adconnection_wizard_ucrv, ucr_wizard_value=UCRHelper.adconnection_wizard())
+			raise ValueError(_('No AD connection alias specified\n') + extra_info)
 		self.alias = alias
 		self.config_base_path = config_base_path or self.config_base_path
 		self.__token = None
