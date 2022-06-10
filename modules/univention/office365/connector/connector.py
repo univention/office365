@@ -85,7 +85,6 @@ class ConnectorAttributes(UserDict):
 		"userexpiry",
 		"userPassword",
 	}
-	default_adconnection_name = "defaultADconnection"
 
 	def __init__(self, lazy_load=False, logger=None):
 		# type: (bool, Optional["logging.Logger"]) -> None
