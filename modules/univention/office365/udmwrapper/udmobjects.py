@@ -435,7 +435,10 @@ class UDMOfficeGroup(UDMOfficeObject):
 				self.udm_object_reference["UniventionOffice365ADConnectionAlias"].append(self.current_connection_alias)
 		else:
 			self.udm_object_reference["UniventionOffice365ADConnectionAlias"] = [x for x in self.adconnection_aliases if x != self.current_connection_alias]
-		super(UDMOfficeGroup, self).modify_azure_attributes(azure_group_dict)
+		if six.PY2:
+			UDMOfficeObject.modify_azure_attributes(self, azure_group_dict)
+		else:
+			super(UDMOfficeGroup, self).modify_azure_attributes(azure_group_dict)
 
 	def delete_azure_data(self):
 		# type: () -> None
