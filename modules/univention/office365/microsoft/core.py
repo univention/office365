@@ -8,13 +8,11 @@ from six.moves.urllib.parse import quote
 
 import requests
 
-from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError, exception_decorator
+from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError, exception_decorator, ItemNotFound
 from univention.office365.microsoft.account import AzureAccount
 from univention.office365.microsoft.urls import URLs
 from univention.office365.logging2udebug import get_logger
 from univention.office365.utils.utils import jsonify
-
-logger = get_logger("office365", "core")
 
 
 class MSGraphApiCore(object):
@@ -820,44 +818,6 @@ class MSGraphApiCore(object):
 			# call handlers for response
 			if response.status_code in response_handlers.keys():
 				response_handlers[response.status_code](response, retry)
-			if 500 <= response.status_code <= 599:
-				if retry:
-					raise MSGraphError(response, expected_status=expected_status)
-				else:
-					logger.warning("Microsoft Graph returned a server error, which"
-										" could be temporarily. We will retry the same call"
-										" in ten seconds again.")
-					# time.sleep(10)
-					retry = retry - 1
-					if retry > 0:
-						continue  # restart the loop with the same url again
-					else:
-						raise MSGraphError(response, expected_status=expected_status, message="Still a server error 500.")
-			elif 401 == response.status_code:
-				retry = retry - 1
-				logger.debug("retries left: {retry}".format(retry=retry))
-				if retry > 0:
-					# retry a login ,then try the call again
-					self.get_token()
-					continue  # and retry with the new credentials
-				else:
-					raise MSGraphError(response, expected_status=expected_status, message="Unable to (re-)login")
-			elif 403 == response.status_code:
-				retry = retry - 1
-				if retry > 0:
-					# retry with a new token
-					retry = 1
-					logger.info("Getting a new token in case permissions have been updated")
-					self.get_token()
-					continue  # and retry with the new credentials
-				else:
-					logger.warning("Authorization Error. Your application may not have the correct "
-									 "permissions for the Microsoft Graph API."
-									 "Please check https://help.univention.com/t/18453.")
-					raise MSGraphError(response, expected_status=expected_status, message="Authorization Error. Your application may not have the correct "
-																 "permissions for the Microsoft Graph API."
-																 "Please check https://help.univention.com/t/18453.")
-
 			elif response.status_code not in expected_status:
 				raise MSGraphError(response, expected_status=expected_status)
 			values, url = self.response_to_values(response, page, values, expected_status)
@@ -1055,3 +1015,16 @@ class MSGraphApiCore(object):
 			expected_status=[200],
 		)
 		pass
+
+	def get_permissions(self):
+		app_id = self.account['application_id']
+		response = self._call_graph_api('GET',
+							 URLs.service_principals(params="$filter=appId eq '{app_id}'&$select=id".format(app_id=app_id)),
+							 expected_status=[200], )
+		if response.get("value"):
+			service_principal_id = response.get("value")[0]["id"]
+			return self._call_graph_api('GET',
+										URLs.service_principals(path="{app_id}/appRoleAssignments".format(app_id=service_principal_id), params="$select=appRoleId"),
+										expected_status=[200],
+			)
+		raise ItemNotFound(MSGraphError(response, message="Service principal not found with id %r" % app_id))

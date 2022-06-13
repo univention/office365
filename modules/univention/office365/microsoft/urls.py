@@ -97,3 +97,10 @@ class URLs(object):
 		path = "/" + path if path else ""
 		params = "?"+params if params else ""
 		return cls.__ms_graph + "subscribedSkus" + path + params
+
+	@classmethod
+	def service_principals(cls, params=None, path=None):
+		# type: (Optional[str],Optional[str]) -> str
+		path = "/" + path if path else ""
+		params = "?"+params if params else ""
+		return cls.__ms_graph + "servicePrincipals" + path + params

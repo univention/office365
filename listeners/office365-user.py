@@ -28,6 +28,7 @@ class ListenerModuleTemplate(univention.listener.ListenerModuleHandler):
 	def __init__(self, *args, **kwargs):
 		self.logger = logger
 		self.connector = connector
+		self.connector.check_permissions()
 		super(ListenerModuleTemplate, self).__init__(args, kwargs)
 
 	def pre_run(self):

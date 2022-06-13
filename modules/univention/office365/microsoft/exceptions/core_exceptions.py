@@ -205,14 +205,37 @@ class AddLicenseError(GenericGraphError):
 		# super(AddLicenseError, self).__init__() # TODO revisar
 
 
+class GraphPermissionError(GenericGraphError):
+	description = "Forbidden Error. Your application may not have the correct \npermissions for the Microsoft Graph API.\nPlease check https://help.univention.com/t/18453.\n"
+
+
+class UnauthorizedError(GenericGraphError):
+	description = "Authorization failed\n"
+
+
+class InternalServerError(GenericGraphError):
+	description = "Internal server error\r%s"
+
+
 def exception_decorator(func):
 	# type: (Callable) -> Callable
+	status_codes_messages = {
+		403: GraphPermissionError,
+		401: UnauthorizedError,
+		500: InternalServerError
+	}
+
 	def inner(*args, **kwargs):
 		# type: (List[Any], Dict[str, Any]) -> Any
 		try:
 			return func(*args, **kwargs)
 		except MSGraphError as e:
-			if hasattr(e, "response") and e.response.headers.get("Content-Type", "") == "application/json" and hasattr(e.response, "json") and e.response.json():
+			status_code = 500 if 500 <= e.response.status_code <= 599 else e.response.status_code
+			if status_code in status_codes_messages:
+				exception_class = status_codes_messages[status_code]
+				e.message = exception_class.description + e.message
+				raise exception_class(e)
+			elif e.response.headers.get("Content-Type", "") == "application/json" and hasattr(e.response, "json") and e.response.json():
 				if six.PY2:
 					json_data = jsonify(e.response.json(), "utf-8")
 				else:
