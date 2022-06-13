@@ -12,9 +12,10 @@ import univention.admin
 from ldap.filter import filter_format
 from univention.office365.microsoft.account import AzureAccount
 from univention.office365.microsoft.core import MSGraphApiCore
-from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError, AddLicenseError, ItemNotFound
+from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError, AddLicenseError, ItemNotFound, GraphPermissionError
 from univention.office365.microsoft.exceptions.exceptions import NoAllocatableSubscriptions, GraphRessourceNotFroundError
 from univention.office365.connector import utils
+from univention.office365.microsoft.manifest import permissions_needed_name, ApplicationPermissions
 from univention.office365.microsoft.objects.azureobjects import UserAzure, AzureObject, GroupAzure, SubscriptionAzure, TeamAzure
 from univention.office365.udmwrapper.udmobjects import UDMOfficeUser, UDMOfficeGroup, UDMOfficeObject
 from univention.office365.utils.utils import create_random_pw
@@ -201,6 +202,34 @@ class Connector(object):
 		self.attrs = ConnectorAttributes(logger=self.logger)  # type: ConnectorAttributes
 		default_adconnection = UCRHelper.get_default_adconnection()
 		self.default_adconnection = {default_adconnection} if default_adconnection and default_adconnection in self.cores else set()
+
+	def check_permissions(self):
+		# type: () -> Dict[str, List[str]]
+		alias_without_permissions = {}
+		for alias, core in self.cores.items():
+			try:
+				response = core.get_permissions()
+			except GraphPermissionError as e:
+				self.logger.warning("Alias %r fail to check permissions.", alias)
+				alias_without_permissions[alias] = ["Directory.ReadWrite.All"]
+				continue
+			except ItemNotFound as e:
+				self.logger.warning("Alias %r\n%s", alias, e)
+				alias_without_permissions[alias] = []
+				continue
+			except MSGraphError as e:
+				self.logger.warning("Alias %r another error happened during check permissions %s", alias, e)
+				alias_without_permissions[alias] = []
+				continue
+			app_rol_id = [x.get("appRoleId", "") for x in response.get("value", [])]
+			app_rol_name_not_present = [app_rol_name for app_rol_name in permissions_needed_name if ApplicationPermissions.name_to_app_rol_id[app_rol_name] not in app_rol_id]
+			if app_rol_name_not_present:
+				alias_without_permissions[alias] = app_rol_name_not_present
+				self.logger.warning("Alias %r need consent %r", alias, app_rol_name_not_present)
+				self.logger.warning("Authorization Error. Your application may not have the correct "
+									"permissions for the Microsoft Graph API."
+									"Please check https://help.univention.com/t/18453.")
+		return alias_without_permissions
 
 	def has_initialized_connections(self):
 		# type: () -> bool
