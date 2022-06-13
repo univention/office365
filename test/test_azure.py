@@ -784,3 +784,8 @@ class TestAzure:
 		""""""
 		with new_user(self.core, "test_remove_license") as user:
 			self.core.change_password(user["id"], user["passwordProfile"]["password"], create_random_pw())
+
+	@my_vcr.use_cassette('vcr_cassettes/TestAzure/test_get_permisions.yml')
+	def test_get_permissions(self):
+		# type: () -> None
+		self.core.get_permissions()

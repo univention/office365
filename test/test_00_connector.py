@@ -389,6 +389,13 @@ class TestUserConnector:
 		# One call for each connection
 		assert udm_fake_user_new.modify_azure_attributes.call_count == 3
 
+	def test_check_permissions(self):
+		# type: () -> None
+		for core in self.uc.cores.values():
+			core.get_permissions = mock.MagicMock(retunr_value={"@odata.context": "https://graph.microsoft.com/v1.0/$metadata#servicePrincipals('d521afe4-7a36-40de-9fcd-a63239268712')/appRoleAssignments(appRoleId)","value": [{"appRoleId": "78c8a3c8-a07e-4b9e-af1b-b5ccab50a175"},{"appRoleId": "741f803b-c850-494e-b5df-cde7c675a1ca"},{"appRoleId": "19dbc75e-c2e2-444c-a770-ec69d8559fc7"},{"appRoleId": "62a82d76-70ea-41e2-9197-370581804d09"},{"appRoleId": "0121dc95-1b9f-4aed-8bac-58c5ac466691"}]})
+		self.uc.check_permissions()
+		for core in self.uc.cores.values():
+			core.get_permissions.assert_called_once()
 
 class TestGroupConnector:
 
@@ -399,7 +406,7 @@ class TestGroupConnector:
 
 	def test_completity(self):
 		# type: () -> None
-		diff = all_methods_called(self.__class__, GroupConnector, [])
+		diff = all_methods_called(self.__class__, GroupConnector, ["check_permissions"])
 		assert len(diff) == 0, "Functions no tested [" + ", ".join(diff) + "]"
 
 	def test_parse(self, create_udm_group_object):
