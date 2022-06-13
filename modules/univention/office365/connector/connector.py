@@ -197,7 +197,7 @@ class Connector(object):
 		self.all_alias_connections = alias_connections or UCRHelper.get_adconnection_aliases()  # type: Dict[str, str]
 		self.accounts = []  # type: List[AzureAccount]
 		self._load_filtered_accounts()
-		self.cores = {account.alias: MSGraphApiCore(account) for account in self.accounts}  # type: Dict[str, MSGraphApiCore]
+		self.cores = {account.alias: MSGraphApiCore(account, logger=self.logger) for account in self.accounts}  # type: Dict[str, MSGraphApiCore]
 		self.attrs = ConnectorAttributes(logger=self.logger)  # type: ConnectorAttributes
 		default_adconnection = UCRHelper.get_default_adconnection()
 		self.default_adconnection = {default_adconnection} if default_adconnection and default_adconnection in self.cores else set()
@@ -551,7 +551,7 @@ class UserConnector(Connector):
 		return uuid.uuid4().hex
 
 	def parse(self, udm_user, modify=False, set_password=True):
-		# type: (UDMOfficeUser, bool) -> UserAzure
+		# type: (UDMOfficeUser, bool, bool) -> UserAzure
 		# anonymize > static > sync
 		# get values to sync
 		res = dict()

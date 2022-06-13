@@ -105,6 +105,7 @@ class AzureObject(object):
 	proxyAddresses = attr.ib(validator=attr.validators.instance_of((List, type(None))), default=None)  #: List[str]
 	preferredLanguage = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
 	_core = None  # type: Union['MSGraphApiCore',type(None)]
+	_logger = None  # type: Union['logging.Logger',type(None)]
 
 	@classmethod
 	def get_fields(cls):
@@ -123,6 +124,7 @@ class AzureObject(object):
 	def set_core(self, core):
 		# type: (MSGraphApiCore) -> None
 		self._core = core
+		self._logger = self._core.logger
 
 	def _update_from_dict(self, data):
 		# type: (Dict[str, Any]) -> None
@@ -365,7 +367,7 @@ class UserAzure(AzureObject):
 		if rename:
 			if re.match(r'^ZZZ_deleted_.+_.+', self.userPrincipalName):
 				# this shouldn't happen
-				# logger.warn("User %r (%s) already deactivated, ignoring.", self.userPrincipalName, self._core.adconnection_alias)
+				self._logger.warning("User %r (%s) already deactivated, ignoring.", self.userPrincipalName, self._core.account.alias)
 				pass
 			else:
 				modifications_user.displayName = delete_name_pattern.format(time=time.time(), orig=self.displayName)
@@ -380,7 +382,7 @@ class UserAzure(AzureObject):
 			try:
 				self._core.remove_group_member(group["id"], self.id)
 			except MSGraphError as e:
-				logger.warning("Member %r can't be remove from group %r" % (self.id, group["id"]))
+				self._logger.warning("Member %r can't be remove from group %r" % (self.id, group["id"]))
 				continue
 		for _license in self.get_assignedLicenses():
 			self.remove_license(_license)

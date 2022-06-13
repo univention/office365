@@ -28,10 +28,11 @@ class MSGraphApiCore(object):
 
 	"""
 	# TODO: Check if response_handlers is used in any other place
-	def __init__(self, account, response_handlers=None):
-		# type: (AzureAccount, Dict) -> None
+	def __init__(self, account, response_handlers=None, logger=None):
+		# type: (AzureAccount, Dict, "logging.Logger") -> None
 		response_handlers = response_handlers or {}
 		self.account = account
+		self.logger = logger or get_logger("office365", "core")
 		if not account.check_token():
 			self.get_token(
 				response_handlers=response_handlers
@@ -775,7 +776,7 @@ class MSGraphApiCore(object):
 		response_handlers = response_handlers or {}
 		values = {}  # holds data from pagination
 		msg = MSGraphApiCore._fprints_hide_pw(data, "GraphAPI: {method} {url}".format(method=method, url=url) + " {data}")
-		logger.debug(msg)
+		self.logger.debug(msg)
 
 		# prepare the http headers, which we are going to send with any request
 		# the access_token should have been initialized in the constructor.
@@ -800,7 +801,7 @@ class MSGraphApiCore(object):
 					verify=True,
 					headers=headers,
 					data=data,
-					proxies=URLs.proxies(logger=logger),
+					proxies=URLs.proxies(logger=self.logger),
 					timeout=10
 				)
 			except requests.exceptions.Timeout:
@@ -809,7 +810,7 @@ class MSGraphApiCore(object):
 					continue
 				raise
 
-			logger.debug(
+			self.logger.debug(
 				"status: %r (%s) (%s %s)",
 				response.status_code,
 				"OK" if 200 <= response.status_code <= 299 else "FAIL",
@@ -859,11 +860,10 @@ class MSGraphApiCore(object):
 
 			elif response.status_code not in expected_status:
 				raise MSGraphError(response, expected_status=expected_status)
-			values, url = MSGraphApiCore.response_to_values(response, page, values, expected_status)
+			values, url = self.response_to_values(response, page, values, expected_status)
 		return values
 
-	@staticmethod
-	def response_to_values(response, page, values, expected_status):
+	def response_to_values(self, response, page, values, expected_status):
 		# type: (requests.Response, bool, Dict, List) -> (Dict, str)
 		if not response.content:
 			# an empty response is usually not an error and if the relevant
@@ -888,7 +888,7 @@ class MSGraphApiCore(object):
 					# want to request these and as long as url is set, this loop
 					# will append to the `values` array
 					url = response_json.get("@odata.nextLink")
-					logger.debug('Next page: {url}'.format(url=url))
+					self.logger.debug('Next page: {url}'.format(url=url))
 					return values, url
 
 			except ValueError as exc:
