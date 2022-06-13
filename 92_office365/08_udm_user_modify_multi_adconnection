@@ -98,9 +98,6 @@ with utils.AutomaticListenerRestart():
 				user_args["set"]["UniventionOffice365Enabled"] = 1
 				user_args["set"]["UniventionOffice365ADConnectionAlias"] = adconnection_alias
 				user_args1 = copy.deepcopy(user_args)
-				print("="*50)
-				pprint.pprint(user_args1)
-				print("="*50)
 
 				user_args2 = dict(set=dict(), append=dict())
 				for key in ["city", "employeeType"]:
