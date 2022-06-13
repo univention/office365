@@ -1,0 +1,107 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - XXXXXX
+      Connection:
+      - keep-alive
+      Content-Type:
+      - application/json
+      User-Agent:
+      - Univention Microsoft 365 Connector
+    method: GET
+    uri: https://graph.microsoft.com/v1.0/servicePrincipals?$filter=appId%20eq%20'fbb6c35f-4f7a-412d-9109-2aba2925a836'&$select=id
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAEChTLQQ6CMBAAwL+sHjSxLbQI0pNP8G48bNqtNAFK2pWYEP5unPtscE8eGaVLM9OX
+        wcLAvBSr1DvjMsgpupxKCixdmtRay0odJ2L8p0OhvEZHjxxnFxccyyn6M1xgxfFDYJ8bRA8W/FXX
+        GKgRHZpWNJUn0QfnBbZGm163t67WsL/2HwAAAP//AwDkuh5LjQAAAA==
+    headers:
+      Cache-Control:
+      - no-cache
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8
+      Date:
+      - Mon, 13 Jun 2022 10:17:22 GMT
+      OData-Version:
+      - '4.0'
+      Strict-Transport-Security:
+      - max-age=31536000
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Accept-Encoding
+      client-request-id:
+      - e89e958f-8158-4563-a4cc-cbac9e0185e2
+      request-id:
+      - e89e958f-8158-4563-a4cc-cbac9e0185e2
+      x-ms-ags-diagnostic:
+      - '{"ServerInfo":{"DataCenter":"North Europe","Slice":"E","Ring":"4","ScaleUnit":"000","RoleInstance":"DU6PEPF00002DB2"}}'
+      x-ms-resource-unit:
+      - '1'
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - XXXXXX
+      Connection:
+      - keep-alive
+      Content-Type:
+      - application/json
+      User-Agent:
+      - Univention Microsoft 365 Connector
+    method: GET
+    uri: https://graph.microsoft.com/v1.0/servicePrincipals/d521afe4-7a36-40de-9fcd-a63239268712/appRoleAssignments?$select=appRoleId
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAECmTLy0oDMRQA0H+JQlvonUkyeXalS3fiVlzc3Ny0A50HM7EIpf8ugriw2wPnKp6m
+        jBUbmsbKX1UcxKnWeT207XHB+dQMPS3TOpXa0DS0F9XI9nHgij/pYeXl0hO/Lv1I/YzndbvJViss
+        bMBj58DIzBALZUDX6S5qF7zSm12L8/w2nfl5XfvjOPBY1+0vveSd2IsLnj9ZHN6v4o/FQfhAATsK
+        gNIzmBQZsKgEyRJhshKVt+K2/5eMKkF2CShYCSYahmRzAcrsyXmLivAuqZgTectAmjUYYwjQewlM
+        LuZgbSzk75LTGHT2DrxkBKNYQ1TRQ+elDSpIk2W8S1JplSlaUCkWMMgZQkICG8giGedcVOL2cfsG
+        AAD//wMARU1eIaoBAAA=
+    headers:
+      Cache-Control:
+      - no-cache
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8
+      Date:
+      - Mon, 13 Jun 2022 10:17:21 GMT
+      OData-Version:
+      - '4.0'
+      Strict-Transport-Security:
+      - max-age=31536000
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Accept-Encoding
+      client-request-id:
+      - 9d56bac0-caa0-46bd-9d01-a2777cc06b14
+      request-id:
+      - 9d56bac0-caa0-46bd-9d01-a2777cc06b14
+      x-ms-ags-diagnostic:
+      - '{"ServerInfo":{"DataCenter":"North Europe","Slice":"E","Ring":"4","ScaleUnit":"000","RoleInstance":"DU6PEPF000033AB"}}'
+      x-ms-resource-unit:
+      - '1'
+    status:
+      code: 200
+      message: OK
+version: 1
