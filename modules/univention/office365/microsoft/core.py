@@ -819,8 +819,45 @@ class MSGraphApiCore(object):
 			# call handlers for response
 			if response.status_code in response_handlers.keys():
 				response_handlers[response.status_code](response, retry)
+			if 500 <= response.status_code <= 599:
+				if retry:
+					raise MSGraphError(response, expected_status=expected_status)
+				else:
+					logger.warning("Microsoft Graph returned a server error, which"
+										" could be temporarily. We will retry the same call"
+										" in ten seconds again.")
+					# time.sleep(10)
+					retry = retry - 1
+					if retry > 0:
+						continue  # restart the loop with the same url again
+					else:
+						raise MSGraphError(response, expected_status=expected_status, message="Still a server error 500.")
+			elif 401 == response.status_code:
+				retry = retry - 1
+				logger.debug("retries left: {retry}".format(retry=retry))
+				if retry > 0:
+					# retry a login ,then try the call again
+					self.get_token()
+					continue  # and retry with the new credentials
+				else:
+					raise MSGraphError(response, expected_status=expected_status, message="Unable to (re-)login")
+			elif 403 == response.status_code:
+				retry = retry - 1
+				if retry > 0:
+					# retry with a new token
+					retry = 1
+					logger.info("Getting a new token in case permissions have been updated")
+					self.get_token()
+					continue  # and retry with the new credentials
+				else:
+					logger.warning("Authorization Error. Your application may not have the correct "
+									 "permissions for the Microsoft Graph API."
+									 "Please check https://help.univention.com/t/18453.")
+					raise MSGraphError(response, expected_status=expected_status, message="Authorization Error. Your application may not have the correct "
+																 "permissions for the Microsoft Graph API."
+																 "Please check https://help.univention.com/t/18453.")
 
-			if response.status_code not in expected_status:
+			elif response.status_code not in expected_status:
 				raise MSGraphError(response, expected_status=expected_status)
 			values, url = MSGraphApiCore.response_to_values(response, page, values, expected_status)
 		return values
@@ -836,15 +873,8 @@ class MSGraphApiCore(object):
 		else:
 			try:
 				response_json = response.json()
-				# print(help(response))
-				# print(response.apparent_encoding)
-				# print(response.content)
-				# print(response.text)
-				# print(response_json)
 				if six.PY2:
 					response_json = jsonify(response_json, response.apparent_encoding)
-					# print(response_json)
-					# exit(-1)
 				if 'value' in values:
 					values['value'].extend(response_json['value'])
 				else:
@@ -862,7 +892,6 @@ class MSGraphApiCore(object):
 					return values, url
 
 			except ValueError as exc:
-				raise
 				raise MSGraphError(
 					response,
 					"Response payload was not parseable by the json parser: {error}".format(
