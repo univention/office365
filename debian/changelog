@@ -1,3 +1,9 @@
+univention-office365 (2.0.4-1) unstable; urgency=medium
+
+  * Bug #51940: Update connector to use Graph API instead of Azure API.
+
+ -- Ivan Barbecho Delgado <delgado.extern@univention.de>  Tue, 14 Jun 2022 10:55:28 +0200
+
 univention-office365 (2.0.3-3) unstable; urgency=medium
 
   * Bug #54403: Increase joinscript version
