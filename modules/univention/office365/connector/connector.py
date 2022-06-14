@@ -3,7 +3,7 @@ from abc import abstractmethod
 from six.moves import UserDict
 from collections import defaultdict
 from logging import Logger
-from typing import List, Iterable, Mapping, Union, Dict, Set, Any, Optional
+from typing import List, Mapping, Dict, Set, Any, Optional
 import abc
 import six
 from ldap.filter import filter_format
@@ -18,9 +18,8 @@ from univention.office365.udmwrapper.udmobjects import UDMOfficeUser, UDMOfficeG
 from univention.office365.utils.utils import create_random_pw
 from univention.office365.asyncqueue.queues.jsonfilesqueue import JsonFilesQueue
 from univention.office365.logging2udebug import get_logger
-from univention.office365.subscriptions import SubscriptionProfile
+from univention.office365.udmwrapper.subscriptions import SubscriptionProfile
 from univention.office365.ucr_helper import UCRHelper
-from univention.office365.udm_helper import UDMHelper
 
 # logger = get_logger("office365", "o365")
 

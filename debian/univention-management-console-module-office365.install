@@ -1,3 +1,3 @@
 umc/js/office365/* usr/share/univention-management-console-frontend/js/umc/modules/office365/
 umc/js/office365.css usr/share/univention-management-console-frontend/js/umc/modules/
-35univention-management-console-module-office365.inst usr/lib/univention-install/
+scripts/package/35univention-management-console-module-office365.inst usr/lib/univention-install/

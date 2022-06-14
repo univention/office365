@@ -17,7 +17,7 @@ import univention.testing.utils as utils
 from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_user_id_from_azure, check_user_in_group_from_azure
 from helpers.retry import retry_call
 from univention.office365.listener import Office365Listener
-from univention.office365.subscriptions import SubscriptionProfile
+from univention.office365.udmwrapper.subscriptions import SubscriptionProfile
 from univention.office365.azure_auth import AzureAuth, AzureADConnectionHandler
 
 adconnection_aliases = AzureADConnectionHandler.get_adconnection_aliases()

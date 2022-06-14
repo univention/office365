@@ -5,7 +5,7 @@ import os
 import shutil
 import time
 
-from typing import Optional
+from typing import Optional, List, Any, Dict
 
 from univention.office365.asyncqueue import ASYNC_DATA_DIR
 from univention.office365.asyncqueue.queues.asyncqueue import AbstractQueue
@@ -17,15 +17,16 @@ class JsonFilesQueue(AbstractQueue):
 		# type: (str, str, bool, Optional["logging.Logger"]) -> None
 		super(JsonFilesQueue, self).__init__(queue_name)
 		self.path = path if path and os.path.exists(path) else os.path.join("/tmp", queue_name)
+		self.failed_path = os.path.join(self.path, 'failed')
 		self.no_delete = no_delete
 		self.logger = logger or logging.getLogger(__name__)
-		if not os.path.exists(self.path):
-			os.makedirs(self.path)
+		os.makedirs(self.path, exist_ok=True)
+		os.makedirs(self.failed_path, exist_ok=True)
 
 	def enqueue(self, item, error=False):
 		# type: (Task, bool) -> str
-		error = "ERROR" if error else ""
-		filename = os.path.join(self.path, error + '{time:f}.json'.format(time=time.time()))
+		path = self.path if not error else self.failed_path
+		filename = os.path.join(path, '{time:f}.json'.format(time=time.time()))
 		filename_tmp = filename + '.tmp'
 		with open(filename_tmp, 'w') as fd:
 			json.dump(item.__dict__(), fd, sort_keys=True, indent=4)
@@ -35,7 +36,7 @@ class JsonFilesQueue(AbstractQueue):
 		return filename
 
 	def dequeue(self):
-		# type: () -> dict
+		# type: () -> Dict[str, Any]
 		next_job = self.find_jobs()[0]
 		with open(next_job, 'r') as f:
 			json_data = json.load(f)
@@ -52,9 +53,8 @@ class JsonFilesQueue(AbstractQueue):
 			self.delete_job(file)
 
 	def find_jobs(self):
-		# type: () -> list
-		files = sorted(glob.glob(os.path.join(self.path, '*.json')))
-		return list(filter(lambda x: os.path.basename(x).startswith("ERROR"), files))
+		# type: () -> List[str]
+		return sorted(glob.glob(os.path.join(self.path, '*.json')))
 
 	def find_job_by_name(self, name):
 		# type: (str) -> Task
