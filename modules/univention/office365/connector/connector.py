@@ -1038,11 +1038,10 @@ class GroupConnector(Connector):
 					continue
 				with udm_office_add_member_group.set_current_alias(alias):
 					for group in udm_office_add_member_group.get_nested_groups_with_azure_users():
-						if isinstance(group, UDMOfficeGroup):
-							if not group.azure_object_id:
-								self._create_group(group)
-							if group.dn in udm_office_add_member_group.get_nested_group():
-								users_and_groups_to_add.append(group.azure_object_id)
+						if not group.azure_object_id:
+							self._create_group(group)
+						if group.dn in udm_office_add_member_group.get_nested_group():
+							users_and_groups_to_add.append(group.azure_object_id)
 			else:
 				raise RuntimeError("Office365Listener.modify_group() {!r} from new[uniqueMember] not in "
 								   "'nestedGroup' or 'users' ({!r}).".format(added_member_dn, alias))

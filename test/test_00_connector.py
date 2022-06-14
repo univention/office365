@@ -297,7 +297,7 @@ class TestUserConnector:
 		# type: (Callable) -> None
 		udm_fake_user = create_udm_user_object()
 		udm_fake_user.current_connection_alias = "o365domain"
-		udm_fake_user.create_azure_attributes = mock.MagicMock()
+		udm_fake_user.modify_azure_attributes = mock.MagicMock()
 		azure_user = mock.MagicMock()
 		azure_user.id = "1234567890"
 		azure_user.userPrincipalName = "name"
@@ -309,7 +309,7 @@ class TestUserConnector:
 		self.uc.parse.assert_called_once()
 		azure_user.create_or_modify.assert_called_once()
 		azure_user.invalidate_all_tokens()
-		udm_fake_user.create_azure_attributes.assert_called_once()
+		udm_fake_user.modify_azure_attributes.assert_called_once()
 
 	def test_create(self, create_udm_user_object):
 		# type: (Callable) -> None
@@ -462,9 +462,11 @@ class TestGroupConnector:
 		udm_fake_group.get_owners = mock.MagicMock(return_value=owners)
 		azure_group = mock.MagicMock()
 		azure_group.id = "azure_object_id"
-
-		with mock.patch("univention.office365.connector.connector.TeamAzure") as mock_team:
+		azure_group.resourceProvisioningOptions = []
+		with mock.patch("univention.office365.connector.connector.TeamAzure") as mock_team,\
+			mock.patch("univention.office365.connector.connector.GroupAzure") as mock_group:
 			mock_team.create_from_group = mock.MagicMock()
+			mock_group.get = mock.MagicMock(return_value=azure_group)
 
 			self.gc.convert_group_to_team(udm_fake_group, azure_group)
 			azure_group.add_owner.assert_has_calls([call(ANY, async_task=False) for x in owners])
@@ -615,7 +617,11 @@ class TestGroupConnector:
 		udm_fake_group_new.get_users = mock.MagicMock(return_value={'uid=domvzkat0s,cn=users,dc=test-idelgado-com,dc=intranet'})
 		udm_fake_group_new.get_nested_group = mock.MagicMock(return_value={'uid=onetobeadded,cn=groups,dc=test-idelgado-com,dc=intranet'})
 		udm_fake_group_new.current_connection_alias = "azuretestdomain"
-		with mock.patch("univention.office365.connector.connector.UDMOfficeGroup", mock.MagicMock(return_value=create_udm_group_object())),\
+
+		udm_group = create_udm_group_object()
+		udm_group.get_nested_groups_with_azure_users = mock.MagicMock(return_value=[udm_group])
+		udm_group.get_nested_group = mock.MagicMock(return_value={'cn=test,dc=test,dc=test'})
+		with mock.patch("univention.office365.connector.connector.UDMOfficeGroup", mock.MagicMock(return_value=udm_group)),\
 				mock.patch("univention.office365.connector.connector.GroupAzure.get_by_name", mock.MagicMock(return_value=None)):
 			self.gc.cores["azuretestdomain"] = self.gc.cores["o365domain"]
 			self.gc.check_and_modify_members(udm_fake_group_old, udm_fake_group_new, azure_group)

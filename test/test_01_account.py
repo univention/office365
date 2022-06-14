@@ -42,14 +42,6 @@ def mock_JsonStorage():
 	accound_M.JsonStorage = old_j
 
 
-@contextlib.contextmanager
-def mock_json():
-	# type: () -> mock.MagicMock
-	old_j = accound_M.json
-	accound_M.json = mock.MagicMock()
-	yield accound_M.json
-	accound_M.json = old_j
-
 class TestAzureAccount:
 
 	def test_completity(self):
@@ -127,10 +119,11 @@ class TestAzureAccount:
 	def test_store_manifest(self):
 		# type: () -> None
 		""""""
-		with mock_json() as json_mocked:
+		with mock.patch("univention.office365.microsoft.account.json", mock.MagicMock()) as json_mocked,\
+			mock.patch("univention.office365.microsoft.account.JsonStorage", mock.MagicMock()) as JsonStorage_mocked:
 			account = accound_M.AzureAccount(alias=ALIASDOMAIN, config_base_path=DOMAIN_PATH)
-			manifest = mock.MagicMock()
+			manifest = mock.MagicMock(app_id="app_id", adconnection_id="common", reply_url="reply_url",domain="domain")
 			account.store_manifest(manifest)
 			json_mocked.dump.assert_called()
-
+			JsonStorage_mocked.return_value.write.assert_called()
 
