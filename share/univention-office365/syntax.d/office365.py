@@ -1,6 +1,6 @@
 # Office365 Azure AD Connection UDM syntax
 #
-# Copyright 2012-2021 Univention GmbH
+# Copyright 2012-2022 Univention GmbH
 #
 # http://www.univention.de/
 #
