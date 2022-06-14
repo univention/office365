@@ -1,3 +1,10 @@
+univention-office365 (3.0.1-1) unstable; urgency=medium
+
+  * Bug #54858: Update connector to use Graph API instead of Azure API (port
+    from 4.4).
+
+ -- Esteban Martinena <martinena@univention.de>  Tue, 14 Jun 2022 10:56:16 +0200
+
 univention-office365 (3.0.0-6) unstable; urgency=medium
 
   * Bug #54509: Add icons for UCS 5 portal integration
