@@ -1,57 +1,111 @@
-# Code Structure and Documentation
+  * [Design Principles](#design-principles)
+    + [Modules](#modules)
+      - [UDM Wrapper](#udm-wrapper)
+      - [Microsoft](#microsoft)
+      - [Connector](#connector)
+    + [Utils](#utils)
+      - [UCR Helper](#ucr-helper)
+      - [UDM Helper](#udm-helper)
+    + [Information and calls flow](#information-and-calls-flow)
+    + [Listeners](#listeners)
+    + [UDMWrapper](#udmwrapper)
+    + [Microsoft](#microsoft-1)
+      - [Core](#core)
+      - [Accounts | Tokens | Manifest | JSONStorage](#accounts---tokens---manifest---jsonstorage)
+      - [Azure Objects](#azure-objects)
+      - [Core | URLs](#core---urls)
+      - [Exceptions (core_exceptions, exceptions, login_exceptions)](#exceptions--core-exceptions--exceptions--login-exceptions-)
+    + [Connectors](#connectors)
+      - [Parser (UDMObjects => AzureObjects)](#parser--udmobjects----azureobjects-)
+    + [Helpers](#helpers)
+      - [Utils | UCRHelper | UDMHelper](#utils---ucrhelper---udmhelper)
+    + [Async Queue/Tasks (Teams operations)](#async-queue-tasks--teams-operations-)
+    + [Use cases](#use-cases)
+      - [Creation](#creation)
+      - [Modification](#modification)
+      - [Deletion](#deletion)
+  * [Features](#features)
+    + [Multi Account support](#multi-account-support)
+    + [UCR variables to modify connector behaviour](#ucr-variables-to-modify-connector-behaviour)
+      - [werror](#werror)
+      - [UDM attribute to sync in Azure (mapping, anonimize, never, multi valued)](#udm-attribute-to-sync-in-azure--mapping--anonimize--never--multi-valued-)
+      - [AdConnections (filter, alias, wizard)](#adconnections--filter--alias--wizard-)
+      - [UsageLocation (or ssl/country or country ¿st?...)](#usagelocation--or-ssl-country-or-country--st--)
+      - [defaultAlias (related with UCM)](#defaultalias--related-with-ucm-)
+      - [Group sync](#group-sync)
+  * [Async daemon](#async-daemon)
+  * [Async calls](#async-calls)
+- [Implementation](#implementation)
+  * [Implementation State](#implementation-state)
+  * [Authorization Code Grant Flow - ***not** used by listener!*](#authorization-code-grant-flow------not---used-by-listener--)
+  * [Client credentials flow - *used by listener*](#client-credentials-flow----used-by-listener-)
+- [Dependencies / Constraints](#dependencies---constraints)
+  * [Teams](#teams)
+- [Design](#design)
+- [Permission Name: Directory.ReadWrite.All, Type: Application](#permission-name--directoryreadwriteall--type--application)
+- [Permission Name: Group.ReadWrite.All, Type: Application](#permission-name--groupreadwriteall--type--application)
+- [Permission Name: User.ReadWrite.All, Type: Application](#permission-name--userreadwriteall--type--application)
+- [Permission Name: TeamMember.ReadWrite.All, Type: Application](#permission-name--teammemberreadwriteall--type--application)
+      - [Objects](#objects)
+    + [Async queue](#async-queue)
 
-## Modules
+<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
+
+
+
+# Design Principles
 
 The code for this connector is organized into a module called office365 inside the main univention python module.  
-Al the code and classes have being designed trying to clearly separate the functionality of code related
-with UCS and UDM and on the other hand the functionality related with the connection to the Microsoft Graph API.
-
-In the middle a connector classes are being used to connect to the Microsoft Graph API and to the UCS LDAP side.
-Only this classes have the needed "knowledge" to connect both sides.
-
-### Microsoft
-
-While developing this wrapper around the Microsoft Graph API the thinking of keeping it as
-independent as possible from the UCS LDAP side was taken into account. This way the `univention.office365.microsoft`
-module could be used as an independent module to operate over the Microsoft Graph API.
-
-#### Core
-All the direct interaction with the Microsoft Graph API is being done in the `univention.office365.microsoft.core` module. 
-The core also contains the logic to take care of the responses in a low level way, letting the classes in the Azure Objects
-to take care of the behavior on a higher level.
-The URIs needed to connect to the API are detailed in the URLs module.
+All the code and classes have being designed trying to clearly separate the functionality of code related
+with UCS and UDM and on the other hand the functionality related with the connection to the Microsoft Graph API.  
 
 
-### Account
-An account defines a connection to the Microsoft Graph API. The credentials are stored in files for each account.
-The account is identified by an alias. Each account can contains a token which is used to connect to the Microsoft Graph API.
+```
+                         univention.office365
+                       ┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+                       │                                                                                                        │
+                       │                                                                                                        │
+                       │       UDMWrapper                Connector                    Microsoft                                 │
+                       │      ┌─────────────────────┐   ┌────────────────────────┐   ┌──────────────────────────────────────┐   │
+┌─────────────┐        │      │                     │   │                        │   │                                      │   │
+│             │        │      │  ┌──────────────┐   │   │   User Connector       │   │                    ┌─────────────┐   │   │
+│    User     │        │      │  │              │   │   │  ┌─────────────────┐   │   │    ┌─────────┐     │             │   │   │
+│  Listener   │        │      │  │  UDM         │   │   │  │                 │   │   │    │         │     │             │   │   │
+│             │        │      │  │  User        │   │   │  │                 │   │   │    │  Azure  │     │             │   │   │
+└─────────────┘        │      │  │  Object      │   │   │  │                 │   │   │    │  User   │     │             │   │   │
+                       │      │  │              │   │   │  ├──────────┐      │   │   │    │         │     │             │   │   │
+                       │      │  └──────────────┘   │   │  │   User   │      │   │   │    └─────────┘     │             │   │   │
+                       │      │                     │   │  │  Parser  │      │   │   │                    │             │   │   │
+                       │      │                     │   │  └──────────┴──────┘   │   │                    │    Azure    │   │   │
+                       │      │  ┌──────────────┐   │   │                        │   │                    │    Core     │   │   │
+                       │      │  │              │   │   │                        │   │    ┌─────────┐     │             │   │   │
+                       │      │  │  UDM         │   │   │                        │   │    │         │     │             │   │   │
+┌─────────────┐        │      │  │  Group       │   │   │                        │   │    │  Azure  │     │             │   │   │
+│             │        │      │  │  Object      │   │   │   Group Connector      │   │    │  Group  │     │             │   │   │
+│    Group    │        │      │  │              │   │   │  ┌─────────────────┐   │   │    │         │     │             │   │   │
+│  Listener   │        │      │  └──────────────┘   │   │  │                 │   │   │    └─────────┘     │             │   │   │
+│             │        │      │                     │   │  │                 │   │   │                    └─────────────┘   │   │
+└─────────────┘        │      └─────────────────────┘   │  │                 │   │   │                                      │   │
+                       │                                │  ├──────────┐      │   │   │                                      │   │
+                       │                                │  │  Group   │      │   │   │                                      │   │
+                       │                                │  │  Parser  │      │   │   │                                      │   │
+                       │                                │  └──────────┴──────┘   │   │                                      │   │
+                       │                                │                        │   │                                      │   │
+                       │                                └────────────────────────┘   └──────────────────────────────────────┘   │
+                       │                                                                                                        │
+                       └────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
 
-#### Objects
-To keep an Object-Oriented approach the classes for the Microsoft Graph API are being organized into
-classes representing the objects in the Microsoft Azure Directory service.
-* UserAzure
-* GroupAzure
-* TeamAzure
-* SubscriptionAzure
+In the middle, a connector classes are being used to connect to the Microsoft Graph API and to the UCS LDAP side.
+Only these classes have the needed "knowledge" to connect both sides.
 
-This classes contains the attributes and methods needed to interact with the Microsoft Graph API on a
-higher level of abstraction.
+You should be able to use most of the code outside of the listeners.
+When modifying code, please keep the separation of where which objects are used.
 
-### Async queue
-Some Microsoft API calls are asynchronous. This means that the
-call is made, but the response is not returned immediately.
+### Modules
+The main module for this connector is `univention.office365`. Several submodules are defined splitting the parts described before.
 
-A queue is used to store the `tasks` to be performed. The queue is
-shared with another process that will consume the actions and would
-execute them.
-
-The queue can be implemented with several backends. The
-default is a json file directory containing files for each task.
-A Redis backend is also available as an example but not currently used.
-
-The code related to the Async Queue is in `modules/univention/office365/asyncqueue.py`.
-
-### UDM Wrapper
+#### UDM Wrapper
 When the listener receives an event from the UCS LDAP side for an action, it receives
 the dn of the object, the data of the object before the operation, the data of the object
 after the operation and the action. This data of the old and the new object comes as a dictionary.
@@ -67,10 +121,24 @@ This classes are a higher level abstraction of the objects in the LDAP layer.
 The functionality of this two objects have being extended to take care of the information related with the Microsoft connections/information
 of each object.
 
-### Connector
-Until now only classes and methods to work with the data from the UCS/LDAP side and the Microsoft Azure Directory on the other side.
 
-No logic have being described to connect the two sides until now.
+#### Microsoft
+
+[//]: # (TODO: Check links)
+To synchronize an on-premises AD with Azure AD, "Azure AD Connect" can be used (https://azure.microsoft.com/en-us/documentation/articles/active-directory-aadconnect/). There is also a big C# library for communication for MS Azure. Since this non of this is not an option, we'll use the Azure Graph API.
+
+[//]: # (TODO: Check links)
+The API is a moving target, but has stable versions that can be used explicitly. We're currently using Version 1.6 of the REST API (see https://msdn.microsoft.com/en-us/Library/Azure/Ad/Graph/api/api-catalog).
+
+While developing this wrapper around the Microsoft Graph API the thinking of keeping it as
+independent as possible from the UCS LDAP side was taken into account. This way the `univention.office365.microsoft`
+module could be used as an independent module to operate over the Microsoft Graph API.
+
+#### Connector
+
+Until this point classes and methods to work with the data from the UCS/LDAP side and the Microsoft Azure Directory on the other side.
+
+No logic have being described to connect the two sides.
 
 This is the main function of the connector submodule. When the listener receives an action related with an object in the UCS LDAP side,
 it's converted to the corresponding UDM Office object and then a specific connector is used
@@ -80,42 +148,149 @@ Mainly two classes take care of the operations for the Users and Groups:
 * UserConnector
 * GroupConnector
 
-Both classes have methods to create, delete and modify this objects. Also, several convenience methods
+Both have methods to create, delete and modify this objects. Also, several convenience methods
 have being implemented in the connector to take care of some dependencies between these objects (pertences, memberships, ownership, etc).
 
-### Utils
+
+
+### Information and calls flow
+
+### Listeners
+* Two listeners
+* New API (link)
+
+
+### UDMWrapper
+```
+                ┌──────────────┐
+                │              │
+                │   UDMObject  │
+                │              │
+                └──────┬───────┘
+                       │
+                       │
+                       │
+              ┌────────▼──────────┐
+              │                   │
+              │  UDMOfficeObject  │
+              │                   │
+              └────────┬──────────┘
+                       │
+         ┌─────────────┴───────────────┐
+         │                             │
+┌────────▼────────┐            ┌───────▼──────────┐
+│                 │            │                  │
+│  UDMOfficeUser  │            │  UDMOfficeGroup  │
+│                 │            │                  │
+└─────────────────┘            └──────────────────┘
+```
+* Usage of UDM objects
+* Implemented classes 
+* Main methods
+* Examples of usage of the classes
+
+### Microsoft
+
+```
+                                        ┌─────┐
+                                        │Token│
+                                        └──┬──┘
+                                           │
+                                           │
+                                           │
+                                           │
+                                           │
+                                     ┌─────┴────┐
+                                     │     ▼    │               │
+                                     │  Azure   │               │
+                                     │  Account │               │
+        ┌───────┐                    │          │               │
+        │Azure  │                    └─────┬────┘               │
+        │User  ◄├────────────┐             │                    │
+        └───────┘            │             │                    │
+                             │             │                    │
+       ┌────────┐            │             │                    │                  .-~~~-.
+       │ Azure ◄├────────────┤        ┌────┴────┐◄─────────────►│          .- ~ ~-(       )_ _
+       │ Group  │            │        │    ▼    │               │         /        Microsoft    ~ -.
+       └────────┘            ├────────┤  Azure  │    Requests   │        |         Graph             \
+                             │        │  Core   │◄─────────────►│         \        API              .'
+     ┌──────────┐            │        │         │               │           ~- . _____________ . -~
+     │  Azure   │            │        └─────────┘◄─────────────►│
+     │  Team   ◄├────────────┤                                  │
+     └──────────┘            │                                  │
+                             │                                  │
+┌───────────────┐            │                                  │
+│               │            │                                  │
+│ Azure         │            │                                  │
+│ Subscription ◄├────────────┘                                  │
+│               │                                               │
+└───────────────┘                                               │
+                                                                │
+                                                                │
+                                                                │
+```
+
+
+#### Core
+
+#### Accounts | Tokens | Manifest | JSONStorage
+
+#### Azure Objects
+
+#### Core | URLs
+
+#### Exceptions (core_exceptions, exceptions, login_exceptions)
+
+### Connectors
+```
+              ┌───────────────────┐       ┌─────────────────────┐
+              │                   │       │                     │
+              │    Connector      │       │ ConnectorAttributes │
+              │                 ◄─┼───────┤                     │
+              └────────┬──────────┘       └─────────────────────┘
+                       │
+         ┌─────────────┴───────────────┐
+         │                             │
+┌────────▼────────┐            ┌───────▼──────────┐
+│                 │            │                  │
+│  UserConnector  │            │  GroupConnector  │
+│                 │            │                  │
+└─────────────────┘            └──────────────────┘
+```
+
+#### Parser (UDMObjects => AzureObjects)
+
+### Helpers
+
+#### Utils
 Several functions have being implemented to help with the development of the connector.
 
-### UCR Helper
+#### UCR Helper
 Univention Configuration Registry Helper. This class is used to get the configuration values from the UCR related to the office365 connector.
 Convenience methods are being implemented to get and process the values from the UCR.
 Any operation related to UCR for this connector should be implemented in this class.
 
-### UDM Helper
+#### UDM Helper
 Univention Directory Manager Helper. This class is used to get the UDM objects related to the office365 connector.
 Convenience methods are being implemented to get and process the objects from UDM.
 Any operation related to UDM for this connector should be implemented in this class.
 
-## Classes
+### Async Queue/Tasks (Teams operations)
+#### Async queue
+Some Microsoft API calls are asynchronous. This means that the
+call is made, but the response is not returned immediately.
 
-```
-|-  UDM obj only   -|-  UDM <-> AAD obj  -|- AAD obj only -|
+A queue is used to store the `tasks` to be performed. The queue is
+shared with another process that will consume the actions and would
+execute them.
 
-office365-user.py  --\
-                     +--> listener.py --> azure_handler.py ---(HTTP)--> AzureAD
-office365-group.py --/                         |                          |
-                                               |                          |
-                                               v                          |
-                                           azure_auth.py -----(HTTP)--> OAuth2
-                                               ^                          |
-                                               |                          |
-                                         azure_callback.py <--(HTTP)------+
-```
+The queue can be implemented with several backends. The
+default is a json file directory containing files for each task.
+A Redis backend is also available as an example but not currently used.
 
-listener.py, azure_handler.py and azure_auth.py are written so that they can be used outside the listener code.
-When modifying code, please keep the separation of where which objects are used.
+The code related to the Async Queue is in `modules/univention/office365/asyncqueue.py`.
 
-## Async daemon
+#### Async daemon
 
 Some azure calls need a try-sleep-retry (graph.create_group, retry(graph.add_group_owner), retry(graph.create_team_from_group)). To not block the listener at this point we have a async daemon for special azure calls *univention-ms-office-async* (share/univention-ms-office-async).
 
@@ -146,23 +321,43 @@ Autostart: univention-ms-office-async/autostart
 Job dir: /var/lib/univention-office365/async (make sure owned by listener)
 Failed dir: /var/lib/univention-office365/async/failed (make sure owned by listener)
 
-## Async calls
+#### Async calls
 
 ```
 from univention.office365.api_helper import write_async_job
 write_async_job(a_function_name='modify_group', a_ad_connection_alias='o365domain', object_id="params", new_name="aaaa", ...)
 ```
 
-# Implementation
 
-## Implementation State
+### Use cases
 
-Currently, there is
+#### Creation
 
-* a commandline simulation for the listener module, usage: consoletest.py
-* a WSGI script simulating the UMC wizard: wizard/umc_wizard.py
-* a callback (also WSGI script) for the OAuth interaction: wizard/azure_callback.py
-* a logging class to use the Python logging class automagically together with syslog and univention.debug (untested) depending on system it runs on --> will be removed, all logging will go to univention.debug, LISTENER facility.
+#### Modification
+
+#### Deletion
+
+## Features
+
+### Multi Account support
+
+### UCR variables to modify connector behaviour
+
+#### werror
+
+#### UDM attribute to sync in Azure (mapping, anonimize, never, multi valued)
+
+#### AdConnections (filter, alias, wizard)
+
+#### UsageLocation (or ssl/country or country ¿st?...) 
+
+#### defaultAlias (related with UCM)
+
+#### Group sync
+
+
+======================================================================================
+
 
 ## Authorization Code Grant Flow - ***not** used by listener!*
 
@@ -194,13 +389,6 @@ In order to create Teams, at least one group owner must be set.
 To convert a group into a team, the group must be of type MS365, not security group. The doc says so, but the API allows creating of a team from a security group
 To create a team, all group owners must have a license that includes Teams.
 
-# Design
-
-Azure is Microsofts cloud service. It has a so called Active Directory (Azure AD) component, that can manage Users, Groups, Applications, Roles, Permissions etc. We need it to manage users, groups, logins and Office365 licences.
-
-To synchronize an on-premises AD with Azure AD, "Azure AD Connect" can be used (https://azure.microsoft.com/en-us/documentation/articles/active-directory-aadconnect/). There is also a big C# library for communication for MS Azure. Since this non of this is not an option, we'll use the Azure Graph API.
-
-The API is a moving target, but has stable versions that can be used explicitly. We're currently using Version 1.6 of the REST API (see https://msdn.microsoft.com/en-us/Library/Azure/Ad/Graph/api/api-catalog). Other protocols (WS, XML) exist.
 
 Prior to communication with the Azure API, authentication and authorization is done through OAuth2.
 
@@ -229,6 +417,52 @@ The added Microsoft Graph permissions are:
 # Permission Name: TeamMember.ReadWrite.All, Type: Application
 {"id": "0121dc95-1b9f-4aed-8bac-58c5ac466691", "type": "Role"}]}}
 
+
+
+#### Objects
+To keep an Object-Oriented approach the classes for the Microsoft Graph API are being organized into
+classes representing the objects in the Microsoft Azure Directory service.
+* UserAzure
+* GroupAzure
+* TeamAzure
+* SubscriptionAzure
+
+This classes contains the attributes and methods needed to interact with the Microsoft Graph API on a
+higher level of abstraction.
+
+
+
+UCS
+LDAP
+change
+
+
+Listener
+receives representation 
+of the old and new object
+and the operation executed
+
+Creates corresponding UDM objects
+
+Call corresponding Connector Method
+
+--
+
+For each ad connection configured for the UDM object
+
+Resolve the operation logic
+(object dependencies, recursivity, ...)
+
+Creates the corresponding Azure Object (parse)
+
+Call the method of the Azure Object
+
+-- 
+
+Prepare data
+
+Call the Graph API with the credentials of the ad connection
+through the Core wrapper implementation.
 
 
 
