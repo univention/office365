@@ -1,6 +1,9 @@
-The [.gitlab-ci.yml](../.gitlab-ci.yml) implements four stages, of which only
-the first two are available in user branches. The `Staging` and `Deploy` stage
-is only available on the default branch.
+# CI Pipelines
+
+The [.gitlab-ci.yml](../.gitlab-ci.yml) configure the behavior of the gitlab pipeline for this component.
+This file should be versioned/adapted for the latest version UCS of the branch.
+This files implements four stages, of which only the first two are available in user/feature branches.  
+The `Staging` and `Deploy` stage are only available on the default branch.
 
 ```mermaid
 stateDiagram-v2
@@ -9,28 +12,28 @@ stateDiagram-v2
     Staging --> Deploy
 ```
 
-# Test
+## Test
 
-This stage implements quick sanity checks on the commited code changes. It is
+This stage implements quick sanity checks on the committed code changes. It is
 there to detect quality issues with the changes and provide a quick feedback
 to the developer. These stage should not take longer than a few seconds to
 execute.
 
 
-# Build
+## Build
 
 This stage uses the infamous `dpkg-buildpackage` tool to create packages and
 stores these as artifacts. These can be downloaded and installed on a UCS
 system.
 
 
-# Staging
+## Staging
 
 The changes from the repository are copied over to the main server. This step
 is usually referred to as `import` at Univention.
 
 
-# Deploy
+## Deploy
 
 In this stage the package is build again, but this time it is deployed into
 our testing repository. The testing repository can be used in UCS systems
@@ -44,7 +47,7 @@ Packages can be manually tested from there and can also be released.
 `release` stage may be a subject for a future development and is not there yet.
 
 
-# Specialities
+## Specialities
 
 * If the commit message contains `skip-build`, the CI pipeline never reaches
   the staging and deploy stages.
@@ -58,7 +61,7 @@ Packages can be manually tested from there and can also be released.
 
 # SSH_PRIVATE_KEY
 
-* Settings -> CI/CD -> Variables: Type: File, Protected (make sure the main branch is a proteced branch)
+* Settings -> CI/CD -> Variables: Type: File, Protected (make sure the main branch is a protected branch)
 
 # Workarounds
 
@@ -66,7 +69,7 @@ The `$SSH_PRIVATE_KEY` variable points to a file within the docker container
 and this file is created by Gitlab. The contents of this file is configurable
 under
 
-```
+```mermaid
 stateDiagram-v2
     Settings --> CI/CD
     CI/CD --> Variables
@@ -77,14 +80,12 @@ file gets truncated within the docker container by one byte, which cuts of
 the last minus sign of the SSH key stored in there. This makes the SSH client
 complain with the error message: `ssh unknown key format`.
 
-A future proof solution is to append a newline after SSH key, because that will
+A future-proof solution is to append a newline after SSH key, because that will
 still work, even when the bug is fixed in Gitlab.
 
-# Decision making
+## Decision making
 
-
-
-## should repo_admin and build-package-ng run in individual stages?
+### Should `repo_admin` and `build-package-ng` run in individual stages?
 
 :heavy_check_mark: Pro:
 
