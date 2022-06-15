@@ -10,7 +10,7 @@ as part of the new URL, e.g.
     https://graph.microsoft.com/v1.0/teams/[team_id]/members
 
 Before using the API an access token must be acquired. There are different ways
-to get one of these and they expire automatically after some time. Actually
+to get one of these, and they expire automatically after some time. Actually
 Microsoft provides with
 [msal](https://github.com/AzureAD/microsoft-authentication-library-for-python)
 a python library for the log-in process, but we decided against using it.
@@ -49,43 +49,6 @@ A further aspect of development with the Graph API is, that [pagination works
 slightly different](https://docs.microsoft.com/en-us/graph/paging).
 
 # Miscrosoft Graph API connector design
-```
-                                                        │         ┌───────────┐
-                                                        │         │           │
-                                                        │         │           │
-                                                        │         │           │
-                           ┌──────────────┐             │         │           │       ┌───────────┐
-┌─────────────────┐        │              │             │         │           │       │           │
-│                 │        │              │             │         │           │       │           │
-│                 │        │              │             │         │           │       │   Azure   │
-│                 │        │     UDM      │        ┌────┴─────┐   │           │       │   User    │
-│      User       │        │     User     │        │   User   │   │           │       │           │       ┌─────────────┐
-│    Listener     │        │     Object   │        │  Parser  │   │           │       │           │       │             │
-│                 │        │              │        └────┬─────┘   │           │       │           │       │             │
-│                 │        │              │             │         │           │       │           │       │             │
-│                 │        │              │             │         │           │       └───────────┘       │             │
-└─────────────────┘        │              │             │         │           │                           │             │
-                           └──────────────┘             │         │           │                           │             │
-                                                        │         │           │                           │             │
-                                                        │         │ Connector │                           │    Azure    │
-                           ┌──────────────┐             │         │           │                           │    Core     │
-┌─────────────────┐        │              │             │         │           │                           │             │
-│                 │        │              │             │         │           │                           │             │
-│                 │        │              │             │         │           │       ┌───────────┐       │             │
-│                 │        │     UDM      │        ┌────┴─────┐   │           │       │           │       │             │
-│      Group      │        │     Group    │        │  Group   │   │           │       │           │       │             │
-│    Listener     │        │     Object   │        │  Parser  │   │           │       │           │       │             │
-│                 │        │              │        └────┬─────┘   │           │       │   Azure   │       │             │
-│                 │        │              │             │         │           │       │   Group   │       └─────────────┘
-│                 │        │              │             │         │           │       │           │
-└─────────────────┘        │              │             │         │           │       │           │
-                           └──────────────┘             │         │           │       │           │
-                                                        │         │           │       └───────────┘
-                                                        │         │           │
-                                                        │         │           │
-                                                        │         │           │
-                                                        │         └───────────┘
-```
 
 ## Main Classes
 ### Listeners
