@@ -275,57 +275,86 @@ Univention Directory Manager Helper. This class is used to get the UDM objects r
 Convenience methods are being implemented to get and process the objects from UDM.
 Any operation related to UDM for this connector should be implemented in this class.
 
-### Async Queue/Tasks (Teams operations)
+### Async Queue/Tasks 
 #### Async queue
-Some Microsoft API calls are asynchronous. This means that the
+Some Microsoft API calls are asynchronous ([teams operations](https://docs.microsoft.com/en-us/graph/api/resources/teamsasyncoperation?view=graph-rest-1.0) ). This means that the
 call is made, but the response is not returned immediately.
 
 A queue is used to store the `tasks` to be performed. The queue is
-shared with another process that will consume the actions and would
+shared with another process ([async daemon](#async-daemon)) that will consume the actions and would
 execute them.
 
-The queue can be implemented with several backends. The
-default is a json file directory containing files for each task.
-A Redis backend is also available as an example but not currently used.
+The queue can be implemented with several backends.  
+The default is a [JSON Backend](modules/univention/office365/asyncqueue/queues/jsonfilesqueue.py) (_json file directory_) containing files for each task.  
+A [Redis backend](modules/univention/office365/asyncqueue/queues/redisqueue.py) is also available as an example but not currently used.
 
-The code related to the Async Queue is in `modules/univention/office365/asyncqueue.py`.
+The code related to the Async Queue is in `univention/office365/asyncqueue/`.
+
+#### Tasks
+
+The asynchronous queue is designed in such a way that it can execute Tasks.  
+
+All Tasks can be defined in a hierarchical way, so that for one to complete, subtasks can be defined that must be completed beforehand.
+
+These tasks are defined in an [abstract class](modules/univention/office365/asyncqueue/tasks/task.py) that can be reimplemented as needed.  
+Currently the only specific task type implemented is the [AzureTask](modules/univention/office365/asyncqueue/tasks/azuretask.py).
+
+An AzureTask contains the _alias_ of a connection on which the task will be executed, the name of the _method name_ to be called to execute it and the _arguments_ of the method.
+
+When executing an AzureTask, a core is constructed from the supplied alias and the method of the core whose name was supplied when creating the task is called along with the arguments to be used.
+
+In the execution of the AzureTask we are making use of the `retrying` library to try to make the call several times with waits in between to give Azure time to process the request.
+
 
 #### Async daemon
 
-Some azure calls need a try-sleep-retry (graph.create_group, retry(graph.add_group_owner), retry(graph.create_team_from_group)). To not block the listener at this point we have a async daemon for special azure calls *univention-ms-office-async* (share/univention-ms-office-async).
+Some azure calls need a try-sleep-retry.   
 
-Started via *univention-ms-office-async.service* this daemon checks */var/lib/univention-office365/async* for json files with following format:
+To not block the listener at this point we have an async daemon for these calls *univention-ms-office-async* (share/univention-ms-office-async).
+
+Started via `univention-ms-office-async.service` this daemon checks new tasks are available in the queue and executes them.
 ```
 {
-  "function_name": "convert_from_group_to_team",
-  "ad_connection_alias": "alias1",
-  "api_version": 1,
-  "parameters": {
-     "param1": "value1",
-     "param2": "value2",
-  }
-}
+ "ad_connection_alias": <name of the connection alias to be used>,
+ "method_name": <name of the method to be called>,
+ "method_args": <list or dict of arguments>,
+ "sub_tasks": [<dict representing a subtask>, ...]
+ }
 ```
 If the file can be verified (e.g. function exists or ad_connection_alias is available) *function_name* with the kwarg parameters *parameters* is executed on the connection *ad_connection_alias*. If the job can't be verified or is successful the job is removed.
 
-The daemon is just:
+The daemon process does the following:
 * drop privileges to listener(nogroup)
 * while loop
-* find jobs in */var/lib/univention-office365/async*
-* verify job -> success: execute job, failed: remove job
-* execute job -> success: remove file, failed: go to next job (move failed jobs after *retry-count* times to */var/lib/univention-office365/async/failed*)
-* wait(30)
+* find tasks in the queue
+* verify job -> success: execute task, failed: remove task
+* resolve task dependencies
+* execute task -> success: remove file, failed: go to next job (move failed jobs after *retry-count* times to *failed*)
+* wait and loop
 
-Logfile: /var/log/univention/listener_modules/ms-office-async.log.log
-Autostart: univention-ms-office-async/autostart
-Job dir: /var/lib/univention-office365/async (make sure owned by listener)
-Failed dir: /var/lib/univention-office365/async/failed (make sure owned by listener)
+_Related files_:  
+Logfile: `/var/log/univention/listener_modules/ms-office-async.log`  
+Autostart: `univention-ms-office-async/autostart`  
+Job dir: `/var/lib/univention-office365/async` (make sure owned by listener)  
+Failed dir: `/var/lib/univention-office365/async/failed` (make sure owned by listener)
 
-#### Async calls
+#### Async task creation and enqueueing
 
-```
-from univention.office365.api_helper import write_async_job
-write_async_job(a_function_name='modify_group', a_ad_connection_alias='o365domain', object_id="params", new_name="aaaa", ...)
+```python
+from univention.office365.asyncqueue.tasks.azuretask import MSGraphCoreTask
+from univention.office365.asyncqueue.queues.jsonfilesqueue import JsonFilesQueue
+
+# Creation of the queue
+q = JsonFilesQueue("o365asyncqueue")
+
+# Creation of subtasks
+subtasks = [MSGraphCoreTask(alias, "list_group_members", dict(group_id=group_id))]
+
+# Creation of main task with subtasks
+main_task = MSGraphCoreTask(alias, "list_group_owners", dict(group_id=group_id), sub_tasks=sub_tasks)
+
+# Enqueueing of the main task
+q.enqueue(main_task)
 ```
 
 
@@ -345,7 +374,7 @@ write_async_job(a_function_name='modify_group', a_ad_connection_alias='o365domai
 
 #### werror
 
-#### UDM attribute to sync in Azure (mapping, anonimize, never, multi valued)
+#### UDM attribute to sync in Azure (mapping, anonymize, never, multi valued)
 
 #### AdConnections (filter, alias, wizard)
 
@@ -368,8 +397,8 @@ In short:
 * user authorizes the requested permissions for the UCS App
 * user gets redirected from Azure to the configured callback-URI (https://DC.DOM/office365/mycallback)
 * the callback extracts a token from the URL and uses it to get some other tokens
-* those tokens can be used to access the Azure AD and to refresh themselfs when they expire (3600s)
-* when the refresh token has expired the dance begins from the start. Currently it is unknown how long it lasts... at least 6h it seams... The Azure doc states: "Refresh tokens do not have specified lifetimes. Typically, the lifetimes of refresh tokens are relatively long. [..] The client application needs to expect and handle errors..." (see https://msdn.microsoft.com/en-us/library/azure/dn645536.aspx)
+* those tokens can be used to access the Azure AD and to refresh themselves when they expire (3600s)
+* when the refresh token has expired the dance begins from the start. Currently, it is unknown how long it lasts... at least 6h it seams... The Azure doc states: "Refresh tokens do not have specified lifetimes. Typically, the lifetimes of refresh tokens are relatively long. [..] The client application needs to expect and handle errors..." (see https://msdn.microsoft.com/en-us/library/azure/dn645536.aspx)
 
 We dance with a partner: requests-oauthlib (https://github.com/requests/requests-oauthlib). It does well, except for the refresh handling. This should be fixed in their code. But handling it ourselves is not a problem. Requests-oauthlib uses the "requests" lib for handling the HTTP requests. The requests lib might one day end up in the Python standard library.
 
@@ -430,7 +459,7 @@ classes representing the objects in the Microsoft Azure Directory service.
 This classes contains the attributes and methods needed to interact with the Microsoft Graph API on a
 higher level of abstraction.
 
-
+IDEA FOR A DATA FLOW DIAGRAM:
 
 UCS
 LDAP
