@@ -28,11 +28,13 @@
 # License with the Debian GNU/Linux or Univention distribution in file
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
+import os
 
 ALIASDOMAIN = "o365-dev-univention-de"
 # ALIASDOMAIN = "u-azure-test-de"
-DOMAIN_PATH = "<Replace with your path>"
+DOMAIN_PATH = "/etc/univention-office365"
 # DOMAIN = "alphadistrict.onmicrosoft.com"
 DOMAIN = "univentiontestgmbh.onmicrosoft.com"
 DOMAIN_2 = "office365.dev-univention.de"
 OWNER_ID = "d6aab5ff-9c88-4e45-9e0f-1321ee8fc8bd"
+VCR_PATH = os.path.join(os.path.dirname(__file__), "vcr_cassettes")
