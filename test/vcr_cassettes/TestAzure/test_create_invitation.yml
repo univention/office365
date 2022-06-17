@@ -1,0 +1,62 @@
+interactions:
+- request:
+    body: '{"invitedUserEmailAddress": "create_invitation@univention.de", "inviteRedirectUrl":
+      "http://univention.de"}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - XXXXXX
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '107'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - Univention Microsoft 365 Connector
+    method: POST
+    uri: https://graph.microsoft.com/v1.0/invitations/
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAECoyS227bMBBE/4WN3kLLpi6WBBSN7V4QIE4DNwEKFEWx4i4dNhKlipQbxfC/F5Lj
+        2H7rM3fmzM5yy64qBAcjWRlHz45l7NG52ma+v26gfhyVWjaVrZQbyar0N5PR2L8oyUEveqfNRjtw
+        ujLWvyDjtOvYJdPIMgYyUUQAPMlB8DCJUp6qRPAgSCfjGATlmPazvQOtCInKh6Y4wRfVWpsjvjKF
+        NjSEaIbpDw2+H6J6AXhCeUKdpDnqeoUn1F7TzwXKkQHjvAADmmJKecRlABMeSiV5kgrikJAUKYVR
+        Pp16Im4tNV6A/7ORJ2Kn5RP17p/lIhTP8wLjRXnz8rT8/RdB/4E66mb19df59/Hd5t4Ut4vu29IT
+        kYgC9ES8GVBiNH7rBh8sNR+1rQvobqEklpm2KA7NDa/3XU0sY19asu5c96kEXcwQG7KWZUw2BI5+
+        HYu6ao3e9IerzAiJXTJLBq/frroka2FNLFNQWDowV4S6IemO98p8/8zI750cuLaH3pFBbdYzKal2
+        YGSP2Z99CP/KuDaqYtmWlXvkDZh1O6D328rWuqrUL4Sv8/MKu0MVUq5I6lqTcZZlP7aMztbeMnPS
+        Gxza6I13u5+7szR9hOH/jinHEATyNEfkocolTxJKuZyKOIhJpQKnbLf7BwAA//8DAGVnea5AAwAA
+    headers:
+      Cache-Control:
+      - no-store, must-revalidate, no-cache
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8
+      Date:
+      - Fri, 17 Jun 2022 09:40:28 GMT
+      Location:
+      - https://graph.microsoft.com
+      OData-Version:
+      - '4.0'
+      Strict-Transport-Security:
+      - max-age=31536000
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Accept-Encoding
+      client-request-id:
+      - f43930d7-78ba-49c9-839c-edd052c56e51
+      request-id:
+      - f43930d7-78ba-49c9-839c-edd052c56e51
+      x-ms-ags-diagnostic:
+      - '{"ServerInfo":{"DataCenter":"North Europe","Slice":"E","Ring":"4","ScaleUnit":"003","RoleInstance":"DB1PEPF0001F9BD"}}'
+    status:
+      code: 201
+      message: Created
+version: 1
