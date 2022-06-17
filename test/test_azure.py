@@ -72,7 +72,7 @@ from univention.office365.microsoft.urls import URLs
 URLs.proxies = mock.MagicMock(return_value={})
 from univention.office365.microsoft.core import MSGraphApiCore
 from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError, ItemNotFound
-from test import ALIASDOMAIN, DOMAIN_PATH, DOMAIN, VCR_PATH
+from test import ALIASDOMAIN, DOMAIN_PATH, DOMAIN, VCR_PATH, OWNER_ID
 
 
 @contextlib.contextmanager
@@ -167,7 +167,7 @@ def check_code_internal(response):
 		json_response = {} if len(response["body"]["string"]) == 0 else json.loads(gzip.decompress(response["body"]["string"]))
 
 		# json_response = json.loads(gzip.decompress(response["body"]["string"]))
-		if "status" not in json_response or ("status" in json_response and json_response["status"] == "succeeded"):
+		if "status" not in json_response or ("status" in json_response and json_response["status"] in ["succeeded", 'PendingAcceptance']):
 			return response
 	return None
 
@@ -253,7 +253,7 @@ class TestAzure:
 		None of the current applications have permissions to get an invitation
 		We are currently only checking that it fails with the expected exception
 		"""
-		response = self.core.create_invitation("martinena@univention.de", "http://univention.de")
+		response = self.core.create_invitation("create_invitation@univention.de", "http://univention.de")
 		assert "id" in response
 
 	@my_vcr.use_cassette(os.path.join(VCR_PATH, 'TestAzure/test_list_azure_users.yml'))
@@ -355,10 +355,10 @@ class TestAzure:
 	def test_create_team(self):
 		# type: () -> None
 		"""
-		The owner is hardcoded to d6aab5ff-9c88-4e45-9e0f-1321ee8fc8bd because the operation need a user with at least one valid license assigned.
+		The owner is hardcoded to OWNER_ID because the operation need a user with at least one valid license assigned.
 		"""
 
-		response = self.core.create_team("test_create_team", owner="d6aab5ff-9c88-4e45-9e0f-1321ee8fc8bd", description="Description test_create_team")
+		response = self.core.create_team("test_create_team", owner=OWNER_ID, description="Description test_create_team")
 		team_id = response["Content-Location"].split("'")[1]
 		time_slept = 0
 		while True:
@@ -435,7 +435,7 @@ class TestAzure:
 		""" """
 		# with new_user(self.core, "test_create_team_from_group_current") as user1:
 		with new_group(self.core, "test_create_team_from_group_current") as group:
-			self.core.add_group_owner(group["id"], "d6aab5ff-9c88-4e45-9e0f-1321ee8fc8bd")
+			self.core.add_group_owner(group["id"], OWNER_ID)
 			time_slept = 0
 			while True:
 				try:
@@ -816,7 +816,7 @@ class TestAzure:
 		with new_user(self.core, "test_remove_license") as user:
 			self.core.change_password(user["id"], user["passwordProfile"]["password"], create_random_pw())
 
-	@my_vcr.use_cassette(os.path.join(VCR_PATH, 'TestAzure/test_get_permisions.yml'))
+	@my_vcr.use_cassette(os.path.join(VCR_PATH, 'TestAzure/test_get_permisions.yml'), match_on=['method', 'scheme', 'host', 'port', 'path'])
 	def test_get_permissions(self):
 		# type: () -> None
 		self.core.get_permissions()
