@@ -1,53 +1,66 @@
-  * [Design Principles](#design-principles)
-    + [Modules](#modules)
-      - [UDM Wrapper](#udm-wrapper)
-      - [Microsoft](#microsoft)
-      - [Connector](#connector)
-    + [Utils](#utils)
-      - [UCR Helper](#ucr-helper)
-      - [UDM Helper](#udm-helper)
-    + [Information and calls flow](#information-and-calls-flow)
-    + [Listeners](#listeners)
-    + [UDMWrapper](#udmwrapper)
-    + [Microsoft](#microsoft-1)
+- [Design Principles](#design-principles)
+  * [Listeners](#listeners)
+  * [Modules](#modules)
+    + [UDM Wrapper](#udm-wrapper)
+      - [Classes](#classes)
+      - [Usage examples](#usage-examples)
+    + [Microsoft](#microsoft)
       - [Core](#core)
       - [Accounts | Tokens | Manifest | JSONStorage](#accounts---tokens---manifest---jsonstorage)
       - [Azure Objects](#azure-objects)
       - [Core | URLs](#core---urls)
       - [Exceptions (core_exceptions, exceptions, login_exceptions)](#exceptions--core-exceptions--exceptions--login-exceptions-)
-    + [Connectors](#connectors)
+      - [Classes](#classes-1)
+      - [Usage examples](#usage-examples-1)
+    + [Connector](#connector)
       - [Parser (UDMObjects => AzureObjects)](#parser--udmobjects----azureobjects-)
+      - [Classes](#classes-2)
+      - [Usage examples](#usage-examples-2)
     + [Helpers](#helpers)
-      - [Utils | UCRHelper | UDMHelper](#utils---ucrhelper---udmhelper)
-    + [Async Queue/Tasks (Teams operations)](#async-queue-tasks--teams-operations-)
+      - [Utils](#utils)
+      - [UCR Helper](#ucr-helper)
+      - [UDM Helper](#udm-helper)
+    + [Async Queue/Tasks](#async-queue-tasks)
+      - [Async queue](#async-queue)
+      - [Tasks](#tasks)
+      - [Async daemon](#async-daemon)
+      - [Async task creation and enqueueing](#async-task-creation-and-enqueueing)
     + [Use cases](#use-cases)
       - [Creation](#creation)
       - [Modification](#modification)
       - [Deletion](#deletion)
-  * [Features](#features)
-    + [Multi Account support](#multi-account-support)
-    + [UCR variables to modify connector behaviour](#ucr-variables-to-modify-connector-behaviour)
-      - [werror](#werror)
-      - [UDM attribute to sync in Azure (mapping, anonimize, never, multi valued)](#udm-attribute-to-sync-in-azure--mapping--anonimize--never--multi-valued-)
-      - [AdConnections (filter, alias, wizard)](#adconnections--filter--alias--wizard-)
-      - [UsageLocation (or ssl/country or country ¿st?...)](#usagelocation--or-ssl-country-or-country--st--)
-      - [defaultAlias (related with UCM)](#defaultalias--related-with-ucm-)
-      - [Group sync](#group-sync)
-  * [Async daemon](#async-daemon)
-  * [Async calls](#async-calls)
-- [Implementation](#implementation)
-  * [Implementation State](#implementation-state)
+- [Features](#features)
+  * [Multi Account support](#multi-account-support)
+  * [UCR variables to modify connector behaviour](#ucr-variables-to-modify-connector-behaviour)
+    + [office365/attributes/usageLocation](#office365-attributes-usagelocation)
+    + [office365/debug/werror](#office365-debug-werror)
+    + [office365/groups/sync](#office365-groups-sync)
+    + [office365/subscriptions/service_plan_names](#office365-subscriptions-service-plan-names)
+    + [office365/migrate/adconnectionalias](#office365-migrate-adconnectionalias)
+    + [office365/defaultalias](#office365-defaultalias)
+    + [office365/adconnection/wizard](#office365-adconnection-wizard)
+    + [univention-ms-office-async/autostart](#univention-ms-office-async-autostart)
+    + [AdConnections (filter, alias, wizard)](#adconnections--filter--alias--wizard-)
+    + [defaultAlias (related with UCM)](#defaultalias--related-with-ucm-)
+    + [UDM attributes to sync in Azure](#udm-attributes-to-sync-in-azure)
+      - [office365/attributes/mapping/.*](#office365-attributes-mapping--)
+      - [office365/attributes/sync](#office365-attributes-sync)
+      - [office365/attributes/static/.*](#office365-attributes-static--)
+      - [office365/attributes/anonymize](#office365-attributes-anonymize)
+      - [office365/attributes/never](#office365-attributes-never)
+    + [Related files:](#related-files-)
+- [Information and calls flow](#information-and-calls-flow)
   * [Authorization Code Grant Flow - ***not** used by listener!*](#authorization-code-grant-flow------not---used-by-listener--)
   * [Client credentials flow - *used by listener*](#client-credentials-flow----used-by-listener-)
 - [Dependencies / Constraints](#dependencies---constraints)
   * [Teams](#teams)
-- [Design](#design)
 - [Permission Name: Directory.ReadWrite.All, Type: Application](#permission-name--directoryreadwriteall--type--application)
 - [Permission Name: Group.ReadWrite.All, Type: Application](#permission-name--groupreadwriteall--type--application)
 - [Permission Name: User.ReadWrite.All, Type: Application](#permission-name--userreadwriteall--type--application)
 - [Permission Name: TeamMember.ReadWrite.All, Type: Application](#permission-name--teammemberreadwriteall--type--application)
-      - [Objects](#objects)
-    + [Async queue](#async-queue)
+
+<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
+
 
 <small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
 
@@ -99,68 +112,18 @@ with UCS and UDM and on the other hand the functionality related with the connec
 In the middle, a connector classes are being used to connect to the Microsoft Graph API and to the UCS LDAP side.
 Only these classes have the needed "knowledge" to connect both sides.
 
-You should be able to use most of the code outside of the listeners.
+You should be able to use most of the code outside the listeners.
 When modifying code, please keep the separation of where which objects are used.
 
-### Modules
-The main module for this connector is `univention.office365`. Several submodules are defined splitting the parts described before.
-
-#### UDM Wrapper
-When the listener receives an event from the UCS LDAP side for an action, it receives
-the dn of the object, the data of the object before the operation, the data of the object
-after the operation and the action. This data of the old and the new object comes as a dictionary.
-This dictionary of string keys and bytes values is the processed by the UDM wrapper to get
-the representation of the object in a UDM class. The underlying LDAP reference is 
-also kept as an attribute of the new UDM class.
-
-This classes are a higher level abstraction of the objects in the LDAP layer.
-
-* UDMOfficeUser
-* UDMOfficeGroup
-
-The functionality of this two objects have being extended to take care of the information related with the Microsoft connections/information
-of each object.
-
-
-#### Microsoft
-
-[//]: # (TODO: Check links)
-To synchronize an on-premises AD with Azure AD, "Azure AD Connect" can be used (https://azure.microsoft.com/en-us/documentation/articles/active-directory-aadconnect/). There is also a big C# library for communication for MS Azure. Since this non of this is not an option, we'll use the Azure Graph API.
-
-[//]: # (TODO: Check links)
-The API is a moving target, but has stable versions that can be used explicitly. We're currently using Version 1.6 of the REST API (see https://msdn.microsoft.com/en-us/Library/Azure/Ad/Graph/api/api-catalog).
-
-While developing this wrapper around the Microsoft Graph API the thinking of keeping it as
-independent as possible from the UCS LDAP side was taken into account. This way the `univention.office365.microsoft`
-module could be used as an independent module to operate over the Microsoft Graph API.
-
-#### Connector
-
-Until this point classes and methods to work with the data from the UCS/LDAP side and the Microsoft Azure Directory on the other side.
-
-No logic have being described to connect the two sides.
-
-This is the main function of the connector submodule. When the listener receives an action related with an object in the UCS LDAP side,
-it's converted to the corresponding UDM Office object and then a specific connector is used
-to replicate the operation on the Microsoft Azure Directory side.
-
-Mainly two classes take care of the operations for the Users and Groups:
-* UserConnector
-* GroupConnector
-
-Both have methods to create, delete and modify this objects. Also, several convenience methods
-have being implemented in the connector to take care of some dependencies between these objects (pertences, memberships, ownership, etc).
-
-
-
-### Information and calls flow
-
-### Listeners
+## Listeners
 * Two listeners
 * New API (link)
 
+## Modules
+The main module for this connector is `univention.office365`. Several submodules are defined splitting the parts described before.
 
-### UDMWrapper
+### UDM Wrapper
+
 ```
                 ┌──────────────┐
                 │              │
@@ -184,12 +147,41 @@ have being implemented in the connector to take care of some dependencies betwee
 │                 │            │                  │
 └─────────────────┘            └──────────────────┘
 ```
+When the listener receives an event from the UCS LDAP side for an action, it receives
+the dn of the object, the data of the object before the operation, the data of the object
+after the operation and the action. This data of the old and the new object comes as a dictionary.
+This dictionary of string keys and bytes values is the processed by the UDM wrapper to get
+the representation of the object in a UDM class. The underlying LDAP reference is 
+also kept as an attribute of the new UDM class.
+
+These classes are a higher level abstraction of the objects in the LDAP layer.
+
+* UDMOfficeUser
+* UDMOfficeGroup
+
+The functionality of this two objects have being extended to take care of the information related with the Microsoft connections/information
+of each object.
+
 * Usage of UDM objects
 * Implemented classes 
 * Main methods
 * Examples of usage of the classes
 
+#### Classes
+
+#### Usage examples
+
+
 ### Microsoft
+[//]: # (TODO: Check links)
+To synchronize an on-premises AD with Azure AD, "Azure AD Connect" can be used (https://azure.microsoft.com/en-us/documentation/articles/active-directory-aadconnect/). There is also a big C# library for communication for MS Azure. Since this non of this is not an option, we'll use the Azure Graph API.
+
+[//]: # (TODO: Check links)
+The API is a moving target, but has stable versions that can be used explicitly. We're currently using Version 1.6 of the REST API (see https://msdn.microsoft.com/en-us/Library/Azure/Ad/Graph/api/api-catalog).
+
+While developing this wrapper around the Microsoft Graph API the thinking of keeping it as
+independent as possible from the UCS LDAP side was taken into account. This way the `univention.office365.microsoft`
+module could be used as an independent module to operate over the Microsoft Graph API.
 
 ```
                                         ┌─────┐
@@ -230,18 +222,79 @@ have being implemented in the connector to take care of some dependencies betwee
                                                                 │
 ```
 
+#### Manifest
+The manifest is downloaded by the user from their Azure application.  
+The manifest contains, among other things, permissions for the application.  
+The function *def transform* in azure_auth.py appends needed permissions to the manifest, which is then re-uploaded by the user.  
+This includes permissions for the Azure Active Directory Graph API (resourceAppId: 00000002-0000-0000-c000-000000000000)
+and the Microsoft Graph API (resourceAppId: 00000003-0000-0000-c000-000000000000).  
+The permissions will be displayed in the *API permissions* Tab in the Azure Portal.
 
-#### Core
+The added Azure Active Directory Graph API permissions are:
+```python
+#Permission Name: Directory.ReadWrite.All, Type: Application
+{"id": "78c8a3c8-a07e-4b9e-af1b-b5ccab50a175", "type": "Role"}
+```
+The added Microsoft Graph permissions are:
+```python
+# Permission Name: Directory.ReadWrite.All, Type: Application
+{"id": "19dbc75e-c2e2-444c-a770-ec69d8559fc7", "type": "Role"},
+# Permission Name: Group.ReadWrite.All, Type: Application
+{"id": "62a82d76-70ea-41e2-9197-370581804d09", "type": "Role"},
+# Permission Name: User.ReadWrite.All, Type: Application
+{"id": "741f803b-c850-494e-b5df-cde7c675a1ca", "type": "Role"},
+# Permission Name: TeamMember.ReadWrite.All, Type: Application
+{"id": "0121dc95-1b9f-4aed-8bac-58c5ac466691", "type": "Role"}
+```
 
-#### Accounts | Tokens | Manifest | JSONStorage
+#### Accounts | Tokens
+
+An AzureAccount object represents an account in the Azure Active Directory.
+It stores the related alias that identifies account, the current token and the related files.
+
+The path for the files of an account is defined by [`<OFFICE365_API_PATH>/<alias>`](modules/univention/office365/microsoft/__init__.py).  
+
+For an already configured account the following files are stored:
+* `key.pem`:  File containing the private key of the account.
+* `cert.pem`:  File containing the public certificate of the account.
+* `cert.fp`:  File containing the fingerprint of the public certificate.
+* `ids.json`:  
+* `token.json`:  File containing the last token of the account.
+* `manifest.json`:  File containing the manifest of the account.  
+
+[//]: # (TODO: Check the descriptions, ask @erik or @julia)
+
+This object is also responsible for checking the validity of the token and for refreshing it if expired.
+
+#### Core | URLs
+Implements all the needed calls to the Microsoft Graph API.
+Each function returns a response object.
+
+
 
 #### Azure Objects
 
-#### Core | URLs
+
+
+
+
 
 #### Exceptions (core_exceptions, exceptions, login_exceptions)
 
-### Connectors
+#### Classes
+To keep an Object-Oriented approach the classes for the Microsoft Graph API are being organized into
+classes representing the objects in the Microsoft Azure Directory service.
+* UserAzure
+* GroupAzure
+* TeamAzure
+* SubscriptionAzure
+
+#### Usage examples
+
+This classes contains the attributes and methods needed to interact with the Microsoft Graph API on a
+higher level of abstraction.
+
+### Connector
 ```
               ┌───────────────────┐       ┌─────────────────────┐
               │                   │       │                     │
@@ -259,6 +312,24 @@ have being implemented in the connector to take care of some dependencies betwee
 ```
 
 #### Parser (UDMObjects => AzureObjects)
+Until this point classes and methods to work with the data from the UCS/LDAP side and the Microsoft Azure Directory on the other side.
+
+No logic have being described to connect the two sides.
+
+This is the main function of the connector submodule. When the listener receives an action related with an object in the UCS LDAP side,
+it's converted to the corresponding UDM Office object and then a specific connector is used
+to replicate the operation on the Microsoft Azure Directory side.
+
+Mainly two classes take care of the operations for the Users and Groups:
+* UserConnector
+* GroupConnector
+
+Both have methods to create, delete and modify this objects. Also, several convenience methods
+have being implemented in the connector to take care of some dependencies between these objects (pertences, memberships, ownership, etc).
+
+#### Classes
+
+#### Usage examples
 
 ### Helpers
 
@@ -274,6 +345,10 @@ Any operation related to UCR for this connector should be implemented in this cl
 Univention Directory Manager Helper. This class is used to get the UDM objects related to the office365 connector.
 Convenience methods are being implemented to get and process the objects from UDM.
 Any operation related to UDM for this connector should be implemented in this class.
+
+
+#### JSONStorage
+Should be moved to utils
 
 ### Async Queue/Tasks 
 #### Async queue
@@ -366,28 +441,141 @@ q.enqueue(main_task)
 
 #### Deletion
 
-## Features
+# Features
 
-### Multi Account support
+## Multi Account support
 
-### UCR variables to modify connector behaviour
+## UCR variables to modify connector behaviour
 
-#### werror
 
-#### UDM attribute to sync in Azure (mapping, anonymize, never, multi valued)
+### office365/attributes/usageLocation  
+Required for Azure users that will be assigned licenses due to legal requirement to check for availability of services in countries.  
 
-#### AdConnections (filter, alias, wizard)
+The `country` attribute of a user is given precedence over this setting.  
+If neither is set, the value of the UCR variable `ssl/country` is used.
+For legal reasons it is recommended to set this variable.  
 
-#### UsageLocation (or ssl/country or country ¿st?...) 
+_Type:_ str two-letter country code (ISO standard 3166).  
 
-#### defaultAlias (related with UCM)
+### office365/debug/werror  
+Flag to enable the writing of log messages of all levels as errors (`ERROR`) and with debug information to the logfile.  
+This is used for debugging only.
 
-#### Group sync
+_Type:_  bool
+
+_Default:_
+no
+
+### office365/groups/sync  
+Flag to determine if groups that contain users with a Microsoft 365 account be synchronized or not.  
+
+_Type:_ bool
+
+_Default:_  
+no
+
+### office365/subscriptions/service_plan_names  
+Service plans names.  
+Will be used to detect which subscriptions to use.
+
+_Type:_ str comma separated list 
+
+_Default:_   
+'SHAREPOINTWAC, SHAREPOINTWAC_DEVELOPER, OFFICESUBSCRIPTION, OFFICEMOBILE_SUBSCRIPTION, SHAREPOINTWAC_EDU'
+
+### office365/migrate/adconnectionalias  
+DEPRECATED. To be removed in future releases. Don't use.  
+This variable can be used to deactivate the automatic migration of user and group accounts during the update of the app to version 3.0. If an administrator chooses to postpone the migration, it needs to be done manually later by running the script /usr/share/univention-office365/scripts/migrate_to_adconnectionalias. By default the variable is unset and the automatic migration is run during the update of the app. Setting the variable to 'no' or 'false' before the app update will skip the automatic migration.
+
+_Type:_ str
+
+### office365/defaultalias  
+If the value is set to the adconnection alias of an initialized AD connection and no adconnection alias is configured on a user or group account when Office365 is enabled, they are synchronized to the Azure AD defined by this variable.
+
+_Type:_ str
+
+### office365/adconnection/wizard  
+The value of this Univention Configuration Registry-Variable defines which connection is configured by the next run of the Microsoft 365 Configuration Wizard. The value should not be empty. To see the available connections, '/usr/share/univention-office365/scripts/manage_adconnections list' can be called. The default after installation is 'defaultADconnection'.
+
+_Type:_ str
+
+### univention-ms-office-async/autostart 
+This variable configures the start mode of the Univention MS Office Async Daemons. If set to 'no' or 'disabled', the service cannot be started. If the variable is set to 'manually', the service isn't started during system boot, but can be enabled manually at a later point.
+
+_Type:_ str
+
+### AdConnections (filter, alias, wizard)
+
+
+### defaultAlias (related with UCM)
+
+### UDM attributes to sync in Azure
+#### office365/attributes/mapping/.*  
+Used to configure synchronization of user attributes to the Azure Active Directory (AAD).  
+Variables in the format `office365/attributes/mapping/ATTRIBUTE-IN-LDAP=ATTRIBUTE-IN-AZURE`  
+
+_Type:_ str  
+
+_Default:_
+```
+    office365/attributes/mapping/l=city  
+    office365/attributes/mapping/displayName=displayName  
+    office365/attributes/mapping/employeeType=jobTitle  
+    office365/attributes/mapping/givenName=givenName  
+    office365/attributes/mapping/mobile=mobilePhone  
+    office365/attributes/mapping/mail=otherMails  
+    office365/attributes/mapping/mailAlternativeAddress=otherMails  
+    office365/attributes/mapping/mailPrimaryAddress=otherMails  
+    office365/attributes/mapping/postalCode=postalCode  
+    office365/attributes/mapping/roomNumber=officeLocation  
+    office365/attributes/mapping/st=usageLocation  
+    office365/attributes/mapping/street=streetAddress  
+    office365/attributes/mapping/sn=surname  
+    office365/attributes/mapping/telephoneNumber=businessPhones
+``` 
+
+
+#### office365/attributes/sync  
+LDAP attributes that should be synchronized with the Azure Active DirectoryAAD.  
+The names of the attributes must be included in `office365/attributes/mapping/.*` as ATTRIBUTE-IN-LDAP.  
+
+_Type:_ str comma separated list  
+
+_Default:_  
+    `office365/attributes/sync=displayName,employeeType,givenName,l,mailPrimaryAddress,mobile,mailAlternativeAddress,mail,postalCode,roomNumber,st,street,sn,telephoneNumber`
+
+#### office365/attributes/static/.*  
+Configure synchronization of user attributes to the Azure Active Directory (AAD).  
+Variables in the format office365/attributes/static/ATTRIBUTE-IN-LDAP=VALUE  
+VALUE will be written to the corresponding attribute in AAD when a user is enabled for Microsoft 365.    
+Will have priority over attributes in `office365/attributes/sync`.  
+The names of the attributes must be included in `office365/attributes/mapping/.*` as ATTRIBUTE-IN-LDAP.  
+
+_Type:_ str
+  
+#### office365/attributes/anonymize  
+LDAP attributes that should be synchronized in anonymized form to the Azure Active Directory.  
+The names of the attributes must be included in `office365/attributes/mapping/.*` as ATTRIBUTE-IN-LDAP.   
+Will be given precedence over attributes in `office365/attributes/static` and `office365/attributes/sync`.  
+
+_Type:_ str comma separated list
+
+#### office365/attributes/never  
+LDAP attributes that should never be synchronized with the Azure Active Directory.  
+Will be given precedence over attributes in `office365/attributes/anonymize`, `office365/attributes/static` and `office365/attributes/sync`.  
+
+_Type:_ str comma separated list
+
+
+### Related files:
+* `office365/debian/univention-office365.univention-config-registry-variables`
+* `scripts/package/40univention-office365.inst`
+
 
 
 ======================================================================================
 
-
+# Information and calls flow
 ## Authorization Code Grant Flow - ***not** used by listener!*
 
 With this data the OAuth dance can begin. See "Authorization Code Grant Flow" (see https://msdn.microsoft.com/en-us/library/azure/dn645542.aspx).
@@ -448,16 +636,7 @@ The added Microsoft Graph permissions are:
 
 
 
-#### Objects
-To keep an Object-Oriented approach the classes for the Microsoft Graph API are being organized into
-classes representing the objects in the Microsoft Azure Directory service.
-* UserAzure
-* GroupAzure
-* TeamAzure
-* SubscriptionAzure
 
-This classes contains the attributes and methods needed to interact with the Microsoft Graph API on a
-higher level of abstraction.
 
 IDEA FOR A DATA FLOW DIAGRAM:
 
