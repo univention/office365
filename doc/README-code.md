@@ -116,12 +116,22 @@ You should be able to use most of the code outside the listeners.
 When modifying code, please keep the separation of where which objects are used.
 
 ## Listeners
-* Two listeners
-* New API (link)
+To understand how the `listeners/notifier` mechanism works you should read the Listeners section of the [UCS developer Manual](https://docs.software-univention.de/developer-reference-5.0.html#chap:listener).
+
+This connector is using the [High-level Listener modules API](https://docs.software-univention.de/developer-reference-5.0.html#listener:handler:42).
+
+When a notification about changes in the LDAP directory is triggered, two listeners take actions for this component:
+* [office365-user](/listeners/office365-user.py) for the users
+* [office365-group](/listeners/office365-group.py) for the groups
+
+These listeners are in charge of creating the corresponding [Connector](#connector), the [UDMObjects](#udm-wrapper) 
+from the `old` and `new` data received from the Notifier for the triggering operation (Create, Modify or Delete), and calling the connector method replicate it in Azure.
 
 ## Modules
-The main module for this connector is `univention.office365`. Several submodules are defined splitting the parts described before.
+The main module for this connector is `univention.office365`.  
+Several submodules are defined following the design shown above.
 
+To better understand the usage of each submodule, please read the following sections.
 ### UDM Wrapper
 
 ```
@@ -147,34 +157,69 @@ The main module for this connector is `univention.office365`. Several submodules
 │                 │            │                  │
 └─────────────────┘            └──────────────────┘
 ```
-When the listener receives an event from the UCS LDAP side for an action, it receives
-the dn of the object, the data of the object before the operation, the data of the object
-after the operation and the action. This data of the old and the new object comes as a dictionary.
-This dictionary of string keys and bytes values is the processed by the UDM wrapper to get
-the representation of the object in a UDM class. The underlying LDAP reference is 
-also kept as an attribute of the new UDM class.
+When the listener receives an event from the UCS LDAP side for an action, it also receives
+the `dn` of the object, the data of the object before the operation (`old`), the data of the object
+after the operation (`new`) and the action (converted in a method call in the high level API).  
+This data of the `old` and the `new` LDAP object arrives as a dictionary of string keys and bytes values.
+This dicts are then processed by the UDM wrapper to get the representation of the object in a UDM class.
+The underlying LDAP reference is also kept as an attribute of the new UDM class.
 
 These classes are a higher level abstraction of the objects in the LDAP layer.
 
-* UDMOfficeUser
-* UDMOfficeGroup
-
-The functionality of this two objects have being extended to take care of the information related with the Microsoft connections/information
+The functionality of underlying UDM Objects have being extended to take care of the information related with the Microsoft connections/information
 of each object.
 
-* Usage of UDM objects
-* Implemented classes 
-* Main methods
-* Examples of usage of the classes
+#### SubscriptionProfile
 
-#### Classes
+#### UniventionOffice365Data
+
+Each LDAP object that is being synced in Azure has a `univentionOffice365Data` attribute.
+This information is used for internal book-keeping and not easily accessible
+via LDAP search, because it is stored encoded as `base64(zipped(json(dict)))`
+
+The `UniventionOffice365Data` is intended to represent this information and to easily encode/decode it as needed.
+
+#### UDMOfficeObject, UDMOfficeUser, UDMOfficeGroup
+`UDMOfficeObject` is the base class for all the other two and implements all the common functionalities.
+
+It's specially interesting explain how the UDMOfficeObject relates with the AD Connections.
+Each UDMOfficeObject can be configured to be synced in several connections.
+
+For a given time, a `UDMOfficeObject` should only have at most one active connection, this is represented internally by the `current_connection_alias` attribute.
+In order to be able to perform operations on all the connections on which an object is replicated, 
+the `aliases` generator has been implemented, which assigns to current_connection_alias each of the connections for which 
+this object is configured and sets it back to `None` when finished.
+
+
+`UDMOfficeUser` and `UDMOfficeGroup` implement the specific functionality for the users and groups, to retrieve information
+, save and update the information related with the AD Connections.
+
+You can take a look into the code to get more information about the [implementation](/modules/univention/office365/udmwrapper/udmobjects.py) of these classes.
+
+#### Usage examples
+Creating `UDMOfficeUser` instances from the old and new data received in the listener:
+```python
+# self._ldap_credentials is available in the listener class
+# old, new and dn are supplied as arguments in the method call of the listener
+
+new_udm_user = UDMOfficeUser(ldap_fields=new, ldap_cred=self._ldap_credentials, dn=dn, logger=logger)
+old_udm_user = UDMOfficeUser(ldap_fields=old, ldap_cred=self._ldap_credentials, dn=old_dn or dn, logger=logger)
+```
+
+```python
+for alias in udm_user.aliases():
+    # for this iteration of the loop, the udm_user.current_connection_alias is set to an specific connection
+    # every action performed on the udm_user related with azure will be performed on this connection.
+    pass
+```
 
 #### Usage examples
 
 
 ### Microsoft
 [//]: # (TODO: Check links)
-To synchronize an on-premises AD with Azure AD, "Azure AD Connect" can be used (https://azure.microsoft.com/en-us/documentation/articles/active-directory-aadconnect/). There is also a big C# library for communication for MS Azure. Since this non of this is not an option, we'll use the Azure Graph API.
+To synchronize an on-premises AD with Azure AD, "Azure AD Connect" can be used (https://azure.microsoft.com/en-us/documentation/articles/active-directory-aadconnect/). There is also a big C# library for communication for MS Azure.  
+Since this none of these are an option, we'll use the Microsoft Graph API.
 
 [//]: # (TODO: Check links)
 The API is a moving target, but has stable versions that can be used explicitly. We're currently using Version 1.6 of the REST API (see https://msdn.microsoft.com/en-us/Library/Azure/Ad/Graph/api/api-catalog).
@@ -252,7 +297,7 @@ The added Microsoft Graph permissions are:
 An AzureAccount object represents an account in the Azure Active Directory.
 It stores the related alias that identifies account, the current token and the related files.
 
-The path for the files of an account is defined by [`<OFFICE365_API_PATH>/<alias>`](modules/univention/office365/microsoft/__init__.py).  
+The path for the files of an account is defined by [`<OFFICE365_API_PATH>/<alias>`](/modules/univention/office365/microsoft/__init__.py).  
 
 For an already configured account the following files are stored:
 * `key.pem`:  File containing the private key of the account.
@@ -325,7 +370,7 @@ Mainly two classes take care of the operations for the Users and Groups:
 * GroupConnector
 
 Both have methods to create, delete and modify this objects. Also, several convenience methods
-have being implemented in the connector to take care of some dependencies between these objects (pertences, memberships, ownership, etc).
+have being implemented in the connector to take care of some dependencies between these objects (memberships, ownership, etc).
 
 #### Classes
 
@@ -360,8 +405,8 @@ shared with another process ([async daemon](#async-daemon)) that will consume th
 execute them.
 
 The queue can be implemented with several backends.  
-The default is a [JSON Backend](modules/univention/office365/asyncqueue/queues/jsonfilesqueue.py) (_json file directory_) containing files for each task.  
-A [Redis backend](modules/univention/office365/asyncqueue/queues/redisqueue.py) is also available as an example but not currently used.
+The default is a [JSON Backend](/modules/univention/office365/asyncqueue/queues/jsonfilesqueue.py) (_json file directory_) containing files for each task.  
+A [Redis backend](/modules/univention/office365/asyncqueue/queues/redisqueue.py) is also available as an example but not currently used.
 
 The code related to the Async Queue is in `univention/office365/asyncqueue/`.
 
@@ -371,8 +416,8 @@ The asynchronous queue is designed in such a way that it can execute Tasks.
 
 All Tasks can be defined in a hierarchical way, so that for one to complete, subtasks can be defined that must be completed beforehand.
 
-These tasks are defined in an [abstract class](modules/univention/office365/asyncqueue/tasks/task.py) that can be reimplemented as needed.  
-Currently the only specific task type implemented is the [AzureTask](modules/univention/office365/asyncqueue/tasks/azuretask.py).
+These tasks are defined in an [abstract class](/modules/univention/office365/asyncqueue/tasks/task.py) that can be reimplemented as needed.  
+Currently the only specific task type implemented is the [AzureTask](/modules/univention/office365/asyncqueue/tasks/azuretask.py).
 
 An AzureTask contains the _alias_ of a connection on which the task will be executed, the name of the _method name_ to be called to execute it and the _arguments_ of the method.
 
@@ -396,7 +441,7 @@ Started via `univention-ms-office-async.service` this daemon checks new tasks ar
  "sub_tasks": [<dict representing a subtask>, ...]
  }
 ```
-If the file can be verified (e.g. function exists or ad_connection_alias is available) *function_name* with the kwarg parameters *parameters* is executed on the connection *ad_connection_alias*. If the job can't be verified or is successful the job is removed.
+If the file can be verified (e.g. function exists or ad_connection_alias is available) *function_name* with the kwarg *parameters* is executed on the connection *ad_connection_alias*. If the job can't be verified or is successful the job is removed.
 
 The daemon process does the following:
 * drop privileges to listener(nogroup)
@@ -485,7 +530,7 @@ _Default:_
 
 ### office365/migrate/adconnectionalias  
 DEPRECATED. To be removed in future releases. Don't use.  
-This variable can be used to deactivate the automatic migration of user and group accounts during the update of the app to version 3.0. If an administrator chooses to postpone the migration, it needs to be done manually later by running the script /usr/share/univention-office365/scripts/migrate_to_adconnectionalias. By default the variable is unset and the automatic migration is run during the update of the app. Setting the variable to 'no' or 'false' before the app update will skip the automatic migration.
+This variable can be used to deactivate the automatic migration of user and group accounts during the update of the app to version 3.0. If an administrator chooses to postpone the migration, it needs to be done manually later by running the script /usr/share/univention-office365/scripts/migrate_to_adconnectionalias. By default, the variable is unset and the automatic migration is run during the update of the app. Setting the variable to 'no' or 'false' before the app update will skip the automatic migration.
 
 _Type:_ str
 
@@ -592,7 +637,7 @@ We dance with a partner: requests-oauthlib (https://github.com/requests/requests
 
 ## Client credentials flow - *used by listener*
 
-With the help of the UMC wizard a SSL certificate is uploaded to Azure. The secret key is used by us to sign our requests and to verify their tokens. No user interaction is required to fetch new tokens.
+With the help of the UMC wizard an SSL certificate is uploaded to Azure. The secret key is used by us to sign our requests and to verify their tokens. No user interaction is required to fetch new tokens.
 
 The downside of the client credentials flow is, that some operations on the AAD are excluded from application permissions. Most notable an application does not hae the rights to reset user passwords or to delete entities (including users or groups) (see https://msdn.microsoft.com/Library/Azure/Ad/Graph/howto/azure-ad-graph-api-permission-scopes#DirectoryRWDetail).
 
@@ -617,7 +662,7 @@ The wizard must retrieve the following data from the user:
 * the Azure Application manifest
 
 The manifest is downloaded by the user from their Azure application. The manifest contains, among other things, permissions for the application.
-The function *def transform* in azure_auth.py appends needed permissions to the manifest, which is then reuploaded by the user.
+The function *def transform* in azure_auth.py appends needed permissions to the manifest, which is then re-uploaded by the user.
 This includes permissions for the Azure Active Directory Graph API (resourceAppId: 00000002-0000-0000-c000-000000000000)
 and the Microsoft Graph API (resourceAppId: 00000003-0000-0000-c000-000000000000). The permissions will be displayed in the *API permissions* Tab in the Azure Portal.
 
@@ -659,7 +704,7 @@ Call corresponding Connector Method
 For each ad connection configured for the UDM object
 
 Resolve the operation logic
-(object dependencies, recursivity, ...)
+(object dependencies, recursion, ...)
 
 Creates the corresponding Azure Object (parse)
 
