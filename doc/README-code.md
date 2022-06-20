@@ -268,29 +268,30 @@ module could be used as an independent module to operate over the Microsoft Grap
 ```
 
 #### Manifest
-The manifest is downloaded by the user from their Azure application.  
-The manifest contains, among other things, permissions for the application.  
-The function *def transform* in azure_auth.py appends needed permissions to the manifest, which is then re-uploaded by the user.  
-This includes permissions for the Azure Active Directory Graph API (resourceAppId: 00000002-0000-0000-c000-000000000000)
-and the Microsoft Graph API (resourceAppId: 00000003-0000-0000-c000-000000000000).  
-The permissions will be displayed in the *API permissions* Tab in the Azure Portal.
 
-The added Azure Active Directory Graph API permissions are:
-```python
-#Permission Name: Directory.ReadWrite.All, Type: Application
-{"id": "78c8a3c8-a07e-4b9e-af1b-b5ccab50a175", "type": "Role"}
-```
-The added Microsoft Graph permissions are:
-```python
-# Permission Name: Directory.ReadWrite.All, Type: Application
-{"id": "19dbc75e-c2e2-444c-a770-ec69d8559fc7", "type": "Role"},
-# Permission Name: Group.ReadWrite.All, Type: Application
-{"id": "62a82d76-70ea-41e2-9197-370581804d09", "type": "Role"},
-# Permission Name: User.ReadWrite.All, Type: Application
-{"id": "741f803b-c850-494e-b5df-cde7c675a1ca", "type": "Role"},
-# Permission Name: TeamMember.ReadWrite.All, Type: Application
-{"id": "0121dc95-1b9f-4aed-8bac-58c5ac466691", "type": "Role"}
-```
+* The manifest is downloaded by the user from their Azure application.
+* The manifest contains, among other things, permissions for the application.
+* The function `def transform` in `univention.office365.microsoft.manifest.Manifest.transform` appends needed permissions to the manifest, which is then re-uploaded by the user.
+* The added Azure Active Directory Graph API permissions are:
+
+    ```python
+    #Permission Name: Directory.ReadWrite.All, Type: Application
+    {"id": "78c8a3c8-a07e-4b9e-af1b-b5ccab50a175", "type": "Role"}
+    ```
+    
+    The added Microsoft Graph permissions are:
+    
+    ```python
+    # Permission Name: Directory.ReadWrite.All, Type: Application
+    {"id": "19dbc75e-c2e2-444c-a770-ec69d8559fc7", "type": "Role"},
+    # Permission Name: Group.ReadWrite.All, Type: Application
+    {"id": "62a82d76-70ea-41e2-9197-370581804d09", "type": "Role"},
+    # Permission Name: User.ReadWrite.All, Type: Application
+    {"id": "741f803b-c850-494e-b5df-cde7c675a1ca", "type": "Role"},
+    # Permission Name: TeamMember.ReadWrite.All, Type: Application
+    {"id": "0121dc95-1b9f-4aed-8bac-58c5ac466691", "type": "Role"}
+    ```
+* The permissions will be displayed in the *API permissions* Tab in the Azure Portal.
 
 #### Accounts | Tokens
 
