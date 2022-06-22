@@ -61,11 +61,6 @@
 
 <small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
 
-
-<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
-
-
-
 # Design Principles
 
 The code for this connector is organized into a module called office365 inside the main univention python module.  
@@ -174,7 +169,7 @@ of each object.
 #### UniventionOffice365Data
 
 Each LDAP object that is being synced in Azure has a `univentionOffice365Data` attribute.
-This information is used for internal book-keeping and not easily accessible
+This information is used for internal bookkeeping and not easily accessible
 via LDAP search, because it is stored encoded as `base64(zipped(json(dict)))`
 
 The `UniventionOffice365Data` is intended to represent this information and to easily encode/decode it as needed.
@@ -197,14 +192,35 @@ this object is configured and sets it back to `None` when finished.
 You can take a look into the code to get more information about the [implementation](/modules/univention/office365/udmwrapper/udmobjects.py) of these classes.
 
 #### Usage examples
+
 Creating `UDMOfficeUser` instances from the old and new data received in the listener:
+
 ```python
 # self._ldap_credentials is available in the listener class
 # old, new and dn are supplied as arguments in the method call of the listener
 
+# For users
 new_udm_user = UDMOfficeUser(ldap_fields=new, ldap_cred=self._ldap_credentials, dn=dn, logger=logger)
 old_udm_user = UDMOfficeUser(ldap_fields=old, ldap_cred=self._ldap_credentials, dn=old_dn or dn, logger=logger)
+
+# For groups
+new_udm_group = UDMOfficeGroup(ldap_fields=new, ldap_cred=self._ldap_credentials, dn=dn, logger=logger)
+old_udm_group = UDMOfficeGroup(ldap_fields=old, ldap_cred=self._ldap_credentials, dn=old_dn or dn, logger=logger)
+
 ```
+
+It's also possible to create `UDMOfficeObject` instance directly from the `dn` of the object,
+not passing any field and getting the data from LDAP.
+
+```python
+# For users
+user = UDMOfficeUser(ldap_fields={}, ldap_cred=self.ldap_cred, dn=dn_of_the_user)
+
+# For groups
+group = UDMOfficeGroup(ldap_fields={}, ldap_cred=self.ldap_cred, dn=dn_of_the_group)
+```
+
+Looping over the connections to which an UDM Office User is replicated:
 
 ```python
 for alias in udm_user.aliases():
@@ -213,16 +229,23 @@ for alias in udm_user.aliases():
     pass
 ```
 
-#### Usage examples
+Setting the current connection alias to a temporal value you can use a context manager like this:
 
+```python
+with udm_office_group.set_current_alias(alias):
+    # perform actions on the udm_office_group related with azure connected alias
+    pass
+```
 
 ### Microsoft
-[//]: # (TODO: Check links)
-To synchronize an on-premises AD with Azure AD, "Azure AD Connect" can be used (https://azure.microsoft.com/en-us/documentation/articles/active-directory-aadconnect/). There is also a big C# library for communication for MS Azure.  
-Since this none of these are an option, we'll use the Microsoft Graph API.
 
-[//]: # (TODO: Check links)
-The API is a moving target, but has stable versions that can be used explicitly. We're currently using Version 1.6 of the REST API (see https://msdn.microsoft.com/en-us/Library/Azure/Ad/Graph/api/api-catalog).
+Currently, the [Microsoft Graph API](https://docs.microsoft.com/en-us/graph/overview) integrate all the Microsoft Cloud service resources.
+It includes the sincronization of an on-premises AD with the [Azure AD](https://docs.microsoft.com/en-us/graph/api/resources/azure-ad-overview?view=graph-rest-1.0).
+There are several SDKs to work with this API, but for historical reasons
+(no Python version existed when the connector was implemented), we are keeping our own implementation through the REST API.
+
+The API is a moving target, but has stable versions that can be used explicitly.
+We're currently using [Version 1.0 of the REST API](https://docs.microsoft.com/en-us/graph/use-the-api).
 
 While developing this wrapper around the Microsoft Graph API the thinking of keeping it as
 independent as possible from the UCS LDAP side was taken into account. This way the `univention.office365.microsoft`
@@ -269,17 +292,22 @@ module could be used as an independent module to operate over the Microsoft Grap
 
 #### Manifest
 
-* The manifest is downloaded by the user from their Azure application.
-* The manifest contains, among other things, permissions for the application.
-* The function `def transform` in `univention.office365.microsoft.manifest.Manifest.transform` appends needed permissions to the manifest, which is then re-uploaded by the user.
-* The added Azure Active Directory Graph API permissions are:
+We make the administrator download and re-upload the manifest while progressing through the MS365 setup wizard.
+While everything that is in the manifest could be configured directly in the Azure portal, modifying the manifest 
+in our code to our needs is way less error-prone than showing the administrator even more screenshots of things 
+he should do manually in the Azure portal. With this in mind:
 
-    ```python
-    #Permission Name: Directory.ReadWrite.All, Type: Application
-    {"id": "78c8a3c8-a07e-4b9e-af1b-b5ccab50a175", "type": "Role"}
-    ```
+1. The manifest is downloaded by the user from their [Azure Application](https://docs.microsoft.com/en-us/graph/auth-register-app-v2).
+2. The manifest contains, among other things, permissions for the application.
+3. The function `def transform` in [manifest.py](/modules/univention/office365/microsoft/manifest.py) appends needed permissions to the manifest, which is then re-uploaded by the user.
+4. The added Azure Active Directory Graph API permissions are:
+
+      ```python
+      #Permission Name: Directory.ReadWrite.All, Type: Application
+      {"id": "78c8a3c8-a07e-4b9e-af1b-b5ccab50a175", "type": "Role"}
+      ```
     
-    The added Microsoft Graph permissions are:
+      and for Microsoft Graph permissions are:
     
     ```python
     # Permission Name: Directory.ReadWrite.All, Type: Application
@@ -291,56 +319,175 @@ module could be used as an independent module to operate over the Microsoft Grap
     # Permission Name: TeamMember.ReadWrite.All, Type: Application
     {"id": "0121dc95-1b9f-4aed-8bac-58c5ac466691", "type": "Role"}
     ```
-* The permissions will be displayed in the *API permissions* Tab in the Azure Portal.
+5. The manifest is re-uploaded by the user to the Azure Application.
+6. The permissions will be displayed in the *API permissions* Tab in the Azure Portal.
 
-#### Accounts | Tokens
+
+#### Token
+
+A [token](https://docs.microsoft.com/en-us/graph/auth-v2-user#3-get-a-token) is used to authenticate the user/application with the Microsoft Graph API.
+This token is stored in a class and instantiated for each Azure Account.
+Every time we want to [make a request](https://docs.microsoft.com/en-us/graph/auth-v2-user#4-use-the-access-token-to-call-microsoft-graph) to the Microsoft Graph API, we need to provide the token.
+The tokens  are short-lived, and we must [refresh](https://docs.microsoft.com/en-us/graph/auth-v2-user#5-use-the-refresh-token-to-get-a-new-access-token) them after they expire to continue accessing resource.
+
+#### Accounts
 
 An AzureAccount object represents an account in the Azure Active Directory.
-It stores the related alias that identifies account, the current token and the related files.
+It stores the alias that identifies account, the current token and the related files.
 
-The path for the files of an account is defined by [`<OFFICE365_API_PATH>/<alias>`](/modules/univention/office365/microsoft/__init__.py).  
+The path for the files of an account is defined by [`<OFFICE365_API_PATH>/<alias>`](/modules/univention/office365/microsoft/__init__.py).
 
 For an already configured account the following files are stored:
+
 * `key.pem`:  File containing the private key of the account.
 * `cert.pem`:  File containing the public certificate of the account.
 * `cert.fp`:  File containing the fingerprint of the public certificate.
-* `ids.json`:  
+* `ids.json`: File containing information about the account (`domain`, `client_id`, `tenant_id` and `reply_url`).
 * `token.json`:  File containing the last token of the account.
-* `manifest.json`:  File containing the manifest of the account.  
+* `manifest.json`:  File containing the manifest of the account.
 
-[//]: # (TODO: Check the descriptions, ask @erik or @julia)
-
-This object is also responsible for checking the validity of the token and for refreshing it if expired.
+This object is also responsible for checking the validity of the token before using it and for refreshing it if expired.
 
 #### Core | URLs
-Implements all the needed calls to the Microsoft Graph API.
-Each function returns a response object.
 
+Core is the main class of our own implementation of the Microsoft Graph API python wrapper.
+The urls and endpoints are defined in the [URLs](/modules/univention/office365/microsoft/urls.py) module.
+This way if we want to change the base url, or the version of the API, we only need to change it the urls.py module.
 
+The [core](/modules/univention/office365/microsoft/core.py) implements all the needed calls to the Microsoft Graph API,
+wrapping the endpoints and taking care of the authentication, the token refreshing and the error handling.
+
+You can find the corresponding documentation in the [Microsoft Graph API endpoints](https://github.com/microsoftgraph/microsoft-graph-docs/tree/main/api-reference/v1.0/api) here.
+* API reference for [users](https://docs.microsoft.com/en-us/graph/api/resources/users?view=graph-rest-1.0).
+* API reference for [groups](https://docs.microsoft.com/en-us/graph/api/resources/groups-overview?view=graph-rest-1.0).
+* API reference for [teams](https://docs.microsoft.com/en-us/graph/api/resources/teams-api-overview?view=graph-rest-1.0).
+
+Most of the functions of the `Core` are internally documented with the url to the Microsoft Graph API endpoint documentation.
 
 #### Azure Objects
 
-
-
-
-
-
-#### Exceptions (core_exceptions, exceptions, login_exceptions)
-
-#### Classes
-To keep an Object-Oriented approach the classes for the Microsoft Graph API are being organized into
+To keep an Object-Oriented approach some resources of the Microsoft Graph API are being organized into
 classes representing the objects in the Microsoft Azure Directory service.
-* UserAzure
-* GroupAzure
-* TeamAzure
-* SubscriptionAzure
+
+This classes contains the attributes and methods needed to interact with the Microsoft Graph API on a
+higher level of abstraction. This avoids direct calls to the core, grouping some functionalities with the data that these calls require.
+
+The classes are implemented as [Dataclasses](https://docs.python.org/3/library/dataclasses.html) but with the [attr.s](https://www.attrs.org) library help to make it compatible with 2.7.
+
+Without going into too much detail (you can look into [the code](/modules/univention/office365/microsoft/objects/azureobjects.py)) the detailed description of each method, here are some details to keep in mind.
+* `AzureObject` require an instance of a `Core` that in turn needs an `Account` since you need to be authorized in Azure to perform operations on the resources.  `set_core` method is used for this.
+* Due to Azure Active Directory security policies, users or groups in the Azure AD
+can't be deleted during synchronization.
+  * They are merely disabled and renamed.
+  * The licenses are revoked in the Azure Active Directory so that they become
+  available to other users.
+  * Users and groups whose names start with
+  `ZZZ_deleted` can be deleted in Microsoft 365 Admin Center.
+
+#### Classes:
+
+* **AzureObject**: Parent class that gathers the attributes and methods shared by most of the other objects.
+* **UserAzure**: Object representation of a [User in Azure](https://docs.microsoft.com/en-us/graph/api/resources/user?view=graph-rest-1.0).
+* **GroupAzure**: Object representation of a [Group in Azure](https://docs.microsoft.com/en-us/graph/api/resources/group?view=graph-rest-1.0).
+* **TeamAzure**: Object representation of a [Team in Azure](https://docs.microsoft.com/en-us/graph/api/resources/team?view=graph-rest-1.0).
+  - Some of these operations are performed asynchronously by Azure so these calls are implemented also [asynchronously](#async-queue-tasks) to not hang the Listeners.
+* **SubscriptionAzure**: Object representation of a [Subscriptions in Azure](https://docs.microsoft.com/en-us/graph/api/resources/subscription?view=graph-rest-1.0).
+
+#### Exceptions
+The exceptions related with the Microsoft Graph API are defined in the [exceptions'](/modules/univention/office365/microsoft/exceptions) submodule.
+* [Core Exceptions](/modules/univention/office365/microsoft/exceptions/core_exceptions.py): Microsoft Graph API [error codes](https://docs.microsoft.com/en-us/graph/errors) are mapped to Python Exceptions.
+* [Login Exceptions](/modules/univention/office365/microsoft/exceptions/login_exceptions.py): Exceptions related to the login, authentication, connection and token refreshing.
+* [Other Exceptions](/modules/univention/office365/microsoft/exceptions/exceptions.py). 
 
 #### Usage examples
 
-This classes contains the attributes and methods needed to interact with the Microsoft Graph API on a
-higher level of abstraction.
+There are some common methods to Azure User, Group and Team objects.
+Static methods (need a Core related to the account) are:
+* `<azure_object>.get(<core>, <azure_object_id>)`: get the object from the Azure Account.
+* `<azure_object>.list(<core>)`: list the objects of the type <azure_object> in the Account.
+* `<azure_object>.get_fields()`: get the fields of the object.
+
+For instances of the AzureObject class, the following methods are available:
+* `<azure_object>.get_not_none_values_as_dict()`: get the values of the object as a dictionary.
+* `<azure_object>.set_core()`: set the core of the object.
+* `<azure_object>.create()`: create the object in the Azure Account.
+* `<azure_object>.delete()`: delete the object from the Azure Account.
+* `<azure_object>.update()`: update the object in the Azure Account.
+* `<azure_object>.deactivate()`: deactivate the object in the Azure Account.
+* `<azure_object>.reactivate()`: reactivate the object in the Azure Account.
+* `<azure_object>.wait_for_operation()`: convenience wait for an operation on the core to finish.
+
+
+The creation of new Azure objects is also common to all subclasses.
+You can create new objects on several ways.
+To create a new user, group or team you can use the following methods:
+```python
+user = UserAzure()
+group = GroupAzure(id=<objectid>)
+team = TeamAzure(displayName=<team_name>, description=<description>)
+subscription = SubscriptionAzure(**subscription)
+```
+
+Any of the objects that inherit from AzureObject can be created empty or with the attributes set.
+Attributes are passed as keyword arguments, or you can unpack a dictionary. 
+
+Every different Azure class has different specific convenience methods.
+Some examples are:
+```python
+# For users
+user.create_or_modify(...)
+user.get_assignedLicenses(...)
+user.get_by_onPremisesImmutableID(...)
+user.invalidate_all_tokens(...)
+user.reset_password(...)
+
+# For groups
+group.add_member(...)
+group.add_members(...)
+group.add_owner(...)
+group.create_or_modify(...)
+group.exist(...)
+group.get_by_name(...)
+group.is_delete(...)
+group.list_members(...)
+group.list_members_id(...)
+group.list_owners(...)
+group.reactivate(...)
+group.remove_direct_members(...)
+group.remove_member(...)
+group.remove_owner(...)
+
+# For teams
+team.add_member(...)
+team.add_members(...)
+team.create_from_group(...)
+team.create_from_group_async(...)
+team.delete_member(...)
+team.list_team_members(...)
+team.set_owner(...)
+team.update(...)
+team.wait_for_team(...)
+
+# For subscriptions
+subscription.get_enabled(...)
+subscription.get_plans_id_from_names(...)
+subscription.get_plans_names(...)
+subscription.has_free_seats(...)
+```
+
+All the Azure objects code can be found in the [azureobjects](/modules/univention/office365/microsoft/objects/azureobjects.py) package.
+
 
 ### Connector
+
+To this point classes and methods to work with the data from the UCS/LDAP side and the Microsoft Azure Directory on the other side.
+
+No logic have being described to connect the two sides.
+
+This is the main function of the connector submodule. When the listener receives an action related with an object in the UCS LDAP side,
+it's converted to the corresponding UDM Office object and then a specific connector is used
+to replicate the operation on the Microsoft Azure Directory side.
+
 ```
               ┌───────────────────┐       ┌─────────────────────┐
               │                   │       │                     │
@@ -357,25 +504,163 @@ higher level of abstraction.
 └─────────────────┘            └──────────────────┘
 ```
 
+
+#### ConnectorAttributes
+
+To determine which attributes of UDM objects should be replicated to Azure and how this should be done 
+(some need to be processed before being replicated) a number of variables are set in UCR that define this behavior.
+
+The ConnectorAttributes contains the attributes that should be replicated to Azure, load the attributes from UCR and 
+implement the logic to process the attributes before they are replicated.
+
+* `mapping`: Maps the names of LDAP attributes to the names of the attributes in the Azure Active Directory.
+* `sync`: LDAP attributes that should be synchronized with the Azure Active Directory
+* `static`: LDAP attributes that should be synchronized with the Azure Active Directory but will contain a predefined value.
+* `anonymize`: LDAP attributes that should be synchronized in anonymized form to the Azure Active Directory.
+* `never`: LDAP attributes that should never be synchronized with the Azure Active Directory.
+* `system`: Hardcoded attributes that should never be synchronized with the Azure Active Directory, never-mind if the admin set it or not in `never` or `sync`.
+* `multiple`: Some Azure attributes can have composite values. This is a list of the LDAP attributes that can be used to create the composite value.
+
+`mapping` is a dictionary that maps the LDAP attributes to the Azure attributes names. 
+From these attributes, only the `sync` attributes are configured to be replicated to Azure. But the `static` attributes will have predefined values, not the ones in LDAP and the `anonymize` attributes will be obfuscated before being replicated to Azure.
+
+The system admin can set some attribute names in `never` to prevent them from being replicated to Azure. 
+It doesn't matter if they are in the `sync` or `static`, if they are also in the `never` attributes, they will be discarded.
+Finally, the `multiple` attributes is created by checking if more than one LDAP attribute maps to the same azure property, and then it's stored in multiple
+
+If an attribute is in `sync` but not in `mapping`, it will be ignored.
+```
+┌────────────────────────┐
+│                        │
+│                        │                                                            *F: Filtering out
+│        mapping         │                                                            *P: Processing
+│                        │
+│                        │
+└───────────┬────────────┘
+            │
+            │
+            ▼
+  ┌────────────────────┐
+  │                   F│
+  │                    │
+  │        sync        │
+  │                    │
+  │                    │
+  └─────────┬──────────┘
+            │
+            │
+            │
+            ├─────────────────┬─────────────────┐
+            │                 │                 │
+            │                 │                 │
+            │          ┌──────▼──────┐          │         ┌─────────────┐      ┌─────────────┐
+            │          │            P│          ▼         │            F│      │            F│      ┌─────┐
+            │          │    static   ├───────────────────►│    never    ├─────►│   system    ├─────►│AZURE│
+     ┌──────▼──────┐   │             │          ▲         │             │      │             │      └─────┘
+     │            P│   └─────────────┘          │         └─────────────┘      └─────────────┘
+     │  anonymize  │                            │
+     │             ├────────────────────────────┘
+     └─────────────┘
+```
+
+
+#### Connector
+Parent class of UserConnector and GroupConnector. It defines the common methods and attributes.
+* `check_permissions`: Checks if the right permissions are defined for the connections.
+* `has_initialized_connections`: Checks if the connections have been initialized.
+* `get_listener_filter`: Returns the filter to be used by the listener.
+* `_load_filtered_accounts`: Return the string representation of the LDAP filter to be used in the listeners.
+* `create`: _Abstract_.
+* `delete`: _Abstract_.
+* `modify`: _Abstract_.
+* `parse`: _Abstract_.
+
+`UserConnector` and `GroupConnector` have methods inherited from `Connector` to create, delete and modify this objects. Also, several convenience methods
+have being implemented in each class to take care of some dependencies between these objects (memberships, ownership, etc).
+
+#### UserConnector
+Specific implementation of common methods for `UserConnector`:
+* `create`: Creates the user in the Azure Active Directory for every configured connection.
+* `delete`: It doesn't delete the user from Azure, it just deactivates for a permissions reason.
+* `modify`: More complex logic applies here:
+  * User may need to be reactivated in all the connections.
+  * User may need to be deactivated in all the connections.
+  * User may need to be reactivated in some connections and deactivated in others.
+  * Attributes of the user may need to be updated.
+* `parse`: Implements the logic to convert a UDM Office User to an Azure User.
+* `prepare_azure_attributes`: returns the only attributes that will be saved into UDM Office user after replicating into Azure.
+
+Methods only in `UserConnector`:
+* `anonymize_attr`: return uuid.uuid4().hex ?¿
+* `deactivate`: calls the Azure User deactivation method.
+* `new_or_reactivate_user`: checks if the user is new or reactivated and calls the appropriate method.
+
+#### GroupConnector
+Considerations: By default, LDAP groups are not synchronized with Azure. This only occurs if the UCR flag [`office365/groups/sync`](#office365-groups-sync) is `True` 
+and only those groups that contain users that synchronize with Azure will be synchronized.
+
+This implies that the groups are not directly related to an Azure connection. The connection in which the group needs to be replicated is defined
+the connections in the users members of the group are replicated.
+
+Let us define the following connections to azure:
+* `connection_1`
+* `connection_2`
+
+and users:
+* `user_1`
+* `user_2`
+
+and groups:
+* `group_A`
+* `group_B`
+
+then: 
+* if (`user_1` in `group_A`) and (`user_1` in `connection_1`)
+  * then `group_A` in `connection_1`
+* if (`user_1` in `group_A`) and (`group_B` in `group_A`) and (`user_2` in `group_B`) and (`user_1` in `connection_1`) and (`user_2` in `connection_2`)
+  * then (`group_A` in `connection_1`) and (`group_A` in `connection_2`) and (`group_B` in `connection_2`)  
+
+[//]: # (TODO: look for a better way to explain this.)
+
+Specific implementation of common methods for `GroupConnector`:
+* `create`: Creates the group in the Azure Active Directory for every configured connection.
+* `delete`: For each connection it does the next steps
+  * If the group is a Team, deactivate team. 
+  * Remove the direct members of the group.
+  * Deactivate the group.
+* `modify`: For each connection it does the next steps
+  * Check if the group needs to be created
+  * Check if the group needs to be reactivated
+  * `check_and_modify_attributes`
+  * `check_and_modify_members`
+  * `check_and_modify_owners`
+  * `check_and_modify_teams`
+* `parse`: Implements the logic to convert a UDM Office Group to an Azure Group.
+* `prepare_azure_attributes`: returns the only attributes that will be saved into UDM Office group after replicating into Azure.
+
+Methods only in `GroupConnector`:
+* `add_ldap_members_to_azure_group`: adds the members of the group to the Azure group.
+* `add_member`: adds a member to the Azure group.
+* `convert_group_to_team`: converts the group to a team.
+* `delete_empty_group`: deletes the group if it is empty.
+
+
+
 #### Parser (UDMObjects => AzureObjects)
-Until this point classes and methods to work with the data from the UCS/LDAP side and the Microsoft Azure Directory on the other side.
 
-No logic have being described to connect the two sides.
+As a design decision we avoided including specific logic of conversion in any other UDM or Azure classes. 
+So, one of the main functions of the connector is to be able to translate an UDMObject to the corresponding AzureObject.
 
-This is the main function of the connector submodule. When the listener receives an action related with an object in the UCS LDAP side,
-it's converted to the corresponding UDM Office object and then a specific connector is used
-to replicate the operation on the Microsoft Azure Directory side.
+In this translation, we need to use the [mapping of the attributes](#office365-attributes-mapping--). To take care of all these, the `ConnectorAttributes`
+class parse the needed values and apply the expected precedences.
 
-Mainly two classes take care of the operations for the Users and Groups:
-* UserConnector
-* GroupConnector
+Both `GroupConnector` and `UserConnector` contain their own implementation of this method, but only in the latter contains certain slightly more complex operations to filter and extract the necessary information from the UDM object.
 
-Both have methods to create, delete and modify this objects. Also, several convenience methods
-have being implemented in the connector to take care of some dependencies between these objects (memberships, ownership, etc).
+The returned values is an already created AzureObject with the expected information in it.
 
-#### Classes
 
 #### Usage examples
+[group](/listeners/office365-group.py) and [user](/listeners/office365-user.py) listeners.
 
 ### Helpers
 
@@ -418,7 +703,7 @@ The asynchronous queue is designed in such a way that it can execute Tasks.
 All Tasks can be defined in a hierarchical way, so that for one to complete, subtasks can be defined that must be completed beforehand.
 
 These tasks are defined in an [abstract class](/modules/univention/office365/asyncqueue/tasks/task.py) that can be reimplemented as needed.  
-Currently the only specific task type implemented is the [AzureTask](/modules/univention/office365/asyncqueue/tasks/azuretask.py).
+Currently, the only specific task type implemented is the [AzureTask](/modules/univention/office365/asyncqueue/tasks/azuretask.py).
 
 An AzureTask contains the _alias_ of a connection on which the task will be executed, the name of the _method name_ to be called to execute it and the _arguments_ of the method.
 
@@ -487,9 +772,18 @@ q.enqueue(main_task)
 
 #### Deletion
 
-# Features
+# Debug & Configuration
 
-## Multi Account support
+## Logging to files
+
+[//]: # (TODO: Talk about modules/univention/office365/logging2udebug.py)
+        
+var/log/univenton/listener.log
+var/log/univenton/listener_modules/
+    ms_office_async
+    office_user
+    office_group
+syslog
 
 ## UCR variables to modify connector behaviour
 
@@ -612,12 +906,10 @@ Will be given precedence over attributes in `office365/attributes/anonymize`, `o
 
 _Type:_ str comma separated list
 
+### Related files
 
-### Related files:
 * `office365/debian/univention-office365.univention-config-registry-variables`
 * `scripts/package/40univention-office365.inst`
-
-
 
 ======================================================================================
 
@@ -644,6 +936,12 @@ The downside of the client credentials flow is, that some operations on the AAD 
 
 Now that we can authenticate, we can synchronize the selected users and groups with the Azure directory and manage the users licenses. "Synchronization" will be one-way: only from UCS to Azure AD. It should include the users minimal contact data and the groups that the users are in. It is possible to configure through UCRVs which attributes are synchronized and which not. It can also be configured if attributes should be anonymized.
 
+# Changes in stored data in LDAP Objects
+    How the data of office365 is saved in LDAP)
+    Versions, and current status.
+# Changes in Azure Active Directory
+    Microsoft links of things that have changed.
+    From Azure API to Graph API
 
 # Dependencies / Constraints
 
@@ -667,21 +965,6 @@ The function *def transform* in azure_auth.py appends needed permissions to the 
 This includes permissions for the Azure Active Directory Graph API (resourceAppId: 00000002-0000-0000-c000-000000000000)
 and the Microsoft Graph API (resourceAppId: 00000003-0000-0000-c000-000000000000). The permissions will be displayed in the *API permissions* Tab in the Azure Portal.
 
-The added Azure Active Directory Graph API permissions are:
-Permission Name: Directory.ReadWrite.All, Type: Application
-{"id": "78c8a3c8-a07e-4b9e-af1b-b5ccab50a175", "type": "Role"}]},
-The added Microsoft Graph permissions are:
-# Permission Name: Directory.ReadWrite.All, Type: Application
-{"id": "19dbc75e-c2e2-444c-a770-ec69d8559fc7", "type": "Role"},
-# Permission Name: Group.ReadWrite.All, Type: Application
-{"id": "62a82d76-70ea-41e2-9197-370581804d09", "type": "Role"},
-# Permission Name: User.ReadWrite.All, Type: Application
-{"id": "741f803b-c850-494e-b5df-cde7c675a1ca", "type": "Role"},
-# Permission Name: TeamMember.ReadWrite.All, Type: Application
-{"id": "0121dc95-1b9f-4aed-8bac-58c5ac466691", "type": "Role"}]}}
-
-
-
 
 
 IDEA FOR A DATA FLOW DIAGRAM:
@@ -689,7 +972,6 @@ IDEA FOR A DATA FLOW DIAGRAM:
 UCS
 LDAP
 change
-
 
 Listener
 receives representation 
