@@ -71,7 +71,8 @@ if __name__ == "__main__":
 	for grp in groups:
 		if not grp.displayName.startswith('ZZZ_deleted_'):
 			print('Name: {displayName} Description: {description} objectId: {objectId}'.format(displayName=grp.displayName, description=grp.description, objectId=grp.id))
-			members = get_members(grp, core)
+			grp.set_core(core)
+			members = get_members(grp)
 			if members:
 				for member in members:
 					print('\tMember: {}'.format(member))
