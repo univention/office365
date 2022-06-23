@@ -30,31 +30,58 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-# TODO  It currently not working
-#  We can get the adconnection from each object o365data
-
 from __future__ import print_function
 
+import zlib
+
 from univention.config_registry import ConfigRegistry
-from univention.office365.azure_handler import AzureHandler
 import univention.admin.uldap
 import univention.admin.objects
 from optparse import OptionParser
 import traceback
 import pprint
 
+from univention.office365.logging2udebug import get_logger
+from univention.office365.microsoft.account import AzureAccount
+from univention.office365.microsoft.core import MSGraphApiCore
+from univention.office365.udmwrapper.udmobjects import UniventionOffice365Data
+
+logger = get_logger("office365", "o365")
+
+cores = {}
+
+
+def print_azure_user_from_ldap_user(ldap_user):
+	try:
+		adconnection_objects = UniventionOffice365Data.from_ldap(ldap_user[1]["univentionOffice365Data"][0])
+	except (zlib.error, TypeError):
+		logger.error("Error decoding o365data for user %s", ldap_user[1]["uid"][0])
+		adconnection_objects = {}
+	except KeyError:
+		logger.error("Error: user %s is not correctly synced to Azure (missing univentionOffice365Data attribute)", ldap_user[1]["uid"][0])
+		return
+	print("Local user: %s" % ldap_user["username"])
+	for alias, values in adconnection_objects.items():
+		print("Ad connection alias: %r" % alias)
+		if alias not in cores:
+			cores[alias] = MSGraphApiCore(AzureAccount(alias))
+		core = cores[alias]
+		try:
+			pp.pprint(core.get_user(user_id=values['objectId']))
+		except Exception as ex:
+			traceback.print_exc()
+			continue
 
 # Query local LDAP for users
 # Get their azure account object and pretty-print it
 if __name__ == '__main__':
 	parser = OptionParser()
-	parser.add_option('-o', '--onlyone', dest='oneuser', help='option: uid; Only look at and modify one user (for testing purposes)')
+	parser.add_option('-o', '--onlyone', dest='oneuser', help='option: uid; Only look at one user (for testing purposes)')
 	options, args = parser.parse_args()
 
 	ucr = ConfigRegistry()
 	ucr.load()
 	base = ucr["ldap/base"]
-	ah = AzureHandler(ucr, "pwdLastSet")
 	lo, po = univention.admin.uldap.getAdminConnection()
 	univention.admin.modules.update()
 	usermod = univention.admin.modules.get('users/user')
@@ -70,9 +97,4 @@ if __name__ == '__main__':
 		lookup_result = usermod.lookup(config, lo, filter_s="(&(univentionOffice365Enabled=1)(univentionObjectType=users/user))", base=base)
 
 	for ldap_user in lookup_result:
-		try:
-			print("Local user: %s" % ldap_user["username"])
-			pp.pprint(ah.list_users(objectid=ldap_user["UniventionOffice365ObjectID"]))
-		except Exception as ex:
-			traceback.print_exc()
-			continue
+		print_azure_user_from_ldap_user(ldap_user)
