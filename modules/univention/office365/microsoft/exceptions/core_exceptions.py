@@ -94,13 +94,14 @@ class MSGraphError(Exception):
 			return json_string
 
 
-class GenericGraphError(MSGraphError):
+class GenericGraphError(Exception):
 
 	def __init__(self, parent_exception):
 		# type: (MSGraphError) -> None
 		self.message = parent_exception.message
 		self.expected_status = parent_exception.expected_status
 		self.response = parent_exception.response
+		super(GenericGraphError, self).__init__(self.message)
 
 
 class AccessDenied(GenericGraphError):
