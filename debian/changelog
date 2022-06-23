@@ -1,3 +1,9 @@
+univention-office365 (2.0.4-2) unstable; urgency=medium
+
+  * Bug #54858: Write default adconnection onto user if none was specified
+
+ -- Julia Bremer <bremer@univention.de>  Thu, 23 Jun 2022 19:12:41 +0200
+
 univention-office365 (2.0.4-1) unstable; urgency=medium
 
   * Bug #51940: Update connector to use Graph API instead of Azure API.

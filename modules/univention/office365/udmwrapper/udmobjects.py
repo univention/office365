@@ -308,6 +308,8 @@ class UDMOfficeObject(UserDict):
 		else:
 			old_azure_data.pop(self.current_connection_alias)
 		self.udm_object_reference["UniventionOffice365Data"] = UniventionOffice365Data(old_azure_data).to_ldap_str()
+		if self.current_connection_alias not in self.udm_object_reference["UniventionOffice365ADConnectionAlias"]:
+			self.udm_object_reference["UniventionOffice365ADConnectionAlias"].append(self.current_connection_alias)
 
 	def modify_azure_attributes(self, azure_object_dict):
 		# type: (Optional[Mapping]) -> None
