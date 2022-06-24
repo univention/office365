@@ -305,11 +305,10 @@ class UDMOfficeObject(UserDict):
 			# get the old dict of azure data for all connections
 			# update the old dict with the new one
 			old_azure_data.update(new_azure_data)
-			if self.current_connection_alias not in self.udm_object_reference["UniventionOffice365ADConnectionAlias"]:
-				self.udm_object_reference["UniventionOffice365ADConnectionAlias"].append(self.current_connection_alias)
 		else:
 			old_azure_data.pop(self.current_connection_alias)
 		self.udm_object_reference["UniventionOffice365Data"] = UniventionOffice365Data(old_azure_data).to_ldap_str()
+		self.udm_object_reference["UniventionOffice365ADConnectionAlias"] = list(old_azure_data.keys())
 
 	def modify_azure_attributes(self, azure_object_dict):
 		# type: (Optional[Mapping]) -> None
@@ -327,6 +326,7 @@ class UDMOfficeObject(UserDict):
 
 	def create_azure_attributes(self, azure_object_dict, new_connection_alias=None):
 		# type: (Mapping[str, Any], Optional[str]) -> None
+		# TODO deprecated
 		if new_connection_alias:
 			with self.set_current_alias(new_connection_alias):
 				self.modify_azure_attributes(azure_object_dict)
@@ -458,20 +458,6 @@ class UDMOfficeGroup(UDMOfficeObject):
 		udm_objs = udm_connector.find_udm_group_by_name(displayName)
 		if udm_objs:
 			return UDMOfficeGroup(udm_objs.oldattr, ldap_cred, udm_objs["dn"])
-
-	def modify_azure_attributes(self, azure_group_dict):
-		# type: (Optional[Mapping[str, Any]]) -> None
-		"""
-		"""
-		if azure_group_dict is not None:
-			if self.current_connection_alias not in self.udm_object_reference["UniventionOffice365ADConnectionAlias"]:
-				self.udm_object_reference["UniventionOffice365ADConnectionAlias"].append(self.current_connection_alias)
-		else:
-			self.udm_object_reference["UniventionOffice365ADConnectionAlias"] = [x for x in self.adconnection_aliases if x != self.current_connection_alias]
-		if six.PY2:
-			UDMOfficeObject.modify_azure_attributes(self, azure_group_dict)
-		else:
-			super(UDMOfficeGroup, self).modify_azure_attributes(azure_group_dict)
 
 	def delete_azure_data(self):
 		# type: () -> None
