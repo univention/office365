@@ -1,4 +1,4 @@
-univention-office365 (3.0.1-2) unstable; urgency=medium
+univention-office365 (3.0.1-3) unstable; urgency=medium
 
   * Bug #54858: Write default adconnection onto user if none was specified
 
