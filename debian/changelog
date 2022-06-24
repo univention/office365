@@ -1,3 +1,9 @@
+univention-office365 (2.0.4-4) unstable; urgency=medium
+
+  * Bug #51940: Write adconnecton back to ldap and fix mismatch date
+
+ -- Ivan Barbecho Delgado <delgado.extern@univention.de>  Fri, 24 Jun 2022 15:55:38 +0200
+
 univention-office365 (2.0.4-3) unstable; urgency=medium
 
   * Bug #54858: Write default adconnection onto user if none was specified
