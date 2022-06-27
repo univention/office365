@@ -308,7 +308,6 @@ class UDMOfficeObject(UserDict):
 		else:
 			old_azure_data.pop(self.current_connection_alias)
 		self.udm_object_reference["UniventionOffice365Data"] = UniventionOffice365Data(old_azure_data).to_ldap_str()
-		self.udm_object_reference["UniventionOffice365ADConnectionAlias"] = list(old_azure_data.keys())
 
 	def modify_azure_attributes(self, azure_object_dict):
 		# type: (Optional[Mapping]) -> None
@@ -413,6 +412,18 @@ class UDMOfficeUser(UDMOfficeObject):
 		# result.udm_object_reference = udm_user  # TODO ????
 		return result
 
+	def modify_azure_attributes(self, azure_user_dict):
+		# type: (Optional[Mapping[str, Any]]) -> None
+		"""
+		"""
+		if len(list(azure_user_dict.keys())) == 2:
+			if self.current_connection_alias not in self.udm_object_reference["UniventionOffice365ADConnectionAlias"]:
+				self.udm_object_reference["UniventionOffice365ADConnectionAlias"].append(self.current_connection_alias)
+		if six.PY2:
+			UDMOfficeObject.modify_azure_attributes(self, azure_user_dict)
+		else:
+			super(UDMOfficeUser, self).modify_azure_attributes(azure_user_dict)
+
 	def is_deactivated_locked_or_expired(self):
 		# type: () -> bool
 		return bool(int(self.get("disabled"))) or bool(int(self.get("locked"))) or self.is_expired()
@@ -458,6 +469,20 @@ class UDMOfficeGroup(UDMOfficeObject):
 		udm_objs = udm_connector.find_udm_group_by_name(displayName)
 		if udm_objs:
 			return UDMOfficeGroup(udm_objs.oldattr, ldap_cred, udm_objs["dn"])
+
+	def modify_azure_attributes(self, azure_group_dict):
+		# type: (Optional[Mapping[str, Any]]) -> None
+		"""
+		"""
+		if azure_group_dict is not None:
+			if self.current_connection_alias not in self.udm_object_reference["UniventionOffice365ADConnectionAlias"]:
+				self.udm_object_reference["UniventionOffice365ADConnectionAlias"].append(self.current_connection_alias)
+		else:
+			self.udm_object_reference["UniventionOffice365ADConnectionAlias"] = [x for x in self.adconnection_aliases if x != self.current_connection_alias]
+		if six.PY2:
+			UDMOfficeObject.modify_azure_attributes(self, azure_group_dict)
+		else:
+			super(UDMOfficeGroup, self).modify_azure_attributes(azure_group_dict)
 
 	def delete_azure_data(self):
 		# type: () -> None

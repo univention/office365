@@ -1,4 +1,4 @@
-univention-office365 (2.0.4-4) unstable; urgency=medium
+univention-office365 (2.0.4-5) unstable; urgency=medium
 
   * Bug #51940: Write adconnecton back to ldap and fix mismatch date
 
