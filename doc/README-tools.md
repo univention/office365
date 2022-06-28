@@ -1,17 +1,4 @@
-
-- [Tools](#tools)
-  * [Managing adconnections](#managing-adconnections)
-    + [Create new adconnection](#create-new-adconnection)
-    + [Remove adconnection](#remove-adconnection)
-    + [List adconnections](#list-adconnections)
-    + [Rename adconnections](#rename-adconnections)
-  * [Managing users tokens](#managing-users-tokens)
-  * [Clean Empty groups from azure](#clean-empty-groups-from-azure)
-  * [List o365 users for all connections](#list-o365-users-for-all-connections)
-  * [List user and groups](#list-user-and-groups)
-  * [List o365 subscriptions](#list-o365-subscriptions)
-
-<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
+[[_TOC_]]
 
 ---
 
@@ -20,10 +7,10 @@ There are several useful scripts, they are located in `/usr/share/univention-off
 
 These scripts have like a goal help to administrator to admin connections, admin users tokens, 
 clean empty groups and show some info about user, groups and subscriptions.
----
+
 ## Managing adconnections
 
-You can manage adconnections whit this script (create, list, remove)
+You can manage adconnections with this script (create, list, remove)
 ```shell
 /usr/share/univention-office365/scripts/manage_adconnections
 ```
@@ -141,3 +128,26 @@ You can list all azure subscriptions existing in specific connection.
 Usage: print_subscriptions [Azure AD connection alias]
 ```
 
+
+## Getting started with `terminaltest.py`
+
+If calling terminaltest.py leads to an error like `Application with identifier
+'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx' was not found in the directory` that is
+probably the case, because a wrong connection was automatically pre-selected.
+Check which connections exist on your system and choose another, like so:
+
+```
+root@master:~/office365# ./terminaltest.py -a
+[
+    "o365domain",
+    "u-azure-test-de",
+    "defaultADconnection",
+    "azuretestdomain",
+    "o365-dev-univention-de"
+]
+root@master:~/office365# ./terminaltest.py -g azuretestdomain
+DEBUG:office365:adconnection_alias='azuretestdomain'
+DEBUG:office365:adconnection_alias='azuretestdomain'
+INFO:office365:proxy settings: {}
+INFO:office365:service_plan_names=['SHAREPOINTWAC', 'SHAREPOINTWAC_DEVELOPER', 'OFFICESUBSCRIPTION', 'OFFICEMOBILE_SUBSCRIPTION', 'SHAREPOINTWAC_EDU']
+```
