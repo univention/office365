@@ -1,3 +1,9 @@
+univention-office365 (2.0.4-6) unstable; urgency=medium
+
+  * Bug #51940: Fix: Set default logger in Account before using it. 
+
+ -- Esteban Martinena <martinena@univention.de>  Tue, 28 Jun 2022 12:25:39 +0200
+
 univention-office365 (2.0.4-5) unstable; urgency=medium
 
   * Bug #51940: Write adconnecton back to ldap and fix mismatch date
