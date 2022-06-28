@@ -2,9 +2,9 @@
 
 # Design Principles
 
-The code for this connector is organized into a module called office365 inside the main univention python module.  
+The code for this connector is organized into a module called office365 inside the main univention python module.
 All the code and classes have being designed trying to clearly separate the functionality of code related
-with UCS and UDM and on the other hand the functionality related with the connection to the Microsoft Graph API.  
+with UCS and UDM and on the other hand the functionality related with the connection to the Microsoft Graph API.
 
 ```
                          univention.office365
@@ -59,14 +59,14 @@ When a notification about changes in the LDAP directory is triggered, two listen
 * [office365-user](/listeners/office365-user.py) for the users
 * [office365-group](/listeners/office365-group.py) for the groups
 
-These listeners are in charge of creating the corresponding [Connector](#connector), the [UDMObjects](#udm-wrapper) 
+These listeners are in charge of creating the corresponding [Connector](#connector), the [UDMObjects](#udm-wrapper)
 from the `old` and `new` data received from the Notifier for the triggering operation (Create, Modify or Delete), and calling the connector method replicate it in Azure.
 
 ---
 
 ## Modules
 
-The main module for this connector is `univention.office365`.  
+The main module for this connector is `univention.office365`.
 Several submodules are defined following the design shown above.
 
 To better understand the usage of each submodule, please read the following sections.
@@ -99,7 +99,7 @@ To better understand the usage of each submodule, please read the following sect
 
 When the listener receives an event from the UCS LDAP side for an action, it also receives
 the `dn` of the object, the data of the object before the operation (`old`), the data of the object
-after the operation (`new`) and the action (converted in a method call in the high level API).  
+after the operation (`new`) and the action (converted in a method call in the high level API).
 This data of the `old` and the `new` LDAP object arrives as a dictionary of string keys and bytes values.
 This dicts are then processed by the UDM wrapper to get the representation of the object in a UDM class.
 The underlying LDAP reference is also kept as an attribute of the new UDM class.
@@ -127,8 +127,8 @@ It's specially interesting explain how the UDMOfficeObject relates with the AD C
 Each UDMOfficeObject can be configured to be synced in several connections.
 
 For a given time, a `UDMOfficeObject` should only have at most one active connection, this is represented internally by the `current_connection_alias` attribute.
-In order to be able to perform operations on all the connections on which an object is replicated, 
-the `aliases` generator has been implemented, which assigns to current_connection_alias each of the connections for which 
+In order to be able to perform operations on all the connections on which an object is replicated,
+the `aliases` generator has been implemented, which assigns to current_connection_alias each of the connections for which
 this object is configured and sets it back to `None` when finished.
 
 `UDMOfficeUser` and `UDMOfficeGroup` implement the specific functionality for the users and groups, to retrieve information
@@ -248,17 +248,17 @@ he should do manually in the Azure portal. With this in mind:
 2. The manifest contains, among other things, permissions for the application.
 3. The function `def transform` in [manifest.py](/modules/univention/office365/microsoft/manifest.py) appends needed permissions to the manifest, which is then re-uploaded by the user.
 4. The added Microsoft Graph permissions are:
-
+    
       ```python
       # Permission Name: Directory.ReadWrite.All, Type: Application
       {"id": "19dbc75e-c2e2-444c-a770-ec69d8559fc7", "type": "Role"},
-    # Permission Name: Group.ReadWrite.All, Type: Application
-    {"id": "62a82d76-70ea-41e2-9197-370581804d09", "type": "Role"},
-    # Permission Name: User.ReadWrite.All, Type: Application
-    {"id": "741f803b-c850-494e-b5df-cde7c675a1ca", "type": "Role"},
-    # Permission Name: TeamMember.ReadWrite.All, Type: Application
-    {"id": "0121dc95-1b9f-4aed-8bac-58c5ac466691", "type": "Role"}
-    ```
+      # Permission Name: Group.ReadWrite.All, Type: Application
+      {"id": "62a82d76-70ea-41e2-9197-370581804d09", "type": "Role"},
+      # Permission Name: User.ReadWrite.All, Type: Application
+      {"id": "741f803b-c850-494e-b5df-cde7c675a1ca", "type": "Role"},
+      # Permission Name: TeamMember.ReadWrite.All, Type: Application
+      {"id": "0121dc95-1b9f-4aed-8bac-58c5ac466691", "type": "Role"}
+      ```
 5. The manifest is re-uploaded by the user to the Azure Application.
 6. The permissions will be displayed in the *API permissions* Tab in the Azure Portal.
 
@@ -663,7 +663,7 @@ data = json_storage.read()
 
 ---
 
-### Async Queue/Tasks 
+### Async Queue/Tasks
 
 Some Microsoft API calls are asynchronous ([teams operations](https://docs.microsoft.com/en-us/graph/api/resources/teamsasyncoperation?view=graph-rest-1.0) ). This means that the
 call is made, but the result response is not returned immediately and we need to wait and repeat the call until the result is available.
@@ -677,19 +677,19 @@ A queue is used to store the `tasks` to be performed. The queue is
 shared with another process ([async daemon](#async-daemon)) that will consume the actions and would
 execute them.
 
-The queue can be implemented with several backends.  
-The default is a [JSON Backend](/modules/univention/office365/asyncqueue/queues/jsonfilesqueue.py) (_json file directory_) containing files for each task.  
+The queue can be implemented with several backends.
+The default is a [JSON Backend](/modules/univention/office365/asyncqueue/queues/jsonfilesqueue.py) (_json file directory_) containing files for each task.
 A [Redis backend](/modules/univention/office365/asyncqueue/queues/redisqueue.py) is also available as an example but not currently used.
 
 The code related to the Async Queue is in `univention/office365/asyncqueue/`.
 
 #### Tasks
 
-The asynchronous queue is designed in such a way that it can execute Tasks.  
+The asynchronous queue is designed in such a way that it can execute Tasks.
 
 All Tasks can be defined in a hierarchical way, so that for one to complete, subtasks can be defined that must be completed beforehand.
 
-These tasks are defined in an [abstract class](/modules/univention/office365/asyncqueue/tasks/task.py) that can be reimplemented as needed.  
+These tasks are defined in an [abstract class](/modules/univention/office365/asyncqueue/tasks/task.py) that can be reimplemented as needed.
 Currently, the only specific task type implemented is the [AzureTask](/modules/univention/office365/asyncqueue/tasks/azuretask.py).
 
 An AzureTask contains the _alias_ of a connection on which the task will be executed, the name of the _method name_ to be called to execute it and the _arguments_ of the method.
@@ -700,7 +700,7 @@ In the execution of the AzureTask we are making use of the `retrying` library to
 
 #### Async daemon
 
-Some azure calls need a try-sleep-retry.   
+Some azure calls need a try-sleep-retry.
 
 To not block the listener at this point we have an async daemon for these calls *univention-ms-office-async* (share/univention-ms-office-async).
 
@@ -947,15 +947,15 @@ This variable configures the start mode of the Univention MS Office Async Daemon
 
 _Type:_ str
 
-### office365/attributes/usageLocation  
+### office365/attributes/usageLocation
 
-Required for Azure users that will be assigned licenses due to legal requirement to check for availability of services in countries.  
+Required for Azure users that will be assigned licenses due to legal requirement to check for availability of services in countries.
 
-The `country` attribute of a user is given precedence over this setting.  
+The `country` attribute of a user is given precedence over this setting.
 If neither is set, the value of the UCR variable `ssl/country` is used.
-For legal reasons it is recommended to set this variable.  
+For legal reasons it is recommended to set this variable.
 
-_Type:_ str two-letter country code (ISO standard 3166).  
+_Type:_ str two-letter country code (ISO standard 3166).
 
 ### office365/debug/werror
 
@@ -993,13 +993,13 @@ This variable can be used to deactivate the automatic migration of user and grou
 
 _Type:_ str
 
-### office365/defaultalias  
+### office365/defaultalias
 
 If the value is set to the adconnection alias of an initialized AD connection and no adconnection alias is configured on a user or group account when Office365 is enabled, they are synchronized to the Azure AD defined by this variable.
 
 _Type:_ str
 
-### office365/adconnection/wizard  
+### office365/adconnection/wizard
 
 The value of this Univention Configuration Registry-Variable defines which connection is configured by the next run of the Microsoft 365 Configuration Wizard. The value should not be empty. To see the available connections, '/usr/share/univention-office365/scripts/manage_adconnections list' can be called. The default after installation is 'defaultADconnection'.
 
@@ -1007,10 +1007,10 @@ _Type:_ str
 
 ### office365/attributes/mapping/.*
 
-Used to configure synchronization of user attributes to the Azure Active Directory (AAD).  
-Variables in the format `office365/attributes/mapping/ATTRIBUTE-IN-LDAP=ATTRIBUTE-IN-AZURE`  
+Used to configure synchronization of user attributes to the Azure Active Directory (AAD).
+Variables in the format `office365/attributes/mapping/ATTRIBUTE-IN-LDAP=ATTRIBUTE-IN-AZURE`
 
-_Type:_ str  
+_Type:_ str
 
 _Default:_
 
@@ -1029,40 +1029,40 @@ _Default:_
     office365/attributes/mapping/street=streetAddress  
     office365/attributes/mapping/sn=surname  
     office365/attributes/mapping/telephoneNumber=businessPhones
-``` 
+```
 
 ### office365/attributes/sync
 
-LDAP attributes that should be synchronized with the Azure Active DirectoryAAD.  
-The names of the attributes must be included in `office365/attributes/mapping/.*` as ATTRIBUTE-IN-LDAP.  
+LDAP attributes that should be synchronized with the Azure Active DirectoryAAD.
+The names of the attributes must be included in `office365/attributes/mapping/.*` as ATTRIBUTE-IN-LDAP.
 
-_Type:_ str comma separated list  
+_Type:_ str comma separated list
 
-_Default:_  
-    `office365/attributes/sync=displayName,employeeType,givenName,l,mailPrimaryAddress,mobile,mailAlternativeAddress,mail,postalCode,roomNumber,st,street,sn,telephoneNumber`
+_Default:_
+`office365/attributes/sync=displayName,employeeType,givenName,l,mailPrimaryAddress,mobile,mailAlternativeAddress,mail,postalCode,roomNumber,st,street,sn,telephoneNumber`
 
 ### office365/attributes/static/.*
 
-Configure synchronization of user attributes to the Azure Active Directory (AAD).  
-Variables in the format office365/attributes/static/ATTRIBUTE-IN-LDAP=VALUE  
-VALUE will be written to the corresponding attribute in AAD when a user is enabled for Microsoft 365.    
-Will have priority over attributes in `office365/attributes/sync`.  
-The names of the attributes must be included in `office365/attributes/mapping/.*` as ATTRIBUTE-IN-LDAP.  
+Configure synchronization of user attributes to the Azure Active Directory (AAD).
+Variables in the format office365/attributes/static/ATTRIBUTE-IN-LDAP=VALUE
+VALUE will be written to the corresponding attribute in AAD when a user is enabled for Microsoft 365.
+Will have priority over attributes in `office365/attributes/sync`.
+The names of the attributes must be included in `office365/attributes/mapping/.*` as ATTRIBUTE-IN-LDAP.
 
 _Type:_ str
-  
+
 ### office365/attributes/anonymize
 
-LDAP attributes that should be synchronized in anonymized form to the Azure Active Directory.  
-The names of the attributes must be included in `office365/attributes/mapping/.*` as ATTRIBUTE-IN-LDAP.   
-Will be given precedence over attributes in `office365/attributes/static` and `office365/attributes/sync`.  
+LDAP attributes that should be synchronized in anonymized form to the Azure Active Directory.
+The names of the attributes must be included in `office365/attributes/mapping/.*` as ATTRIBUTE-IN-LDAP.
+Will be given precedence over attributes in `office365/attributes/static` and `office365/attributes/sync`.
 
 _Type:_ str comma separated list
 
 ### office365/attributes/never
 
-LDAP attributes that should never be synchronized with the Azure Active Directory.  
-Will be given precedence over attributes in `office365/attributes/anonymize`, `office365/attributes/static` and `office365/attributes/sync`.  
+LDAP attributes that should never be synchronized with the Azure Active Directory.
+Will be given precedence over attributes in `office365/attributes/anonymize`, `office365/attributes/static` and `office365/attributes/sync`.
 
 _Type:_ str comma separated list
 <details close>
@@ -1080,25 +1080,26 @@ In the current version of this application, only 3 LDAP extended attributes are 
 * `UniventionOffice365Data`: office data for all the connections is stored encoded as a json in base64
     ```json 
     {
-        "ad connection name":
+        <AD connection alias>:
         {
-            "userPrincipalName": "",
-            "objectId": "",
+            "userPrincipalName": <userprincipalname>,
+            "objectId": <azure_object_id>,
         }, ...
     }
     ```
   * The keys of the dictionary are the names of the AD connections.
   * The values are dictionaries with the following keys:
-    * `userPrincipalName`: the userPrincipalName of the user in Azure.
-    * `objectId`: the objectId of the user in Azure.
+    * `userPrincipalName`: the `userPrincipalName` of the user in Azure.
+    * `objectId`: the `id` of the user in Azure.
   * Once a new connection is created, it's entry is added and never removed from this dict.
-    * If the user is removed from the connection, lonly the userPrincipalName is removed from the dict.
+    * If the user is removed from the connection, only the userPrincipalName is removed from the dict.
     * This way we can keep track of the users in the connection in case it's reactivated.
-* `UniventionOffice365ADConnectionAlias`: 'adConnectionName', ...  #  list of current aliases
+* `UniventionOffice365ADConnectionAlias`: 
+  ```['adConnectionName', ... ]``` 
   * All the connections names are stored in attribute as a list of strings. These strings are the aliases of the connection.
-  * If a connection is deleted, the alias is removed from the list, but kept as key in the UniventionOffice365Data dict.
+  * If a connection is deleted, the alias is removed from the list, but kept as key in the `UniventionOffice365Data` dict.
 * `UniventionOffice365ADConnections`: DEPRECATED. Not used anymore but still not removed in the last version.
-  * `[("adConnectionName", "UserPrincipalName"),...]`,  is a list of connection aliases in which this object needs to be replicated and the current userPrincipalName of this user for that connection.
+  * `[("adConnectionName", "UserPrincipalName"),...]`,  is a list of connection aliases in which this object needs to be replicated and the current `userPrincipalName` of this user for that connection.
 
 # Changes in Azure Active Directory
 During the lifetime of this application, the API for connecting to _Azure Active Directory_ has undergone several changes. The biggest one has been the discontinuation of _Azure AD Graph_, which has been taken over by _Microsoft Graph_.
@@ -1140,7 +1141,7 @@ LDAP
 change
 
 Listener
-receives representation 
+receives representation
 of the old and new object
 and the operation executed
 
@@ -1159,13 +1160,13 @@ Creates the corresponding Azure Object (parse)
 
 Call the method of the Azure Object
 
--- 
+--
 
 Prepare data
 
 Call the Graph API with the credentials of the ad connection
 through the Core wrapper implementation.
 
-
-
-
+[//]: #
+[//]: #
+[//]: #
