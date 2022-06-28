@@ -89,10 +89,11 @@ class AzureAccount(UserDict):
 			UserDict.__init__(self)
 		else:
 			super(AzureAccount, self).__init__()
+		self.logger = logger or get_logger("office365", "o365")
 		if alias is None:
-			logger.error("get_conf_path called with None in alias argument")
+			self.logger.error("get_conf_path called with None in alias argument")
 			for line_traceback in traceback.format_stack(limit=10):
-				logger.error(line_traceback)
+				self.logger.error(line_traceback)
 			if UCRHelper.adconnection_wizard() is None:
 				extra_info = _('The reason might be that the Univention Configuration Registry variable {ucr_wizard} is not set.\n'
 							   'If it\'s not, you can set to the default value "{ad_default}"\n'
@@ -106,7 +107,6 @@ class AzureAccount(UserDict):
 		self.__token = None
 		self._access_token = None
 		self.renewing = False
-		self.logger = logger or get_logger("office365", "o365")
 		conf_dir = os.path.join(config_base_path, alias)
 		self.conf_dirs = {
 			'CONFDIR': conf_dir,
