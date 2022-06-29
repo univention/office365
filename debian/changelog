@@ -1,3 +1,9 @@
+univention-office365 (2.0.4-7) unstable; urgency=medium
+
+  * Bug #51940: Fix: Re-Encoded onPremisesInmutableId base64 
+
+ -- Esteban Martinena <martinena@univention.de>  Wed, 29 Jun 2022 17:23:25 +0200
+
 univention-office365 (2.0.4-6) unstable; urgency=medium
 
   * Bug #51940: Fix: Set default logger in Account before using it. 

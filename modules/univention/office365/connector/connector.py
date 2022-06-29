@@ -30,6 +30,7 @@
 # <http://www.gnu.org/licenses/>.
 
 
+import base64
 import uuid
 from abc import abstractmethod
 from six.moves import UserDict
@@ -696,7 +697,7 @@ class UserConnector(Connector):
 		# mandatory attributes, not to be overwritten by user
 		local_part_of_email_address = udm_user.mailPrimaryAddress.rpartition("@")[0]
 		mandatory_attributes = dict(id=udm_user.azure_object_id,
-									onPremisesImmutableId=udm_user.entryUUID,
+									onPremisesImmutableId=base64.b64encode(udm_user.entryUUID).decode("ASCII"),
 									accountEnabled=True,
 									userPrincipalName="{0}@{1}".format(local_part_of_email_address, core.account["domain"]),
 									mailNickname=local_part_of_email_address,
