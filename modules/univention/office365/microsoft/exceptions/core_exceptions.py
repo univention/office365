@@ -66,6 +66,9 @@ class MSGraphError(Exception):
 			)
 			self.message += "HTTP response expected status: {expected_status}\n".format(expected_status=repr(expected_status))
 			if hasattr(response, 'headers'):
+				req_header = dict(response.request.headers)
+				if "Authorization" in req_header:
+					req_header["Authorization"] = "XXX"
 				self.message += (
 					"> request url: {req_url}\n\n"
 					"> request header: {req_headers}\n\n"
@@ -74,7 +77,7 @@ class MSGraphError(Exception):
 					"> response body: {body}\n\n"
 				).format(
 					req_url=str(response.request.url),
-					req_headers=json.dumps(dict(response.request.headers), indent=2),
+					req_headers=json.dumps(req_header, indent=2),
 					req_body=self._try_to_prettify(response.request.body or "-NONE-"),
 					headers=json.dumps(dict(response.headers), indent=2),
 					body=self._try_to_prettify(response.content or "-NONE-")
