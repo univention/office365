@@ -1,3 +1,9 @@
+univention-office365 (2.0.4-9) unstable; urgency=medium
+
+  * Bug #51940:  Fix Warning import in listener
+
+ -- Ivan Barbecho Delgado <delgado.extern@univention.de>  Thu, 30 Jun 2022 13:24:51 +0200
+
 univention-office365 (2.0.4-8) unstable; urgency=medium
 
   * Bug #51940: Fix: Re-Encoded onPremisesInmutableId base64 
