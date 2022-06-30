@@ -1,4 +1,4 @@
-univention-office365 (2.0.4-7) unstable; urgency=medium
+univention-office365 (2.0.4-8) unstable; urgency=medium
 
   * Bug #51940: Fix: Re-Encoded onPremisesInmutableId base64 
 

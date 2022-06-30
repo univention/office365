@@ -186,10 +186,11 @@ class UDMOfficeObject(UserDict):
 
 	@property
 	def entryUUID(self):
-		# type: () -> str
+		# type: () -> Union[str, bytes]
+		entryUUID = base64.b64encode(self.udm_object_reference.oldattr["entryUUID"][0])
 		if six.PY2:
-			return self.udm_object_reference.oldattr["entryUUID"][0]
-		return self.udm_object_reference.oldattr["entryUUID"][0].decode('UTF-8')
+			return entryUUID
+		return entryUUID.decode("ASCII")
 
 	@property
 	def current_connection_alias(self):
