@@ -1,3 +1,9 @@
+univention-office365 (3.0.1-10) unstable; urgency=medium
+
+  * Bug #54858:  Fix Warning import in listener
+
+ -- Ivan Barbecho Delgado <delgado.extern@univention.de>  Thu, 30 Jun 2022 13:20:17 +0200
+
 univention-office365 (3.0.1-9) unstable; urgency=medium
 
   * Bug #54858: When creating the portal tile in the wizard, set configuration
