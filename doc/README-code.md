@@ -2,7 +2,7 @@
 
 # Design Principles
 
-The code for this connector is organized into a module called office365 inside the main univention python module.
+The code for this connector is organized into a module called `office365` inside the main `univention` Python module.
 All the code and classes have being designed trying to clearly separate the functionality of code related
 with UCS and UDM and on the other hand the functionality related with the connection to the Microsoft Graph API.
 
@@ -42,7 +42,7 @@ with UCS and UDM and on the other hand the functionality related with the connec
                        └────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-In the middle, a connector classes are being used to connect to the Microsoft Graph API and to the UCS LDAP side.
+In the middle, connector classes connect to the Microsoft Graph API and to the UCS LDAP side.
 Only these classes have the needed "knowledge" to connect both sides.
 
 You should be able to use most of the code outside the listeners.
@@ -100,16 +100,21 @@ To better understand the usage of each submodule, please read the following sect
 When the listener receives an event from the UCS LDAP side for an action, it also receives
 the `dn` of the object, the data of the object before the operation (`old`), the data of the object
 after the operation (`new`) and the action (converted in a method call in the high level API).
-This data of the `old` and the `new` LDAP object arrives as a dictionary of string keys and bytes values.
-This dicts are then processed by the UDM wrapper to get the representation of the object in a UDM class.
+This data of the `old` and the `new` LDAP object arrives as a Python dictionary of string keys and bytes values.
+These dictionaries are then processed by the UDM wrapper to get the representation of the object in a UDM class.
 The underlying LDAP reference is also kept as an attribute of the new UDM class.
 
 These classes are a higher level abstraction of the objects in the LDAP layer.
 
-The functionality of underlying UDM Objects have being extended to take care of the information related with the Microsoft connections/information
+The functionality of underlying UDM Objects has been extended to take care of the information related to the Microsoft connections/information
 of each object.
 
 #### SubscriptionProfile
+
+Azure subscriptions available in the system are stored as UDM objects. Their in-memory representation in this application 
+are kept in instances of the SubscriptionProfile class containing the subscription name, the sku identifier, a whitelist and a blacklist of the plans. 
+
+It also implements methods for listing the subscriptions available in the system and for a list of groups.
 
 #### UniventionOffice365Data
 
@@ -121,14 +126,13 @@ The `UniventionOffice365Data` is intended to represent this information and to e
 
 #### UDMOfficeObject, UDMOfficeUser, UDMOfficeGroup
 
-`UDMOfficeObject` is the base class for all the other two and implements all the common functionalities.
+`UDMOfficeObject` is the base class for all the other two and implements all the common functionality.
 
-It's specially interesting explain how the UDMOfficeObject relates with the AD Connections.
-Each UDMOfficeObject can be configured to be synced in several connections.
+Each UDMOfficeObject can be configured to be synced in several connections in Azure.
 
 For a given time, a `UDMOfficeObject` should only have at most one active connection, this is represented internally by the `current_connection_alias` attribute.
-In order to be able to perform operations on all the connections on which an object is replicated,
-the `aliases` generator has been implemented, which assigns to current_connection_alias each of the connections for which
+To perform operations on all the connections on which an object is replicated,
+the `aliases` generator has been implemented, which assigns to `current_connection_alias` each of the connections for which
 this object is configured and sets it back to `None` when finished.
 
 `UDMOfficeUser` and `UDMOfficeGroup` implement the specific functionality for the users and groups, to retrieve information
@@ -186,8 +190,8 @@ with udm_office_group.set_current_alias(alias):
 
 ### Microsoft
 
-Currently, the [Microsoft Graph API](https://docs.microsoft.com/en-us/graph/overview) integrate all the Microsoft Cloud service resources.
-It includes the sincronization of an on-premises AD with the [Azure AD](https://docs.microsoft.com/en-us/graph/api/resources/azure-ad-overview?view=graph-rest-1.0).
+Currently, the [Microsoft Graph API](https://docs.microsoft.com/en-us/graph/overview) integrates all the Microsoft Cloud service resources.
+It includes the synchronization of an on-premises AD with the [Azure AD](https://docs.microsoft.com/en-us/graph/api/resources/azure-ad-overview?view=graph-rest-1.0).
 There are several SDKs to work with this API, but for historical reasons
 (no Python version existed when the connector was implemented), we are keeping our own implementation through the REST API.
 
@@ -246,21 +250,20 @@ he should do manually in the Azure portal. With this in mind:
 
 1. The manifest is downloaded by the user from their [Azure Application](https://docs.microsoft.com/en-us/graph/auth-register-app-v2).
 2. The manifest contains, among other things, permissions for the application.
-3. The function `def transform` in [manifest.py](/modules/univention/office365/microsoft/manifest.py) appends needed permissions to the manifest, which is then re-uploaded by the user.
-4. The added Microsoft Graph permissions are:
-    
-      ```python
-      # Permission Name: Directory.ReadWrite.All, Type: Application
-      {"id": "19dbc75e-c2e2-444c-a770-ec69d8559fc7", "type": "Role"},
-      # Permission Name: Group.ReadWrite.All, Type: Application
-      {"id": "62a82d76-70ea-41e2-9197-370581804d09", "type": "Role"},
-      # Permission Name: User.ReadWrite.All, Type: Application
-      {"id": "741f803b-c850-494e-b5df-cde7c675a1ca", "type": "Role"},
-      # Permission Name: TeamMember.ReadWrite.All, Type: Application
-      {"id": "0121dc95-1b9f-4aed-8bac-58c5ac466691", "type": "Role"}
-      ```
-5. The manifest is re-uploaded by the user to the Azure Application.
-6. The permissions will be displayed in the *API permissions* Tab in the Azure Portal.
+3. The function `def transform` in [manifest.py](/modules/univention/office365/microsoft/manifest.py) appends needed permissions to the manifest. The added Microsoft Graph permissions are:
+  
+    ```python
+    # Permission Name: Directory.ReadWrite.All, Type: Application
+    {"id": "19dbc75e-c2e2-444c-a770-ec69d8559fc7", "type": "Role"},
+    # Permission Name: Group.ReadWrite.All, Type: Application
+    {"id": "62a82d76-70ea-41e2-9197-370581804d09", "type": "Role"},
+    # Permission Name: User.ReadWrite.All, Type: Application
+    {"id": "741f803b-c850-494e-b5df-cde7c675a1ca", "type": "Role"},
+    # Permission Name: TeamMember.ReadWrite.All, Type: Application
+    {"id": "0121dc95-1b9f-4aed-8bac-58c5ac466691", "type": "Role"}
+    ```
+4. The manifest is re-uploaded by the user to the Azure Application.
+5. The permissions will be displayed in the *API permissions* Tab in the Azure Portal.
 
 
 #### Token
@@ -273,26 +276,26 @@ The tokens  are short-lived, and we must [refresh](https://docs.microsoft.com/en
 #### Accounts
 
 An AzureAccount object represents an account in the Azure Active Directory.
-It stores the alias that identifies account, the current token and the related files.
+It stores the alias that identifies the account, the current token and the related files.
 
 The path for the files of an account is defined by [`<OFFICE365_API_PATH>/<alias>`](/modules/univention/office365/microsoft/__init__.py).
 
 For an already configured account the following files are stored:
 
-* `key.pem`:  File containing the private key of the account.
-* `cert.pem`:  File containing the public certificate of the account.
-* `cert.fp`:  File containing the fingerprint of the public certificate.
-* `ids.json`: File containing information about the account (`domain`, `client_id`, `tenant_id` and `reply_url`).
-* `token.json`:  File containing the last token of the account.
-* `manifest.json`:  File containing the manifest of the account.
+* `key.pem`: contains the private key of the account.
+* `cert.pem`: contains the public certificate of the account.
+* `cert.fp`: contains the fingerprint of the public certificate.
+* `ids.json`: contains information about the account (`domain`, `client_id`, `tenant_id` and `reply_url`).
+* `token.json`: contains the last token of the account.
+* `manifest.json`: contains the manifest of the account.
 
 This object is also responsible for checking the validity of the token before using it and for refreshing it if expired.
 
 #### Core | URLs
 
-Core is the main class of our own implementation of the Microsoft Graph API python wrapper.
-The urls and endpoints are defined in the [URLs](/modules/univention/office365/microsoft/urls.py) module.
-This way if we want to change the base url, or the version of the API, we only need to change it the urls.py module.
+Core is the main class of our own implementation of the Microsoft Graph API Python wrapper.
+The URLs and endpoints are defined in the [urls.py](/modules/univention/office365/microsoft/urls.py) module.
+This way if we want to change the base URL, or the version of the API, we only need to change it the `urls.py` module.
 
 The [core](/modules/univention/office365/microsoft/core.py) implements all the needed calls to the Microsoft Graph API,
 wrapping the endpoints and taking care of the authentication, the token refreshing and the error handling.
@@ -302,29 +305,28 @@ You can find the corresponding documentation in the [Microsoft Graph API endpoin
 * API reference for [groups](https://docs.microsoft.com/en-us/graph/api/resources/groups-overview?view=graph-rest-1.0).
 * API reference for [teams](https://docs.microsoft.com/en-us/graph/api/resources/teams-api-overview?view=graph-rest-1.0).
 
-Most of the functions of the `Core` are internally documented with the url to the Microsoft Graph API endpoint documentation.
+Most of the functions of the `Core` are internally documented with the URL to the Microsoft Graph API endpoint documentation.
 
 #### Azure Objects
 
-To keep an Object-Oriented approach some resources of the Microsoft Graph API are being organized into
+To keep an object oriented programming approach, some resources of the Microsoft Graph API are being organized into
 classes representing the objects in the Microsoft Azure Directory service.
 
-This classes contains the attributes and methods needed to interact with the Microsoft Graph API on a
+These classes contain the attributes and methods needed to interact with the Microsoft Graph API on a
 higher level of abstraction. This avoids direct calls to the core, grouping some functionalities with the data that these calls require.
 
-The classes are implemented as [Dataclasses](https://docs.python.org/3/library/dataclasses.html) but with the [attr.s](https://www.attrs.org) library help to make it compatible with 2.7.
+The classes are implemented as [Python Data Classes](https://docs.python.org/3/library/dataclasses.html), but with the [attrs](https://www.attrs.org) library help to make it compatible with Python 2.7.
 
-Without going into too much detail (you can look into [the code](/modules/univention/office365/microsoft/objects/azureobjects.py)) the detailed description of each method, here are some details to keep in mind.
-* `AzureObject` require an instance of a `Core` that in turn needs an `Account` since you need to be authorized in Azure to perform operations on the resources.  `set_core` method is used for this.
-* Due to Azure Active Directory security policies, users or groups in the Azure AD
-can't be deleted during synchronization.
+Without going into too much detail (you can look into [the code](/modules/univention/office365/microsoft/objects/azureobjects.py)), keep the following details in mind:
+* `AzureObject` requires an instance of a `Core` that in turn needs an `Account` since you need to be authorized in Azure to perform operations on the resources. `set_core()` method is used for this.
+* Due to Azure Active Directory security policies, users or groups in the Azure AD can't be deleted during synchronization.
   * They are merely disabled and renamed.
-  * The licenses are revoked in the Azure Active Directory so that they become
-  available to other users.
-  * Users and groups whose names start with
-  `ZZZ_deleted` can be deleted in Microsoft 365 Admin Center.
+  * The licenses are revoked in the Azure Active Directory so that they become available to other users.
+  * Users and groups whose names start with `ZZZ_deleted` can be deleted in Microsoft 365 Admin Center.
 
-#### Classes
+##### Classes
+
+To represent the Azure Active Directory resources available in the Microsoft Graph API, the following classes are defined:
 
 * **AzureObject**: Parent class that gathers the attributes and methods shared by most of the other objects.
 * **UserAzure**: Object representation of a [User in Azure](https://docs.microsoft.com/en-us/graph/api/resources/user?view=graph-rest-1.0).
@@ -333,35 +335,35 @@ can't be deleted during synchronization.
   - Some of these operations are performed asynchronously by Azure so these calls are implemented also [asynchronously](#async-queue-tasks) to not hang the Listeners.
 * **SubscriptionAzure**: Object representation of a [Subscriptions in Azure](https://docs.microsoft.com/en-us/graph/api/resources/subscription?view=graph-rest-1.0).
 
-#### Teams
+##### Teams
 
 For the new teams API we will require new permissions from the Wizard to be
 set: `Group.ReadWrite.All`. This is done manually for now.
 
-##### Comparison between Groups and Teams
+###### Comparison between Groups and Teams
 
 Microsoft Teams is conceptionally very similar to Microsoft Groups and can be
 described as a [different kind of group](https://support.microsoft.com/en-us/topic/learn-about-microsoft-365-groups-b565caa1-5c40-40ef-9915-60fdb2d97fa2).
 
-* Groups remain to recommend way to connect with others in a classic (as in
-  Exchange) fashion: By having a shared calendar and communication via Email.
+* Groups remain the recommended way to connect with others in a classic (as in
+  Exchange) fashion: By having a shared calendar and communication via email.
 
-* Teams share a common Chat-environment and team work is done within embedded applications.
-  (This Video)[https://www.microsoft.com/en-us/videoplayer/embed/RWeqWA?pid=ocpVideo0-innerdiv-oneplayer&postJsllMsg=true]
-  helps to showcase how the teams interface looks like and descibes its main functionities superficially.
+* Teams share a common chat environment and team work is done within embedded applications.
+  [this Video](https://www.microsoft.com/en-us/videoplayer/embed/RWeqWA?pid=ocpVideo0-innerdiv-oneplayer&postJsllMsg=true)
+  helps to showcase how the teams interface looks like and describes its main functionalities superficially.
 
 The [Microsoft documentation](https://docs.microsoft.com/en-us/microsoftteams/office-365-groups#how-microsoft-365-groups-work-with-teams)
 says about that:
 
 > When you create a team, a Microsoft 365 group is created to manage team membership.
 
-That said it is obvious, that a Group and a Team can coexist independently from
+That said it is obvious, that a *Group* and a *Team* can coexist independently from
 each other even if they have some functionality in common.
 
 
 Differences between groups and teams:
 
-|                 | group       | team          |
+|                 | *Group*     | *Team*        |
 | -               | -           | -             |
 | Membership type | Assigned    | Assigned      |
 | Source          | Cloud       | Cloud         |
@@ -373,85 +375,87 @@ Differences between groups and teams:
 
 
 
-##### The team owner
+###### The team owner
 
 Only users with a certain subscribtion can become team owners. They can be
 identified by having the `"service": "TeamspaceAPI"` assigned to them
-under `assignedPlans`. A user object could look similar to:
+under `assignedPlans`.  
+A user object could look similar to:
 
-```
-                {
-                        "signInNames": [],
-                        "mailNickname": "ad_test",
-                        "postalCode": null,
-                        "surname": "ad_test",
-                        "userState": null,
-                        "passwordProfile": null,
-                        "assignedLicenses": [],
-                        "lastDirSyncTime": null,
-                        "userPrincipalName": "ad_test@office365.dev-univention.de",
-                        "passwordPolicies": null,
-                        "consentProvidedForMinor": null,
-                        "userType": "Member",
-                        "usageLocation": "DE",
-                        "objectType": "User",
-                        "city": null,
-                        "assignedPlans": [
-                                {
-                                        "capabilityStatus": "Deleted",
-                                        "assignedTimestamp": "2020-12-15T11:59:33Z",
-                                        "servicePlanId": "76846ad7-7776-4c40-a281-a386362dd1b9",
-                                        "service": "ProcessSimple"
-                                },
-                                [...]
-                                {
-                                        "capabilityStatus": "Deleted",
-                                        "assignedTimestamp": "2020-12-15T11:59:33Z",
-                                        "servicePlanId": "57ff2da0-773e-42df-b2af-ffb7a2317929",
-                                        "service": "TeamspaceAPI"
-                                },
-                                {
-                                        "capabilityStatus": "Deleted",
-                                        "assignedTimestamp": "2020-12-15T11:59:33Z",
-                                        "servicePlanId": "bea4c11e-220a-4e6d-8eb8-8ea15d019f90",
-                                        "service": "RMSOnline"
-                                },
-                                {
-                                        "capabilityStatus": "Deleted",
-                                        "assignedTimestamp": "2020-12-15T11:59:33Z",
-                                        "servicePlanId": "5136a095-5cf0-4aff-bec3-e84448b38ea5",
-                                        "service": "exchange"
-                                },
-                                {
-                                        "capabilityStatus": "Deleted",
-                                        "assignedTimestamp": "2020-12-15T11:59:33Z",
-                                        "servicePlanId": "5dbe027f-2339-4123-9542-606e4d348a72",
-                                        "service": "SharePoint"
-                                },
-                        ],
-                        "objectId": "12f89ccf-34b1-4a69-987a-8a5cd30cb2dd",
-                        "showInAddressList": null,
-                        "facsimileTelephoneNumber": null,
-                        "creationType": null,
-                        "state": null,
-                        "streetAddress": null,
-                        "userStateChangedOn": null,
-                        "legalAgeGroupClassification": null,
-                        "department": null,
-                        "mail": "ad_test@office365.dev-univention.de",
-                        "preferredLanguage": null,
-                        "accountEnabled": true,
-                        "userIdentities": [],
-                        "refreshTokensValidFromDateTime": "2020-02-07T03:45:02Z",
-                        "companyName": null,
-                        "jobTitle": null,
-                        "isCompromised": null,
-                        "immutableId": "ODg0OTRkODItZGQ3NC0xMDM5LTkxZjctMzUwODA2MjMxMmRl",
-                        [...]
+```json
+{
+  "signInNames": [],
+  "mailNickname": "ad_test",
+  "postalCode": null,
+  "surname": "ad_test",
+  "userState": null,
+  "passwordProfile": null,
+  "assignedLicenses": [],
+  "lastDirSyncTime": null,
+  "userPrincipalName": "ad_test@office365.dev-univention.de",
+  "passwordPolicies": null,
+  "consentProvidedForMinor": null,
+  "userType": "Member",
+  "usageLocation": "DE",
+  "objectType": "User",
+  "city": null,
+  "assignedPlans": [
+    {
+      "capabilityStatus": "Deleted",
+      "assignedTimestamp": "2020-12-15T11:59:33Z",
+      "servicePlanId": "76846ad7-7776-4c40-a281-a386362dd1b9",
+      "service": "ProcessSimple"
+    },
+    [...]
+    {
+      "capabilityStatus": "Deleted",
+      "assignedTimestamp": "2020-12-15T11:59:33Z",
+      "servicePlanId": "57ff2da0-773e-42df-b2af-ffb7a2317929",
+      "service": "TeamspaceAPI"
+    },
+    {
+      "capabilityStatus": "Deleted",
+      "assignedTimestamp": "2020-12-15T11:59:33Z",
+      "servicePlanId": "bea4c11e-220a-4e6d-8eb8-8ea15d019f90",
+      "service": "RMSOnline"
+    },
+    {
+      "capabilityStatus": "Deleted",
+      "assignedTimestamp": "2020-12-15T11:59:33Z",
+      "servicePlanId": "5136a095-5cf0-4aff-bec3-e84448b38ea5",
+      "service": "exchange"
+    },
+    {
+      "capabilityStatus": "Deleted",
+      "assignedTimestamp": "2020-12-15T11:59:33Z",
+      "servicePlanId": "5dbe027f-2339-4123-9542-606e4d348a72",
+      "service": "SharePoint"
+    }
+  ],
+  "objectId": "12f89ccf-34b1-4a69-987a-8a5cd30cb2dd",
+  "showInAddressList": null,
+  "facsimileTelephoneNumber": null,
+  "creationType": null,
+  "state": null,
+  "streetAddress": null,
+  "userStateChangedOn": null,
+  "legalAgeGroupClassification": null,
+  "department": null,
+  "mail": "ad_test@office365.dev-univention.de",
+  "preferredLanguage": null,
+  "accountEnabled": true,
+  "userIdentities": [],
+  "refreshTokensValidFromDateTime": "2020-02-07T03:45:02Z",
+  "companyName": null,
+  "jobTitle": null,
+  "isCompromised": null,
+  "immutableId": "ODg0OTRkODItZGQ3NC0xMDM5LTkxZjctMzUwODA2MjMxMmRl",
+  [...]
+}
 ```
 
 Note that a user without these permissions does not have any content under
-assignedPlans, whereas a user who had the permission at some point in time has
+`assignedPlans`, whereas a user who had the permission at some point in time has
 the permission `Deleted` as in this example. Only users with an `Enabled`
 permission can become team owners.
 
@@ -460,22 +464,22 @@ past. We have plenty of users prefixed with `zzz_deleted` in our directory,
 because we were not able to delete them. Most of these deleted users have had
 the correct permissions.
 
-##### Example requests to illustrate differences between groups and teams
+###### Example requests to illustrate differences between groups and teams
 
 Here comes a successful return value after a team was created:
 
 ```json
 {
-        "x-ms-ags-diagnostic": "{\"ServerInfo\":{\"DataCenter\":\"West Europe\",\"Slice\":\"SliceC\",\"Ring\":\"5\",\"ScaleUnit\":\"002\",\"RoleInstance\":\"AGSFE_IN_81\"}}",
-        "Content-Length": "0",
-        "Content-Location": "/teams('d772b2ae-94ba-4f65-bd8a-c3b26a29a8d8')",
-        "request-id": "68644b63-e6ad-4990-a2d1-67db06516bf0",
-        "Strict-Transport-Security": "max-age=31536000",
-        "client-request-id": "68644b63-e6ad-4990-a2d1-67db06516bf0",
-        "Location": "/teams('d772b2ae-94ba-4f65-bd8a-c3b26a29a8d8')/operations('f60c891c-80b6-412e-822d-6dbef28350f3')",
-        "Cache-Control": "private",
-        "Date": "Mon, 01 Mar 2021 10:39:01 GMT",
-        "Content-Type": "text/plain"
+  "x-ms-ags-diagnostic": "{\"ServerInfo\":{\"DataCenter\":\"West Europe\",\"Slice\":\"SliceC\",\"Ring\":\"5\",\"ScaleUnit\":\"002\",\"RoleInstance\":\"AGSFE_IN_81\"}}",
+  "Content-Length": "0",
+  "Content-Location": "/teams('d772b2ae-94ba-4f65-bd8a-c3b26a29a8d8')",
+  "request-id": "68644b63-e6ad-4990-a2d1-67db06516bf0",
+  "Strict-Transport-Security": "max-age=31536000",
+  "client-request-id": "68644b63-e6ad-4990-a2d1-67db06516bf0",
+  "Location": "/teams('d772b2ae-94ba-4f65-bd8a-c3b26a29a8d8')/operations('f60c891c-80b6-412e-822d-6dbef28350f3')",
+  "Cache-Control": "private",
+  "Date": "Mon, 01 Mar 2021 10:39:01 GMT",
+  "Content-Type": "text/plain"
 }
 ```
 Note, that the `Location` contains the new teams id (in the string behind
@@ -486,31 +490,30 @@ In comparison: Here comes the return value, when a group is created:
 
 ```json
 {
-        "odata.type": "Microsoft.DirectoryServices.Group",
-        "displayName": "testgroupazure",
-        "description": "Azuretestgruppe",
-        "objectId": "573ae468-5a74-4e74-a1d0-3cdaacd14519",
-        "deletionTimestamp": null,
-        "onPremisesSecurityIdentifier": null,
-        "provisioningErrors": [],
-        "odata.metadata": "https://graph.windows.net/3e7d9eb5-c3a1-4cfc-892e-a8ec29e45b77/$metadata#directoryObjects/@Element",
-        "lastDirSyncTime": null,
-        "onPremisesNetBiosName": null,
-        "securityEnabled": true,
-        "mailNickname": "testgroupazure",
-        "proxyAddresses": [],
-        "dirSyncEnabled": null,
-        "onPremisesDomainName": null,
-        "mail": null,
-        "mailEnabled": false,
-        "onPremisesSamAccountName": null,
-        "objectType": "Group"
+  "odata.type": "Microsoft.DirectoryServices.Group",
+  "displayName": "testgroupazure",
+  "description": "Azuretestgruppe",
+  "objectId": "573ae468-5a74-4e74-a1d0-3cdaacd14519",
+  "deletionTimestamp": null,
+  "onPremisesSecurityIdentifier": null,
+  "provisioningErrors": [],
+  "odata.metadata": "https://graph.windows.net/3e7d9eb5-c3a1-4cfc-892e-a8ec29e45b77/$metadata#directoryObjects/@Element",
+  "lastDirSyncTime": null,
+  "onPremisesNetBiosName": null,
+  "securityEnabled": true,
+  "mailNickname": "testgroupazure",
+  "proxyAddresses": [],
+  "dirSyncEnabled": null,
+  "onPremisesDomainName": null,
+  "mail": null,
+  "mailEnabled": false,
+  "onPremisesSamAccountName": null,
+  "objectType": "Group"
 }
 ```
+###### A Team from a Group
 
-##### A Team from a Group
-
-There is also an API call to create a team out of a group. Does that mean, that
+There is also an API call to create a *Team* out of a *Group*. Does that mean, that
 we can store a single value to save either group and team on our side?
 
 When we create a team out of the group `573ae468-5a74-4e74-a1d0-3cdaacd14519`,
@@ -518,135 +521,135 @@ we get:
 
 ```json
 {
-        "x-ms-ags-diagnostic": "{\"ServerInfo\":{\"DataCenter\":\"West Europe\",\"Slice\":\"SliceC\",\"Ring\":\"5\",\"ScaleUnit\":\"002\",\"RoleInstance\":\"AGSFE_IN_32\"}}",
-        "Content-Length": "0",
-        "request-id": "384579f5-2d3d-4e1c-9ea0-3ddc4dfda5eb",
-        "Strict-Transport-Security": "max-age=31536000",
-        "client-request-id": "384579f5-2d3d-4e1c-9ea0-3ddc4dfda5eb",
-        "Location": "/teams('573ae468-5a74-4e74-a1d0-3cdaacd14519')/operations('44d88dd0-f410-4508-8f24-b02f3774913a')",
-        "Cache-Control": "private",
-        "Date": "Mon, 01 Mar 2021 11:19:41 GMT",
-        "Content-Type": "text/plain"
+  "x-ms-ags-diagnostic": "{\"ServerInfo\":{\"DataCenter\":\"West Europe\",\"Slice\":\"SliceC\",\"Ring\":\"5\",\"ScaleUnit\":\"002\",\"RoleInstance\":\"AGSFE_IN_32\"}}",
+  "Content-Length": "0",
+  "request-id": "384579f5-2d3d-4e1c-9ea0-3ddc4dfda5eb",
+  "Strict-Transport-Security": "max-age=31536000",
+  "client-request-id": "384579f5-2d3d-4e1c-9ea0-3ddc4dfda5eb",
+  "Location": "/teams('573ae468-5a74-4e74-a1d0-3cdaacd14519')/operations('44d88dd0-f410-4508-8f24-b02f3774913a')",
+  "Cache-Control": "private",
+  "Date": "Mon, 01 Mar 2021 11:19:41 GMT",
+  "Content-Type": "text/plain"
 }
 ```
-Note how this team has the same id as the group. The object is located under
-`/teams`. This makes the object unique to a team, so that a team can have
-different properties to it, than a group.
+Note how this *Team* has the same id as the *Group*. The object is located under
+`/teams`. This makes the object unique to a *Team*, so that a *Team* can have
+different properties to it, than a *Group*.
 
 Let us compare the different properties:
 
-A group object (` ./terminaltest.py --get_group 573ae468-5a74-4e74-a1d0-3cdaacd14519 ''`)
+A *Group* object (` ./terminaltest.py --get_group 573ae468-5a74-4e74-a1d0-3cdaacd14519 ''`)
 ```json
 {
-        "mailNickname": "testgroupazure",
-        "securityIdentifier": "S-1-12-1-1463477352-1316248180-3661418657-424006060",
-        "classification": null,
-        "deletedDateTime": null,
-        "renewedDateTime": "2021-03-01T10:42:43Z",
-        "id": "573ae468-5a74-4e74-a1d0-3cdaacd14519",
-        "onPremisesProvisioningErrors": [],
-        "membershipRuleProcessingState": null,
-        "preferredLanguage": null,
-        "expirationDateTime": null,
-        "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#groups/$entity",
-        "theme": null,
-        "preferredDataLocation": null,
-        "mail": null,
-        "isAssignableToRole": null,
-        "onPremisesSamAccountName": null,
-        "onPremisesLastSyncDateTime": null,
-        "description": "Azuretestgruppe",
-        "securityEnabled": true,
-        "proxyAddresses": [],
-        "creationOptions": [],
-        "visibility": null,
-        "displayName": "testgroupazure",
-        "groupTypes": [],
-        "resourceProvisioningOptions": [
-                "Team"
-        ],
-        "onPremisesSyncEnabled": null,
-        "createdDateTime": "2021-03-01T10:42:43Z",
-        "membershipRule": null,
-        "onPremisesNetBiosName": null,
-        "resourceBehaviorOptions": [],
-        "onPremisesSecurityIdentifier": null,
-        "onPremisesDomainName": null,
-        "mailEnabled": false
+  "mailNickname": "testgroupazure",
+  "securityIdentifier": "S-1-12-1-1463477352-1316248180-3661418657-424006060",
+  "classification": null,
+  "deletedDateTime": null,
+  "renewedDateTime": "2021-03-01T10:42:43Z",
+  "id": "573ae468-5a74-4e74-a1d0-3cdaacd14519",
+  "onPremisesProvisioningErrors": [],
+  "membershipRuleProcessingState": null,
+  "preferredLanguage": null,
+  "expirationDateTime": null,
+  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#groups/$entity",
+  "theme": null,
+  "preferredDataLocation": null,
+  "mail": null,
+  "isAssignableToRole": null,
+  "onPremisesSamAccountName": null,
+  "onPremisesLastSyncDateTime": null,
+  "description": "Azuretestgruppe",
+  "securityEnabled": true,
+  "proxyAddresses": [],
+  "creationOptions": [],
+  "visibility": null,
+  "displayName": "testgroupazure",
+  "groupTypes": [],
+  "resourceProvisioningOptions": [
+    "Team"
+  ],
+  "onPremisesSyncEnabled": null,
+  "createdDateTime": "2021-03-01T10:42:43Z",
+  "membershipRule": null,
+  "onPremisesNetBiosName": null,
+  "resourceBehaviorOptions": [],
+  "onPremisesSecurityIdentifier": null,
+  "onPremisesDomainName": null,
+  "mailEnabled": false
 }
 ```
-
 A team object with the same id (`./terminaltest.py --get_team 573ae468-5a74-4e74-a1d0-3cdaacd14519`)
 ```json
 {
-        "classification": null,
-        "memberSettings": {
-                "allowAddRemoveApps": true,
-                "allowDeleteChannels": true,
-                "allowCreateUpdateChannels": true,
-                "allowCreatePrivateChannels": true,
-                "allowCreateUpdateRemoveTabs": true,
-                "allowCreateUpdateRemoveConnectors": true
-        },
-        "displayName": "testgroupazure",
-        "description": "Azuretestgruppe",
-        "internalId": "19:21ebad242b104f4681822134f31f3d16@thread.tacv2",
-        "createdDateTime": "2021-03-01T11:19:41.233Z",
-        "webUrl": "https://teams.microsoft.com/l/team/19:21ebad242b104f4681822134f31f3d16%40thread.tacv2/conversations?groupId=573ae468-5a74-4e74-a1d0-3cdaacd14519&tenantId=3e7d9eb5-c3a1-4cfc-892e-a8ec29e45b77",
-        "guestSettings": {
-                "allowCreateUpdateChannels": false,
-                "allowDeleteChannels": false
-        },
-        "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#teams/$entity",
-        "messagingSettings": {
-                "allowTeamMentions": true,
-                "allowOwnerDeleteMessages": true,
-                "allowUserDeleteMessages": true,
-                "allowChannelMentions": true,
-                "allowUserEditMessages": true
-        },
-        "visibility": "public",
-        "isArchived": false,
-        "isMembershipLimitedToOwners": false,
-        "funSettings": {
-                "allowStickersAndMemes": true,
-                "allowGiphy": true,
-                "giphyContentRating": "moderate",
-                "allowCustomMemes": true
-        },
-        "discoverySettings": {
-                "showInTeamsSearchAndSuggestions": true
-        },
-        "id": "573ae468-5a74-4e74-a1d0-3cdaacd14519",
-        "specialization": "none"
+  "classification": null,
+  "memberSettings": {
+    "allowAddRemoveApps": true,
+    "allowDeleteChannels": true,
+    "allowCreateUpdateChannels": true,
+    "allowCreatePrivateChannels": true,
+    "allowCreateUpdateRemoveTabs": true,
+    "allowCreateUpdateRemoveConnectors": true
+  },
+  "displayName": "testgroupazure",
+  "description": "Azuretestgruppe",
+  "internalId": "19:21ebad242b104f4681822134f31f3d16@thread.tacv2",
+  "createdDateTime": "2021-03-01T11:19:41.233Z",
+  "webUrl": "https://teams.microsoft.com/l/team/19:21ebad242b104f4681822134f31f3d16%40thread.tacv2/conversations?groupId=573ae468-5a74-4e74-a1d0-3cdaacd14519&tenantId=3e7d9eb5-c3a1-4cfc-892e-a8ec29e45b77",
+  "guestSettings": {
+    "allowCreateUpdateChannels": false,
+    "allowDeleteChannels": false
+  },
+  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#teams/$entity",
+  "messagingSettings": {
+    "allowTeamMentions": true,
+    "allowOwnerDeleteMessages": true,
+    "allowUserDeleteMessages": true,
+    "allowChannelMentions": true,
+    "allowUserEditMessages": true
+  },
+  "visibility": "public",
+  "isArchived": false,
+  "isMembershipLimitedToOwners": false,
+  "funSettings": {
+    "allowStickersAndMemes": true,
+    "allowGiphy": true,
+    "giphyContentRating": "moderate",
+    "allowCustomMemes": true
+  },
+  "discoverySettings": {
+    "showInTeamsSearchAndSuggestions": true
+  },
+  "id": "573ae468-5a74-4e74-a1d0-3cdaacd14519",
+  "specialization": "none"
 }
 ```
 
-It becomes clear, that a team and a group are different object types, even
+It becomes clear, that a *Team* and a *Group* are different object types, even
 though they can share the same id.
 
 #### Exceptions
-The exceptions related with the Microsoft Graph API are defined in the [exceptions'](/modules/univention/office365/microsoft/exceptions) submodule.
-* [Core Exceptions](/modules/univention/office365/microsoft/exceptions/core_exceptions.py): Microsoft Graph API [error codes](https://docs.microsoft.com/en-us/graph/errors) are mapped to Python Exceptions.
+The exceptions related with the Microsoft Graph API are defined in the [exceptions](/modules/univention/office365/microsoft/exceptions) submodule:
+
+* [Core Exceptions](/modules/univention/office365/microsoft/exceptions/core_exceptions.py): Microsoft Graph API [error codes](https://docs.microsoft.com/en-us/graph/errors) are mapped to Python exceptions.
 * [Login Exceptions](/modules/univention/office365/microsoft/exceptions/login_exceptions.py): Exceptions related to the login, authentication, connection and token refreshing.
 * [Other Exceptions](/modules/univention/office365/microsoft/exceptions/exceptions.py). 
 
 #### Usage examples
 
 There are some common methods to Azure User, Group and Team objects.
-Static methods (need a Core related to the account) are:
+Static methods (need a `Core` related to the account) are:
 * `<azure_object>.get(<core>, <azure_object_id>)`: get the object from the Azure Account.
-* `<azure_object>.list(<core>)`: list the objects of the type <azure_object> in the Account.
+* `<azure_object>.list(<core>)`: list the objects of the type `<azure_object>` in the Account.
 * `<azure_object>.get_fields()`: get the fields of the object.
 
-For instances of the AzureObject class, the following methods are available:
+For instances of the `AzureObject` class, the following methods are available:
 * `<azure_object>.get_not_none_values_as_dict()`: get the values of the object as a dictionary.
 * `<azure_object>.set_core()`: set the core of the object.
-* `<azure_object>.create()`: create the object in the Azure Account.
-* `<azure_object>.delete()`: delete the object from the Azure Account.
-* `<azure_object>.update()`: update the object in the Azure Account.
-* `<azure_object>.deactivate()`: deactivate the object in the Azure Account.
-* `<azure_object>.reactivate()`: reactivate the object in the Azure Account.
+* `<azure_object>.create()`: create the object in the Azure account.
+* `<azure_object>.delete()`: delete the object from the Azure account.
+* `<azure_object>.update()`: update the object in the Azure account.
+* `<azure_object>.deactivate()`: deactivate the object in the Azure account.
+* `<azure_object>.reactivate()`: reactivate the object in the Azure account.
 * `<azure_object>.wait_for_operation()`: convenience wait for an operation on the core to finish.
 
 
@@ -660,8 +663,8 @@ team = TeamAzure(displayName=<team_name>, description=<description>)
 subscription = SubscriptionAzure(**subscription)
 ```
 
-Any of the objects that inherit from AzureObject can be created empty or with the attributes set.
-Attributes are passed as keyword arguments, or you can unpack a dictionary. 
+Any of the objects that inherit from `AzureObject` can be created empty or with the attributes set.
+Attributes are passed as keyword arguments, or you can unpack a Python dictionary. 
 
 Every different Azure class has different specific convenience methods.
 Some examples are:
@@ -713,9 +716,9 @@ All the Azure objects code can be found in the [azureobjects](/modules/univentio
 
 ### Connector
 
-To this point classes and methods to work with the data from the UCS/LDAP side and the Microsoft Azure Directory on the other side.
+To this point, classes and methods work with the data from the UCS/LDAP side and the Microsoft Azure Directory on the other side.
 
-No logic have being described to connect the two sides.
+No logic was described to connect the two sides.
 
 This is the main function of the connector submodule. When the listener receives an action related with an object in the UCS LDAP side,
 it's converted to the corresponding UDM Office object and then a specific connector is used
@@ -743,7 +746,7 @@ to replicate the operation on the Microsoft Azure Directory side.
 To determine which attributes of UDM objects should be replicated to Azure and how this should be done 
 (some need to be processed before being replicated) a number of variables are set in UCR that define this behavior.
 
-The ConnectorAttributes contains the attributes that should be replicated to Azure, load the attributes from UCR and 
+The `ConnectorAttributes` contain the attributes that should be replicated to Azure, load the attributes from UCR and 
 implement the logic to process the attributes before they are replicated.
 
 * `mapping`: Maps the names of LDAP attributes to the names of the attributes in the Azure Active Directory.
@@ -759,7 +762,7 @@ From these attributes, only the `sync` attributes are configured to be replicate
 
 The system admin can set some attribute names in `never` to prevent them from being replicated to Azure. 
 It doesn't matter if they are in the `sync` or `static`, if they are also in the `never` attributes, they will be discarded.
-Finally, the `multiple` attributes is created by checking if more than one LDAP attribute maps to the same azure property, and then it's stored in multiple
+Finally, the `multiple` attributes is created by checking if more than one LDAP attribute maps to the same azure property, and then it's stored in `multiple`.
 
 If an attribute is in `sync` but not in `mapping`, it will be ignored.
 ```
@@ -798,7 +801,8 @@ If an attribute is in `sync` but not in `mapping`, it will be ignored.
 
 
 #### Connector
-Parent class of UserConnector and GroupConnector. It defines the common methods and attributes.
+Parent class of `UserConnector` and `GroupConnector`. It defines the common methods and attributes.
+
 * `check_permissions`: Checks if the right permissions are defined for the connections.
 * `has_initialized_connections`: Checks if the connections have been initialized.
 * `get_listener_filter`: Returns the filter to be used by the listener.
@@ -820,12 +824,12 @@ Specific implementation of common methods for `UserConnector`:
   * User may need to be deactivated in all the connections.
   * User may need to be reactivated in some connections and deactivated in others.
   * Attributes of the user may need to be updated.
-* `parse`: Implements the logic to convert a UDM Office User to an Azure User.
+* `parse`: Implements the logic to convert a UDM Office user to an Azure user.
 * `prepare_azure_attributes`: returns the only attributes that will be saved into UDM Office user after replicating into Azure.
 
 Methods only in `UserConnector`:
-* `anonymize_attr`: return uuid.uuid4().hex ?¿
-* `deactivate`: calls the Azure User deactivation method.
+* `anonymize_attr`: return `uuid.uuid4().hex`
+* `deactivate`: calls the Azure user deactivation method.
 * `new_or_reactivate_user`: checks if the user is new or reactivated and calls the appropriate method.
 
 #### GroupConnector
@@ -858,7 +862,7 @@ then:
 Specific implementation of common methods for `GroupConnector`:
 * `create`: Creates the group in the Azure Active Directory for every configured connection.
 * `delete`: For each connection it does the next steps
-  * If the group is a Team, deactivate team. 
+  * If the group is a *Team*, deactivate team. 
   * Remove the direct members of the group.
   * Deactivate the group.
 * `modify`: For each connection it does the next steps
@@ -880,19 +884,19 @@ Methods only in `GroupConnector`:
 
 #### Parser (UDMObjects => AzureObjects)
 
-As a design decision we avoided including specific logic of conversion in any other UDM or Azure classes. 
+As a design decision we avoided to include specific logic to convert in any other UDM object or Azure classes. 
 So, one of the main functions of the connector is to be able to translate an UDMObject to the corresponding AzureObject.
 
 In this translation, we need to use the [mapping of the attributes](#office365-attributes-mapping--). To take care of all these, the `ConnectorAttributes`
-class parse the needed values and apply the expected precedences.
+class parses the needed values and applies the expected precedences.
 
 Both `GroupConnector` and `UserConnector` contain their own implementation of this method, but only in the latter contains certain slightly more complex operations to filter and extract the necessary information from the UDM object.
 
-The returned values is an already created AzureObject with the expected information in it.
+The returned values is an already created `AzureObject` with the expected information in it.
 
 
 #### Usage examples
-The best way to understand the usage of the UserConnector and GroupConnector is to look into the code of the 
+The best way to understand the usage of the `UserConnector` and `GroupConnector` is to look into the code of the 
 [group](/listeners/office365-group.py) and [user](/listeners/office365-user.py) listeners.
 
 ---
@@ -906,31 +910,31 @@ These functionalities not directly linked to the previously defined objects have
 
 Several functions have being implemented to help with the development of the connector.
 
-#### UCR Helper
+#### Univention Configuration Registry Helper
 
-Univention Configuration Registry Helper. This class is used to get the configuration values from the UCR related to the office365 connector.
+[UCRHelper](/modules/univention/office365/ucr_helper.py) class is used to get the configuration values from the UCR related to the office365 connector.
 Convenience methods are being implemented to get and process the values from the UCR.
 Any operation related to UCR for this connector should be implemented in this class.
 
-#### UDM Helper
+#### Univention Directory Manager Helper
 
-Univention Directory Manager Helper. This class is used to get the UDM objects related to the office365 connector.
+[UDMHelper](/modules/univention/office365/udm_helper.py) class is used to get the UDM objects related to the office365 connector.
 Convenience methods are being implemented to get and process the objects from UDM.
 Any operation related to UDM for this connector should be implemented in this class.
 
 #### JsonStorage
 
-This class can be used to store data in json format. This class is used mainly by AzureAccount.
+[JsonStorage](/modules/univention/office365/microsoft/jsonstorage.py) class can be used to store data in json format. This class is used mainly by `AzureAccount`.
 
 Using this class is easy, you only need to instance it with the name of the file where you want to save the data.
 
-This class have 3 methods:
+This class has the following methods:
 
-* `read`: Read data from file and return it. If the load process fail it return a empty dict
-* `write`: Update the data with new data.
-* `purge`: Write an empty dict in the file.
+* `read()`: Read data from file and return it. If the load process fail it returns a empty Python dictionary.
+* `write()`: Update the data with new data.
+* `purge()`: Write an empty dict in the file.
 
-*_Note_*: In write and purge operation the class set permissions for listener user.
+*_Note_*: In write and purge operation the class sets permissions for listener user.
 
 
 ### Examples
@@ -960,7 +964,7 @@ data = json_storage.read()
 Some Microsoft API calls are asynchronous ([teams operations](https://docs.microsoft.com/en-us/graph/api/resources/teamsasyncoperation?view=graph-rest-1.0) ). This means that the
 call is made, but the result response is not returned immediately and we need to wait and repeat the call until the result is available.
 
-Other problem related with this is that some calls are dependent on the previous ones. 
+Other related problems are that some calls depend on previous calls. 
 For example, if we create a team and then add a member to it, the team needs to be created before the member is added.
 
 #### Async queue
@@ -973,28 +977,26 @@ The queue can be implemented with several backends.
 The default is a [JSON Backend](/modules/univention/office365/asyncqueue/queues/jsonfilesqueue.py) (_json file directory_) containing files for each task.
 A [Redis backend](/modules/univention/office365/asyncqueue/queues/redisqueue.py) is also available as an example but not currently used.
 
-The code related to the Async Queue is in `univention/office365/asyncqueue/`.
+The code related to the Async Queue is in [univention/office365/asyncqueue/](/modules/univention/office365/asyncqueue).
 
 #### Tasks
 
-The asynchronous queue is designed in such a way that it can execute Tasks.
-
-All Tasks can be defined in a hierarchical way, so that for one to complete, subtasks can be defined that must be completed beforehand.
+The asynchronous queue is designed in such a way that it can execute tasks. All tasks can be defined in a hierarchical way, so that for one to complete, subtasks can be defined that must be completed beforehand.
 
 These tasks are defined in an [abstract class](/modules/univention/office365/asyncqueue/tasks/task.py) that can be reimplemented as needed.
 Currently, the only specific task type implemented is the [AzureTask](/modules/univention/office365/asyncqueue/tasks/azuretask.py).
 
 An AzureTask contains the _alias_ of a connection on which the task will be executed, the name of the _method name_ to be called to execute it and the _arguments_ of the method.
 
-When executing an AzureTask, a core is constructed from the supplied alias and the method of the core whose name was supplied when creating the task is called along with the arguments to be used.
+When executing an `AzureTask`, a core is constructed from the supplied alias and the method of the core whose name was supplied when creating the task is called along with the arguments to be used.
 
-In the execution of the AzureTask we are making use of the `retrying` library to try to make the call several times with waits in between to give Azure time to process the request.
+In the execution of the `AzureTask` we are making use of the `retrying` library to try to make the call several times with waits in between to give Azure time to process the request.
 
 #### Async daemon
 
 Some azure calls need a try-sleep-retry.
 
-To not block the listener at this point we have an async daemon for these calls *univention-ms-office-async* (share/univention-ms-office-async).
+To not block the listener at this point we have an async daemon for these calls [univention-ms-office-async](/share/univention-office365/univention-ms-office-async).
 
 Started via `univention-ms-office-async.service` this daemon checks new tasks are available in the queue and executes them.
 
@@ -1007,7 +1009,7 @@ Started via `univention-ms-office-async.service` this daemon checks new tasks ar
  }
 ```
 
-If the file can be verified (e.g. function exists or ad_connection_alias is available) *function_name* with the kwarg *parameters* is executed on the connection *ad_connection_alias*. If the job can't be verified or is successful the job is removed.
+If the file can be verified (e.g. function exists or `ad_connection_alias` is available) `method_name` with the kwarg `method_args`  is executed on the connection `ad_connection_alias`. If the job can't be verified or is successful the job is removed.
 
 The daemon process does the following:
 
@@ -1052,7 +1054,7 @@ q.enqueue(main_task)
 With the help of the UMC wizard an SSL certificate is uploaded to Azure. The secret key is used by us to sign our 
 requests and to verify their tokens. No user interaction is required to fetch new tokens.
 
-The downside of the client credentials flow is, that some operations on the AAD are excluded from application permissions.   
+The downside of the client credentials flow is, that some operations on the Azure AD are excluded from application permissions.   
 The most notable, an application [does not have the rights to reset user passwords or to delete entities](https://docs.microsoft.com/en-us/previous-versions/azure/ad/graph/howto/azure-ad-graph-api-permission-scopes#DirectoryRWDetail) (including users or groups).
 
 Now that we can authenticate, we can synchronize the selected users and groups with the Azure directory and manage the users licenses.  
@@ -1063,18 +1065,20 @@ It is possible to configure through [UCR variables](#ucr-variables-to-modify-con
 
 ## Authorization Code Grant Flow - ***not** used by listener!*
 
-With this data the OAuth dance can begin. See "Authorization Code Grant Flow" (see https://msdn.microsoft.com/en-us/library/azure/dn645542.aspx).
+With this data the OAuth dance can begin. See [Authorization Code Grant Flow](https://msdn.microsoft.com/en-us/library/azure/dn645542.aspx).
 
 In short:
 
-* redirect the user to authenticate at an Azure-login
+* redirect the user to authenticate at an Azure login
 * user authorizes the requested permissions for the UCS App
-* user gets redirected from Azure to the configured callback-URI (https://DC.DOM/office365/mycallback)
+* user gets redirected from Azure to the configured [callback-URI](https://DC.DOM/office365/mycallback)
 * the callback extracts a token from the URL and uses it to get some other tokens
-* those tokens can be used to access the Azure AD and to refresh themselves when they expire (3600s)
-* when the refresh token has expired the dance begins from the start. Currently, it is unknown how long it lasts... at least 6h it seams... The Azure doc states: "Refresh tokens do not have specified lifetimes. Typically, the lifetimes of refresh tokens are relatively long. [..] The client application needs to expect and handle errors..." (see https://msdn.microsoft.com/en-us/library/azure/dn645536.aspx)
+* those tokens can be used to access the Azure AD and to refresh themselves when they expire (3600 seconds)
+* when the refresh token has expired the dance begins from the start. Currently, it is unknown how long it lasts... at least 6 h it seams... The [Azure documentation states](https://msdn.microsoft.com/en-us/library/azure/dn645536.aspx):
 
-We dance with a partner: requests-oauthlib (https://github.com/requests/requests-oauthlib). It does well, except for the refresh handling. This should be fixed in their code. But handling it ourselves is not a problem. Requests-oauthlib uses the "requests" lib for handling the HTTP requests. The requests lib might one day end up in the Python standard library.
+  > "Refresh tokens do not have specified lifetimes. Typically, the lifetimes of refresh tokens are relatively long. [...] The client application needs to expect and handle errors..."
+
+We dance with a partner: [requests-oauthlib](https://github.com/requests/requests-oauthlib). It does well, except for the refresh handling. This should be fixed in their code. But handling it ourselves is not a problem. `requests-oauthlib` uses the [Python requests library](https://requests.readthedocs.io/en/latest/) for handling the HTTP requests.
 
 #### Main call flow
 This is not part of the application implementation but for the sake of correct understanding, 
@@ -1113,8 +1117,9 @@ sequenceDiagram
 
 #### User creation
 The logic behind the replication of a new object in Azure is:
+
 ```mermaid 
-flowchart LR
+flowchart TB
     A[new user]
     B{have aliases?}
     C{Already exists<br/>in Azure}
@@ -1146,58 +1151,49 @@ When a user has been modified it can be 1 of 3 different situations:
 * Need to NOT be synchronized.
 * Attribute modifications.
 
-Attribute Modification in turn involves several possible actions:
+Attribute modification in turn involves several possible actions:
 * Activation of the user in any of the connections
 * Deactivation in any of the connections
 * Modification of attributes in any of the connections
 
 ```mermaid 
-flowchart LR
-    A[modified user]
-    B{Need to reactivate user?}
-    C{Need to deactivate user?}
-    E[Reactivate user]
-    F[Deactivate user]
-    G{Have more aliases?}
-    H{Have more aliases?}
-    I{User<br/>need to be synced?}
-    J{Need to add connection?}
-    J1{More aliases?}
-    J2[new_or_reactivate_user]
-    K{Need to remove connection?}
-    K1{More aliases?}
-    K2[deactivate]
-    L{Need to modify attributes?}
-    L1{More aliases?}
-    L2[modify]
-    
-    Z[Z-END]
+flowchart TB
+ 
+    A[Modified user]
+    subgraph aliases["For each alias"]
+        direction TB
+        B{Reactivate</br>user?}
+        C{Deactivate</br>user?}
+        subgraph mods["user attributes modifications"]
+            direction LR
+            J{Add</br>connection?}
+            J2[new_or_reactivate_user]
+            K{Remove</br>connection?}
+            K2[deactivate]
+            L{Modify</br>attributes?}
+            L2[modify]
+            modsend[END]
+        end
+    end
+    Z[END]
     
     A --> B
-    B -- Yes --> G
-    G -- Yes --> E
-    E --> G
-    G --> No --> Z
-    C -- Yes--> H
-    H -- Yes --> F
-    F --> H
-    H -- No --> Z
+    B -- Yes --> Z
+    C -- Yes --> Z
     B -- No --> C
-    C -- No --> I
-    I -- NO --> Z
-    I --> J
-    J --> J1
-    J1 -- Yes --> J2
-    J2 --> J1
-    J1 -- No --> K
-    K --> K1
-    K1 -- Yes --> K2
-    K2 --> K1
-    K1 -- No --> L
-    L --> L1
-    L1 -- Yes --> L2
-    L2 --> L1
-    L1 -- No --> Z
+    C -- No --> mods
+    J -- Yes --> J2
+    J -- No --> K
+
+    J2 --> K
+    K -- Yes --> K2
+    K -- No --> L
+    K2 --> L
+    L -- Yes --> L2
+    L -- No --> modsend
+    L2 --> modsend
+
+    mods --> Z
 ```
 
 #### User Deletion
@@ -1224,6 +1220,7 @@ The main function defined in this module is `get_logger(<logger_name>)` which re
 log file and log levels defined. The UCR variable [office365/debug/werror](#office365-debug-werror) controls the level of the logging being much more verbose when set to `True`.
 
 The admin or developer can find information about the execution of the connector in these files:
+* `/var/log/univention/management-console-module-office365.log`: Logging generated while the app setup.
 * `/var/log/univenton/listener.log`: contains the logs of all the listeners.
 * `/var/log/univenton/listener_modules/`
   * `ms_office_async`: contains the logs of the async daemon.
@@ -1235,7 +1232,7 @@ The admin or developer can find information about the execution of the connector
 
 ### univention-ms-office-async/autostart
 
-This variable configures the start mode of the Univention MS Office Async Daemons. If set to 'no' or 'disabled', the service cannot be started. If the variable is set to 'manually', the service isn't started during system boot, but can be enabled manually at a later point.
+This variable configures the start mode of the Univention MS Office Async daemons. If set to 'no' or 'disabled', the service cannot be started. If the variable is set to 'manually', the service isn't started during system boot, but can be enabled manually at a later point.
 
 _Type:_ str
 
@@ -1247,7 +1244,7 @@ The `country` attribute of a user is given precedence over this setting.
 If neither is set, the value of the UCR variable `ssl/country` is used.
 For legal reasons it is recommended to set this variable.
 
-_Type:_ str two-letter country code (ISO standard 3166).
+_Type:_ str two-letter country code ([ISO standard 3166](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements)).
 
 ### office365/debug/werror
 
@@ -1280,8 +1277,9 @@ _Default:_
 
 ### office365/migrate/adconnectionalias
 
-DEPRECATED. To be removed in future releases. Don't use.
-This variable can be used to deactivate the automatic migration of user and group accounts during the update of the app to version 3.0. If an administrator chooses to postpone the migration, it needs to be done manually later by running the script /usr/share/univention-office365/scripts/migrate_to_adconnectionalias. By default, the variable is unset and the automatic migration is run during the update of the app. Setting the variable to 'no' or 'false' before the app update will skip the automatic migration.
+**DEPRECATED**: To be removed in future releases. Don't use it.
+
+This variable can be used to deactivate the automatic migration of user and group accounts during the update of the app to version 3.0. If an administrator chooses to postpone the migration, it needs to be done manually later by running the script `/usr/share/univention-office365/scripts/migrate_to_adconnectionalias`. By default, the variable is unset and the automatic migration is run during the update of the app. Setting the variable to 'no' or 'false' before the app update will skip the automatic migration.
 
 _Type:_ str
 
@@ -1293,7 +1291,7 @@ _Type:_ str
 
 ### office365/adconnection/wizard
 
-The value of this Univention Configuration Registry-Variable defines which connection is configured by the next run of the Microsoft 365 Configuration Wizard. The value should not be empty. To see the available connections, '/usr/share/univention-office365/scripts/manage_adconnections list' can be called. The default after installation is 'defaultADconnection'.
+The value of this Univention Configuration Registry-Variable defines which connection is configured by the next run of the Microsoft 365 Configuration Wizard. The value should not be empty. To see the available connections, `/usr/share/univention-office365/scripts/manage_adconnections list` can be called. The default after installation is `defaultADconnection`.
 
 _Type:_ str
 
@@ -1307,26 +1305,26 @@ _Type:_ str
 _Default:_
 
 ```
-    office365/attributes/mapping/l=city  
-    office365/attributes/mapping/displayName=displayName  
-    office365/attributes/mapping/employeeType=jobTitle  
-    office365/attributes/mapping/givenName=givenName  
-    office365/attributes/mapping/mobile=mobilePhone  
-    office365/attributes/mapping/mail=otherMails  
-    office365/attributes/mapping/mailAlternativeAddress=otherMails  
-    office365/attributes/mapping/mailPrimaryAddress=otherMails  
-    office365/attributes/mapping/postalCode=postalCode  
-    office365/attributes/mapping/roomNumber=officeLocation  
-    office365/attributes/mapping/st=usageLocation  
-    office365/attributes/mapping/street=streetAddress  
-    office365/attributes/mapping/sn=surname  
-    office365/attributes/mapping/telephoneNumber=businessPhones
+  office365/attributes/mapping/l=city  
+  office365/attributes/mapping/displayName=displayName  
+  office365/attributes/mapping/employeeType=jobTitle  
+  office365/attributes/mapping/givenName=givenName  
+  office365/attributes/mapping/mobile=mobilePhone  
+  office365/attributes/mapping/mail=otherMails  
+  office365/attributes/mapping/mailAlternativeAddress=otherMails  
+  office365/attributes/mapping/mailPrimaryAddress=otherMails  
+  office365/attributes/mapping/postalCode=postalCode  
+  office365/attributes/mapping/roomNumber=officeLocation  
+  office365/attributes/mapping/st=usageLocation  
+  office365/attributes/mapping/street=streetAddress  
+  office365/attributes/mapping/sn=surname  
+  office365/attributes/mapping/telephoneNumber=businessPhones
 ```
 
 ### office365/attributes/sync
 
-LDAP attributes that should be synchronized with the Azure Active DirectoryAAD.
-The names of the attributes must be included in `office365/attributes/mapping/.*` as ATTRIBUTE-IN-LDAP.
+LDAP attributes that should be synchronized with the Azure Active Directory.
+The names of the attributes must be included in `office365/attributes/mapping/.*` as `ATTRIBUTE-IN-LDAP`.
 
 _Type:_ str comma separated list
 
@@ -1336,17 +1334,17 @@ _Default:_
 ### office365/attributes/static/.*
 
 Configure synchronization of user attributes to the Azure Active Directory (AAD).
-Variables in the format office365/attributes/static/ATTRIBUTE-IN-LDAP=VALUE
+Variables in the format `office365/attributes/static/ATTRIBUTE-IN-LDAP=VALUE`
 VALUE will be written to the corresponding attribute in AAD when a user is enabled for Microsoft 365.
 Will have priority over attributes in `office365/attributes/sync`.
-The names of the attributes must be included in `office365/attributes/mapping/.*` as ATTRIBUTE-IN-LDAP.
+The names of the attributes must be included in `office365/attributes/mapping/.*` as `ATTRIBUTE-IN-LDAP`.
 
 _Type:_ str
 
 ### office365/attributes/anonymize
 
 LDAP attributes that should be synchronized in anonymized form to the Azure Active Directory.
-The names of the attributes must be included in `office365/attributes/mapping/.*` as ATTRIBUTE-IN-LDAP.
+The names of the attributes must be included in `office365/attributes/mapping/.*` as `ATTRIBUTE-IN-LDAP`.
 Will be given precedence over attributes in `office365/attributes/static` and `office365/attributes/sync`.
 
 _Type:_ str comma separated list
@@ -1368,17 +1366,17 @@ _Type:_ str comma separated list
 ---
 
 # Changes in stored data in LDAP Objects
-In the current version of this application, only 3 LDAP extended attributes are defined to hold office365 related information in the objects:
+In the current version of this application, only three LDAP extended attributes are defined to hold Office 365 related information in the objects:
 * `UniventionOffice365Data`: office data for all the connections is stored encoded as a json in base64
-    ```json 
+  ```json 
+  {
+    <AD connection alias>:
     {
-        <AD connection alias>:
-        {
-            "userPrincipalName": <userprincipalname>,
-            "objectId": <azure_object_id>,
-        }, ...
-    }
-    ```
+      "userPrincipalName": <userprincipalname>,
+      "objectId": <azure_object_id>,
+    }, ...
+  }
+  ```
   * The keys of the dictionary are the names of the AD connections.
   * The values are dictionaries with the following keys:
     * `userPrincipalName`: the `userPrincipalName` of the user in Azure.
@@ -1388,7 +1386,7 @@ In the current version of this application, only 3 LDAP extended attributes are 
     * This way we can keep track of the users in the connection in case it's reactivated.
 * `UniventionOffice365ADConnectionAlias`: 
   ```['adConnectionName', ... ]``` 
-  * All the connections names are stored in attribute as a list of strings. These strings are the aliases of the connection.
+  * All connection names are stored in attribute as a list of strings. These strings are the aliases of the connection.
   * If a connection is deleted, the alias is removed from the list, but kept as key in the `UniventionOffice365Data` dict.
 * `UniventionOffice365ADConnections`: DEPRECATED. Not used anymore but still not removed in the last version.
   * `[("adConnectionName", "UserPrincipalName"),...]`,  is a list of connection aliases in which this object needs to be replicated and the current `userPrincipalName` of this user for that connection.
@@ -1403,7 +1401,7 @@ with special interest in [Property differences between Azure AD Graph and Micros
 
 The Microsoft Graph API is the successor of the former Azure Graph API.
 Microsoft kept its new API mostly compatible with its predecessor, but not
-entirely. The most obvious difference is the url against which all API calls
+entirely. The most obvious difference is the URL against which all API calls
 have to be performed. It changed from `graph.windows.net` to
 `graph.microsoft.com` and each individual call now needs an API version number
 as part of the new URL, e.g.
@@ -1414,7 +1412,10 @@ Before using the API an access token must be acquired. There are different ways
 to get one of these, and they expire automatically after some time. Actually
 Microsoft provides with
 [msal](https://github.com/AzureAD/microsoft-authentication-library-for-python)
-a python library for the log-in process, but we decided against using it.
+a python library for the log-in process, but we decided against using it.```suggestion:-4+0
+Before using the API an access token must be acquired. There are different ways
+to get one of these, and they expire automatically after some time. Microsoft provides a Python library for the login process with
+[msal](https://github.com/AzureAD/microsoft-authentication-library-for-python), but we decided against using it.
 
 Our implementation is kept simple in that it can only acquire an access token
 by using an application certificate. The token itself is a long string which
@@ -1423,24 +1424,23 @@ Decoding it on the terminal comes handy for debug sessions:
 
     echo 'eyJ0...[]' | base64 -d
 
-The log-in works slightly different for Graph than it did for Azure:
+The login works slightly different for Graph than it did for Azure:
 
-* the directory_id became optional
+* The `directory_id` became optional.
 
-* the url contains a version number and makes the tenant_id superfluous (because
-  it is also contained in the certificate)
+* The URL contains a version number and makes the `tenant_id` superfluous, because
+  it is also contained in the certificate.
 
-* the scope parameter [has to be adjusted](https://docs.microsoft.com/en-us/
-  graph/migrate-azure-ad-graph-authentication-library#migrating-to-msal).
+* The `scope` parameter [has to be adjusted](https://docs.microsoft.com/en-us/graph/migrate-azure-ad-graph-authentication-library#migrating-to-msal).
 
-* the return value contains a relative time for `expires_in` rather than an
+* The return value contains a relative time for `expires_in` rather than an
   absolute time `expires_at`.
 
-* a token for Azure cannot be used with Graph.
+* A token for Azure cannot be used with Graph.
 
-The actual API access is mostly consistent: There is always the request url
+The API access is mostly consistent: There is always the request URL
 (see above) and then either an empty payload or JSON in the request and the
-answer has either an empty body or JSON, but always a http status code, which
+answer has either an empty body or JSON, but always a HTTP status code, which
 is well-defined in the Microsoft documentation and only a very few calls have
 more than one success value. All calls however return errors one and the same
 [list](https://docs.microsoft.com/en-us/graph/errors), which makes a generic
@@ -1453,9 +1453,9 @@ slightly different](https://docs.microsoft.com/en-us/graph/paging).
 
 ## Teams
 
-In order to create Teams, at least one group owner must be set.
-To convert a group into a team, the group must be of type MS365, not security group. The doc says so, but the API allows creating of a team from a security group
-To create a team, all group owners must have a license that includes Teams.
+To create *Teams*, at least one group owner must be set.
+To convert a group into a team, the group must be of type `MS365`, not *security group*. The documentation says so, but the API allows to create a team from a security group.
+To create a team, all group owners must have a license that includes *Teams*.
 
 Prior to communication with the Azure API, authentication and authorization is done through OAuth2.
 
@@ -1467,46 +1467,9 @@ The wizard must retrieve the following data from the user:
 * the Federation Data Document Url
 * the Azure Application manifest
 
+Have a look into the documentation for the administrator at https://docs.software-univention.de/manual/
+
 The manifest is downloaded by the user from their Azure application. The manifest contains, among other things, permissions for the application.
-The function *def transform* in azure_auth.py appends needed permissions to the manifest, which is then re-uploaded by the user.
-This includes permissions for the Azure Active Directory Graph API (resourceAppId: 00000002-0000-0000-c000-000000000000)
-and the Microsoft Graph API (resourceAppId: 00000003-0000-0000-c000-000000000000). The permissions will be displayed in the *API permissions* Tab in the Azure Portal.
-
-
-
-IDEA FOR A DATA FLOW DIAGRAM:
-
-UCS
-LDAP
-change
-
-Listener
-receives representation
-of the old and new object
-and the operation executed
-
-Creates corresponding UDM objects
-
-Call corresponding Connector Method
-
---
-
-For each ad connection configured for the UDM object
-
-Resolve the operation logic
-(object dependencies, recursion, ...)
-
-Creates the corresponding Azure Object (parse)
-
-Call the method of the Azure Object
-
---
-
-Prepare data
-
-Call the Graph API with the credentials of the ad connection
-through the Core wrapper implementation.
-
-[//]: #
-[//]: #
-[//]: #
+The function `def transform` in azure_auth.py appends needed permissions to the manifest, which is then re-uploaded by the user.
+This includes permissions for the Azure Active Directory Graph API (`resourceAppId: 00000002-0000-0000-c000-000000000000`)
+and the Microsoft Graph API (`resourceAppId: 00000003-0000-0000-c000-000000000000`). The permissions will be displayed in the *API permissions* tab in the Azure Portal.
