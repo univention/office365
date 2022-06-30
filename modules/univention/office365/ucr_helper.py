@@ -116,7 +116,8 @@ class UCRHelperC(ConfigRegistry):
 			"ucs/web/overview/entries/service/office365/description/de": "Single-Sign-On Link für Microsoft 365",
 			"ucs/web/overview/entries/service/office365/label/de": "Microsoft 365 Login",
 			"ucs/web/overview/entries/service/office365/priority": "50",
-			"ucs/web/overview/entries/service/office365/icon": "/office365.png"
+			"ucs/web/overview/entries/service/office365/icon": "/office365.png",
+			"ucs/web/overview/entries/service/office365/link-target": "newwindow"
 		})
 
 	@pre_post_decorator(post_name="load")

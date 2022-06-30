@@ -1,3 +1,10 @@
+univention-office365 (3.0.1-9) unstable; urgency=medium
+
+  * Bug #54858: When creating the portal tile in the wizard, set configuration
+    option to open the link in a new tab
+
+ -- Erik Damrose <damrose@univention.de>  Thu, 30 Jun 2022 12:58:40 +0200
+
 univention-office365 (3.0.1-8) unstable; urgency=medium
 
   * Bug #54858: Fix: Re-Encoded onPremisesInmutableId base64  
