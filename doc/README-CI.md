@@ -1,8 +1,11 @@
 # CI Pipelines
 
-The [.gitlab-ci.yml](../.gitlab-ci.yml) configure the behavior of the gitlab pipeline for this component.
-This file should be versioned/adapted for the latest version UCS of the branch.
+The [.gitlab-ci.yml](/.gitlab-ci.yml) configures the behavior of the GitLab CI/CD pipeline for this component.
+
+The CI/CD configuration must be adapted for the latest UCS version of the branch.
+
 This files implements four stages, of which only the first two are available in user/feature branches.  
+
 The `Staging` and `Deploy` stage are only available on the default branch.
 
 ```mermaid
@@ -22,7 +25,7 @@ execute.
 
 ## Build
 
-This stage uses the infamous `dpkg-buildpackage` tool to create packages and
+This stage uses the `dpkg-buildpackage` tool to create packages and
 stores these as artifacts. These can be downloaded and installed on a UCS
 system.
 
@@ -35,16 +38,17 @@ is usually referred to as `import` at Univention.
 
 ## Deploy
 
-In this stage the package is build again, but this time it is deployed into
+In this stage the package is built again, but this time it is deployed into
 our testing repository. The testing repository can be used in UCS systems
-from within the univention network (e.g. VPN) by adding it to the
+from within the Univention network (e.g. VPN) by adding it to the
 `/etc/apt/sources.list`, like so:
 
     deb [trusted=yes] http://192.168.0.10/build2/ ucs_4.4-0-errata4.4-7/all/
     deb [trusted=yes] http://192.168.0.10/build2/ ucs_4.4-0-errata4.4-7/$(ARCH)/
 
 Packages can be manually tested from there and can also be released. 
-`release` stage may be a subject for a future development and is not there yet.
+
+The `release` stage may be a subject for a future development and is not there yet.
 
 
 ## Specialities
@@ -52,10 +56,10 @@ Packages can be manually tested from there and can also be released.
 * If the commit message contains `skip-build`, the CI pipeline never reaches
   the staging and deploy stages.
 
-* The `.gitlab.ci` file has to be adapted for every major branch. Special
+* The [.gitlab-ci.yml](/.gitlab-ci.yml) file has to be adapted for every major branch. Special
   care must be taken for the `variables` sections with all the version numbers.
 
-* The `$SSH_PRIVATE_KEY` variable in .gitlab.ci is not defined in the
+* The `$SSH_PRIVATE_KEY` variable in [.gitlab-ci.yml](/.gitlab-ci.yml) is not defined in the
   `variables:` section, but rather a [project specific setting in gitlab
   ](https://docs.gitlab.com/ee/ci/variables/#cicd-variable-types). 
 
@@ -85,20 +89,25 @@ still work, even when the bug is fixed in Gitlab.
 
 ## Decision making
 
+During the creation of this continuous integration process, a number of decisions have been made, as follows:
+
 ### Should `repo_admin` and `build-package-ng` run in individual stages?
+
+The `repo_admin` and `build-package-ng`  are run in different stages.
+The pros and cons of this decision are:
 
 :heavy_check_mark: Pro:
 
-- resembles the manual workflow.
-- shortens the log for each command.
+- Resembles the manual workflow.
+- Shortens the log for each command.
 - Either of these steps could fail. It is easier to see which one.
-- do one thing and do it right.
-- allows manual restarts of individual steps.
+- Do one thing and do it right.
+- Allows manual restarts of individual steps.
 
 :x: Contra:
 
-- the pipeline gets longer
-- we see no use in it for possible future developments, that jobs could run in
+- The pipeline gets longer
+- We see no use in it for possible future developments, that jobs could run in
   parallel in the staging or deploy stage.
 
 
