@@ -3,9 +3,18 @@
 ---
 
 # Tools
-There are several useful scripts, they are located in `/usr/share/univention-office365/scripts/`
+There are several useful scripts, they are located in `/usr/share/univention-office365/scripts/` and `/usr/share/ucs-test/92_office365`
+* Package `univention-office365` provides:
+  * `manage_adconnections`
+  * `o365_usertokens`
+  * `check_for_empty_groups`
+  * `o365_list_users`
+  * `print_users_and_groups`
+  * `print_subscriptions`
+* Package `ucs-test-office365` provides:
+  * `terminaltest.py`
 
-These scripts have like a goal help to administrator to admin connections, admin users tokens, 
+These scripts help administrators to manage connections, users tokens, 
 clean empty groups and show some info about user, groups and subscriptions.
 
 ## Managing adconnections
@@ -62,7 +71,7 @@ Options:
 
 ## Clean Empty groups from azure
 
-You can list or delete/deactivate empty groups from azure using this script.
+You can list or delete/deactivate empty groups from Azure AD using this script.
 
 ```shell
 /usr/share/univention-office365/scripts/check_for_empty_groups
@@ -83,7 +92,7 @@ optional arguments:
 
 ---
 
-## List o365 users for all connections
+## List Office 365 users for all connections
 
 You can list one or all users in azure active directory for all connections you can use this script
 ```shell
@@ -116,9 +125,9 @@ Usage: print_users_and_groups [Azure AD connection alias]
 
 ---
 
-## List o365 subscriptions
+## List Office 365 subscriptions
 
-You can list all azure subscriptions existing in specific connection.
+You can list all Azure subscriptions existing in specific connection.
 
 ```shell
 /usr/share/univention-office365/scripts/print_subscriptions
@@ -131,7 +140,7 @@ Usage: print_subscriptions [Azure AD connection alias]
 
 ## Getting started with `terminaltest.py`
 
-If calling terminaltest.py leads to an error like `Application with identifier
+If calling `terminaltest.py` leads to an error like `Application with identifier
 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx' was not found in the directory` that is
 probably the case, because a wrong connection was automatically pre-selected.
 Check which connections exist on your system and choose another, like so:
