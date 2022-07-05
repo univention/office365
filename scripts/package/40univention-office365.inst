@@ -33,7 +33,7 @@
 
 ## joinscript api: bindpwdfile
 
-VERSION=9
+VERSION=10
 
 . /usr/share/univention-join/joinscripthelper.lib
 . /usr/share/univention-lib/all.sh
@@ -500,6 +500,14 @@ univention-config-registry set \
 	office365/attributes/mapping/telephoneNumber?businessPhones \
 	office365/attributes/sync?displayName,employeeType,givenName,l,mailPrimaryAddress,mobile,mailAlternativeAddress,mail,postalCode,roomNumber,st,street,sn,telephoneNumber \
 	office365/groups/sync?no || die
+
+# With VERSION 10 we have migrated to Microsoft Graph. It have changes in the names of the attributes.
+# We need to force the update of the attributes mapping.
+if [ "$JS_LAST_EXECUTED_VERSION" -lt 10 ] && [ $JS_LAST_EXECUTED_VERSION -gt 0 ]; then
+  univention-config-registry  set office365/attributes/mapping/roomNumber=officeLocation \
+   office365/attributes/mapping/mobile=mobilePhone \
+   office365/attributes/mapping/telephoneNumber=businessPhones
+fi
 
 udm saml/serviceprovider create "$@" \
 	--ignore_exists \
