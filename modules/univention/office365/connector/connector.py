@@ -657,6 +657,14 @@ class UserConnector(Connector):
 		data = {}
 		user_azure_fields = UserAzure.get_fields()
 		for udm_key, azure_key in self.attrs.mapping.items():
+			if azure_key not in user_azure_fields:
+				self.logger.error("Mapped Azure attribute %r not exist in new API MS Graph" % azure_key)
+				self.logger.error("Please check ucr variable 'ucr get office365/attributes/mapping/%s'" % (udm_key))
+				self.logger.error(
+					"You can find more info in the following links\n" +
+					" * Migrating Azure AD Graph to MS Graph: https://docs.microsoft.com/en-us/graph/migrate-azure-ad-graph-property-differences\n" +
+					" * User properties:  https://docs.microsoft.com/es-es/graph/api/resources/user?view=graph-rest-1.0#properties")
+				raise ValueError("Azure attribute %r not exist in new API MSGraph," % azure_key)
 			if udm_key in res:
 				value = res.get(udm_key)
 				if azure_key in list(self.attrs.multiple.keys()):
