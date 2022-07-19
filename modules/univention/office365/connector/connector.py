@@ -566,7 +566,7 @@ class UserConnector(Connector):
 			for alias in old_object.aliases():
 				with new_object.set_current_alias(alias):
 					old_azure = self.parse(old_object)
-					old_azure.deactivate(rename=True)
+					old_azure.deactivate(rename=False)
 					new_object.modify_azure_attributes(self.prepare_azure_attributes(old_azure, to_remove=True))
 			return
 
