@@ -1,3 +1,9 @@
+univention-office365 (3.0.1-12) unstable; urgency=medium
+
+  * Bug #55012: Fix deactivating a user in UDM changes the azure mailalias
+
+ -- Ivan Barbecho Delgado <delgado.extern@univention.de>  Tue, 19 Jul 2022 16:40:43 +0200
+
 univention-office365 (3.0.1-11) unstable; urgency=medium
 
   *  Bug #54936: Fix UDM-Azure attribute name mapping error in new versions.
