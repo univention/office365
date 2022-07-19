@@ -71,7 +71,7 @@ from univention.office365.microsoft.account import AzureAccount
 from univention.office365.microsoft.urls import URLs
 URLs.proxies = mock.MagicMock(return_value={})
 from univention.office365.microsoft.core import MSGraphApiCore
-from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError, ItemNotFound
+from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError, ItemNotFound, InternalServerError
 from test import ALIASDOMAIN, DOMAIN_PATH, DOMAIN, VCR_PATH, OWNER_ID
 
 
@@ -243,7 +243,7 @@ class TestAzure:
 		""" """
 		with requests_mock.Mocker() as mock_request:
 			mock_request.request(method='POST', url=URLs.ms_login(self.account["directory_id"]), text="Fail!", status_code=500)
-			with pytest.raises(MSGraphError):
+			with pytest.raises(InternalServerError):
 				self.core.get_token()
 
 	@my_vcr.use_cassette(os.path.join(VCR_PATH, 'TestAzure/test_create_invitation.yml'))
