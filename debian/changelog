@@ -1,3 +1,11 @@
+univention-office365 (2.0.4-11) unstable; urgency=medium
+
+  * Bug #55012: Fix deactivating a user in UDM changes the azure mailalias
+  * Bug #54858: Fix tool scripts
+  * Bug #54937: Control azure key not exist in MS Graph logger.error and raise 
+
+ -- Ivan Barbecho Delgado <delgado.extern@univention.de>  Mon, 25 Jul 2022 08:32:27 +0200
+
 univention-office365 (2.0.4-10) unstable; urgency=medium
 
   *  Bug #54930: Fix UDM-Azure attribute name mapping error in new versions.
