@@ -1,4 +1,4 @@
-univention-office365 (3.0.1-12) unstable; urgency=medium
+univention-office365 (3.0.1-13) unstable; urgency=medium
 
   * Bug #55012: Fix deactivating a user in UDM changes the azure mailalias
   * Bug #54858: Fix tool scripts
