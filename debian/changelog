@@ -1,3 +1,9 @@
+univention-office365 (2.0.4-12) unstable; urgency=medium
+
+  * Bug #54858: Fix tool scripts
+
+ -- Ivan Barbecho Delgado <delgado.extern@univention.de>  Tue, 30 Aug 2022 12:54:38 +0200
+
 univention-office365 (2.0.4-11) unstable; urgency=medium
 
   * Bug #55012: Fix deactivating a user in UDM changes the azure mailalias
