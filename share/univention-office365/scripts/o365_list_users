@@ -53,12 +53,12 @@ cores = {}
 
 def print_azure_user_from_ldap_user(ldap_user):
 	try:
-		adconnection_objects = UniventionOffice365Data.from_ldap(ldap_user[1]["univentionOffice365Data"][0])
+		adconnection_objects = UniventionOffice365Data.from_ldap(ldap_user["UniventionOffice365Data"])
 	except (zlib.error, TypeError):
 		logger.error("Error decoding o365data for user %s", ldap_user[1]["uid"][0])
 		adconnection_objects = {}
 	except KeyError:
-		logger.error("Error: user %s is not correctly synced to Azure (missing univentionOffice365Data attribute)", ldap_user[1]["uid"][0])
+		logger.error("Error: user %s is not correctly synced to Azure (missing univentionOffice365Data attribute)", ldap_user["dn"])
 		return
 	print("Local user: %s" % ldap_user["username"])
 	for alias, values in adconnection_objects.items():
