@@ -3,8 +3,8 @@
 # Design Principles
 
 The code for this connector is organized into a module called `office365` inside the main `univention` Python module.
-All the code and classes have being designed trying to clearly separate the functionality of code related
-with UCS and UDM and on the other hand the functionality related with the connection to the Microsoft Graph API.
+All the code and classes have been designed trying to separate the functionality of code related
+to UCS and UDM and on the other hand the functionality related to the connection to the Microsoft Graph API.
 
 ```
                          univention.office365

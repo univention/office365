@@ -48,13 +48,12 @@ from univention.office365.ucr_helper import UCRHelper
 # TODO move to UCRHelper
 from univention.office365.udm_helper import UDMHelper
 from univention.office365.utils.utils import listener_restart
-
 '''
- # Connections to Azure
-Currently the connector can be configured with several connections to Azure. 
+# Connections to Azure
+Currently the connector can be configured with several connections to Azure.
 
 The same user can be configured on multiple connections, so that on synchronization this user is replicated to associated Azure accounts
-The `alias` is the name by which UCS refers to one of its connections. 
+The `alias` is the name by which UCS refers to one of its connections.
 Groups also maintain references to their connections, but these are not assigned directly to them but from the connections of the users they contain.
 
 A connection depends on an `Azure Account`. The account maintains the necessary information and authorizations to be able to access the API.
@@ -64,7 +63,7 @@ which identifies an authorization for the account to perform the queries.
 During the connector execution, the connections configured in UCS are checked.
 The stored information about these connections is loaded and a `ConnectionsPool` is created with this information.
 
-When an operation needs to be performed on a user or group, it will have a set of aliases associated with it 
+When an operation needs to be performed on a user or group, it will have a set of aliases associated with it
 identifying where the information is expected to be synchronized. This set of aliases should match a subset of all the available connections.
 
 With a pool (or sub pool) we can iterate over it and perform the operation we need through the corresponding configured connection.
@@ -220,9 +219,6 @@ class ConnectionsPool(UserDict):
 		shutil.rmtree(target_path)
 		UCRHelper.remove_adconnection(alias)
 		listener_restart()
-
-
-
 
 
 class AccountConnector(object):

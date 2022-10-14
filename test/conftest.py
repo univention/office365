@@ -42,12 +42,15 @@ from typing import Callable, Any, Dict, Union, List
 
 ldap_cred = {}
 
+
 @pytest.fixture(scope='session')
 def mock_univention_libs():
 	# type: () -> None
-	univention_libs = ['listener', 'univention.lib', 'univention.office365.azure_auth', 'univention.office365.listener',
-					   'univention.office365.udm_helper', 'univention.office365.logging2udebug',
-					   'univention.office365.api_helper', 'univention.config_registry', 'univention.debug', 'univention.admin']
+	univention_libs = [
+		'listener', 'univention.lib', 'univention.office365.azure_auth', 'univention.office365.listener',
+		'univention.office365.udm_helper', 'univention.office365.logging2udebug',
+		'univention.office365.api_helper', 'univention.config_registry', 'univention.debug', 'univention.admin'
+	]
 	old = {k: sys.modules[k] for k in univention_libs if k in sys.modules}
 	for k in univention_libs:
 		sys.modules[k] = MagicMock()
@@ -60,6 +63,7 @@ def mock_univention_libs():
 def create_udm_object(cls, file, mapping):
 	# type: (Callable, str, Dict[str, Any]) -> Callable
 	unmapName = {v: k for k, v in mapping.items()}
+
 	def _create_udm_object():
 		# type: () -> Any
 		test_path = os.path.dirname(os.path.abspath(__file__))
@@ -259,6 +263,7 @@ def udm_fake_user(mock_univention_libs):
 	udm_user.update.side_effect = udm_user_dict.update
 	return udm_user
 
+
 @pytest.fixture(scope='function')
 def udm_fake_user_old_listener(mock_univention_libs):
 	# type: (mock.MagicMock) -> mock.MagicMock
@@ -274,6 +279,7 @@ def udm_fake_user_old_listener(mock_univention_libs):
 	udm_user.__setitem__.side_effect = udm_user_dict.__setitem__
 	udm_user.update.side_effect = udm_user_dict.update
 	return udm_user
+
 
 @pytest.fixture
 def function_params_01():

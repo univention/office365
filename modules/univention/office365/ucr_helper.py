@@ -54,6 +54,7 @@ def pre_post_decorator(pre_name=None, post_name=None):
 		return wrapper
 	return decorator
 
+
 class UCRHelperC(ConfigRegistry):
 	group_sync_ucrv = "office365/groups/sync"
 	adconnection_filter_ucrv = 'office365/adconnection/filter'

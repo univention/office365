@@ -70,15 +70,15 @@ In a general way these operations can be defined as:
 
 Most of the operations for users and for groups are the same, but their execution is different.
 An abstract `Connector` class has been defined from which the classes for users and for groups inherit.
-
-			  ┌───────────────────┐       ┌─────────────────────┐
-			  │                   │       │                     │
-			  │     Connector     │       │ ConnectorAttributes │
-			  │                 ◄─┼───────┤                     │
-			  └────────┬──────────┘       └─────────────────────┘
-					   │
-		 ┌─────────────┴───────────────┐
-		 │                             │
+	
+              ┌───────────────────┐       ┌─────────────────────┐
+              │                   │       │                     │
+              │     Connector     │       │ ConnectorAttributes │
+              │                 ◄─┼───────┤                     │
+              └────────┬──────────┘       └─────────────────────┘
+                       │
+         ┌─────────────┴───────────────┐
+         │                             │
 ┌────────▼────────┐            ┌───────▼──────────┐
 │                 │            │                  │
 │  UserConnector  │            │  GroupConnector  │
@@ -263,9 +263,11 @@ class Connector(object):
 			if app_rol_name_not_present:
 				alias_without_permissions[alias] = app_rol_name_not_present
 				self.logger.warning("Alias %r need consent %r", alias, app_rol_name_not_present)
-				self.logger.warning("Authorization Error. Your application may not have the correct "
-									"permissions for the Microsoft Graph API."
-									"Please check https://help.univention.com/t/18453.")
+				self.logger.warning(
+					"Authorization Error. Your application may not have the correct "
+					"permissions for the Microsoft Graph API."
+					"Please check https://help.univention.com/t/18453."
+				)
 		return alias_without_permissions
 
 	def has_initialized_connections(self):
@@ -386,12 +388,11 @@ class UserConnector(Connector):
 		super(UserConnector, self).__init__(alias_connections, logger)
 		self.group_connector = GroupConnector(alias_connections, logger)
 
-
 	def _assign_subscription(self, udm_user, azure_user):
 		# type: (UDMOfficeUser, UserAzure) -> None
 		""""""
 		msg_no_allocatable_subscriptions = 'User {}/{} created in Azure AD ({}), but no allocatable subscriptions' \
-										   ' found.'.format(udm_user.username, azure_user.id, udm_user.current_connection_alias)
+			' found.'.format(udm_user.username, azure_user.id, udm_user.current_connection_alias)
 		msg_multiple_subscriptions = 'More than one usable Microsoft 365 subscription found.'
 
 		subs_available = SubscriptionAzure.get_enabled(self.cores[udm_user.current_connection_alias], UCRHelper.get_service_plan_names())
@@ -661,9 +662,10 @@ class UserConnector(Connector):
 				self.logger.error("Mapped Azure attribute %r not exist in new API MS Graph" % azure_key)
 				self.logger.error("Please check ucr variable 'ucr get office365/attributes/mapping/%s'" % (udm_key))
 				self.logger.error(
-					"You can find more info in the following links\n" +
-					" * Migrating Azure AD Graph to MS Graph: https://docs.microsoft.com/en-us/graph/migrate-azure-ad-graph-property-differences\n" +
-					" * User properties:  https://docs.microsoft.com/es-es/graph/api/resources/user?view=graph-rest-1.0#properties")
+					"You can find more info in the following links\n"
+					" * Migrating Azure AD Graph to MS Graph: https://docs.microsoft.com/en-us/graph/migrate-azure-ad-graph-property-differences\n"
+					" * User properties:  https://docs.microsoft.com/es-es/graph/api/resources/user?view=graph-rest-1.0#properties"
+				)
 				raise ValueError("Azure attribute %r not exist in new API MSGraph," % azure_key)
 			if udm_key in res:
 				value = res.get(udm_key)
@@ -703,14 +705,15 @@ class UserConnector(Connector):
 
 		# mandatory attributes, not to be overwritten by user
 		local_part_of_email_address = udm_user.mailPrimaryAddress.rpartition("@")[0]
-		mandatory_attributes = dict(id=udm_user.azure_object_id,
-									onPremisesImmutableId=udm_user.entryUUID,
-									accountEnabled=True,
-									userPrincipalName="{0}@{1}".format(local_part_of_email_address, core.account["domain"]),
-									mailNickname=local_part_of_email_address,
-									displayName=data.get("displayName", "no name"),
-									usageLocation=udm_user.get("st") or UCRHelper.get_usage_location()
-									)
+		mandatory_attributes = dict(
+			id=udm_user.azure_object_id,
+			onPremisesImmutableId=udm_user.entryUUID,
+			accountEnabled=True,
+			userPrincipalName="{0}@{1}".format(local_part_of_email_address, core.account["domain"]),
+			mailNickname=local_part_of_email_address,
+			displayName=data.get("displayName", "no name"),
+			usageLocation=udm_user.get("st") or UCRHelper.get_usage_location()
+		)
 		if set_password:
 			mandatory_attributes.update(dict(passwordProfile=dict(password=create_random_pw(), forceChangePasswordNextSignInWithMfa=False)))
 		data.update(mandatory_attributes)
@@ -899,8 +902,8 @@ class GroupConnector(Connector):
 		for alias in new_udm_group.aliases(set(self.cores.keys())):
 			with old_udm_group.set_current_alias(alias):
 				if new_udm_group.in_azure() or \
-						alias in new_udm_group.adconnection_aliases or \
-						alias in old_udm_group.adconnection_aliases:
+					alias in new_udm_group.adconnection_aliases or \
+					alias in old_udm_group.adconnection_aliases:
 
 					modification_attributes_udm_group = old_udm_group.diff_keys(new_udm_group)
 					object_id = old_udm_group.azure_object_id or new_udm_group.azure_object_id
@@ -1114,7 +1117,7 @@ class GroupConnector(Connector):
 						if udm_user.azure_object_id:
 							users_to_add.append(udm_user.azure_object_id)
 						else:
-							self.logger.warning("UDM User: %r azure_object_id is None. azure_data : %r Not syncing with azure %r", added_member_dn, udm_user.azure_data,  alias)
+							self.logger.warning("UDM User: %r azure_object_id is None. azure_data : %r Not syncing with azure %r", added_member_dn, udm_user.azure_data, alias)
 				else:
 					self.logger.warning("UDM User: %r Is disabled. Not syncing with azure %r", added_member_dn, alias)
 			elif added_member_dn in new_udm_group.get_nested_group():
@@ -1132,8 +1135,10 @@ class GroupConnector(Connector):
 						if group.dn in udm_office_add_member_group.get_nested_group():
 							groups_to_add.append(group.azure_object_id)
 			else:
-				raise RuntimeError("Office365Listener.modify_group() {!r} from new[uniqueMember] not in "
-								   "'nestedGroup' or 'users' ({!r}).".format(added_member_dn, alias))
+				raise RuntimeError(
+					"Office365Listener.modify_group() {!r} from new[uniqueMember] not in "
+					"'nestedGroup' or 'users' ({!r}).".format(added_member_dn, alias)
+				)
 		users_and_groups_to_add = users_to_add + groups_to_add
 		if users_and_groups_to_add:
 			self.logger.info("Members to add %r", users_and_groups_to_add)
@@ -1195,8 +1200,10 @@ class GroupConnector(Connector):
 				else:
 					self.logger.warning("Office365Listener.modify_group(), removing members: couldn't figure out object name from dn %r", removed_member_dn)
 			else:
-				raise RuntimeError("Office365Listener.modify_group() {!r} from old[uniqueMember] not in "
-								   "'nestedGroup' or 'users' ({!r}).".format(removed_member_dn, alias))
+				raise RuntimeError(
+					"Office365Listener.modify_group() {!r} from old[uniqueMember] not in "
+					"'nestedGroup' or 'users' ({!r}).".format(removed_member_dn, alias)
+				)
 
 		if removed_members_dn and not added_members_dn:
 			deleted = self.delete_empty_group(azure_group, new_udm_group)
@@ -1245,7 +1252,7 @@ class GroupConnector(Connector):
 			except MSGraphError as e:
 				if hasattr(e.response, "json"):
 					body = e.response.json()
-					if body.get("error",{}).get("message", "") == "One or more added object references already exist for the following modified properties: 'members'.":
+					if body.get("error", {}).get("message", "") == "One or more added object references already exist for the following modified properties: 'members'.":
 						self.logger.warning("User %r has already been member of %r" % (azure_group.id, udm_office_user.azure_object_id))
 						return
 				self.logger.error("Error %s", e)
