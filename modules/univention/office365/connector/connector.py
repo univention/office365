@@ -146,10 +146,12 @@ class ConnectorAttributes(UserDict):
 
 		self.not_migrated_to_v3 = ucr.is_false(UCRHelper.office365_migrate_adconnection_ucrv)
 
-		for attribute in ['anonymize', 'never', 'sync']:
-			setattr(self, attribute, set(UCRHelper.ucr_split_value("office365/attributes/{}".format(attribute))))
-		for attribute in ['mapping', 'static']:
-			setattr(self, attribute, UCRHelper.ucr_entries_to_dict("office365/attributes/{}/".format(attribute)))
+		self.anonymize = set(UCRHelper.ucr_split_value("office365/attributes/anonymize"))
+		self.never = set(UCRHelper.ucr_split_value("office365/attributes/never"))
+		self.sync = set(UCRHelper.ucr_split_value("office365/attributes/sync"))
+
+		self.mapping = UCRHelper.ucr_entries_to_dict("office365/attributes/mapping")
+		self.static = UCRHelper.ucr_entries_to_dict("office365/attributes/static")
 
 		# find attributes that map to the same azure properties
 		temp_dict = defaultdict(list)
