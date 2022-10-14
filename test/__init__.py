@@ -64,7 +64,7 @@ elif not os.path.exists(os.path.join(DOMAIN_PATH, ALIASDOMAIN_2)) or not not os.
 	os.mkdir(os.path.join(NEW_DOMAIN_PATH, ALIASDOMAIN))
 	DOMAIN_2 = "test_domain.de"
 	write(os.path.join(NEW_DOMAIN_PATH, ALIASDOMAIN, "ids.json"), data={"domain": DOMAIN_2, "client_id": str(uuid.uuid4()), "adconnection_id": str(uuid.uuid4()), "reply_url": "https://10.200.29.86/univention/command/office365/authorize"})
-	write(os.path.join(NEW_DOMAIN_PATH, ALIASDOMAIN, "token.json"), data={"token_type": "Bearer", "expires_in": 3599, "ext_expires_in": 3599, "access_token": str(uuid.uuid4()), "expires_on": (datetime.today()+timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%S")})
+	write(os.path.join(NEW_DOMAIN_PATH, ALIASDOMAIN, "token.json"), data={"token_type": "Bearer", "expires_in": 3599, "ext_expires_in": 3599, "access_token": str(uuid.uuid4()), "expires_on": (datetime.today() + timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%S")})
 	write(os.path.join(NEW_DOMAIN_PATH, ALIASDOMAIN, "manifesst.json"), data={})
 	with open(os.path.join(NEW_DOMAIN_PATH, ALIASDOMAIN, "key.pem"), "w") as f:
 		pass

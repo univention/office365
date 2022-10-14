@@ -39,8 +39,8 @@ from typing import Callable
 import univention.office365.microsoft
 from test import DOMAIN_PATH
 
-univention.office365.microsoft.OFFICE365_API_PATH = DOMAIN_PATH
 from test.utils import all_methods_called
+univention.office365.microsoft.OFFICE365_API_PATH = DOMAIN_PATH
 
 fake_module = mock.MagicMock()
 sys.modules['univention.debug'] = fake_module
@@ -109,8 +109,10 @@ UCRHelper.get_service_plan_names = mock.MagicMock(return_value=[spn.strip() for 
 def ucr_helper():
 	# type: () -> None
 	with mock.patch("univention.office365.connector.connector.UCRHelper") as ucr_helper:
-		ucr_helper.ucr_split_value.side_effect = [["givenName", "street", "postalCode"], ["mail", "postalCode"],
-												  ["l", "st", "displayName", "employeeType", "givenName", "mailPrimaryAddress", "mobile", "mailAlternativeAddress", "mail", "postalCode", "roomNumber", "st", "street", "sn", "telephoneNumber"]]
+		ucr_helper.ucr_split_value.side_effect = [
+			["givenName", "street", "postalCode"], ["mail", "postalCode"],
+			["l", "st", "displayName", "employeeType", "givenName", "mailPrimaryAddress", "mobile", "mailAlternativeAddress", "mail", "postalCode", "roomNumber", "st", "street", "sn", "telephoneNumber"]
+		]
 		ucr_helper.ucr_entries_to_dict.side_effect = [
 			{
 				"l": "city",
@@ -161,8 +163,10 @@ class TestConnectorAttributes:
 		assert a.never == {"mail", "postalCode"}
 		assert a.sync == {"l", "st", "displayName", "employeeType", "givenName", "mailPrimaryAddress", "mobile", "mailAlternativeAddress", "mail", "postalCode", "roomNumber", "st", "street", "sn", "telephoneNumber"}
 		assert a.static == {"roomNumber": "asdf", "postalCode": "asdf", "l": "asdf"}
-		assert a.mapping == {"l": "city", "displayName": "displayName", "employeeType": "jobTitle", "givenName": "givenName", "mobile": "mobilePhone", "mail": "otherMails", "mailAlternativeAddress": "otherMails", "mailPrimaryAddress": "otherMails", "postalCode": "postalCode",
-							 "roomNumber": "officeLocation", "st": "usageLocation", "street": "streetAddress", "sn": "surname", "telephoneNumber": "businessPhones"}
+		assert a.mapping == {
+			"l": "city", "displayName": "displayName", "employeeType": "jobTitle", "givenName": "givenName", "mobile": "mobilePhone", "mail": "otherMails", "mailAlternativeAddress": "otherMails", "mailPrimaryAddress": "otherMails", "postalCode": "postalCode",
+			"roomNumber": "officeLocation", "st": "usageLocation", "street": "streetAddress", "sn": "surname", "telephoneNumber": "businessPhones"
+		}
 		assert a.multiple == {'otherMails': ['mail', 'mailAlternativeAddress', 'mailPrimaryAddress']}
 
 	def test__sanitize(self, ucr_helper):
@@ -195,70 +199,74 @@ class TestUserConnector:
 		self.uc = UserConnector({'o365domain': "initialized"})
 		_attrs = {
 			'anonymize': set(),
-			'listener': {'displayName',
-						 'employeeType',
-						 'givenName',
-						 'krb5KDCFlagskrb5PasswordEnd',
-						 'krb5ValidEnd',
-						 'l',
-						 'mail',
-						 'mailAlternativeAddress',
-						 'mailPrimaryAddress',
-						 'mobile',
-						 'passwordexpiry',
-						 'postalCode',
-						 'roomNumber',
-						 'sambaAcctFlags',
-						 'sambaKickoffTime',
-						 'shadowExpire',
-						 'shadowLastChange',
-						 'shadowMax',
-						 'sn',
-						 'st',
-						 'street',
-						 'telephoneNumber',
-						 'univentionMicrosoft365Team',
-						 'univentionOffice365ADConnectionAlias',
-						 'univentionOffice365Enabled',
-						 'userPassword',
-						 'userexpiry'},
-			'mapping': {'displayName': 'displayName',
-						'employeeType': 'jobTitle',
-						'givenName': 'givenName',
-						'l': 'city',
-						'mail': 'otherMails',
-						'mailAlternativeAddress': 'otherMails',
-						'mailPrimaryAddress': 'otherMails',
-						'mobile': 'mobilePhone',
-						'postalCode': 'postalCode',
-						'roomNumber': 'officeLocation',
-						'sn': 'surname',
-						'st': 'usageLocation',
-						'street': 'streetAddress',
-						'telephoneNumber': 'businessPhones'},
+			'listener': {
+				'displayName',
+				'employeeType',
+				'givenName',
+				'krb5KDCFlagskrb5PasswordEnd',
+				'krb5ValidEnd',
+				'l',
+				'mail',
+				'mailAlternativeAddress',
+				'mailPrimaryAddress',
+				'mobile',
+				'passwordexpiry',
+				'postalCode',
+				'roomNumber',
+				'sambaAcctFlags',
+				'sambaKickoffTime',
+				'shadowExpire',
+				'shadowLastChange',
+				'shadowMax',
+				'sn',
+				'st',
+				'street',
+				'telephoneNumber',
+				'univentionMicrosoft365Team',
+				'univentionOffice365ADConnectionAlias',
+				'univentionOffice365Enabled',
+				'userPassword',
+				'userexpiry'},
+			'mapping': {
+				'displayName': 'displayName',
+				'employeeType': 'jobTitle',
+				'givenName': 'givenName',
+				'l': 'city',
+				'mail': 'otherMails',
+				'mailAlternativeAddress': 'otherMails',
+				'mailPrimaryAddress': 'otherMails',
+				'mobile': 'mobilePhone',
+				'postalCode': 'postalCode',
+				'roomNumber': 'officeLocation',
+				'sn': 'surname',
+				'st': 'usageLocation',
+				'street': 'streetAddress',
+				'telephoneNumber': 'businessPhones'},
 			'never': set(),
 			'static': set(),
-			'sync': {'displayName',
-					 'employeeType',
-					 'givenName',
-					 'l',
-					 'mail',
-					 'mailAlternativeAddress',
-					 'mailPrimaryAddress',
-					 'mobile',
-					 'postalCode',
-					 'roomNumber',
-					 'sn',
-					 'st',
-					 'street',
-					 'telephoneNumber'},
-			'multiple': {'otherMails': ['mail',
-										'mailAlternativeAddress',
-										'mailPrimaryAddress']}
+			'sync': {
+				'displayName',
+				'employeeType',
+				'givenName',
+				'l',
+				'mail',
+				'mailAlternativeAddress',
+				'mailPrimaryAddress',
+				'mobile',
+				'postalCode',
+				'roomNumber',
+				'sn',
+				'st',
+				'street',
+				'telephoneNumber'},
+			'multiple': {
+				'otherMails': [
+					'mail',
+					'mailAlternativeAddress',
+					'mailPrimaryAddress']}
 		}
 		for key, value in _attrs.items():
 			setattr(self.uc.attrs, key, value)
-
 
 	def test_completity(self):
 		# type: () -> None
@@ -279,7 +287,6 @@ class TestUserConnector:
 		# type: () -> None
 		""""""
 		assert self.uc.has_initialized_connections() == True
-
 
 	def test_parse(self, create_udm_user_object):
 		# type: (Callable) -> None

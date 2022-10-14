@@ -55,7 +55,7 @@ delete_name_pattern = "ZZZ_deleted_{time}_{orig}"
 
 
 """
-                                        ┌─────┐
+	                                    ┌─────┐
                                         │Token│
                                         └──┬──┘
                                            │

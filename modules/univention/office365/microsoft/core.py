@@ -214,7 +214,7 @@ class MSGraphApiCore(object):
 		# type: (str, str, str) -> Dict
 		""" https://docs.microsoft.com/en-us/graph/api/team-post
 			we can't use create_team because the owner needs a valid license for MS Teams
-       		instead use create_team_from_group
+			instead use create_team_from_group
 		"""
 		return self._call_graph_api(
 			'POST',
