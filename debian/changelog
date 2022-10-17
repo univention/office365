@@ -1,3 +1,9 @@
+univention-office365 (3.0.1-15) unstable; urgency=medium
+
+  * Bug #55202: removed `mapping.keys()` from superset of sync attributes.
+
+ -- Johannes Lohmer <lohmer@univention.de>  Tue, 18 Oct 2022 10:50:43 +0200
+
 univention-office365 (3.0.1-14) unstable; urgency=medium
 
   * Bug #54858: Fix tool scripts
