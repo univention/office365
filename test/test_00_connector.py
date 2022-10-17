@@ -153,7 +153,7 @@ class TestConnectorAttributes:
 	def test_all(self, ucr_helper):
 		# type: (mock.MagicMock) -> None
 		a = ConnectorAttributes()
-		assert a.all == {'displayName', 'employeeType', 'l', 'mailAlternativeAddress', 'mailPrimaryAddress', 'mobile', 'roomNumber', 'sn', 'st', 'telephoneNumber', 'givenName', 'street'}
+		assert a.all_sync_keys == {'displayName', 'employeeType', 'l', 'mailAlternativeAddress', 'mailPrimaryAddress', 'mobile', 'roomNumber', 'sn', 'st', 'telephoneNumber', 'givenName', 'street'}
 
 	def test_update_attributes_from_ucr(self, ucr_helper):
 		# type: (mock.MagicMock) -> None

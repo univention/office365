@@ -161,7 +161,7 @@ class ConnectorAttributes(UserDict):
 			if len(temp_dict[v]) > 1:
 				self.multiple[v] = temp_dict[v]
 
-		self.logger.debug("listener observing attributes: %r", [a for a in self.all if a not in self.system])
+		self.logger.debug("listener observing attributes: %r", [a for a in self.all_sync_keys if a not in self.system])
 		self.logger.debug("listener is also observing: %r", sorted(list(self.system)))
 		self.logger.debug("attributes mapping UCS->AAD: %r", self.mapping)
 		self.logger.debug("attributes to sync anonymized: %r", self.anonymize)
@@ -177,20 +177,21 @@ class ConnectorAttributes(UserDict):
 		# self.sync.sort()
 
 	@property
-	def all(self):
+	def all_sync_keys(self):
+		"""superset of self.static, self.sync, self.anonymize"""
 		# type: () -> Set[str]
-		return (set(self.static) | self.sync | self.anonymize | set(self.mapping.keys())) - self.never
+		return (set(self.static) | self.sync | self.anonymize) - self.never
 
 	def _sanitize(self):
 		# type: () -> None
-		# check the attributes that are in all but have no mapping and are not system attributes
-		no_mapping = [attribute for attribute in self.all if attribute not in self.mapping.keys() and attribute not in self.system]
+		"""check the attributes that are in all_sync_keys but have no mapping and are not system attributes"""
+		no_mapping = [attribute for attribute in self.all_sync_keys if attribute not in self.mapping.keys() and attribute not in self.system]
 		if no_mapping:
 			self.logger.warning("No mappings for attributes %r found - ignoring.", no_mapping)
 			[self.anonymize, self.static, self.sync] = utils.remove_elements_from_containers(containers=[self.anonymize, self.static, self.sync], elements=no_mapping)
 
 		dangerous_attrs = ["univentionOffice365ObjectID", "UniventionOffice365Data"]
-		if any([a in dangerous_attrs for a in self.all]):
+		if any([a in dangerous_attrs for a in self.all_sync_keys]):
 			self.logger.warning("Nice try.")
 			[self.sync, self.static, self.anonymize] = utils.remove_elements_from_containers(containers=[self.sync, self.static, self.anonymize], elements=dangerous_attrs)
 
@@ -198,8 +199,8 @@ class ConnectorAttributes(UserDict):
 		# type: () -> None
 		"""
 		Recalculate attributes that are disjunct.
+		never > anonymize > static > sync
 		"""
-		# never > anonymize > static > sync
 		[self.sync, self.static, self.anonymize] = utils.remove_elements_from_containers(containers=[self.sync, self.static, self.anonymize], elements=self.never)
 		[self.static, self.sync] = utils.remove_elements_from_containers(containers=[self.static, self.sync], elements=self.anonymize)
 		[self.sync] = utils.remove_elements_from_containers(containers=[self.sync], elements=self.static)
@@ -626,7 +627,7 @@ class UserConnector(Connector):
 		res = dict()
 		core = self.cores[udm_user.current_connection_alias]  # type: MSGraphApiCore
 
-		for attr in self.attrs.all:
+		for attr in self.attrs.all_sync_keys:
 			if attr in self.attrs.system:
 				# filter out univentionOffice365Enabled and account deactivation/locking attributes
 				continue

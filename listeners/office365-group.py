@@ -60,6 +60,7 @@ class ListenerModuleTemplate(univention.listener.ListenerModuleHandler):
 			ldap_filter = '(objectClass=deactivatedOffice365GroupListener)'
 			logger.warn("office 365 group listener deactivated (no initialized adconnections)")
 		attributes = connector.attrs
+		# TODO: Is this also affected?
 
 	def __init__(self, *args, **kwargs):
 		self.logger = logger
