@@ -55,8 +55,7 @@ class ListenerModuleTemplate(univention.listener.ListenerModuleHandler):
 		else:
 			ldap_filter = '(objectClass=deactivatedOffice365UserListener)'  # "objectClass" is indexed
 			logger.warning("office 365 user listener deactivated (no initialized AD connection)")
-		# seems to be a `set` but needs to be a `list`
-		attributes = connector.attrs.all_sync_keys
+		attributes = list(connector.attrs.all_sync_keys)
 
 	def __init__(self, *args, **kwargs):
 		self.logger = logger
