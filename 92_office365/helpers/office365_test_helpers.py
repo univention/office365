@@ -71,6 +71,10 @@ udm_syntax.update_choices()
 blacklisted_ul = ["SD", "SY", "KP", "CU", "IR"]  # some usageLocations are not valid (https://www.microsoft.com/en-us/microsoft-365/business/microsoft-office-license-restrictions), collecting them here
 usage_locations_code = list(set(x[0] for x in udm_syntax.Country.choices) - set(blacklisted_ul))
 
+
+o365_connection = ("o365domain", "/etc/univention-office365/o365-dev-univention-de")
+azuretestdomain = ("azuretestdomain", "/etc/univention-office365/u-azure-test-de")
+
 azure_user_selection = ["assignedLicenses",
 				 "otherMails",
 				 "businessPhones",
