@@ -80,9 +80,8 @@ A hierarchy of classes that define specializations on a UDM Object.
 At the leaves of this hierarchical tree of classes are UDMOfficeUser and UDMOfficeGroup 
 that implement the necessary methods to obtain and store the necessary information 
 from Azure in a LDAP User or Group object.
-
-
 """
+
 
 class UniventionOffice365Data(UserDict):
 	"""
@@ -251,7 +250,7 @@ class UDMOfficeObject(UserDict):
 		# type: () -> Dict[str, Any]
 		try:
 			return UniventionOffice365Data.from_ldap(self.udm_object_reference["UniventionOffice365Data"]) or {}
-		except (zlib.error) :
+		except (zlib.error):
 			return {}
 
 	@property
@@ -387,7 +386,6 @@ class UDMOfficeObject(UserDict):
 	# def __len__(self):
 	# 	# type: () -> int
 	# 	return len(list(self.keys()))
-
 
 
 class UDMOfficeUser(UDMOfficeObject):
@@ -662,5 +660,3 @@ class UDMOfficeGroup(UDMOfficeObject):
 		"""
 		_, removed = self.members_changes(target)
 		return removed
-
-
