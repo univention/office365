@@ -31,6 +31,7 @@
 
 
 import uuid
+import copy
 from abc import abstractmethod
 from six.moves import UserDict
 from collections import defaultdict
@@ -604,7 +605,7 @@ class UserConnector(Connector):
 							new_object.modify_azure_attributes(self.prepare_azure_attributes(new_azure))
 						self.logger.info("User modification success. userPrincipalName: %r objectId: %r dn: %s adconnection: %s", new_azure.userPrincipalName, new_azure.id, new_object.dn, new_object.current_connection_alias)
 					else:
-						self.logger.info("User have no data to be modified. %r objectId: %r dn: %s adconnection: %s", new_azure.userPrincipalName, new_azure.id, new_object.dn, new_object.current_connection_alias)
+						self.logger.info("User has no data to be modified. %r objectId: %r dn: %s adconnection: %s", new_azure.userPrincipalName, new_azure.id, new_object.dn, new_object.current_connection_alias)
 
 	# def _attributes_to_update(self, considered_attributes, new_object, old_object):
 	# 	# type: (Iterable, UDMOfficeUser, UDMOfficeUser) -> List[str]
@@ -657,12 +658,15 @@ class UserConnector(Connector):
 				# else:
 				res[attr] = tmp
 
+		# Prevent the UDM users/user object from being unintentionally modified, because it gets synced back into LDAP later. See Bug #55202
+		res = copy.deepcopy(res)
+
 		# build data dict to build AzureObject
 		data = {}
 		user_azure_fields = UserAzure.get_fields()
 		for udm_key, azure_key in self.attrs.mapping.items():
 			if azure_key not in user_azure_fields:
-				self.logger.error("Mapped Azure attribute %r not exist in new API MS Graph" % azure_key)
+				self.logger.error("Mapped Azure attribute %r doesn't exist in the new MS Graph API " % azure_key)
 				self.logger.error("Please check ucr variable 'ucr get office365/attributes/mapping/%s'" % (udm_key))
 				self.logger.error(
 					"You can find more info in the following links\n"
@@ -723,7 +727,8 @@ class UserConnector(Connector):
 		if len(data.get("businessPhones", [])) > 1:
 			data["businessPhones"] = [data["businessPhones"][0]]
 		if "otherMails" in data:
-			data["otherMails"] = list(set(data["otherMails"]))
+
+			data["otherMails"] = list(set(mail.lower() for mail in data["otherMails"]))
 		user_azure = UserAzure(**data)
 		user_azure.set_core(core)
 		return user_azure
