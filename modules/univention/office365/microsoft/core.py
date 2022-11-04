@@ -467,7 +467,7 @@ class MSGraphApiCore(object):
 			Application
 				TeamMember.ReadWrite.All
 		"""
-		values = [ {"@odata.type": "microsoft.graph.aadUserConversationMember", "roles":[], "user@odata.bind": "https://graph.microsoft.com/v1.0/users('{user_id}')".format(user_id=x)} for x in users_id ]
+		values = [{"@odata.type": "microsoft.graph.aadUserConversationMember", "roles": [], "user@odata.bind": "https://graph.microsoft.com/v1.0/users('{user_id}')".format(user_id=x)} for x in users_id]
 		return self._call_graph_api(
 			'POST',
 			URLs.teams(path='{object_id}/members/add'.format(object_id=team_id)),
@@ -477,7 +477,7 @@ class MSGraphApiCore(object):
 				}
 			),
 			headers={'Content-Type': 'application/json'},
-			expected_status=[200,207]
+			expected_status=[200, 207]
 		)
 
 	def add_group_member(self, group_id, object_id):
@@ -525,15 +525,15 @@ class MSGraphApiCore(object):
 		# remove from list object_ids already added.
 		object_ids = list(set(object_ids) - {x["id"] for x in self.list_group_members(group_id)["value"]})
 		for i in range(0, len(object_ids), 20):
-			batch = object_ids[i:min(i+20, len(object_ids))]
+			batch = object_ids[i:min(i + 20, len(object_ids))]
 
 			self._call_graph_api(
 				'PATCH',
 				URLs.groups(path='{group_id}'.format(group_id=group_id)),
 				data=json.dumps(
 					{
-						"members@odata.bind": [ "https://graph.microsoft.com/v1.0/directoryObjects/{object_id}".format(
-								object_id=oid) for oid in batch]
+						"members@odata.bind": ["https://graph.microsoft.com/v1.0/directoryObjects/{object_id}".format(
+							object_id=oid) for oid in batch]
 					}
 				),
 				headers={'Content-Type': 'application/json'},
@@ -556,8 +556,7 @@ class MSGraphApiCore(object):
 			URLs.groups(path='{group_id}/members/{object_id}/$ref'.format(
 				group_id=group_id,
 				object_id=object_id
-				)
-			),
+			)),
 			expected_status=[204]
 		)
 
@@ -620,6 +619,8 @@ class MSGraphApiCore(object):
 		"""https://docs.microsoft.com/en-us/graph/api/user-delete?view=graph-rest-1.0&tabs=http
 		The connection should be configured to set privileges to delete users.
 		"""
+		if not oid:
+			raise 
 		return self._call_graph_api(
 			'DELETE',
 			URLs.users(path=oid),
@@ -700,7 +701,7 @@ class MSGraphApiCore(object):
 			expected_status=[204]
 		)
 
-	def list_group_members(self, group_id, links= False, filter=None):  # TODO añadir bool para sacar los enlaces
+	def list_group_members(self, group_id, links=False, filter=None):  # TODO: añadir bool para sacar los enlaces
 		# type: (str, bool, Optional[str]) -> Dict
 		"""
 		Get members of a group (data)
@@ -813,16 +814,17 @@ class MSGraphApiCore(object):
 		# for the acquisition of the access token as well.
 		headers.update({'User-Agent': 'Univention Microsoft 365 Connector'})
 
-
 		# TODO: do try except better with a retry counter
 		# TODO: URLs.proxies must use UCR
 		timeout = False
 		while url != "":
 			if hasattr(self, "account") and not self.account.renewing:
 				if not self.account.check_token():
-					self.get_token()  #TODO implement handlers
-				headers.update({'Authorization': 'Bearer {}'.format(self.account.token['access_token']),
-								"Content-Type": "application/json"})
+					self.get_token()  # TODO: implement handlers
+				headers.update({
+					'Authorization': 'Bearer {}'.format(self.account.token['access_token']),
+					"Content-Type": "application/json",
+				})
 			try:
 				response = requests.request(
 					method=method,
@@ -935,7 +937,8 @@ class MSGraphApiCore(object):
 	def list_domains(self):
 		# type: () -> Dict
 		"""List all domains"""
-		return self._call_graph_api('GET',
+		return self._call_graph_api(
+			'GET',
 			URLs.domains(),
 			expected_status=[200],
 			page=True
@@ -974,7 +977,8 @@ class MSGraphApiCore(object):
 		assert isinstance(deactivate_plans, list) or deactivate_plans is None
 		deactivate_plans = deactivate_plans or []
 
-		return self._call_graph_api('POST',
+		return self._call_graph_api(
+			'POST',
 			URLs.users(path="{user_id}/assignLicense".format(user_id=user_id)),
 			data=json.dumps(
 				{
@@ -996,7 +1000,8 @@ class MSGraphApiCore(object):
 		"""Remove license from user_id"""
 		assert isinstance(sku_id, str)
 
-		return self._call_graph_api('POST',
+		return self._call_graph_api(
+			'POST',
 			URLs.users(path="{user_id}/assignLicense".format(user_id=user_id)),
 			data=json.dumps(
 				{
@@ -1014,7 +1019,8 @@ class MSGraphApiCore(object):
 		assert isinstance(object_ids, list)
 		object_ids = list(set(object_ids))
 
-		return self._call_graph_api('POST',
+		return self._call_graph_api(
+			'POST',
 			URLs.directory_objects(path="getByIds"),
 			data=json.dumps(
 				{
@@ -1027,7 +1033,8 @@ class MSGraphApiCore(object):
 
 	def change_password(self, user_id, old_pw, new_pw):
 		# type: (str, str, str) -> Dict
-		return self._call_graph_api('POST',
+		return self._call_graph_api(
+			'POST',
 			URLs.users(path="{user_id}/changePassword".format(user_id=user_id)),
 			data=json.dumps(
 				{
@@ -1041,7 +1048,8 @@ class MSGraphApiCore(object):
 
 	def get_subscriptionSku(self, subs_sku_id):
 		# type: (str) -> Dict
-		return self._call_graph_api('GET',
+		return self._call_graph_api(
+			'GET',
 			URLs.subscription(path="{subs_sku_id}".format(subs_sku_id=subs_sku_id)),
 			expected_status=[200],
 		)
@@ -1049,13 +1057,16 @@ class MSGraphApiCore(object):
 
 	def get_permissions(self):
 		app_id = self.account['application_id']
-		response = self._call_graph_api('GET',
-							 URLs.service_principals(params="$filter=appId eq '{app_id}'&$select=id".format(app_id=app_id)),
-							 expected_status=[200], )
+		response = self._call_graph_api(
+			'GET',
+			URLs.service_principals(params="$filter=appId eq '{app_id}'&$select=id".format(app_id=app_id)),
+			expected_status=[200],
+		)
 		if response.get("value"):
 			service_principal_id = response.get("value")[0]["id"]
-			return self._call_graph_api('GET',
-										URLs.service_principals(path="{app_id}/appRoleAssignments".format(app_id=service_principal_id), params="$select=appRoleId"),
-										expected_status=[200],
+			return self._call_graph_api(
+				'GET',
+				URLs.service_principals(path="{app_id}/appRoleAssignments".format(app_id=service_principal_id), params="$select=appRoleId"),
+				expected_status=[200],
 			)
 		raise ItemNotFound(MSGraphError(response, message="Service principal not found with id %r" % app_id))

@@ -148,11 +148,13 @@ class InvalidRequest(GenericGraphError):
 	"""
 	description = "The request is malformed or incorrect."
 
+
 class NotFound(GenericGraphError):
 	"""
 		The resource could not be found.
 	"""
 	description = "The resource could not be found."
+
 
 class ItemNotFound(GenericGraphError):
 	"""
