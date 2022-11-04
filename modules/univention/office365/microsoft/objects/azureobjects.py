@@ -242,6 +242,7 @@ class AzureObject(object):
 			groups.append(group)
 		return groups
 
+
 @attr.s
 class UserAzure(AzureObject):
 	"""
@@ -585,9 +586,12 @@ class GroupAzure(AzureObject):
 		# type: (bool) -> None
 		""""""
 		name = "ZZZ_deleted_{time}_{orig}".format(time=time.time(), orig=self.displayName)
-		data = dict(displayName=name,
-					description="deleted group",
-					mailEnabled=False, mailNickname=name.replace(" ", "_-_"), )
+		data = {
+			"displayName": name,
+			"description": "deleted group",
+			"mailEnabled": False,
+			"mailNickname": name.replace(" ", "_-_")
+		}
 		self._core.modify_group(self.id, data)
 		self._update_from_dict(data)
 
@@ -690,6 +694,7 @@ class GroupAzure(AzureObject):
 	def is_delete(self):
 		# type: () -> bool
 		return self.mailNickname.startswith("ZZZ_deleted_") if self.mailNickname else False
+
 
 @attr.s
 class TeamAzure(AzureObject):
@@ -976,7 +981,6 @@ class SubscriptionAzure(AzureObject):
 		# type: () -> List
 		""""""
 		return [plan['servicePlanName'] for plan in self.servicePlans]
-
 
 	def get_plans_id_from_names(self, plan_names):
 		# type: (List) -> List

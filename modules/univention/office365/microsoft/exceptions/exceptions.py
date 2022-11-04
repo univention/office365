@@ -47,6 +47,7 @@ class NoAllocatableSubscriptions(Exception):
 		self.adconnection_alias = adconnection_alias
 		super(NoAllocatableSubscriptions, self).__init__(*args, **kwargs)
 
+
 class GraphError(Exception):
 	pass
 

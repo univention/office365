@@ -250,7 +250,7 @@ class UDMOfficeObject(UserDict):
 		# type: () -> Dict[str, Any]
 		try:
 			return UniventionOffice365Data.from_ldap(self.udm_object_reference["UniventionOffice365Data"]) or {}
-		except (zlib.error):
+		except zlib.error:
 			return {}
 
 	@property
