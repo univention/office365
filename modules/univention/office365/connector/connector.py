@@ -470,9 +470,10 @@ class UserConnector(Connector):
 		""""""
 		alias = udm_object.current_connection_alias
 		if alias not in self.cores:
-			self.logger.warning("Skipping alias {} not exist in initialized aliases {}".format(alias, self.cores.keys()))
+			self.logger.warning("Skipping alias {} because it doesn't exist in initialized aliases {}".format(alias, self.cores.keys()))
 		user_azure = self.parse(udm_object)
 		user_azure.create_or_modify()
+
 		try:
 			try:
 				self._assign_subscription(udm_user=udm_object, azure_user=user_azure)

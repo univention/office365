@@ -45,7 +45,7 @@ from six import reraise
 from univention.office365.logging2udebug import get_logger
 from univention.office365.microsoft.core import MSGraphApiCore
 from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError, AddLicenseError
-from univention.office365.microsoft.exceptions.exceptions import GraphRessourceNotFroundError
+from univention.office365.microsoft.exceptions.exceptions import GraphRessourceNotFroundError, MissingAzureUserId
 from univention.office365.utils.utils import create_random_pw
 from univention.office365.asyncqueue.tasks.azuretask import MSGraphCoreTask
 
@@ -332,6 +332,19 @@ class UserAzure(AzureObject):
 	userPrincipalName = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
 	userType = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
 
+	@property
+	def azure_identifier(self):
+		"""
+		Use userPrincipalName as a fallback for the ID and ensure that at least one is ont null
+
+		Azure requires either the ID or the UserPrincipalName in the Get, Update or Delete Header
+		of the users/user api endpoint.
+		"""
+		identifier = self.id or self.userPrincipalName
+		if not identifier:
+			raise MissingUserIdentifier("No azure Identifier can be found in the UCS LDAP for this user")
+		return identifier
+
 	def create(self):
 		# type: () -> None
 		""""""
@@ -406,12 +419,14 @@ class UserAzure(AzureObject):
 				modifications_user.mailNickname = delete_name_pattern.format(time=time.time(), orig=self.mailNickname)
 				modifications_user.userPrincipalName = delete_name_pattern.format(time=time.time(), orig=self.userPrincipalName)
 		data = modifications_user.get_not_none_values_as_dict()
-		self._core.modify_user(self.id, data)
+		# use self.userPrincipalName here too?
+		self._core.modify_user(self.azure_identifier, data)
 		self._update_from_dict(data)
 		# TODO check if the assignedLicenses is clean
-		groups = self._core.member_of(self.id)
+		groups = self._core.member_of(self.azure_identifier)
 		for group in groups["value"]:
 			try:
+				# the groups endpoint expects the actual id and can't work wit userPrincipalName
 				self._core.remove_group_member(group["id"], self.id)
 			except MSGraphError as e:
 				self._logger.warning("Member %r can't be remove from group %r" % (self.id, group["id"]))
