@@ -55,4 +55,9 @@ class GraphError(Exception):
 class GraphRessourceNotFroundError(GraphError):
 	pass
 
+
+class MissingAzureUserId(Exception):
+	""" Either AzureID or UserPrincipal name needed by azure to specify the relevant user"""
+	pass
+
 # vim: filetype=python expandtab tabstop=4 shiftwidth=4 softtabstop=4

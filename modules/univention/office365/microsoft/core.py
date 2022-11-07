@@ -34,12 +34,12 @@ import json
 from typing import Dict, List, Union
 
 import six
-import yaml
 from six.moves.urllib.parse import quote
 
 import requests
 
 from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError, exception_decorator, ItemNotFound
+from univention.office365.microsoft.exceptions.exceptions import MissingAzureUserId
 from univention.office365.microsoft.account import AzureAccount
 from univention.office365.microsoft.urls import URLs
 from univention.office365.logging2udebug import get_logger
@@ -620,7 +620,7 @@ class MSGraphApiCore(object):
 		The connection should be configured to set privileges to delete users.
 		"""
 		if not object_id:
-			raise 
+			raise ValueError("missing AzureID")
 		return self._call_graph_api(
 			'DELETE',
 			URLs.users(path=object_id),
@@ -633,6 +633,8 @@ class MSGraphApiCore(object):
 		"""
 		https://docs.microsoft.com/en-us/graph/api/user-update?view=graph-rest-1.0&tabs=http
 		"""
+		if not object_id:
+			raise ValueError("missing AzureID")
 		return self._call_graph_api(
 			'PATCH',
 			URLs.users(path=object_id),
@@ -644,15 +646,20 @@ class MSGraphApiCore(object):
 	def member_of(self, object_id):
 		# type: (str) -> Dict
 		""""""
+		if not object_id:
+			raise ValueError("missing AzureID")
 		return self._call_graph_api(
 			'GET',
-			URLs.directory_objects(path=object_id+"/memberOf"),
+			URLs.directory_objects(path=object_id + "/memberOf"),
 			expected_status=[200]
 		)
 
 	def member_of_objects(self, object_id):
 		# type: (str) -> Dict
 		""""""
+		if not object_id:
+			raise ValueError("missing AzureID")
+		assert object_id
 		return self._call_graph_api(
 			'POST',
 			URLs.directory_objects(path="{object_id}/getMemberObjects".format(object_id=object_id)),
@@ -664,6 +671,8 @@ class MSGraphApiCore(object):
 	def member_of_groups(self, object_id):
 		# type: (str) -> Dict
 		""""""
+		if not object_id:
+			raise ValueError("missing AzureID")
 		return self._call_graph_api(
 			'POST',
 			URLs.directory_objects(path="{object_id}/getMemberGroups".format(object_id=object_id)),
@@ -929,6 +938,8 @@ class MSGraphApiCore(object):
 	def invalidate_all_tokens_for_user(self, user_id):
 		# type: (str) -> Dict
 		""""""
+		if not user_id:
+			raise ValueError("missing AzureID")
 		# params = urlencode(azure_params)
 		# url = self.uris["invalidateTokens"].format(user_id=user_id, params=params)
 		# return self.call_api("POST", url)
@@ -973,6 +984,8 @@ class MSGraphApiCore(object):
 	def add_license(self, user_id, sku_id, deactivate_plans=None):
 		# type: (str, str, List) -> Dict
 		"""Add license to user_id"""
+		if not user_id:
+			raise ValueError("missing AzureID")
 		assert isinstance(sku_id, str)
 		assert isinstance(deactivate_plans, list) or deactivate_plans is None
 		deactivate_plans = deactivate_plans or []
@@ -998,6 +1011,8 @@ class MSGraphApiCore(object):
 	def remove_license(self, user_id, sku_id):
 		# type: (str, str) -> Dict
 		"""Remove license from user_id"""
+		if not user_id:
+			raise ValueError("missing AzureID")
 		assert isinstance(sku_id, str)
 
 		return self._call_graph_api(
@@ -1033,6 +1048,8 @@ class MSGraphApiCore(object):
 
 	def change_password(self, user_id, old_pw, new_pw):
 		# type: (str, str, str) -> Dict
+		if not user_id:
+			raise ValueError("missing AzureID")
 		return self._call_graph_api(
 			'POST',
 			URLs.users(path="{user_id}/changePassword".format(user_id=user_id)),
