@@ -205,7 +205,7 @@ class AzureObject(object):
 
 	@classmethod
 	@abstractmethod
-	def get(cls, core, oid, selection=None):
+	def get(cls, core, object_id, selection=None):
 		# type: (MSGraphApiCore, str, Optional[List[str]]) -> 'AzureObject'
 		""""""
 
@@ -429,11 +429,11 @@ class UserAzure(AzureObject):
 		raise NotImplementedError()
 
 	@classmethod
-	def get(cls, core, oid, selection=None):
+	def get(cls, core, object_id, selection=None):
 		# type: (MSGraphApiCore, str, Optional[List[str]]) -> UserAzure
 		""""""
 		user = cls()
-		response = core.get_user(oid, selection=",".join(selection) if selection else None)
+		response = core.get_user(object_id, selection=",".join(selection) if selection else None)
 		user._update_from_dict(response)
 		user.set_core(core)
 		return user
@@ -601,11 +601,11 @@ class GroupAzure(AzureObject):
 		raise NotImplementedError()
 
 	@classmethod
-	def get(cls, core, oid, selection=None):
+	def get(cls, core, object_id, selection=None):
 		# type: (MSGraphApiCore, str, Optional[List[str]]) -> GroupAzure
 		""""""
 		attrs = [x.name for x in attr.fields(cls) if x.name not in ["hasMembersWithLicenseErrors", "allowExternalSenders", "autoSubscribeNewMembers", "hideFromAddressLists", "hideFromOutlookClients", "isSubscribedByMail", "unseenCount"]]
-		response = core.get_group(group_id=oid, selection=",".join(attrs))
+		response = core.get_group(group_id=object_id, selection=",".join(attrs))
 		group = cls()
 		group._update_from_dict(response)
 		group.set_core(core)
@@ -878,10 +878,10 @@ class TeamAzure(AzureObject):
 		return teams
 
 	@classmethod
-	def get(cls, core, oid, selection=None):
+	def get(cls, core, object_id, selection=None):
 		# type: (MSGraphApiCore, str, Optional[List[str]]) -> AzureObject
 		""""""
-		response = core.get_team(group_id=oid)
+		response = core.get_team(group_id=object_id)
 		TeamAzure.wait_for_operation(core, response)
 		team = cls()
 		team._update_from_dict(response)
@@ -937,10 +937,10 @@ class SubscriptionAzure(AzureObject):
 		raise NotImplementedError
 
 	@classmethod
-	def get(cls, core, oid, selection=None):
+	def get(cls, core, object_id, selection=None):
 		# type: (MSGraphApiCore, str, Optional[List[str]]) -> 'SubscriptionAzure'
 		""""""
-		subscription_response = core.get_subscriptionSku(subs_sku_id=oid)
+		subscription_response = core.get_subscriptionSku(subs_sku_id=object_id)
 		subscription_response.pop("@odata.context")
 		return cls(**subscription_response)
 

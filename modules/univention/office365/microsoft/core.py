@@ -533,7 +533,7 @@ class MSGraphApiCore(object):
 				data=json.dumps(
 					{
 						"members@odata.bind": ["https://graph.microsoft.com/v1.0/directoryObjects/{object_id}".format(
-							object_id=oid) for oid in batch]
+							object_id=object_id) for object_id in batch]
 					}
 				),
 				headers={'Content-Type': 'application/json'},
@@ -614,28 +614,28 @@ class MSGraphApiCore(object):
 			expected_status=[201]
 		)
 
-	def delete_user(self, oid):
+	def delete_user(self, object_id):
 		# type: (str) -> Dict
 		"""https://docs.microsoft.com/en-us/graph/api/user-delete?view=graph-rest-1.0&tabs=http
 		The connection should be configured to set privileges to delete users.
 		"""
-		if not oid:
+		if not object_id:
 			raise 
 		return self._call_graph_api(
 			'DELETE',
-			URLs.users(path=oid),
+			URLs.users(path=object_id),
 			data=json.dumps({}),
 			expected_status=[204]
 		)
 
-	def modify_user(self, oid, user):
+	def modify_user(self, object_id, user):
 		# type: (str, Dict) -> Dict
 		"""
 		https://docs.microsoft.com/en-us/graph/api/user-update?view=graph-rest-1.0&tabs=http
 		"""
 		return self._call_graph_api(
 			'PATCH',
-			URLs.users(path=oid),
+			URLs.users(path=object_id),
 			data=json.dumps(user),
 			headers={'Content-Type': 'application/json'},
 			expected_status=[204]
