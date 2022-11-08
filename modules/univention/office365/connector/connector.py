@@ -849,7 +849,7 @@ class GroupConnector(Connector):
 
 		if udm_object.is_team():
 			try:
-				team = TeamAzure.get(self.cores[alias], oid=azure_object.id)
+				team = TeamAzure.get(self.cores[alias], object_id=azure_object.id)
 				users_and_groups_to_add = team.add_members(users_and_groups_to_add)
 				if users_and_groups_to_add:
 					self.logger.warning("Add team member fail %r, trying to add member to group", users_and_groups_to_add)
@@ -1062,7 +1062,7 @@ class GroupConnector(Connector):
 		# Remove Team from group
 		elif old_udm_group.is_team() and not new_udm_group.is_team():
 			try:
-				team_azure = TeamAzure.get(self.cores[alias], oid=azure_group.id)
+				team_azure = TeamAzure.get(self.cores[alias], object_id=azure_group.id)
 				team_azure.deactivate()
 				self.logger.info("Deleted team %r from Azure AD %r", azure_group.displayName, alias)
 			except ItemNotFound as e:
@@ -1157,7 +1157,7 @@ class GroupConnector(Connector):
 					self.logger.error("Added members failed\n%s", e)
 			else:
 				try:
-					team = TeamAzure.get(self.cores[alias], oid=azure_group.id)
+					team = TeamAzure.get(self.cores[alias], object_id=azure_group.id)
 					users_id_errors = team.add_members(users_to_add)
 					if users_id_errors:
 						self.logger.warning("Add team member fail %r, trying to add member to group", users_id_errors)
@@ -1249,7 +1249,7 @@ class GroupConnector(Connector):
 					azure_group.add_member(udm_office_user.azure_object_id)
 				else:
 					try:
-						team = TeamAzure.get(self.cores[alias], oid=azure_group.id)
+						team = TeamAzure.get(self.cores[alias], object_id=azure_group.id)
 						team.add_member(udm_office_user.azure_object_id)
 					except ItemNotFound as e:
 						self.logger.warning("Team not exist yet, trying to add member to group")

@@ -107,7 +107,7 @@ def new_user(core, name):
 		user = dict(accountEnabled=False,
 					userPrincipalName="ZZZ_deleted_{time}_{orig}".format(time=time.time(), orig=user_email),
 					displayName="ZZZ_deleted_{time}_{orig}".format(time=time.time(), orig=username))
-		core.modify_user(oid=result_user["id"], user=user)
+		core.modify_user(object_id=result_user["id"], user=user)
 
 
 @contextlib.contextmanager
@@ -649,7 +649,7 @@ class TestAzure:
 		user_email = "{username}@{domain}".format(username=username, domain=DOMAIN)
 		result_user = self.core.add_simple_user(username=username, email=user_email, password="1*#" + "".join(random.choices(string.ascii_letters, k=10)))
 		user = dict(accountEnabled=False, userPrincipalName="ZZZ_deleted_{time}_{orig}".format(time=time.time(), orig=user_email), displayName="ZZZ_deleted_{time}_{orig}".format(time=time.time(), orig=username))
-		self.core.modify_user(oid=result_user["id"], user=user)
+		self.core.modify_user(object_id=result_user["id"], user=user)
 
 	@my_vcr.use_cassette(os.path.join(VCR_PATH, 'TestAzure/test_delete_user.yml'))
 	def test_delete_user(self):
