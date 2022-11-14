@@ -332,18 +332,27 @@ class UserAzure(AzureObject):
 	userPrincipalName = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
 	userType = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
 
-	@property
-	def azure_identifier(self):
+	def assert_id(self):
+		# type: () -> bool
 		"""
-		Use userPrincipalName as a fallback for the ID and ensure that at least one is ont null
+		Assert that the user has a AzureID:
+		- returns boolean of assertion result
 
-		Azure requires either the ID or the UserPrincipalName in the Get, Update or Delete Header
-		of the users/user api endpoint.
+		The AzureID is required by the vast majority of requests in core.py
+
+		If there is no AzureID, tries to recover by using `onPremisesImmutableId` which corresponds to: udm_user.entryUUID
+		and is unique to every LDAP user.
+
+		If we still don't have an AzureID, user-modification is impossible and the user should probably be created instead.
 		"""
-		identifier = self.id or self.userPrincipalName
-		if not identifier:
-			raise MissingUserIdentifier("No azure Identifier can be found in the UCS LDAP for this user")
-		return identifier
+		if self.id:
+			return True
+		else:
+			azure_user = self.get_by_onPremisesImmutableID(self._core, self.onPremisesImmutableId)
+			if azure_user and azure_user.id:
+				self.id = azure_user.id
+				return True
+		return False
 
 	def create(self):
 		# type: () -> None
@@ -399,7 +408,7 @@ class UserAzure(AzureObject):
 				# read text at beginning delete_user()
 				del data[attrib]
 		if data:
-			self._core.modify_user(self.id or other.id, data)
+			self._core.modify_user(self.id, data)
 			self._update_from_dict(data)
 			return data
 
@@ -420,10 +429,10 @@ class UserAzure(AzureObject):
 				modifications_user.userPrincipalName = delete_name_pattern.format(time=time.time(), orig=self.userPrincipalName)
 		data = modifications_user.get_not_none_values_as_dict()
 		# use self.userPrincipalName here too?
-		self._core.modify_user(self.azure_identifier, data)
+		self._core.modify_user(self.id, data)
 		self._update_from_dict(data)
 		# TODO check if the assignedLicenses is clean
-		groups = self._core.member_of(self.azure_identifier)
+		groups = self._core.member_of(self.id)
 		for group in groups["value"]:
 			try:
 				# the groups endpoint expects the actual id and can't work wit userPrincipalName
