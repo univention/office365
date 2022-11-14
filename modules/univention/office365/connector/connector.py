@@ -321,7 +321,7 @@ class Connector(object):
 		raise NotImplementedError
 
 	@abstractmethod
-	def modify(self, new_object, old_object):
+	def modify(self, new_udm_object, old_udm_object):
 		# type: (UDMOfficeObject, UDMOfficeObject) -> None
 		""""""
 		raise NotImplementedError
@@ -549,7 +549,7 @@ class UserConnector(Connector):
 				user_azure.userPrincipalName, user_azure.id, udm_object.dn, udm_object.current_connection_alias
 			)
 
-	def modify(self, old_object, new_object):
+	def modify(self, old_udm_user, new_udm_user):
 		# type: (UDMOfficeUser, UDMOfficeUser) -> None
 		"""
 		Use cases:
@@ -564,34 +564,34 @@ class UserConnector(Connector):
 			Attrs modify
 		"""
 		# TODO: use some kind of cache for the parsed objects (udm_object => parsed_object)
-		if not old_object.should_sync() and new_object.should_sync():
-			for alias in new_object.aliases(new_object.adconnection_aliases or self.default_adconnection):
-				self.new_or_reactivate_user(new_object)
+		if not old_udm_user.should_sync() and new_udm_user.should_sync():
+			for alias in new_udm_user.aliases(new_udm_user.adconnection_aliases or self.default_adconnection):
+				self.new_or_reactivate_user(new_udm_user)
 			return
-		elif old_object.should_sync() and not new_object.should_sync():
-			for alias in old_object.aliases():
-				with new_object.set_current_alias(alias):
-					old_azure = self.parse(old_object)
+		elif old_udm_user.should_sync() and not new_udm_user.should_sync():
+			for alias in old_udm_user.aliases():
+				with new_udm_user.set_current_alias(alias):
+					old_azure = self.parse(old_udm_user)
 					old_azure.deactivate(rename=False)
-					new_object.modify_azure_attributes(self.prepare_azure_attributes(old_azure, to_remove=True))
+					new_udm_user.modify_azure_attributes(self.prepare_azure_attributes(old_azure, to_remove=True))
 			return
 
-		if new_object.should_sync():
+		if new_udm_user.should_sync():
 			#####
 			# NEW or REACTIVATED account
 			#####
-			for alias in new_object.get_diff_aliases(old_object):
-				with new_object.set_current_alias(alias):
-					self.new_or_reactivate_user(new_object)
+			for alias in new_udm_user.get_diff_aliases(old_udm_user):
+				with new_udm_user.set_current_alias(alias):
+					self.new_or_reactivate_user(new_udm_user)
 
 			#####
 			# Remove connection
 			#####
-			for alias in old_object.get_diff_aliases(new_object):
-				with new_object.set_current_alias(alias), old_object.set_current_alias(alias):
-					old_azure = self.parse(old_object)
+			for alias in old_udm_user.get_diff_aliases(new_udm_user):
+				with new_udm_user.set_current_alias(alias), old_udm_user.set_current_alias(alias):
+					old_azure = self.parse(old_udm_user)
 					old_azure.deactivate(rename=True)
-					new_object.modify_azure_attributes(self.prepare_azure_attributes(old_azure, to_remove=True))
+					new_udm_user.modify_azure_attributes(self.prepare_azure_attributes(old_azure, to_remove=True))
 
 			#####
 			# Modify attrs
@@ -603,17 +603,17 @@ class UserConnector(Connector):
 					data = old_azure.update(new_azure)
 					if data:
 						if new_azure.userPrincipalName != old_azure.userPrincipalName:
-							new_object.modify_azure_attributes(self.prepare_azure_attributes(new_azure))
-						self.logger.info("User modification success. userPrincipalName: %r objectId: %r dn: %s adconnection: %s", new_azure.userPrincipalName, new_azure.id, new_object.dn, new_object.current_connection_alias)
+							new_udm_user.modify_azure_attributes(self.prepare_azure_attributes(new_azure))
+						self.logger.info("User modification success. userPrincipalName: %r objectId: %r dn: %s adconnection: %s", new_azure.userPrincipalName, new_azure.id, new_udm_user.dn, new_udm_user.current_connection_alias)
 					else:
-						self.logger.info("User has no data to be modified. %r objectId: %r dn: %s adconnection: %s", new_azure.userPrincipalName, new_azure.id, new_object.dn, new_object.current_connection_alias)
+						self.logger.info("User has no data to be modified. %r objectId: %r dn: %s adconnection: %s", new_azure.userPrincipalName, new_azure.id, new_udm_user.dn, new_udm_user.current_connection_alias)
 
-	# def _attributes_to_update(self, considered_attributes, new_object, old_object):
+	# def _attributes_to_update(self, considered_attributes, new_udm_user, old_udm_user):
 	# 	# type: (Iterable, UDMOfficeUser, UDMOfficeUser) -> List[str]
 	# 	"""
 	#
 	# 	"""
-	# 	fields_changed = new_object.modified_fields(old_object)
+	# 	fields_changed = new_udm_user.modified_fields(old_udm_user)
 	# 	return [attribute for attribute in considered_attributes if attribute in fields_changed]
 
 	@staticmethod
