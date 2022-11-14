@@ -596,17 +596,20 @@ class UserConnector(Connector):
 			#####
 			# Modify attrs
 			#####
-			for alias in new_object.alias_to_modify(old_object):
-				with new_object.set_current_alias(alias), old_object.set_current_alias(alias):
-					old_azure = self.parse(old_object, set_password=False)
-					new_azure = self.parse(new_object, set_password=False)
-					data = old_azure.update(new_azure)
-					if data:
-						if new_azure.userPrincipalName != old_azure.userPrincipalName:
-							new_udm_user.modify_azure_attributes(self.prepare_azure_attributes(new_azure))
-						self.logger.info("User modification success. userPrincipalName: %r objectId: %r dn: %s adconnection: %s", new_azure.userPrincipalName, new_azure.id, new_udm_user.dn, new_udm_user.current_connection_alias)
+			for alias in new_udm_user.alias_to_modify(old_udm_user):
+				with new_udm_user.set_current_alias(alias), old_udm_user.set_current_alias(alias):
+					old_azure = self.parse(old_udm_user, set_password=False)
+					new_azure = self.parse(new_udm_user, set_password=False)
+					if not old_azure.assert_id():
+						self.new_or_reactivate_user(new_udm_user)
 					else:
-						self.logger.info("User has no data to be modified. %r objectId: %r dn: %s adconnection: %s", new_azure.userPrincipalName, new_azure.id, new_udm_user.dn, new_udm_user.current_connection_alias)
+						data = old_azure.update(new_azure)
+						if data:
+							if new_azure.userPrincipalName != old_azure.userPrincipalName:
+								new_udm_user.modify_azure_attributes(self.prepare_azure_attributes(new_azure))
+							self.logger.info("User modification success. userPrincipalName: %r objectId: %r dn: %s adconnection: %s", new_azure.userPrincipalName, new_azure.id, new_udm_user.dn, new_udm_user.current_connection_alias)
+						else:
+							self.logger.info("User has no data to be modified. %r objectId: %r dn: %s adconnection: %s", new_azure.userPrincipalName, new_azure.id, new_udm_user.dn, new_udm_user.current_connection_alias)
 
 	# def _attributes_to_update(self, considered_attributes, new_udm_user, old_udm_user):
 	# 	# type: (Iterable, UDMOfficeUser, UDMOfficeUser) -> List[str]
