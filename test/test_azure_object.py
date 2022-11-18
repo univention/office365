@@ -36,10 +36,8 @@ import random
 import string
 import sys
 import time
-import uuid
 import os
 import pytest
-import requests
 import vcr
 from mock import mock
 from typing import Optional, Any, Dict
@@ -74,28 +72,29 @@ from test import ALIASDOMAIN, DOMAIN_PATH, DOMAIN, OWNER_ID, VCR_PATH
 
 URLs.proxies = mock.MagicMock(return_value={})
 
-azure_user_selection = ["assignedLicenses",
-				 "otherMails",
-				 "businessPhones",
-				 "displayName",
-				 "givenName",
-				 "jobTitle",
-				 "mail",
-				 "mobilePhone",
-				 "officeLocation",
-				 "preferredLanguage",
-				 "surname",
-				 "userPrincipalName",
-				 "id",
-				 "accountEnabled",
-				 "onPremisesImmutableId",
-				 "mailNickname",
-				 "city",
-				 "usageLocation",
-				 "postalCode",
-				 "streetAddress",
-				 "assignedPlans"
-				]
+azure_user_selection = [
+	"assignedLicenses",
+	"otherMails",
+	"businessPhones",
+	"displayName",
+	"givenName",
+	"jobTitle",
+	"mail",
+	"mobilePhone",
+	"officeLocation",
+	"preferredLanguage",
+	"surname",
+	"userPrincipalName",
+	"id",
+	"accountEnabled",
+	"onPremisesImmutableId",
+	"mailNickname",
+	"city",
+	"usageLocation",
+	"postalCode",
+	"streetAddress",
+	"assignedPlans"
+]
 
 
 @contextlib.contextmanager
@@ -104,16 +103,17 @@ def new_user(core, name):
 	username = "user_{team_name}".format(team_name=name)
 	user_email = "{username}@{domain}".format(username=username, domain=DOMAIN)
 
-	user = UserAzure(onPremisesImmutableId=str(uuid.uuid4()),
-					 accountEnabled=True,
-					 displayName=username,
-					 mailNickname=username,
-					 userPrincipalName=user_email,
-					 passwordProfile={
-						 "forceChangePasswordNextSignIn": True,
-						 "password": "1*#" + "".join(random.choices(string.ascii_letters, k=10))
-					 },
-					 usageLocation="DE")
+	user = UserAzure(
+		onPremisesImmutableId="6b3b3218-076b-46ef-bd14-0ae3dd77a8db",
+		accountEnabled=True,
+		displayName=username,
+		mailNickname=username,
+		userPrincipalName=user_email,
+		passwordProfile={
+			"forceChangePasswordNextSignIn": True,
+			"password": "1*#" + "".join(random.choices(string.ascii_letters, k=10))
+		},
+		usageLocation="DE")
 	user.set_core(core)
 	try:
 		user.create()
@@ -156,7 +156,6 @@ def new_team(core, team_name, owner):
 		yield team
 	finally:
 		team.delete()
-
 
 
 @contextlib.contextmanager
@@ -372,6 +371,16 @@ class TestUserAzure(TestObjectAzure):
 			user = UserAzure.get(self.core, user.id, selection=azure_user_selection)
 			user2 = UserAzure.get_by_onPremisesImmutableID(self.core, user.onPremisesImmutableId)
 			assert user.id == user2.id
+
+	@my_vcr.use_cassette(os.path.join(VCR_PATH, 'TestUserAzure/test_assert_id.yml'))
+	def test_assert_id(self):
+		username = "test_recover_from_missing_id"
+		with new_user(self.core, username) as user:
+			user_id = user.id
+			user.id = None
+			user.assert_id()
+			assert user.id == user_id
+
 
 class TestGroupAzure(TestObjectAzure):
 

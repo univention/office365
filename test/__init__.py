@@ -41,9 +41,8 @@ import mock
 ALIASDOMAIN = "o365-dev-univention-de"
 ALIASDOMAIN_2 = "o365domain"
 # ALIASDOMAIN = "u-azure-test-de"
-# DOMAIN_PATH = "/etc/univention-office365"
-DOMAIN_PATH = "/etc/nonexistant-path_univention-office365"
-DOMAIN = "alphadistrict.onmicrosoft.com"
+DOMAIN_PATH = "/etc/univention-office365"
+# DOMAIN = "alphadistrict.onmicrosoft.com"
 DOMAIN = "univentiontestgmbh.onmicrosoft.com"
 DOMAIN_2 = "office365.dev-univention.de"
 OWNER_ID = str(uuid.uuid4())

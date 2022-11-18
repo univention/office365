@@ -44,7 +44,7 @@ univention.office365.microsoft.OFFICE365_API_PATH = DOMAIN_PATH
 
 fake_module = mock.MagicMock()
 sys.modules['univention.debug'] = fake_module
-setattr(univention, 'debug', fake_module)
+univention.debug = fake_module
 sys.modules['lazy_object_proxy'] = mock.MagicMock()
 sys.modules['univention.config_registry'] = mock.MagicMock()
 pwd_module = mock.MagicMock()
@@ -383,6 +383,7 @@ class TestUserConnector:
 		# type: (Callable) -> None
 		azure_user_new = mock.MagicMock()
 		azure_user_old = mock.MagicMock()
+		azure_user_old.assert_id = mock.MagicMock(return_value=True)
 		self.uc.parse = mock.MagicMock(side_effect=[azure_user_old, azure_user_new, mock.MagicMock()])
 
 		# Test users with modified alias for NEW or REACTIVATED account
