@@ -1,0 +1,220 @@
+interactions:
+- request:
+    body: '{"displayName": "user_test_recover_from_missing_id", "mailNickname": "user_test_recover_from_missing_id",
+      "accountEnabled": true, "onPremisesImmutableId": "6b3b3218-076b-46ef-bd14-0ae3dd77a8db",
+      "passwordProfile": {"forceChangePasswordNextSignIn": true, "password": "1*#uKkQIUxelZ"},
+      "usageLocation": "DE", "userPrincipalName": "user_test_recover_from_missing_id@univentiontestgmbh.onmicrosoft.com"}'
+    headers:
+      Accept: ['*/*']
+      Accept-Encoding: ['gzip, deflate']
+      Authorization: [XXXXXX]
+      Connection: [keep-alive]
+      Content-Length: ['399']
+      Content-Type: [application/json]
+      User-Agent: [Univention Microsoft 365 Connector]
+    method: POST
+    uri: https://graph.microsoft.com/v1.0/users
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAECoyQy2rDQAxF/0XN0s8Q8vAqHxBKFt2VYuQZ2VaZGZnRODSU/ntxQgLddSddpHuP
+        9A1HsZiwMBISfSVoYExp0qYsh4jTWHg2UVT6VBjx5aUuqnLlKeGy9DIrRS1XFBKnK2TAFhqoD5st
+        1rXNsdp2+Wa9tvnhYDHf73c7S31V024LGXSzciDV8yiBFJr3jwws6+Tw+oqeoIHFvU2kqY1k5EKx
+        7aP41rMqh6FlCxkMfKFwnw+zcxl8SvfGyRE0994ju2ctHTu6BT4k6Xs2dBKDiSU81ClSTzGSPWEY
+        ZhyebjrHcIO7my+E58jB8ITuv9THOSzQS95y3OC7sZDw58/w8wsAAP//AwAsKR+fmAEAAA==
+    headers:
+      Cache-Control: [no-cache]
+      Content-Encoding: [gzip]
+      Content-Type: [application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8]
+      Date: ['Fri, 18 Nov 2022 15:29:54 GMT']
+      Location: ['https://graph.microsoft.com/v2/3e7d9eb5-c3a1-4cfc-892e-a8ec29e45b77/directoryObjects/1946a11d-a06b-422d-99da-8877def01e76/Microsoft.DirectoryServices.User']
+      OData-Version: ['4.0']
+      Strict-Transport-Security: [max-age=31536000]
+      Transfer-Encoding: [chunked]
+      Vary: [Accept-Encoding]
+      client-request-id: [6df3f459-d025-4d2e-87b1-494abd663351]
+      request-id: [6df3f459-d025-4d2e-87b1-494abd663351]
+      x-ms-ags-diagnostic: ['{"ServerInfo":{"DataCenter":"Germany West Central","Slice":"E","Ring":"5","ScaleUnit":"000","RoleInstance":"FR1PEPF000007A8"}}']
+      x-ms-resource-unit: ['1']
+    status: {code: 201, message: Created}
+- request:
+    body: null
+    headers:
+      Accept: ['*/*']
+      Accept-Encoding: ['gzip, deflate']
+      Authorization: [XXXXXX]
+      Connection: [keep-alive]
+      Content-Type: [application/json]
+      User-Agent: [Univention Microsoft 365 Connector]
+    method: GET
+    uri: https://graph.microsoft.com/v1.0/users?$filter=onPremisesImmutableID%20eq%20'6b3b3218-076b-46ef-bd14-0ae3dd77a8db'
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAECoyQy2rDQAxF/0Xt0s8Q8phVPiCULLoLwcge2VaZGZl5mJaQfy9OSKC77iShe++R
+        rnAQjRGLTlyk7wgKxhinoMpy8DiNheXOS5A+Fp3Ycq6Lqny3FHERvaVAPkAGM5pEoM5XaFNgRyGc
+        RnEUQJ0vGWgOk8GfD7QEChZNEynExlMnM/mm92IbyyGwGxrWkMHAM7nHvkvGZPAl7SdHQ6AevUU2
+        r1paNnQPfI6k77mjo3QYWdxzOnnqyXvSR3RDwuHlFpJ3d7iH+UJ48uw6ntD8l/qQ3AK95C3HDbYd
+        C3F/vgcZsAYF9X69wbrWOVabNl+vVjrf7zXmu912q6mvatpu4Ha5/QIAAP//AwDi1XR8nAEAAA==
+    headers:
+      Cache-Control: [no-cache]
+      Content-Encoding: [gzip]
+      Content-Type: [application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8]
+      Date: ['Fri, 18 Nov 2022 15:29:56 GMT']
+      OData-Version: ['4.0']
+      Strict-Transport-Security: [max-age=31536000]
+      Transfer-Encoding: [chunked]
+      Vary: [Accept-Encoding]
+      client-request-id: [cb5daf37-3ba9-4748-bb42-a51d5a4494c9]
+      request-id: [cb5daf37-3ba9-4748-bb42-a51d5a4494c9]
+      x-ms-ags-diagnostic: ['{"ServerInfo":{"DataCenter":"Germany West Central","Slice":"E","Ring":"5","ScaleUnit":"000","RoleInstance":"FR1PEPF000007AD"}}']
+      x-ms-resource-unit: ['2']
+    status: {code: 200, message: OK}
+- request:
+    body: '{"postalCode": "10004"}'
+    headers:
+      Accept: ['*/*']
+      Accept-Encoding: ['gzip, deflate']
+      Authorization: [XXXXXX]
+      Connection: [keep-alive]
+      Content-Length: ['23']
+      Content-Type: [application/json]
+      User-Agent: [Univention Microsoft 365 Connector]
+    method: PATCH
+    uri: https://graph.microsoft.com/v1.0/users/1946a11d-a06b-422d-99da-8877def01e76
+  response:
+    body: {string: ''}
+    headers:
+      Cache-Control: [no-cache]
+      Date: ['Fri, 18 Nov 2022 15:29:56 GMT']
+      Strict-Transport-Security: [max-age=31536000]
+      client-request-id: [5f72b2cc-588c-47ba-9fc1-547d4bd0fc0b]
+      request-id: [5f72b2cc-588c-47ba-9fc1-547d4bd0fc0b]
+      x-ms-ags-diagnostic: ['{"ServerInfo":{"DataCenter":"Germany West Central","Slice":"E","Ring":"5","ScaleUnit":"000","RoleInstance":"FR1PEPF000007A5"}}']
+      x-ms-resource-unit: ['1']
+    status: {code: 204, message: No Content}
+- request:
+    body: null
+    headers:
+      Accept: ['*/*']
+      Accept-Encoding: ['gzip, deflate']
+      Authorization: [XXXXXX]
+      Connection: [keep-alive]
+      Content-Type: [application/json]
+      User-Agent: [Univention Microsoft 365 Connector]
+    method: GET
+    uri: https://graph.microsoft.com/v1.0/users/1946a11d-a06b-422d-99da-8877def01e76?$select=assignedLicenses,otherMails,businessPhones,displayName,givenName,jobTitle,mail,mobilePhone,officeLocation,preferredLanguage,surname,userPrincipalName,id,accountEnabled,onPremisesImmutableId,mailNickname,city,usageLocation,postalCode,streetAddress,assignedPlans
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAECoyTTY/TMBCG/8uwB5AmbdJWTZvTItjDSmXVAzeEKseepAZ/RB6nYoX478hZ3A8t
+        h73ZbzTjeZ958xvuvRJRzKR3kX5FaOAY48DNfN4HMRxnVsvg2XdxJr2dn6pZOb+zFEUqejcyBX4v
+        mHXvSO20JMfE6OORwhehDWM7snbEvD96R4xK82DE85OwhL0+kZtOP3z7VUdDaIU2aH2rDU0F6LtO
+        S9p5KaL2DodAHYVAaidcP4qekMfgUrM0yT5oJ/UgzNRUKxRS+tHFBydaQwq92weymokfrR1jEh/V
+        9OaTlj+nNlLHZxxZ9Fdveo7CfPKKkGMgih+VCsSM2fbeCMcf5nfkoo7PgHCxD8237wi3DF60KxDQ
+        QJr+EInjIZD0JwqHLnh7sJpZu/6gFSCccUHjRmMQMrV8T/DO5wvDLN2izOorovnDP7D5+orvW6a+
+        H13acVpdMtfb9jjz7iZRgKAVNFBtV2tRVaoQ5botVouFKrZbJYrNpq4VdWVF9RoQbjcKTQwjIfx3
+        sdDAul22y0W1Kco6NV1TV7SqWhWloKVSdS02qgWEBC4n4C22ACHl5ILmKi7QwOcHQBjOqUnmyrJc
+        AcJNfnJ5jlH+e17ykdUpXEn68xcAAP//AwBHUcG0qgMAAA==
+    headers:
+      Cache-Control: [no-cache]
+      Content-Encoding: [gzip]
+      Content-Type: [application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8]
+      Date: ['Fri, 18 Nov 2022 15:29:56 GMT']
+      OData-Version: ['4.0']
+      Strict-Transport-Security: [max-age=31536000]
+      Transfer-Encoding: [chunked]
+      Vary: [Accept-Encoding]
+      client-request-id: [ac349fb6-d582-498d-9340-37a877aff819]
+      request-id: [ac349fb6-d582-498d-9340-37a877aff819]
+      x-ms-ags-diagnostic: ['{"ServerInfo":{"DataCenter":"Germany West Central","Slice":"E","Ring":"5","ScaleUnit":"000","RoleInstance":"FR1PEPF000007B3"}}']
+      x-ms-resource-unit: ['1']
+    status: {code: 200, message: OK}
+- request:
+    body: '{"displayName": "ZZZ_deleted_1668785397.194599_user_test_recover_from_missing_id",
+      "mailNickname": "ZZZ_deleted_1668785397.1946123_user_test_recover_from_missing_id",
+      "accountEnabled": false, "otherMails": [], "userPrincipalName": "ZZZ_deleted_1668785397.1946163_user_test_recover_from_missing_id@univentiontestgmbh.onmicrosoft.com"}'
+    headers:
+      Accept: ['*/*']
+      Accept-Encoding: ['gzip, deflate']
+      Authorization: [XXXXXX]
+      Connection: [keep-alive]
+      Content-Length: ['333']
+      Content-Type: [application/json]
+      User-Agent: [Univention Microsoft 365 Connector]
+    method: PATCH
+    uri: https://graph.microsoft.com/v1.0/users/1946a11d-a06b-422d-99da-8877def01e76
+  response:
+    body: {string: ''}
+    headers:
+      Cache-Control: [no-cache]
+      Date: ['Fri, 18 Nov 2022 15:29:56 GMT']
+      Strict-Transport-Security: [max-age=31536000]
+      client-request-id: [8eb21363-ef38-43e1-92f9-f4a5e7f939f2]
+      request-id: [8eb21363-ef38-43e1-92f9-f4a5e7f939f2]
+      x-ms-ags-diagnostic: ['{"ServerInfo":{"DataCenter":"Germany West Central","Slice":"E","Ring":"5","ScaleUnit":"000","RoleInstance":"FR1PEPF000007AB"}}']
+      x-ms-resource-unit: ['1']
+    status: {code: 204, message: No Content}
+- request:
+    body: null
+    headers:
+      Accept: ['*/*']
+      Accept-Encoding: ['gzip, deflate']
+      Authorization: [XXXXXX]
+      Connection: [keep-alive]
+      Content-Type: [application/json]
+      User-Agent: [Univention Microsoft 365 Connector]
+    method: GET
+    uri: https://graph.microsoft.com/v1.0/directoryObjects/1946a11d-a06b-422d-99da-8877def01e76/memberOf
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAEClzNXQqCQBAA4LuMgQWu64r4s0/dwANED+PumEbbyjpJEt09IiLoAB/fA/beImNq
+        /JXpzqBhYJ5mLeUp4DSkbjTBz77n1HgnF5VmcuOI8Y0iOwYy7MPadmcyPG9j1RQlKmUFZmUnijy3
+        omksirquKkt9pqgq45105DoKbQ/J9+d1ItAQ/b7P/1dAAgtebgT6cHy+AAAA//8DAAL8ur69AAAA
+    headers:
+      Cache-Control: [no-cache]
+      Content-Encoding: [gzip]
+      Content-Type: [application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8]
+      Date: ['Fri, 18 Nov 2022 15:29:57 GMT']
+      OData-Version: ['4.0']
+      Strict-Transport-Security: [max-age=31536000]
+      Transfer-Encoding: [chunked]
+      Vary: [Accept-Encoding]
+      client-request-id: [ccdd5cbd-18a7-4c05-a80e-1e6f34b6c1a3]
+      request-id: [ccdd5cbd-18a7-4c05-a80e-1e6f34b6c1a3]
+      x-ms-ags-diagnostic: ['{"ServerInfo":{"DataCenter":"Germany West Central","Slice":"E","Ring":"5","ScaleUnit":"000","RoleInstance":"FR1PEPF0000086A"}}']
+      x-ms-resource-unit: ['2']
+    status: {code: 200, message: OK}
+- request:
+    body: null
+    headers:
+      Accept: ['*/*']
+      Accept-Encoding: ['gzip, deflate']
+      Authorization: [XXXXXX]
+      Connection: [keep-alive]
+      Content-Type: [application/json]
+      User-Agent: [Univention Microsoft 365 Connector]
+    method: GET
+    uri: https://graph.microsoft.com/v1.0/users/1946a11d-a06b-422d-99da-8877def01e76?$select=assignedLicenses
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAEClzLMQ7CMAwF0LuYDiBVMayZOEBvgBis1KQZElfxpwIh7o5YOz+9D11tFkhI1qAv
+        UKQFWD0y5y7rEmpJ3dweCMkqb5dw5qEq5J8OT9fuR3Evuek8laTN1U88aEPBm0baG8Xb/fsDAAD/
+        /wMAp505iHUAAAA=
+    headers:
+      Cache-Control: [no-cache]
+      Content-Encoding: [gzip]
+      Content-Type: [application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8]
+      Date: ['Fri, 18 Nov 2022 15:29:57 GMT']
+      OData-Version: ['4.0']
+      Strict-Transport-Security: [max-age=31536000]
+      Transfer-Encoding: [chunked]
+      Vary: [Accept-Encoding]
+      client-request-id: [71dc3fe3-1cf9-47c1-8f6a-090f0b89b1ed]
+      request-id: [71dc3fe3-1cf9-47c1-8f6a-090f0b89b1ed]
+      x-ms-ags-diagnostic: ['{"ServerInfo":{"DataCenter":"Germany West Central","Slice":"E","Ring":"5","ScaleUnit":"000","RoleInstance":"FR1PEPF0000079B"}}']
+      x-ms-resource-unit: ['1']
+    status: {code: 200, message: OK}
+version: 1
