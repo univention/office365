@@ -158,7 +158,7 @@ class UDMHelper(object):
 
 	def get_udm_object(self, module_name, dn, attributes=None):
 		# type: (str, str, Optional[Dict[str, Any]]) -> object
-		assert self.lo is not None, "No LDAP connection have been established"
+		assert self.lo is not None, "No LDAP connection has been established"
 		mod = self._get_module(module_name)
 		obj = mod.object(None, self.lo, self.po, dn, attributes=attributes)
 		obj.open()
