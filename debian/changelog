@@ -1,3 +1,9 @@
+univention-office365 (3.0.1-17) unstable; urgency=medium
+
+  * Bug #55217 fix infinite listener loop.
+
+ -- Johannes Lohmer <lohmer@univention.de>  Tue, 29 Nov 2022 18:17:58 +0100
+
 univention-office365 (3.0.1-16) unstable; urgency=medium
 
   * Bug #55211 Add fallback when modifying User for missing AzureData in LDAP.
