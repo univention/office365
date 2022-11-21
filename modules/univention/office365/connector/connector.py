@@ -924,7 +924,7 @@ class GroupConnector(Connector):
 					if not (self.attrs & modification_attributes_udm_group):
 						self.logger.info("No modifications found, ignoring.")
 						if azure_group_id and azure_group_id != new_udm_group.azure_object_id:
-							new_udm_group.modify_azure_attributes(self.prepare_azure_attributes(GroupAzure(id=azure_group_id)))
+							new_udm_group.modify_azure_attributes(self.prepare_azure_attributes(GroupAzure(id=new_udm_group.azure_object_id)))
 						continue
 
 					# We are getting the group from azure and not parsing it from UDM objects

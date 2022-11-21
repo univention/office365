@@ -1,3 +1,12 @@
+univention-office365 (2.0.4-13) unstable; urgency=medium
+
+  * Bug #55217 fix infinite listener loop.
+  * Bug #55211 Add fallback when modifying User for missing AzureData in LDAP.
+  * Bug #55202: fix duplicate mail address error.
+  * Bug #55202: removed `mapping.keys()` from superset of sync attributes.
+
+ -- Johannes Lohmer <lohmer@univention.de>  Fri, 09 Dec 2022 14:00:26 +0100
+
 univention-office365 (2.0.4-12) unstable; urgency=medium
 
   * Bug #54858: Fix tool scripts
