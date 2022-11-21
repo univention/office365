@@ -913,9 +913,11 @@ class GroupConnector(Connector):
 		# We need to look over all the available connections
 		for alias in new_udm_group.aliases(set(self.cores.keys())):
 			with old_udm_group.set_current_alias(alias):
-				if new_udm_group.in_azure() or \
-					alias in new_udm_group.adconnection_aliases or \
-					alias in old_udm_group.adconnection_aliases:
+				if any((
+					new_udm_group.in_azure(),
+					alias in new_udm_group.adconnection_aliases,
+					alias in old_udm_group.adconnection_aliases,
+				)):
 
 					modification_attributes_udm_group = old_udm_group.diff_keys(new_udm_group)
 					azure_group_id = old_udm_group.azure_object_id or new_udm_group.azure_object_id
