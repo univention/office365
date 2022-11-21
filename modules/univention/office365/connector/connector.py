@@ -918,26 +918,26 @@ class GroupConnector(Connector):
 					alias in old_udm_group.adconnection_aliases:
 
 					modification_attributes_udm_group = old_udm_group.diff_keys(new_udm_group)
-					object_id = old_udm_group.azure_object_id or new_udm_group.azure_object_id
+					azure_group_id = old_udm_group.azure_object_id or new_udm_group.azure_object_id
 
 					# No modification to be considered
 					if not (self.attrs & modification_attributes_udm_group):
 						self.logger.info("No modifications found, ignoring.")
-						if object_id and object_id != new_udm_group.azure_object_id:
-							new_udm_group.modify_azure_attributes(self.prepare_azure_attributes(GroupAzure(id=object_id)))
+						if azure_group_id and azure_group_id != new_udm_group.azure_object_id:
+							new_udm_group.modify_azure_attributes(self.prepare_azure_attributes(GroupAzure(id=azure_group_id)))
 						continue
 
 					# We are getting the group from azure and not parsing it from UDM objects
 					# because it could be removed manually from azure but exists in UDM. In this case
 					# we create the group again in Azure.
-					if not object_id:
+					if not azure_group_id:
 						# just create a new group
 						self.logger.info("No objectID for group %r found, creating a new azure group...", old_udm_group.dn or new_udm_group.dn)
 						azure_group = self._create_group(new_udm_group)
 					# modification_attributes_udm_group = new_udm_group
 					else:
 						try:
-							azure_group = GroupAzure.get(self.cores[new_udm_group.current_connection_alias], object_id)
+							azure_group = GroupAzure.get(self.cores[new_udm_group.current_connection_alias], azure_group_id)
 						except MSGraphError:
 							self.logger.warning("Office365Listener.modify_group() azure group doesn't exist (anymore), creating it instead.")
 							azure_group = self._create_group(new_udm_group)
@@ -951,7 +951,7 @@ class GroupConnector(Connector):
 					# TODO: unarchive team
 					# modules/univention/office365/listener.py:607
 					# try:
-					# 	team_azure = TeamAzure.get(self.cores[new_udm_group.current_connection_alias], object_id)
+					# 	team_azure = TeamAzure.get(self.cores[new_udm_group.current_connection_alias], azure_group_id)
 					# 	team_azure.reactivate()
 					# except MSGraphError:
 					# 	pass
