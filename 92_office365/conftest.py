@@ -70,7 +70,20 @@ def adconnection_alias(request):
 
 
 @pytest.fixture(scope='session')
-def adconnection(logger, adconnection_alias, adconnection_srcpath):
+def core(adconnection_alias):
+	return MSGraphApiCore(AzureAccount(adconnection_alias))
+	# return MSGraphApiCore(adconnection)
+
+
+@pytest.fixture(scope='session')
+def adconnection(adconnection_alias, adconnection_srcpath):
+	account = AzureAccount(adconnection_alias)
+	assert account.is_initialized(), "run ./01_initialize_external_testenv first!"
+	return account
+
+
+@pytest.fixture(scope='session')
+def initialize_adconnection(logger, adconnection_alias, adconnection_srcpath):
 	"""
 	This fixture configures the external connections for this connector instance.
 	This fixture expects a preconfigured connection to Azure to be in /etc/univention-office365/
@@ -119,9 +132,3 @@ def adconnection(logger, adconnection_alias, adconnection_srcpath):
 	return True
 	# TODO: insert message if removal fails
 	# assert remove_externally_configured_adconnections(logger), "Removgging of externally configured ad connections failed!"
-
-
-@pytest.fixture(scope='session')
-def core(adconnection_alias):
-	return MSGraphApiCore(AzureAccount(adconnection_alias))
-	# return MSGraphApiCore(adconnection)
