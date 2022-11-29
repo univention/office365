@@ -371,7 +371,15 @@ class UserAzure(AzureObject):
 				if "error" in exc.response.json() and "details" in exc.response.json()["error"]:
 					details = exc.response.json()["error"]["details"]
 					for d in details:
-						if d.get("code") == "ObjectConflict" and d.get("target") == "onPremisesImmutableId":
+						if d.get("code") == "ObjectConflict" and d.get("target") == "userPrincipalName":
+							# The user already exists, so we need to modify it
+							# get the user from azure by its
+							user_azure = self.get(self._core, self.userPrincipalName)
+							self.id = user_azure.id
+							# update the azure user with the new values
+							user_azure.update(self)
+							return
+						elif d.get("code") == "ObjectConflict" and d.get("target") == "onPremisesImmutableId":
 							user_azure = self.get_by_onPremisesImmutableID(self._core, self.onPremisesImmutableId)
 							self.id = user_azure.id
 							# update the azure user with the new values
