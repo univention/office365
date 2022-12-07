@@ -50,6 +50,23 @@ from univention.office365.udmwrapper.udmobjects import UniventionOffice365Data
 # If the UCS account has no mailPrimaryAddress, --set-mail can be used
 
 
+class UserArgs:
+	"""
+	Data container representing all arguments to connect one User
+	uid and upn are required, the rest is optional
+	"""
+	def __init__(self, uid, upn, adconnection="defaultADconnection", set_mail=False, maildomain="", mail_localpart_from_uid=False, mail_localpart_from_upn=False, activate=False, modify=False):
+		self.uid = uid
+		self.upn = upn
+		self.adconnection = adconnection
+		self.set_mail = set_mail
+		self.maildomain = maildomain
+		self.mail_localpart_from_uid = mail_localpart_from_uid
+		self.mail_localpart_from_upn = mail_localpart_from_upn
+		self.activate = activate
+		self.modify = modify
+
+
 def parse_arguments(args):
 	"""
 	parses cli arguments and typecasts them to a UserArgs instance
@@ -77,115 +94,119 @@ def parse_arguments(args):
 		if not args.maildomain:
 			parser.error("--maildomain has to be given")
 
-	user_args = args
+	user_args = UserArgs(**vars(args))
+
 	return user_args
 
 
-def get_udm_user_and_entryUUID(uid):
+class ExistingUserConnector:
 	"""
-	UDM does not read the entryUUID, so get it separately
-	returns udm_user, raw_entryuuid
+	Class to connect existing UCS users with existing Azure AD users
 	"""
-	# Initialize UDM connection
-	ucr = ConfigRegistry()
-	ucr.load()
-	base = ucr["ldap/base"]
-	lo, po = univention.admin.uldap.getAdminConnection()
-	univention.admin.modules.update()
-	usermod = univention.admin.modules.get('users/user')
-	univention.admin.modules.init(lo, po, usermod)
-	config = univention.admin.config.config()
+	def __init__(self, exit_on_first_error=True, verbose_error=True):
+		self.exit_on_first_error = exit_on_first_error
+		self.verbose_error = verbose_error
+		# Initialize UDM connection
+		ucr = ConfigRegistry()
+		ucr.load()
+		self.base = ucr["ldap/base"]
+		self.lo, po = univention.admin.uldap.getAdminConnection()
+		univention.admin.modules.update()
+		self.usermod = univention.admin.modules.get('users/user')
+		univention.admin.modules.init(self.lo, po, self.usermod)
+		self.config = univention.admin.config.config()
 
-	udm_user = []
-	udm_user = usermod.lookup(config, lo, filter_s="uid=%s" % uid, base=base)
-	if len(udm_user) != 1:
-		print("Could not find user with uid=%s in UDM/LDAP" % uid)
-		exit(1)
+	def get_azure_user_id(self, adconnection, user_principal_name):
+		# Initialize Azure connection
+		azure_account = AzureAccount(adconnection)
+		if not azure_account.is_initialized():
+			print("connection %s not initialized" % adconnection)
+			exit(5)
+		core = MSGraphApiCore(azure_account)
 
-	raw_entryuuid = lo.search(
-		filter="uid=%s" % uid, base=base, attr=["entryUUID"]
-	)[0][1]["entryUUID"][0]
+		try:
+			azure_user_id = core.get_user(user_principal_name, selection="id")['id']
+			return core, azure_user_id
+		except MSGraphError as err:
+			print("Error while querying Azure user")
+			print(err)
+			exit(2)
 
-	if not isinstance(raw_entryuuid, bytes):
-		raw_entryuuid = raw_entryuuid.encode("ASCII")
+	def get_udm_user_and_entryUUID(self, uid):
+		"""
+		UDM does not read the entryUUID, so get it separately
+		returns udm_user, raw_entryuuid
+		"""
 
-	return udm_user, raw_entryuuid
+		udm_user = []
+		udm_user = self.usermod.lookup(self.config, self.lo, filter_s="uid=%s" % uid, base=self.base)
+		if len(udm_user) != 1:
+			print("Could not find user with uid=%s in UDM/LDAP" % uid)
+			exit(1)
 
+		user = udm_user[0]
+		user.open()
 
-def get_azure_user_id(self, adconnection, user_principal_name):
-	# Initialize Azure connection
-	azure_account = AzureAccount(adconnection)
-	if not azure_account.is_initialized():
-		print("connection %s not initialized" % adconnection)
-		exit(5)
-	core = MSGraphApiCore(azure_account)
+		raw_entryuuid = self.lo.search(
+			filter="uid=%s" % uid, base=self.base, attr=["entryUUID"]
+		)[0][1]["entryUUID"][0]
 
-	try:
-		azure_user_id = core.get_user(user_principal_name, selection="id")['id']
-	except MSGraphError as err:
-		print("Error while querying Azure user")
-		print(err)
-		exit(2)
+		if not isinstance(raw_entryuuid, bytes):
+			raw_entryuuid = raw_entryuuid.encode("ASCII")
 
-		return core, azure_user_id
+		return user, raw_entryuuid
 
+	def modify_udm_user(self, udm_user, azure_user_id, user_args):
+		# Create AzureData
+		if udm_user.get('UniventionOffice365Data'):
+			azure_data = UniventionOffice365Data.from_ldap(udm_user['UniventionOffice365Data'])
+		else:
+			azure_data = UniventionOffice365Data({})
 
-def modify_udm_user(self, udm_user, azure_user_id, user_args):
-	# Open UDM user
-	udm_user = udm_user[0]
-	udm_user.open()
+		azure_data[user_args.adconnection] = {
+			'userPrincipalName': user_args.upn,
+			'objectId': azure_user_id
+		}
 
-	# Create AzureData
-	if udm_user.get('UniventionOffice365Data'):
-		azure_data = UniventionOffice365Data.from_ldap(udm_user['UniventionOffice365Data'])
-	else:
-		azure_data = UniventionOffice365Data({})
+		# Modify UDMUser
+		udm_user["UniventionOffice365Data"] = azure_data.to_ldap_str()
 
-	azure_data[user_args.adconnection] = {
-		'userPrincipalName': user_args.upn,
-		'objectId': azure_user_id
-	}
+		# add aliases to UDM User
+		udm_user['UniventionOffice365ADConnectionAlias'].append(user_args.adconnection)
 
-	# Modify UDMUser
-	udm_user["UniventionOffice365Data"] = azure_data.to_ldap_str()
+		if user_args.set_mail:
+			localpart = user_args.uid if user_args.mail_localpart_from_uid else user_args.upn.split("@")[0]
 
-	# add aliases to UDM User
-	aliases = udm_user.get(
-		'UniventionOffice365ADConnectionAlias', []
-	).append(user_args.adconnection)
-	udm_user['UniventionOffice365ADConnectionAlias'] = aliases
+			udm_user["mailPrimaryAddress"] = "%s@%s" % (localpart, user_args.maildomain)
+		if user_args.activate:
+			udm_user["UniventionOffice365Enabled"] = "1"
 
-	if user_args.set_mail:
-		localpart = user_args.uid if user_args.mail_localpart_from_uid else user_args.upn.split("@")[0]
+		udm_user.modify()
 
-		udm_user["mailPrimaryAddress"] = "%s@%s" % (localpart, user_args.maildomain)
-	if user_args.activate:
-		udm_user["UniventionOffice365Enabled"] = "1"
+	def connect_user(self, user_args):
+		core, azure_user_id = self.get_azure_user_id(user_args.adconnection, user_args.upn)
+		udm_user, raw_entryuuid = self.get_udm_user_and_entryUUID(user_args.uid)
 
-	udm_user.modify()
+		if not user_args.modify:
+			print("Would update LDAP user %s; objectid=%s, and azure user entryuuid is %s" % (user_args.uid, azure_user_id, raw_entryuuid))
+			exit(0)
 
+		try:
+			self.modify_udm_user(udm_user, azure_user_id, user_args)
+			# Modify AzureUser
 
-def connect_user(self, user_args):
-	core, azure_user_id = self.get_azure_user_id(user_args.adconnection, user_args.upn)
-	udm_user, raw_entryuuid = self.get_udm_user_and_entryUUID(user_args.uid)
+			# TODO: actually save azre_user
+			core.modify_user(azure_user_id, {'onPremisesImmutableId': base64.b64encode(raw_entryuuid).decode('UTF-8')})
 
-	if not user_args.modify:
-		print("Would update LDAP user %s; objectid=%s, and azure user entryuuid is %s" % (user_args.uid, azure_user_id, raw_entryuuid))
-		exit(0)
-
-	try:
-		self.modify_udm_user(udm_user, azure_user_id, user_args)
-		# Modify AzureUser
-
-		core.modify_user(azure_user_id, {'onPremisesImmutableId': base64.b64encode(raw_entryuuid).decode('UTF-8')})
-
-		print("Modified: LDAP user %s; azure objectid=%s; ucs mail=%s, and ldap entryuuid is %s" % (user_args.uid, azure_user_id, udm_user["mailPrimaryAddress"], raw_entryuuid))
-	except MSGraphError as ex:
-		print("Error while connecting users")
-		print(ex)
-		exit(4)
+			print("Modified: LDAP user %s; azure objectid=%s; ucs mail=%s, and ldap entryuuid is %s" % (user_args.uid, azure_user_id, udm_user["mailPrimaryAddress"], raw_entryuuid))
+		except MSGraphError as ex:
+			print("Error while connecting users")
+			print(ex)
+			exit(4)
 
 
 if __name__ == '__main__':
 	user_args = parse_arguments(sys.argv[1:])
-	connect_user(user_args)
+
+	connector = ExistingUserConnector()
+	connector.connect_user(user_args)
