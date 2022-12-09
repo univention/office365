@@ -47,6 +47,8 @@ with utils.AutomaticListenerRestart():
 				user_args = udm_user_args(ucr, minimal=False)
 				user_args["set"]["UniventionOffice365Enabled"] = 1
 				user_args["set"]["UniventionOffice365ADConnectionAlias"] = adconnection_alias
+				# Bug #55202 duplicate mail with differing cases
+				user_args["append"]["e-mail"].append(user_args["set"]["mailPrimaryAddress"].upper())
 
 				print("*** Creating user with all possible properties...")
 				user_dn, username = udm.create_user(check_for_drs_replication=True, **user_args)
