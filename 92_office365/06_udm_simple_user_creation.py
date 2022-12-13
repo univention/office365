@@ -5,6 +5,7 @@
 ## exposure: dangerous
 ## packages:
 ##   - univention-office365
+## bugs: [55202]
 
 
 """
