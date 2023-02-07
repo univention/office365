@@ -277,7 +277,7 @@ class UDMOfficeObject(UserDict):
 		# type: (set[str]) -> Iterator[str]
 		"""
 		Generator for the aliases of the user.
-		It updates the current_connection_alias if the user while looping over the aliases.
+		It updates the current_connection_alias of the user while looping over the aliases.
 		"""
 		aliases = aliases if aliases is not None else self.adconnection_aliases
 		for alias_name in aliases:

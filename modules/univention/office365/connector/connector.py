@@ -523,7 +523,7 @@ class UserConnector(Connector):
 		# type: (UDMOfficeUser) -> None
 		""""""
 		for alias in udm_object.aliases():
-			assert alias in self.cores, "Alias {} not exist".format(alias)
+			assert alias in self.cores, "Alias {} doesn't exist".format(alias)
 			user_azure = self.parse(udm_object)
 			# univention.office365.listener.Office365Listener.delete_user
 			# https://msdn.microsoft.com/Library/Azure/Ad/Graph/howto/azure-ad-graph-api-permission-scopes#DirectoryRWDetail
@@ -856,9 +856,9 @@ class GroupConnector(Connector):
 				team = TeamAzure.get(self.cores[alias], object_id=azure_object.id)
 				users_and_groups_to_add = team.add_members(users_and_groups_to_add)
 				if users_and_groups_to_add:
-					self.logger.warning("Add team member fail %r, trying to add member to group", users_and_groups_to_add)
-			except ItemNotFound as e:
-				self.logger.warning("Team not exist yet, trying to add member to group")
+					self.logger.warning("Adding team members failed %r, trying to add members to group", users_and_groups_to_add)
+			except ItemNotFound:
+				self.logger.warning("Team doesn't exist yet, trying to add a member to the group")
 			except MSGraphError as e:
 				self.logger.warning("Add team member not possible, trying to add member to group. %s", e)
 
@@ -1257,10 +1257,10 @@ class GroupConnector(Connector):
 					try:
 						team = TeamAzure.get(self.cores[alias], object_id=azure_group.id)
 						team.add_member(udm_office_user.azure_object_id)
-					except ItemNotFound as e:
-						self.logger.warning("Team not exist yet, trying to add member to group")
+					except ItemNotFound:
+						self.logger.warning("Team doesn't exist yet, trying to add member to group")
 					except MSGraphError as e:
-						self.logger.warning("Add team member not possible, trying to add member to group. %s", e)
+						self.logger.warning("Adding a team member is not possible, trying to add a member to the group. %s", e)
 						azure_group.add_member(udm_office_user.azure_object_id)
 
 			except MSGraphError as e:

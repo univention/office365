@@ -774,40 +774,40 @@ class MSGraphApiCore(object):
 		)
 
 	@exception_decorator
-	def _call_graph_api(self, method, url, data=None, retry=3, headers=None, expected_status=None, page=True, response_handlers=None):
+	def _call_graph_api(self, method, url, data=None, retry=3, headers=None, expected_status=None, page=True):
 		# type: (str, str, Union[str, Dict], int, Dict, List, bool, Dict) -> Dict
 		""" SUMMARY
-			-------
+		-------
 
-			private function to avoid code duplication and make all calls
-			generic. It adds support for pagination, proxy handling and
-			automatic retries after different server errors, if necessary.
+		private function to avoid code duplication and make all calls
+		generic. It adds support for pagination, proxy handling and
+		automatic retries after different server errors, if necessary.
 
-			ATTRIBUTES
-			----------
+		ATTRIBUTES
+		----------
 
-			method : str
-				GET|POST|PATCH|PUT|DELETE|...
+		method : str
+			GET|POST|PATCH|PUT|DELETE|...
 
-			url : str
-				string in the form protocol://tld.example.com/path/[file]?params
+		url : str
+			string in the form protocol://tld.example.com/path/[file]?params
 
-			data : dict
-				a json-object or dict to be used as payload
+		data : dict
+			a json-object or dict to be used as payload
 
-			RAISES
-			------
+		RAISES
+		------
 
-			GraphError
-				A gerneric error with all necessary information for debugging.
-				All erros returned by this function have use the (private)
-				_generate_error_message function to format the error message
-				in a readable way.
+		GraphError
+			A gerneric error with all necessary information for debugging.
+			All erros returned by this function have use the (private)
+			_generate_error_message function to format the error message
+			in a readable way.
 
-			RETURNS
-			-------
+		RETURNS
+		-------
 
-			a Dict with the return values from the Microsoft server
+		a Dict with the return values from the Microsoft server
 		"""
 		headers = headers or {}
 		expected_status = expected_status or []
