@@ -56,20 +56,15 @@ class MSGraphApiCore(object):
 		- _call_graph_api is the main method to call the MSGraph API and process and control the response.
 
 	"""
-	# TODO: Check if response_handlers is used in any other place
-	def __init__(self, account, response_handlers=None, logger=None):
+	def __init__(self, account, logger=None):
 		# type: (AzureAccount, Dict, "logging.Logger") -> None
-		response_handlers = response_handlers or {}
 		self.account = account
 		self.logger = logger or get_logger("office365", "core")
 		if not account.check_token():
 			self.get_token(
-				response_handlers=response_handlers
-				# response_handlers={504: self._handler_for_504, 400: self._handler_for_504}  #  TODO: implement handlers
 			)
-			# Save token
 
-	def get_token(self, response_handlers=None):
+	def get_token(self):
 		# type: (Dict) -> None
 		"""
 		Get an access token for the given directory id and application id.
@@ -102,7 +97,6 @@ class MSGraphApiCore(object):
 			},
 			expected_status=[200],
 			retry=0,
-			response_handlers=response_handlers
 		)
 		self.account.update_and_save_token(response)
 		self.account.renewing = False
@@ -812,7 +806,6 @@ class MSGraphApiCore(object):
 		headers = headers or {}
 		expected_status = expected_status or []
 		assert len(expected_status) > 0, "expected_status is required"
-		response_handlers = response_handlers or {}
 		values = {}  # holds data from pagination
 		msg = MSGraphApiCore._fprints_hide_pw(data, "GraphAPI: {method} {url}".format(method=method, url=url) + " {data}")
 		self.logger.debug(msg)
@@ -857,10 +850,7 @@ class MSGraphApiCore(object):
 				method.upper(),
 				url)
 
-			# call handlers for response
-			if response.status_code in response_handlers.keys():
-				response_handlers[response.status_code](response, retry)
-			elif response.status_code not in expected_status:
+			if response.status_code not in expected_status:
 				raise MSGraphError(response, expected_status=expected_status)
 			values, url = self.response_to_values(response, page, values, expected_status)
 		return values
