@@ -38,8 +38,7 @@ from six.moves.urllib.parse import quote
 
 import requests
 
-from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError, exception_decorator, ItemNotFound
-from univention.office365.microsoft.exceptions.exceptions import MissingAzureUserId
+from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError, ItemNotFound, typecast_error_into_child_class
 from univention.office365.microsoft.account import AzureAccount
 from univention.office365.microsoft.urls import URLs
 from univention.office365.logging2udebug import get_logger
@@ -767,7 +766,6 @@ class MSGraphApiCore(object):
 			page=paging
 		)
 
-	@exception_decorator
 	def _call_graph_api(self, method, url, data=None, retry=3, headers=None, expected_status=None, page=True):
 		# type: (str, str, Union[str, Dict], int, Dict, List, bool, Dict) -> Dict
 		""" SUMMARY
@@ -851,7 +849,8 @@ class MSGraphApiCore(object):
 				url)
 
 			if response.status_code not in expected_status:
-				raise MSGraphError(response, expected_status=expected_status)
+				error = MSGraphError(response, expected_status=expected_status)
+				raise typecast_error_into_child_class(error)
 			values, url = self.response_to_values(response, page, values, expected_status)
 		return values
 
@@ -884,13 +883,14 @@ class MSGraphApiCore(object):
 					return values, url
 
 			except ValueError as exc:
-				raise MSGraphError(
+				error = MSGraphError(
 					response,
 					"Response payload was not parseable by the json parser: {error}".format(
 						error=str(exc)
 					),
 					expected_status
 				)
+				raise typecast_error_into_child_class(error)
 
 	# TODO: move to an util class/file
 	# TODO: make the method parameterizable

@@ -32,11 +32,27 @@
 
 import json
 import requests
-from typing import Dict, Optional, Any, List, Callable
+from typing import Dict, Optional, Any, List
 
 import six
 
 from univention.office365.utils.utils import jsonify
+from json.decoder import JSONDecodeError
+
+CODES = {}
+
+
+class MSGraphErrorType(type):
+	"""
+	Metaclass to populate the CODES dictionary with all child classes.
+	facilitates the mapping of response strings to the corresponding exception class
+	"""
+
+	def __new__(mcs, name, bases, dct=None):
+		exc = super().__new__(mcs, name, bases, dct)
+		code = getattr(exc, 'code', exc.__name__)
+		CODES[code.lower()] = exc
+		return exc
 
 
 class MSGraphError(Exception):
@@ -57,6 +73,7 @@ class MSGraphError(Exception):
 		self.expected_status = expected_status or []
 		self.response = response
 		self.message = message
+
 		if isinstance(response, str):
 			self.message += response
 
@@ -97,7 +114,7 @@ class MSGraphError(Exception):
 			return json_string
 
 
-class GenericGraphError(Exception):
+class GenericGraphError(Exception, metaclass=MSGraphErrorType):
 
 	def __init__(self, parent_exception):
 		# type: (MSGraphError) -> None
@@ -234,6 +251,7 @@ class Unauthenticated(GenericGraphError):
 
 
 class AddLicenseError(GenericGraphError):
+
 	def __init__(self, msg, user_id, sku_id, chained_exc=None, *args, **kwargs):
 		# type: (str,str,str, Optional[Exception], List[Any], Dict[str, Any]) -> None
 		self.user_id = user_id
@@ -254,40 +272,40 @@ class InternalServerError(GenericGraphError):
 	description = "Internal server error\r%s"
 
 
-def exception_decorator(func):
-	# type: (Callable) -> Callable
+def typecast_error_into_child_class(e):
+	# type: (MSGraphError) -> MSGraphError
+	"""Turns the http response into a Throwable child class of GenericGraphError"""
+
 	status_codes_messages = {
 		403: GraphPermissionError,
 		401: UnauthorizedError,
 		500: InternalServerError
 	}
 
-	def inner(*args, **kwargs):
-		# type: (List[Any], Dict[str, Any]) -> Any
-		try:
-			return func(*args, **kwargs)
-		except MSGraphError as e:
-			status_code = 500 if 500 <= e.response.status_code <= 599 else e.response.status_code
-			if status_code in status_codes_messages:
-				exception_class = status_codes_messages[status_code]
-				e.message = exception_class.description + e.message
-				raise exception_class(e)
-			elif e.response.headers.get("Content-Type", "") == "application/json" and hasattr(e.response, "json") and e.response.json():
-				if six.PY2:
-					json_data = jsonify(e.response.json(), "utf-8")
-				else:
-					json_data = e.response.json()
-				error = json_data.get("error", {})
-				error_code = error.get("code", None)
-				innererror = error.get("innererror", error.get("innerError", {})).get("code", None)
-				if innererror:
-					exception_class = globals().get(innererror[0].upper() + innererror[1:], None)
-					if exception_class:
-						raise exception_class(e)
-				if error_code:
-					exception_class = globals().get(error_code[0].upper() + error_code[1:], None)
-					if exception_class:
-						raise exception_class(e)
-			raise e
+	status_code = 500 if 500 <= exc.response.status_code <= 599 else exc.response.status_code
+	exception_class = status_codes_messages.get(status_code)
 
-	return inner
+
+	if exception_class:
+		exc.message = exception_class.description + exc.message
+		return exception_class(exc)
+
+	if not (exc.response.headers.get("Content-Type", "") == "application/json" and hasattr(exc.response, "json")):
+		return exc
+	try:
+		if six.PY2:
+			json_data = jsonify(exc.response.json(), "utf-8")
+		else:
+			json_data = exc.response.json()
+	except JSONDecodeError:
+		return exc
+
+	error = json_data.get("error", {})
+	error_code = error.get("code", None)
+	innererror_code = error.get("innererror", error.get("innerError", {})).get("code", None)
+
+	exception_class = CODES.get((innererror_code or error_code or "").lower())
+	if exception_class:
+		return exception_class(exc)
+
+	return exc

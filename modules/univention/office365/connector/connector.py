@@ -531,7 +531,6 @@ class UserConnector(Connector):
 			# MS has changed the permissions: "due to recent security enhancement to AAD the application which is
 			# accessing the AAD through Graph API should have a role called Company Administrator"...
 			#
-			#
 			# https://github.com/Azure-Samples/active-directory-dotnet-graphapi-console/issues/27
 			# https://support.microsoft.com/en-us/kb/3004133
 			# http://stackoverflow.com/questions/31834003/azure-ad-change-user-password-from-custom-app
