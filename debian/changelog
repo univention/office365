@@ -1,3 +1,10 @@
+univention-office365 (3.0.1-19) unstable; urgency=medium
+
+  * Bug #54090: Lazily initialize adconnections when they are needed instead
+    of at listener module import time.
+
+ -- Johannes Lohmer <lohmer@univention.de>  Tue, 14 Mar 2023 17:08:53 +0100
+
 univention-office365 (3.0.1-18) unstable; urgency=medium
 
   * Bug #55449: Count licenses that are in stage warning as valid licenses

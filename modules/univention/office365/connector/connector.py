@@ -237,7 +237,7 @@ class Connector(object):
 		for account in self.accounts:
 			try:
 				self.cores[account.alias] = MSGraphApiCore(account, logger=self.logger)
-			except UnauthorizedError as e:
+			except MSGraphError as e:
 				error_description = e.response.json().get("error_description", e.message)
 				self.logger.error('Account for Alias %r could not be initialized with error: %s', account.alias, error_description)
 		self.attrs = ConnectorAttributes(logger=self.logger)  # type: ConnectorAttributes
