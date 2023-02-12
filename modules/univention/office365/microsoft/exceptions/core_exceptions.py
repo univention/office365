@@ -285,7 +285,6 @@ def typecast_error_into_child_class(exc):
 	status_code = 500 if 500 <= exc.response.status_code <= 599 else exc.response.status_code
 	exception_class = status_codes_messages.get(status_code)
 
-
 	if exception_class:
 		exc.message = exception_class.description + exc.message
 		return exception_class(exc)
