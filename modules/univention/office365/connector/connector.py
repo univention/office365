@@ -508,23 +508,23 @@ class UserConnector(Connector):
 						self.group_connector.add_member(udm_office_group, udm_object)
 
 	# new_or_reactivate_user
-	def create(self, udm_object):
+	def create(self, udm_user):
 		# type: (UDMOfficeUser) -> None
 		"""
 		Given an UDMOfficeUser object, create a new user in Azure.
 
 		"""
-		if udm_object.should_sync():
-			for alias in udm_object.aliases(udm_object.adconnection_aliases or self.default_adconnection):
-				self.new_or_reactivate_user(udm_object)
+		if udm_user.should_sync():
+			for alias in udm_user.aliases(udm_user.adconnection_aliases or self.default_adconnection):
+				self.new_or_reactivate_user(udm_user)
 
 	# univention.office365.azure_handler.AzureHandler.delete_user
-	def delete(self, udm_object):
+	def delete(self, udm_user):
 		# type: (UDMOfficeUser) -> None
 		""""""
-		for alias in udm_object.aliases():
+		for alias in udm_user.aliases():
 			assert alias in self.cores, "Alias {} doesn't exist".format(alias)
-			user_azure = self.parse(udm_object)
+			user_azure = self.parse(udm_user)
 			# univention.office365.listener.Office365Listener.delete_user
 			# https://msdn.microsoft.com/Library/Azure/Ad/Graph/howto/azure-ad-graph-api-permission-scopes#DirectoryRWDetail
 			#
@@ -541,11 +541,11 @@ class UserConnector(Connector):
 			# user_azure.delete()
 
 			user_azure.deactivate(rename=True)
-			# udm_object.modify_azure_attributes(None)  # it's not needed because the object was remove form udm
+			# udm_user.modify_azure_attributes(None)  # it's not needed because the object was remove form udm
 
 			self.logger.info(
 				"User deletion success. userPrincipalName: %r objectId: %r dn: %s adconnection: %s",
-				user_azure.userPrincipalName, user_azure.id, udm_object.dn, udm_object.current_connection_alias
+				user_azure.userPrincipalName, user_azure.id, udm_user.dn, udm_user.current_connection_alias
 			)
 
 	def modify(self, old_udm_user, new_udm_user):
@@ -803,13 +803,13 @@ class GroupConnector(Connector):
 		""""""
 		return {"objectId": azure_group.id}
 
-	def create(self, udm_object):
+	def create(self, udm_group):
 		# type: (UDMOfficeGroup) -> None
 		""""""
 		"""
 		if self.udm.group_in_azure(dn):
 			new_group = self.create_group_from_new(new, dn)
-			# save Azure objectId in UDM object
+			# save Azure objectId in UDM objec t
 			udm_group = self.udm.get_udm_group(dn)
 			self.set_adconnection_object_id(udm_group, new_group["objectId"])
 			logger.info("Created group with displayName: %r (%r) adconnection: %s", new_group["displayName"], new_group["objectId"], udm_user.current_connection_alias)
@@ -818,14 +818,14 @@ class GroupConnector(Connector):
 				self.convert_group_to_team(group=new_group, new=new)
 		"""
 		# Check if group exists in azure
-		for alias in udm_object.aliases(set(self.cores.keys())):
-			if udm_object.in_azure():
-				group_azure = self._create_group(udm_object)
+		for alias in udm_group.aliases(set(self.cores.keys())):
+			if udm_group.in_azure():
+				group_azure = self._create_group(udm_group)
 
 				self.logger.info("Created group with displayName: %r (%r) adconnection: %s", group_azure.displayName, group_azure.id, alias)
 				# check if the new group is also a team - and needs to be configured as team
-				if udm_object.is_team():
-					self.convert_group_to_team(udm_object, group_azure)
+				if udm_group.is_team():
+					self.convert_group_to_team(udm_group, group_azure)
 			# TODO: check if we need to add grpup owners to the team here
 
 	def _create_group(self, udm_object):
@@ -882,28 +882,28 @@ class GroupConnector(Connector):
 			self._create_group(group)
 
 	# TODO: check if we need to return the deleted group information
-	def delete(self, udm_object):
+	def delete(self, udm_group):
 		# type: (UDMOfficeGroup) -> None
 		""""""
-		for alias in udm_object.aliases(set(self.cores.keys())):
-			if not udm_object.azure_object_id:
-				self.logger.error("Couldn't find object_id for group %r (%s), cannot delete.", udm_object.get("cn"), alias)
+		for alias in udm_group.aliases(set(self.cores.keys())):
+			if not udm_group.azure_object_id:
+				self.logger.error("Couldn't find object_id for group %r (%s), cannot delete.", udm_group.get("cn"), alias)
 				continue
 			try:
-				if udm_object.is_team():
+				if udm_group.is_team():
 					try:
-						team = TeamAzure(id=udm_object.azure_object_id)
+						team = TeamAzure(id=udm_group.azure_object_id)
 						team.set_core(self.cores[alias])
 						team.deactivate()
-						self.logger.info("Deleted team %r from Azure AD %r", udm_object.get("cn"), alias)
+						self.logger.info("Deleted team %r from Azure AD %r", udm_group.get("cn"), alias)
 					except MSGraphError as g_exc:
-						self.logger.error("Error while deleting team %r: %r.", udm_object.get("cn"), g_exc)
-				azure_group = self.parse(udm_object)
+						self.logger.error("Error while deleting team %r: %r.", udm_group.get("cn"), g_exc)
+				azure_group = self.parse(udm_group)
 				azure_group.remove_direct_members()
 				azure_group.deactivate()
-				self.logger.info("Deleted group %r from Azure AD '%r'", udm_object.get("cn"), alias)
+				self.logger.info("Deleted group %r from Azure AD '%r'", udm_group.get("cn"), alias)
 			except MSGraphError as g_exc:
-				self.logger.error("Group %r didn't exist in Azure: %r.", udm_object.get("cn"), g_exc)
+				self.logger.error("Group %r didn't exist in Azure: %r.", udm_group.get("cn"), g_exc)
 
 	def modify(self, old_udm_group, new_udm_group):
 		# type: (UDMOfficeGroup, UDMOfficeGroup) -> None
