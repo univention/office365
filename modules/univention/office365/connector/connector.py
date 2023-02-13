@@ -392,16 +392,16 @@ class UserConnector(Connector):
 		super(UserConnector, self).__init__(alias_connections, logger)
 		self.group_connector = GroupConnector(alias_connections, logger)
 
-	def _assign_subscription(self, udm_user, azure_user):
+	@staticmethod
+	def _assign_subscription(udm_user, azure_user, logger, subs_available):
 		# type: (UDMOfficeUser, UserAzure) -> None
 		""""""
 		msg_no_allocatable_subscriptions = 'User {}/{} created in Azure AD ({}), but no allocatable subscriptions' \
 			' found.'.format(udm_user.username, azure_user.id, udm_user.current_connection_alias)
 		msg_multiple_subscriptions = 'More than one usable Microsoft 365 subscription found.'
 
-		subs_available = SubscriptionAzure.get_enabled(self.cores[udm_user.current_connection_alias], UCRHelper.get_service_plan_names())
 		subs_available_index = {subs_sku.skuPartNumber: subs_sku for subs_sku in subs_available}
-		self.logger.debug('seats in subscriptions_online: %r', list(subs_available_index.keys()))
+		logger.debug('seats in subscriptions_online: %r', list(subs_available_index.keys()))
 		if len(subs_available) == 0:
 			raise NoAllocatableSubscriptions(azure_user, msg_no_allocatable_subscriptions, udm_user.current_connection_alias)
 
@@ -409,11 +409,11 @@ class UserConnector(Connector):
 		# TODO: test with groups
 		users_group_dns = udm_user['groups']
 		users_subscription_profiles = SubscriptionProfile.get_profiles_for_groups(users_group_dns)
-		self.logger.info('SubscriptionProfiles found for %r (%s): %r', udm_user['uid'], udm_user.current_connection_alias, users_subscription_profiles)
+		logger.info('SubscriptionProfiles found for %r (%s): %r', udm_user['uid'], udm_user.current_connection_alias, users_subscription_profiles)
 		if not users_subscription_profiles:
-			self.logger.warning('No SubscriptionProfiles: using all available subscriptions (%s).', udm_user.current_connection_alias)
+			logger.warning('No SubscriptionProfiles: using all available subscriptions (%s).', udm_user.current_connection_alias)
 			if len(subs_available) > 1:
-				self.logger.warning(msg_multiple_subscriptions)
+				logger.warning(msg_multiple_subscriptions)
 			for selected_subs in subs_available:
 				if selected_subs.has_free_seats():
 					azure_user.add_license(selected_subs)
@@ -431,7 +431,7 @@ class UserConnector(Connector):
 					subscription_profile.skuId = selected_subs_sku.skuId
 					subscription_profile_to_use = subscription_profile
 			else:
-				self.logger.warning(
+				logger.warning(
 					'Subscription from profile %r (%s) could not be found in the enabled subscriptions in Azure.',
 					subscription_profile, udm_user.current_connection_alias)
 				selected_subs_sku = None
@@ -440,7 +440,7 @@ class UserConnector(Connector):
 		if not subscription_profile_to_use:
 			raise NoAllocatableSubscriptions(azure_user, msg_no_allocatable_subscriptions, udm_user.current_connection_alias)
 
-		self.logger.info(
+		logger.info(
 			'Using subscription profile %r (skuId: %r).',
 			subscription_profile_to_use,
 			subscription_profile_to_use.skuId)
@@ -452,7 +452,7 @@ class UserConnector(Connector):
 		else:
 			deactivate_plans = set()
 		deactivate_plans.update(subscription_profile_to_use.blacklisted_plans)
-		self.logger.info('Deactivating plans %s (%s).' % (deactivate_plans, udm_user.current_connection_alias))
+		logger.info('Deactivating plans %s (%s).' % (deactivate_plans, udm_user.current_connection_alias))
 		deactivate_plan_ids = selected_subs_sku.get_plans_id_from_names(deactivate_plans)
 		azure_user.add_license(selected_subs_sku, deactivate_plan_ids)
 
@@ -474,12 +474,12 @@ class UserConnector(Connector):
 		user_azure = self.parse(udm_object)
 		user_azure.create_or_modify()
 
+		subs_available = SubscriptionAzure.get_enabled(self.cores[udm_object.current_connection_alias], UCRHelper.get_service_plan_names())
 		try:
-			try:
-				self._assign_subscription(udm_user=udm_object, azure_user=user_azure)
-			except AddLicenseError as exc:
-				self.logger.warning('Could not add license for subscription %r to user %r: %s', exc.sku_id, exc.user_id, exc)
+			self._assign_subscription(udm_object, user_azure, self.logger, subs_available)
 			user_azure.invalidate_all_tokens()
+		except AddLicenseError as exc:
+			self.logger.warning('Could not add license for subscription %r to user %r: %s', exc.sku_id, exc.user_id, exc)
 		except NoAllocatableSubscriptions as exc:
 			self.logger.warning('(%r) Not subscription located for user %r: %s', exc.adconnection_alias, exc.user.id, exc)
 		udm_object.modify_azure_attributes(self.prepare_azure_attributes(user_azure))

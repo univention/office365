@@ -313,13 +313,13 @@ class TestUserConnector:
 		subscription.subscription = "TEAMS_EXPLORATORY"
 
 		SubscriptionProfile.get_profiles_for_groups = mock.MagicMock(return_value=[subscription])
-		with mock.patch("univention.office365.connector.connector.SubscriptionAzure") as azure_subscriptions:
-			azure_subscriptions.get_enabled = mock.MagicMock(return_value=[mock.MagicMock(skuPartNumber="TEAMS_EXPLORATORY")])
-			for _ in udm_fake_user.aliases():
-				azure_user = mock.MagicMock(spec=UserAzure, autospec=True)
-				azure_user.id = "1234567890"
-				self.uc._assign_subscription(udm_fake_user, azure_user)
-				azure_user.add_license.assert_called_once()
+		# subs_available = SubscriptionAzure.get_enabled(self.cores[udm_object.current_connection_alias], UCRHelper.get_service_plan_names())
+		subs_available = [mock.MagicMock(skuPartNumber="TEAMS_EXPLORATORY")]
+		for _ in udm_fake_user.aliases():
+			azure_user = mock.MagicMock(spec=UserAzure, autospec=True)
+			azure_user.id = "1234567890"
+			self.uc._assign_subscription(udm_fake_user, azure_user, self.uc.logger, subs_available)
+			azure_user.add_license.assert_called_once()
 
 	def test_prepare_azure_attributes(self):
 		# type: () -> None
@@ -329,7 +329,6 @@ class TestUserConnector:
 		result = self.uc.prepare_azure_attributes(azure_user)
 		assert result['objectId'] == azure_user.id
 		assert result['userPrincipalName'] == azure_user.userPrincipalName
-
 
 	def test_new_or_reactivate_user(self, create_udm_user_object):
 		# type: (Callable) -> None
@@ -343,11 +342,12 @@ class TestUserConnector:
 		self.uc._assign_subscription = mock.MagicMock()
 		self.uc.prepare_azure_attributes = mock.MagicMock(return_value={})
 		self.uc.group_connector = mock.MagicMock()
-		self.uc.new_or_reactivate_user(udm_fake_user)
-		self.uc.parse.assert_called_once()
-		azure_user.create_or_modify.assert_called_once()
-		azure_user.invalidate_all_tokens()
-		udm_fake_user.modify_azure_attributes.assert_called_once()
+		with mock.patch("univention.office365.connector.connector.SubscriptionAzure", mock.MagicMock()):
+			self.uc.new_or_reactivate_user(udm_fake_user)
+			self.uc.parse.assert_called_once()
+			azure_user.create_or_modify.assert_called_once()
+			azure_user.invalidate_all_tokens()
+			udm_fake_user.modify_azure_attributes.assert_called_once()
 
 	def test_create(self, create_udm_user_object):
 		# type: (Callable) -> None
@@ -355,7 +355,7 @@ class TestUserConnector:
 		self.uc.new_or_reactivate_user = mock.MagicMock()
 		self.uc.create(udm_fake_user)
 		# new_or_reactivate_user is called as many times as there are aliases
-		self.uc.new_or_reactivate_user.assert_has_calls([mock.call(ANY)]*len(list(udm_fake_user.aliases())))
+		self.uc.new_or_reactivate_user.assert_has_calls([mock.call(ANY)] * len(list(udm_fake_user.aliases())))
 
 
 	def test_delete(self, create_udm_user_object):

@@ -986,14 +986,16 @@ class SubscriptionAzure(AzureObject):
 		# [x.set_core(core) for x in subscriptions]
 		subscriptions = list()
 		for subscription in subscriptions_response["value"]:
-			if subscription["appliesTo"] == "User" and subscription["capabilityStatus"] == "Enabled":
-				for plan in subscription["servicePlans"]:
-					if plan["servicePlanName"] in service_plan_names:
-						# found an office plan
-						sub_sku = SubscriptionAzure(**subscription)
-						sub_sku.set_core(core)
-						subscriptions.append(sub_sku)
-						break
+			if not (subscription["appliesTo"] == "User" and subscription["capabilityStatus"] == "Enabled"):
+				continue
+			for plan in subscription["servicePlans"]:
+				if not plan["servicePlanName"] in service_plan_names:
+					continue
+				# found an office plan
+				sub_sku = SubscriptionAzure(**subscription)
+				sub_sku.set_core(core)
+				subscriptions.append(sub_sku)
+				break
 		return subscriptions
 
 	def has_free_seats(self):
