@@ -298,6 +298,13 @@ class TestUserConnector:
 			assert azure_user.get_not_none_values_as_dict()['onPremisesImmutableId'] == udm_fake_user.entryUUID
 			assert azure_user.get_not_none_values_as_dict()['surname'] == udm_fake_user.sn
 
+		domain = "o365domain.onmicrosoft.com"
+		core = mock.MagicMock(account={"domain": domain})
+		azure_user = self.uc.parse(udm_fake_user, core)
+		assert azure_user.get_not_none_values_as_dict()['displayName'] == udm_fake_user.displayName
+		assert azure_user.get_not_none_values_as_dict()['userPrincipalName'] == udm_fake_user.displayName + '@' + domain
+		assert azure_user.get_not_none_values_as_dict()['onPremisesImmutableId'] == udm_fake_user.entryUUID
+		assert azure_user.get_not_none_values_as_dict()['surname'] == udm_fake_user.sn
 
 	# @pytest.mark.skip("Not needed anymore")
 	# def test_invalidate_all_tokens(self):
@@ -332,6 +339,10 @@ class TestUserConnector:
 
 	def test_new_or_reactivate_user(self, create_udm_user_object):
 		# type: (Callable) -> None
+		alias = "o365domain"
+		domain = "o365domain.onmicrosoft.com"
+		core = mock.MagicMock(account={"domain": domain}, account__alias=alias)
+
 		udm_fake_user = create_udm_user_object()
 		udm_fake_user.current_connection_alias = "o365domain"
 		udm_fake_user.modify_azure_attributes = mock.MagicMock()
@@ -342,8 +353,7 @@ class TestUserConnector:
 		self.uc._assign_subscription = mock.MagicMock()
 		self.uc.prepare_azure_attributes = mock.MagicMock(return_value={})
 		self.uc.group_connector = mock.MagicMock()
-		with mock.patch("univention.office365.connector.connector.SubscriptionAzure", mock.MagicMock()):
-			self.uc.new_or_reactivate_user(udm_fake_user)
+			self.uc.new_or_reactivate_user(udm_fake_user, core)
 			self.uc.parse.assert_called_once()
 			azure_user.create_or_modify.assert_called_once()
 			azure_user.invalidate_all_tokens()
@@ -355,7 +365,7 @@ class TestUserConnector:
 		self.uc.new_or_reactivate_user = mock.MagicMock()
 		self.uc.create(udm_fake_user)
 		# new_or_reactivate_user is called as many times as there are aliases
-		self.uc.new_or_reactivate_user.assert_has_calls([mock.call(ANY)] * len(list(udm_fake_user.aliases())))
+		self.uc.new_or_reactivate_user.assert_has_calls([mock.call(ANY, ANY)] * len(list(udm_fake_user.aliases())))
 
 
 	def test_delete(self, create_udm_user_object):

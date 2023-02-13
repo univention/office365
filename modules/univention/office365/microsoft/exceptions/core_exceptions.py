@@ -272,7 +272,7 @@ class InternalServerError(GenericGraphError):
 	description = "Internal server error\r%s"
 
 
-def typecast_error_into_child_class(e):
+def typecast_error_into_child_class(exc):
 	# type: (MSGraphError) -> MSGraphError
 	"""Turns the http response into a Throwable child class of GenericGraphError"""
 

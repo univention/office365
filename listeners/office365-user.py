@@ -49,18 +49,12 @@ class ListenerModuleTemplate(univention.listener.ListenerModuleHandler):
 	class Configuration(object):
 		name = 'office365-user'
 		description = 'sync users to office 365'
-		if connector.has_initialized_connections():
-			ldap_filter = '(&(objectClass=posixAccount)(objectClass=univentionOffice365)(uid=*){})'.format(connector.get_listener_filter())
-			logger.info("office 365 user listener active with filter=%r", ldap_filter)
-		else:
-			ldap_filter = '(objectClass=deactivatedOffice365UserListener)'  # "objectClass" is indexed
-			logger.warning("office 365 user listener deactivated (no initialized AD connection)")
+		ldap_filter = '(&(objectClass=posixAccount)(objectClass=univentionOffice365)(uid=*){})'.format(connector.get_listener_filter())
 		attributes = list(connector.attrs.all_sync_keys).extend(("univentionOffice365Enabled", "univentionOffice365ADConnectionAlias"))
 
 	def __init__(self, *args, **kwargs):
 		self.logger = logger
 		self.connector = connector
-		self.connector.check_permissions()
 		super(ListenerModuleTemplate, self).__init__(args, kwargs)
 
 	def pre_run(self):
@@ -72,7 +66,7 @@ class ListenerModuleTemplate(univention.listener.ListenerModuleHandler):
 		self.logger.info('create dn: %r', dn)
 		udm_user = UDMOfficeUser(ldap_fields=new, ldap_cred=self._ldap_credentials, dn=dn, logger=logger)
 		if udm_user.should_sync():
-			self.connector.create(udm_object=udm_user)
+			self.connector.create(udm_user=udm_user)
 
 	def modify(self, dn, old, new, old_dn):
 		# type:  (str, Dict[str, List[bytes]], Dict[str, List[bytes]], Optional[str]) -> None
@@ -90,4 +84,4 @@ class ListenerModuleTemplate(univention.listener.ListenerModuleHandler):
 		self.logger.info('remove dn: %r', dn)
 		udm_user = UDMOfficeUser(ldap_fields=old, ldap_cred=self._ldap_credentials, dn=dn, logger=logger)
 		if udm_user.should_sync():
-			self.connector.delete(udm_object=udm_user)
+			self.connector.delete(udm_user=udm_user)
