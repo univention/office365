@@ -45,7 +45,7 @@ from six import reraise
 from univention.office365.logging2udebug import get_logger
 from univention.office365.microsoft.core import MSGraphApiCore
 from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError, AddLicenseError
-from univention.office365.microsoft.exceptions.exceptions import GraphRessourceNotFroundError, MissingAzureUserId
+from univention.office365.microsoft.exceptions.exceptions import GraphRessourceNotFroundError
 from univention.office365.utils.utils import create_random_pw
 from univention.office365.asyncqueue.tasks.azuretask import MSGraphCoreTask
 
@@ -865,7 +865,7 @@ class TeamAzure(AzureObject):
 		# type: (List[str]) -> List[str]
 		""""""
 		response = self._core.add_team_members(self.id, users_id)
-		return [x["userId"] for x in response["value"] if x["error"] != None]
+		return [x["userId"] for x in response["value"] if x["error"] is not None]
 
 	def delete_member(self, membership_id):
 		# type: (str) -> None
@@ -916,7 +916,7 @@ class TeamAzure(AzureObject):
 @attr.s
 class SubscriptionAzure(AzureObject):
 	"""
-	https://docs.microsoft.com/en-us/graph/api/resources/subscription?view=graph-rest-1.0
+	https://learn.microsoft.com/en-us/graph/api/resources/subscribedsku?view=graph-rest-1.0
 	Represents a Subscription in Azure AD.
 	The valid Azure Subscription attributes are defined in the class attributes.
 	Methods:
@@ -999,7 +999,7 @@ class SubscriptionAzure(AzureObject):
 	def has_free_seats(self):
 		# type: () -> bool
 		""""""
-		return self.prepaidUnits["enabled"] > self.consumedUnits
+		return (self.prepaidUnits["enabled"] + self.prepaidUnits["warning"]) > self.consumedUnits
 
 	def get_plans_names(self):
 		# type: () -> List

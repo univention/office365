@@ -1,3 +1,9 @@
+univention-office365 (3.0.1-18) unstable; urgency=medium
+
+  * Bug #55449: Count licenses that are in stage warning as valid licenses
+
+ -- Julia Bremer <bremer@univention.de>  Wed, 15 Feb 2023 16:27:55 +0100
+
 univention-office365 (3.0.1-17) unstable; urgency=medium
 
   * Bug #55217 fix infinite listener loop.
