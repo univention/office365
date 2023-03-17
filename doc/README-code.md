@@ -803,10 +803,10 @@ If an attribute is in `sync` but not in `mapping`, it will be ignored.
 #### Connector
 Parent class of `UserConnector` and `GroupConnector`. It defines the common methods and attributes.
 
-* `check_permissions`: Checks if the right permissions are defined for the connections.
-* `has_initialized_connections`: Checks if the connections have been initialized.
+* `_check_permissions`: Checks if the right permissions are defined for a connection.
 * `get_listener_filter`: Returns the filter to be used by the listener.
-* `_load_filtered_accounts`: Return the string representation of the LDAP filter to be used in the listeners.
+* `get_core`: Returns an MSGraphApi core by either retrieving it from the `_cores` cache dict or by initializing it.
+* `_get_account`: Returns an AzureAccount and checks if it can and should be used.
 * `create`: _Abstract_.
 * `delete`: _Abstract_.
 * `modify`: _Abstract_.
@@ -894,6 +894,14 @@ Both `GroupConnector` and `UserConnector` contain their own implementation of th
 
 The returned values is an already created `AzureObject` with the expected information in it.
 
+#### MSGraphApiCore / AzureConnection flow
+
+The The Azure Connection cores are initialized lazily when needed for the first time and cached in the `_cores` dict of the connector.
+If the core initialization fails because the AzureAccount is not configured, the configuration is incomplete, the Account credentials are invalid or the Account permissions are not sufficient the `get_core` method returns `None`. The alternativ would be to throw an error that needs to be caught. As a none-check is simpler, I went this route.
+
+Looping through the list of aliases for a given user happens in the `create` `update` and `delete` methods. Thus the core needs to be retrieved there, to be able to skip a specific alias if the account / core is not usable for any reason.
+
+The core is then passed along to downstream methods either separately or as part of the AzureObject (AzureUser / AzureGroup)
 
 #### Usage examples
 The best way to understand the usage of the `UserConnector` and `GroupConnector` is to look into the code of the 

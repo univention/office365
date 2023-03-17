@@ -61,7 +61,7 @@ The `release` stage may be a subject for a future development and is not there y
 
 * The `$SSH_PRIVATE_KEY` variable in [.gitlab-ci.yml](/.gitlab-ci.yml) is not defined in the
   `variables:` section, but rather a [project specific setting in gitlab
-  ](https://docs.gitlab.com/ee/ci/variables/#cicd-variable-types). 
+  ](https://docs.gitlab.com/ee/ci/variables/#cicd-variable-types).
 
 # SSH_PRIVATE_KEY
 
@@ -109,9 +109,3 @@ The pros and cons of this decision are:
 - The pipeline gets longer
 - We see no use in it for possible future developments, that jobs could run in
   parallel in the staging or deploy stage.
-
-
-
-
-
-

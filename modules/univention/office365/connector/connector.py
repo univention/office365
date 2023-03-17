@@ -263,6 +263,7 @@ class Connector(object):
 
 	def get_core(self, alias):
 		# type: (str) -> MSGraphApiCore
+		"""Returns an MSGraphApi core by either retrieving it from the `_cores` cache dict or by initializing it."""
 		core = self._cores.get(alias)
 		if core:
 			return core
@@ -292,6 +293,12 @@ class Connector(object):
 
 	def _get_account(self, alias):
 		# type: (str) -> AzureAccount
+		"""
+		Returns an AzureAccount and checks if it can and should be used.
+		It will return None if:
+			- `office365/adconnection/filter` is not empty but does not include the requested alias
+			- if the account is not initialized, meaning that the account configuration is is incomplete.
+		"""
 		if not self.all_alias_connections.get(alias):
 			self.logger.warning('Alias {!r} from UCR {!r} not listed in UCR {!r}. Exiting.'.format(alias, UCRHelper.adconnection_filter_ucrv, UCRHelper.adconnection_alias_ucrv))
 			return
