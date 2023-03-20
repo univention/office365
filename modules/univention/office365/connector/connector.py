@@ -265,6 +265,9 @@ class Connector(object):
 		# type: (str) -> MSGraphApiCore
 		"""Returns an MSGraphApi core by either retrieving it from the `_cores` cache dict or by initializing it."""
 		core = self._cores.get(alias)
+		if core == "broken_alias":
+			self.logger.warning('Alias %r is broken and will be skipped. Restart the listener to reload it', alias)
+			return
 		if core:
 			return core
 
@@ -275,9 +278,11 @@ class Connector(object):
 			core = MSGraphApiCore(account, logger=self.logger)
 		except MSGraphError as e:
 			error_description = e.response.json().get("error_description", e.message)
-			self.logger.error('Account for Alias %r could not be initialized with error: %s', account.alias, error_description)
+			self.logger.error('Account for Azure Connection Alias %r will be deactivated until listener restart because it could not be initialized with the error: %s', account.alias, error_description)
+			self._cores[alias] = "broken_alias"
 			return
 		if not self._check_permissions(alias, core):
+			self._cores[alias] = "broken_alias"
 			return
 		self._cores[alias] = core
 		return core
