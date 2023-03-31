@@ -700,7 +700,7 @@ class UserConnector(Connector):
 					" * Migrating Azure AD Graph to MS Graph: https://docs.microsoft.com/en-us/graph/migrate-azure-ad-graph-property-differences\n"
 					" * User properties:  https://docs.microsoft.com/es-es/graph/api/resources/user?view=graph-rest-1.0#properties"
 				)
-				raise ValueError("Azure attribute %r not exist in new API MSGraph," % azure_key)
+				raise ValueError("Azure attribute %r doesn't exist in new MSGraph API," % azure_key)
 			if udm_key in res:
 				value = res.get(udm_key)
 				if azure_key in list(self.attrs.multiple.keys()):
@@ -1109,7 +1109,7 @@ class GroupConnector(Connector):
 				team_azure.deactivate()
 				self.logger.info("Deleted team %r from Azure AD %r", azure_group.displayName, alias)
 			except ItemNotFound:
-				self.logger.warning("Team %r not exist.", azure_group.id)
+				self.logger.warning("Team %r doesn't exist.", azure_group.id)
 			except MSGraphError as g_exc:
 				self.logger.error("Error while deleting team %r: %r.", azure_group.displayName, g_exc)
 
@@ -1222,7 +1222,7 @@ class GroupConnector(Connector):
 				try:
 					udm_user = UDMOfficeUser({}, new_udm_group.ldap_cred, dn=removed_member_dn)  # TODO find the way to get azure id without UDMUser maybe with caching the last remove operation
 				except univention.admin.uexceptions.noObject:
-					self.logger.warning("User dn: %r not exist in UDM, aborting remove member.", removed_member_dn)
+					self.logger.info("Group member dn: %r is already deleted in udm, nothing to do", removed_member_dn)
 					continue
 				with udm_user.set_current_alias(alias):
 					if udm_user.azure_object_id:
@@ -1235,7 +1235,7 @@ class GroupConnector(Connector):
 				try:
 					udm_office_remove_member_group = UDMOfficeGroup({}, new_udm_group.ldap_cred, removed_member_dn)
 				except univention.admin.uexceptions.noObject:
-					self.logger.warning("Group dn: %r not exist in UDM, aborting remove member.", removed_member_dn)
+					self.logger.warning("Group dn: %r doesn't exist in UDM, aborting the remove member.", removed_member_dn)
 					continue
 				with udm_office_remove_member_group.set_current_alias(alias):
 					member_id = udm_office_remove_member_group.azure_object_id
