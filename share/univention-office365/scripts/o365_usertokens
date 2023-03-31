@@ -147,7 +147,12 @@ if __name__ == '__main__':
 				else:
 					ldap_user_old_reset_date = []
 
-				lo.modify(ldap_user[0], [('univentionOffice365TokenResetDate', ldap_user_old_reset_date, [next_mod_date.strftime("%Y%m%d")])])
+				new_token_expiry_info = [(
+					'univentionOffice365TokenResetDate',
+					ldap_user_old_reset_date,
+					[next_mod_date.strftime("%Y%m%d").encode('utf-8')]
+				)]
+				lo.modify(ldap_user[0],	new_token_expiry_info)
 				modified_users += 1
 				logger.info("Modified user: %s, next reset will be %s", ldap_user[1]["uid"][0], next_mod_date.strftime("%Y-%m-%d"))
 			else:
