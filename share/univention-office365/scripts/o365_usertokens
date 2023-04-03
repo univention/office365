@@ -32,13 +32,12 @@
 Univention Microsoft 365 reset tokens
 """
 
-import traceback
 import sys
 import logging
 import zlib
 
 from random import randrange
-from optparse import OptionParser
+from argparse import ArgumentParser
 from datetime import datetime, timedelta
 from logging.handlers import SysLogHandler
 
@@ -54,8 +53,8 @@ from univention.office365.ucr_helper import UCRHelper
 # Query local LDAP for users that are activated for O365
 # invalidate all auth tokens for one or --max-modifications users
 
-if __name__ == '__main__':
 
+def get_customized_logger():
 	logger = get_logger("office365", "o365")
 	_handler = logging.StreamHandler(sys.stdout)
 	_handler.setLevel(logging.INFO)
@@ -64,99 +63,124 @@ if __name__ == '__main__':
 	_handler.setLevel(logging.INFO)
 	logger.addHandler(_handler)
 
-	parser = OptionParser()
-	parser.add_option('-m', '--modify', dest='modify', action='store_true', help='Modify users, default: dry-run')
-	parser.add_option('-o', '--onlyone', dest='oneuser', help='option: uid; Only look at and modify one user (for testing purposes)')
-	parser.add_option('-n', '--new-password', dest='newpassword', action='store_true', help='Set a new random password for the Azure AD user')
-	parser.add_option('-i', '--invalidate-tokens', dest='invalidatetokens', action='store_true', help='Invalidate login tokens, forcing reauthentication')
-	parser.add_option('--max-modifications', dest='max_modifications', default=1000, help='Invalidate tokens for a maximum of X users (default: 1000, overwrite default with UCR office365/tokens/max_modifications)')
-	options, args = parser.parse_args()
+	return logger
 
-	if not options.newpassword and not options.invalidatetokens:
-		logger.error("At least one option of --new-password or --invalidate-tokens is required")
-		exit(1)
 
-	options.max_modifications = UCRHelper.get("office365/tokens/max_modifications", 1000)
-	modified_users = 0
+logger = get_customized_logger()
+
+
+def parse_arguments(args):
+	parser = ArgumentParser(description="A tool to modify users and manage Azure AD passwords and authentication tokens.")
+
+	parser.add_argument('-m', '--modify', action='store_true', help='Modify users, default: dry-run')
+	parser.add_argument('-o', '--onlyone', help='option: uid; Only look at and modify one user (for testing purposes)')
+	# TODO: Remove and make invalidate-tokens required
+	parser.add_argument('-n', '--new-password', action='store_true', help='Set a new random password for the Azure AD user')
+	parser.add_argument('-i', '--invalidate-tokens', action='store_true', help='Invalidate login tokens, forcing reauthentication')
+	parser.add_argument('--max-modifications', default=1000, help='Invalidate tokens for a maximum of X users (default: 1000, permanently overwrite default with UCR office365/tokens/max_modifications)')
+	
+	options = parser.parse_args(args)
+
+	if not (options.new_password or options.invalidate_tokens):
+		parser.error("At least one option of --new-password or --invalidate-tokens is required")
+
+	options.max_modifications = UCRHelper.get("office365/tokens/max_modifications", options.max_modifications)
 
 	# base period, after which user tokens get invalidated
 	try:
-		base_reset_period = int(UCRHelper.get("office365/tokens/base_reset_period", 60))
-	except ValueError as e:
+		options.base_reset_period = int(UCRHelper.get("office365/tokens/base_reset_period", 60))
+	except ValueError:
 		logger.error("UCRv office365/tokens/base_reset_period must contain an integer")
-		exit(1)
+		raise
 
 	# randomize the reset period for some days, so not everyone will be reset at the same time
 	# should also reduce runtime of script and azure API calls, as fewer modifications are necessary
 	try:
-		reset_period_modifier = int(UCRHelper.get("office365/tokens/reset_period_modifier", 15))
-	except ValueError as e:
+		options.reset_period_modifier = int(UCRHelper.get("office365/tokens/reset_period_modifier", 15))
+	except ValueError:
 		logger.error("UCRv office365/tokens/reset_period_modifier must contain an integer")
-		exit(1)
+		raise
 
+	return options
+
+
+def main(options):
 	base = UCRHelper.get("ldap/base")
 	try:
 		lo, po = univention.admin.uldap.getAdminConnection()
 		univention.admin.modules.update()
 		usermod = univention.admin.modules.get('users/user')
 		univention.admin.modules.init(lo, po, usermod)
-		config = univention.admin.config.config()
 	except Exception as exc:
-		logger.exception("Failed to initilize Microsoft 365 token reset script: %s", exc)
-		sys.exit(1)
+		logger.exception(f"Failed to initilize Microsoft 365 token reset script: {exc}")
+		raise
 
 	today = datetime.today()
 	today_as_string = today.strftime("%Y%m%d")
 	lookup_attributes = ["univentionOffice365TokenResetDate", "univentionOffice365Data", "uid"]
 
 	lookup_result = []
-	if options.oneuser:
-		lookup_result = lo.search(filter="(&(univentionObjectType=users/user)(uid=%s))" % options.oneuser, base=base, attr=lookup_attributes)
+	if options.onlyone:
+		ldap_filter = f"(&(univentionObjectType=users/user)(uid={options.onlyone}))"
 	else:
-		lookup_result = lo.search(filter="(&(univentionOffice365Enabled=1)(univentionObjectType=users/user)(|(UniventionOffice365TokenResetDate<=%s)(!(UniventionOffice365TokenResetDate=*))))" % today_as_string, base=base, attr=lookup_attributes)
+		ldap_filter = (
+			f"(&(univentionOffice365Enabled=1)(univentionObjectType=users/user)"
+			f"(|(UniventionOffice365TokenResetDate<={today_as_string})"
+			f"(!(UniventionOffice365TokenResetDate=*))))"
+		)
+	lookup_result = lo.search(filter=ldap_filter, base=base, attr=lookup_attributes)
 
+	modified_users = 0
 	for ldap_user in lookup_result:
+		uid = ldap_user[1]["uid"][0].decode('utf-8')
+		if not options.modify:
+			logger.info(f"Would modify user: {uid}")
+			continue
+		if modified_users >= options.max_modifications:
+			logger.info(f"Modified {modified_users} users, exiting")
+			return
+
 		try:
-			if options.modify:
-				if modified_users >= options.max_modifications:
-					logger.info("Modified %s users, exiting", modified_users)
-					exit(0)
+			adconnection_objects = UniventionOffice365Data.from_ldap(ldap_user[1]["univentionOffice365Data"][0])
+		except (zlib.error, TypeError):
+			logger.error("Error decoding o365data for user {uid}")
+			adconnection_objects = {}
+		except KeyError:
+			logger.error(f"Error: user {uid} is not correctly synced to Azure (missing univentionOffice365Data attribute)")
+			raise
 
-				try:
-					adconnection_objects = UniventionOffice365Data.from_ldap(ldap_user[1]["univentionOffice365Data"][0])
-				except (zlib.error, TypeError):
-					logger.error("Error decoding o365data for user %s", ldap_user[1]["uid"][0])
-					adconnection_objects = {}
-				except KeyError:
-					logger.error("Error: user %s is not correctly synced to Azure (missing univentionOffice365Data attribute)", ldap_user[1]["uid"][0])
-					continue
+		for alias, values in adconnection_objects.items():
+			core = MSGraphApiCore(AzureAccount(alias))
+			# TODO: Remove
+			if options.new_password:
+				raise DeprecationWarning
+				# core.reset_user_password(user_id=values['objectId'])
+			if options.invalidate_tokens:
+				core.invalidate_all_tokens_for_user(user_id=values['objectId'])
 
-				for alias, values in adconnection_objects.items():
-					core = MSGraphApiCore(AzureAccount(alias))
-					if options.newpassword:
-						raise DeprecationWarning
-						# core.reset_user_password(user_id=values['objectId'])
-					if options.invalidatetokens:
-						core.invalidate_all_tokens_for_user(user_id=values['objectId'])
+		# modify the ldap user, set the next modification date: base_reset_period + up to period_modifier days
+		modification_offset = timedelta(days=options.base_reset_period + randrange(options.reset_period_modifier + 1))
+		next_modification_date = datetime.today() + modification_offset
 
-				# modify the ldap user, set the next modification date: base_reset_period + up to period_modifier days
-				next_mod_date = today + timedelta(days=base_reset_period + randrange(reset_period_modifier + 1))
+		if "univentionOffice365TokenResetDate" in ldap_user[1]:
+			ldap_user_old_reset_date = ldap_user[1]["univentionOffice365TokenResetDate"][0]
+		else:
+			ldap_user_old_reset_date = []
 
-				if "univentionOffice365TokenResetDate" in ldap_user[1]:
-					ldap_user_old_reset_date = ldap_user[1]["univentionOffice365TokenResetDate"][0]
-				else:
-					ldap_user_old_reset_date = []
+		new_token_expiry_info = [(
+			'univentionOffice365TokenResetDate',
+			ldap_user_old_reset_date,
+			[next_modification_date.strftime("%Y%m%d").encode('utf-8')]
+		)]
+		lo.modify(ldap_user[0], new_token_expiry_info)
+		logger.info(f"Modified user: {uid} next reset will be {next_modification_date.strftime('%Y-%m-%d')}")
+		modified_users += 1
 
-				new_token_expiry_info = [(
-					'univentionOffice365TokenResetDate',
-					ldap_user_old_reset_date,
-					[next_mod_date.strftime("%Y%m%d").encode('utf-8')]
-				)]
-				lo.modify(ldap_user[0],	new_token_expiry_info)
-				modified_users += 1
-				logger.info("Modified user: %s, next reset will be %s", ldap_user[1]["uid"][0], next_mod_date.strftime("%Y-%m-%d"))
-			else:
-				logger.info("Would modify user: %s", ldap_user[1]["uid"][0])
-		except Exception as ex:
-			traceback.print_exc()
-			exit(1)
+
+if __name__ == '__main__':
+	try:
+		options = parse_arguments(sys.argv[1:])
+		main(options)
+	except Exception:
+		exit(1)
+	exit(0)
