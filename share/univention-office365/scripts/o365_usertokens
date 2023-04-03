@@ -77,14 +77,19 @@ def parse_arguments(args):
 	# TODO: Remove and make invalidate-tokens required
 	parser.add_argument('-n', '--new-password', action='store_true', help='Set a new random password for the Azure AD user')
 	parser.add_argument('-i', '--invalidate-tokens', action='store_true', help='Invalidate login tokens, forcing reauthentication')
-	parser.add_argument('--max-modifications', default=1000, help='Invalidate tokens for a maximum of X users (default: 1000, permanently overwrite default with UCR office365/tokens/max_modifications)')
+	parser.add_argument('--max-modifications', type=int, help='Invalidate tokens for a maximum of X users (default: 1000, permanently overwrite default with UCR office365/tokens/max_modifications)')
 	
 	options = parser.parse_args(args)
 
 	if not (options.new_password or options.invalidate_tokens):
 		parser.error("At least one option of --new-password or --invalidate-tokens is required")
 
-	options.max_modifications = UCRHelper.get("office365/tokens/max_modifications", options.max_modifications)
+	if not options.max_modifications:
+		try:
+			options.max_modifications = int(UCRHelper.get("office365/tokens/max_modifications", 1000))
+		except ValueError:
+			logger.error("UCRv office365/tokens/max_modifications must contain an integer")
+			raise
 
 	# base period, after which user tokens get invalidated
 	try:
