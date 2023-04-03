@@ -73,16 +73,11 @@ def parse_arguments(args):
 	parser = ArgumentParser(description="A tool to modify users and manage Azure AD passwords and authentication tokens.")
 
 	parser.add_argument('-m', '--modify', action='store_true', help='Modify users, default: dry-run')
-	parser.add_argument('-o', '--onlyone', help='option: uid; Only look at and modify one user (for testing purposes)')
-	# TODO: Remove and make invalidate-tokens required
-	parser.add_argument('-n', '--new-password', action='store_true', help='Set a new random password for the Azure AD user')
-	parser.add_argument('-i', '--invalidate-tokens', action='store_true', help='Invalidate login tokens, forcing reauthentication')
+	parser.add_argument('-o', '--onlyone', metavar="uid", help='Only look at and modify one user (for testing purposes)')
+	parser.add_argument('-i', '--invalidate-tokens', action='store_true', help='Deprecated, this option became the default and has no effect')
 	parser.add_argument('--max-modifications', type=int, help='Invalidate tokens for a maximum of X users (default: 1000, permanently overwrite default with UCR office365/tokens/max_modifications)')
-	
-	options = parser.parse_args(args)
 
-	if not (options.new_password or options.invalidate_tokens):
-		parser.error("At least one option of --new-password or --invalidate-tokens is required")
+	options = parser.parse_args(args)
 
 	if not options.max_modifications:
 		try:
@@ -156,12 +151,7 @@ def main(options):
 
 		for alias, values in adconnection_objects.items():
 			core = MSGraphApiCore(AzureAccount(alias))
-			# TODO: Remove
-			if options.new_password:
-				raise DeprecationWarning
-				# core.reset_user_password(user_id=values['objectId'])
-			if options.invalidate_tokens:
-				core.invalidate_all_tokens_for_user(user_id=values['objectId'])
+			core.invalidate_all_tokens_for_user(user_id=values['objectId'])
 
 		# modify the ldap user, set the next modification date: base_reset_period + up to period_modifier days
 		modification_offset = timedelta(days=options.base_reset_period + randrange(options.reset_period_modifier + 1))
