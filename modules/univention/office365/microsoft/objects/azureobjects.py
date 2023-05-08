@@ -409,10 +409,10 @@ class UserAzure(AzureObject):
 		# type: ('AzureObject') -> Dict[str, Any]
 		""""""
 		data = (self - other).get_not_none_values_as_dict()
-		can_only_be_created_not_modified = ["mobilePhone", "passwordProfile", "id", "assignedLicenses"]
+		can_only_be_created_not_modified = ["passwordProfile", "id", "assignedLicenses"]
 		for attrib in can_only_be_created_not_modified:
 			if attrib in data:
-				# read text at beginning delete_user()
+				self._logger.info("Tried to modify %s but it can only be created. This attribute will not be updated", attrib)
 				del data[attrib]
 		if data:
 			self._core.modify_user(self.id, data)
