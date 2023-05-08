@@ -300,13 +300,13 @@ def azure_user_args(core, minimal=True):
 				"{}@{}".format(uts.random_string(), uts.random_string()),
 				"{}@{}".format(uts.random_string(), uts.random_string())
 			],
-			mobile=uts.random_string(),
+			mobilePhone=uts.random_string(),
 			postalCode=uts.random_string(),
 			officeLocation=uts.random_string(),
 			usageLocation=random.choice(usage_locations_code),
 			streetAddress=uts.random_string(),
 			surname=uts.random_string(),
-			businessPhones=uts.random_string(),
+			businessPhones=[uts.random_string()]
 		))
 	return res
 

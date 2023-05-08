@@ -97,38 +97,40 @@ with utils.AutomaticListenerRestart():
 				user_args = udm_user_args(ucr, minimal=False)
 				user_args["set"]["UniventionOffice365Enabled"] = 1
 				user_args["set"]["UniventionOffice365ADConnectionAlias"] = adconnection_alias
-				user_args1 = copy.deepcopy(user_args)
+				udm_create_list = copy.deepcopy(user_args)
 
-				user_args2 = dict(set=dict(), append=dict())
+				udm_modlist_1 = {"set": {}, "append": {}}
+				udm_modlist_1 = dict(set=dict(), append=dict())
 				for key in ["city", "employeeType"]:
-					user_args2["set"][key] = user_args1["set"].pop(key)
-				user_args2["append"]["phone"] = user_args1["append"].pop("phone")
+					udm_modlist_1["set"][key] = udm_create_list["set"].pop(key)
+				for key in ["mobileTelephoneNumber", "phone"]:
+					udm_modlist_1["append"][key] = udm_create_list["append"].pop(key)
 
-				user_args3 = dict(set=dict(), append=dict())
+				udm_modlist2 = dict(set=dict(), append=dict())
 				for key in ["street", "country"]:
-					user_args3["set"][key] = user_args1["set"].pop(key)
+					udm_modlist2["set"][key] = udm_create_list["set"].pop(key)
 				for key in ["e-mail", "mailAlternativeAddress"]:
-					user_args3["append"][key] = user_args1["append"].pop(key)
+					udm_modlist2["append"][key] = udm_create_list["append"].pop(key)
 
 				print("*** Creating user with some properties...")
-				user_dn, username = udm.create_user(check_for_drs_replication=True, **user_args1)
+				user_dn, username = udm.create_user(check_for_drs_replication=True, **udm_create_list)
 
 				user_id = retry_call(check_user_id_from_azure, fargs=[adconnection_alias, user_dn], tries=12, delay=5)
 
 				print("*** Checking sync of properties #0...")
-				retry_call(_test, fargs=[core, user_args1, user_id], fkwargs={"check_complete": False}, tries=12, delay=5)
+				retry_call(_test, fargs=[core, udm_create_list, user_id], fkwargs={"check_complete": False}, tries=12, delay=5)
 
 				print("*** Adding more properties to user #1...")
-				udm.modify_object(modulename="users/user", dn=user_dn, **user_args2)
+				udm.modify_object(modulename="users/user", dn=user_dn, **udm_modlist_1)
 
 				print("*** Checking sync of properties #1...")
-				retry_call(_test, fargs=[core, user_args2, user_id], fkwargs={"check_complete": False}, tries=12, delay=5)
+				retry_call(_test, fargs=[core, udm_modlist_1, user_id], fkwargs={"check_complete": False}, tries=12, delay=5)
 
 				print("*** Adding more properties to user #2...")
-				udm.modify_object(modulename="users/user", dn=user_dn, **user_args3)
+				udm.modify_object(modulename="users/user", dn=user_dn, **udm_modlist2)
 
 				print("*** Checking sync of properties #2...")
-				retry_call(_test, fargs=[core, user_args3, user_id], fkwargs={"check_complete": False}, tries=12, delay=5)
+				retry_call(_test, fargs=[core, udm_modlist2, user_id], fkwargs={"check_complete": False}, tries=12, delay=5)
 
 				print("*** Checking sync of all properties...")
 				retry_call(_test, fargs=[core, user_args, user_id], fkwargs={"check_complete": True}, tries=12, delay=5)
