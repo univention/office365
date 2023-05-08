@@ -114,7 +114,7 @@ class MSGraphError(Exception):
 			return json_string
 
 
-class GenericGraphError(Exception, metaclass=MSGraphErrorType):
+class GenericGraphError(MSGraphError, metaclass=MSGraphErrorType):
 
 	def __init__(self, parent_exception):
 		# type: (MSGraphError) -> None
