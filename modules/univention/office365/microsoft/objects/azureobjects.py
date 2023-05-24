@@ -139,6 +139,13 @@ class AzureObject(object):
 	_logger = None  # type: Union['logging.Logger',type(None)]
 
 	@classmethod
+	def from_dict(cls, data: dict):
+		return cls(**{
+			a.name: data.get(a.name, a.default)
+			for a in cls.__attrs_attrs__
+		})
+
+	@classmethod
 	def get_fields(cls):
 		# type: () -> Dict[str, Type]
 		return {x.name: x.validator.type[0] for x in attr.fields(cls)}
@@ -468,7 +475,7 @@ class UserAzure(AzureObject):
 		response = core.list_users(params="$filter=onPremisesImmutableID eq '{}'".format(immutableId))
 		users_value = response.get("value", [])
 		if len(users_value) == 1:
-			user = UserAzure(**users_value[0])
+			user = UserAzure.from_dict(users_value[0])
 			user.set_core(core)
 			return user
 		return
@@ -489,7 +496,7 @@ class UserAzure(AzureObject):
 		users_response = core.list_users()
 		users_value = users_response.get("value", [])
 		if users_value:
-			users = [UserAzure(**x) for x in users_value]
+			users = [UserAzure.from_dict(x) for x in users_value]
 			[x.set_core(core) for x in users]
 			return users
 
@@ -710,7 +717,7 @@ class GroupAzure(AzureObject):
 		groups_response = core.list_groups()
 		groups_value = groups_response.get("value", [])
 		if groups_value:
-			groups = [GroupAzure(**x) for x in groups_value]
+			groups = [GroupAzure.from_dict(x) for x in groups_value]
 			[x.set_core(core) for x in groups]
 			return groups
 		return groups_value
@@ -966,14 +973,14 @@ class SubscriptionAzure(AzureObject):
 		""""""
 		subscription_response = core.get_subscriptionSku(subs_sku_id=object_id)
 		subscription_response.pop("@odata.context")
-		return cls(**subscription_response)
+		return cls.from_dict(subscription_response)
 
 	@staticmethod
 	def list(core):
 		# type: (MSGraphApiCore) -> List[SubscriptionAzure]
 		""""""
 		subscriptions_response = core.list_subscriptions()
-		subscriptions = [SubscriptionAzure(**subscription) for subscription in subscriptions_response["value"]]
+		subscriptions = [SubscriptionAzure.from_dict(subscription) for subscription in subscriptions_response["value"]]
 		[x.set_core(core) for x in subscriptions]
 		return subscriptions
 
@@ -982,7 +989,7 @@ class SubscriptionAzure(AzureObject):
 		# type: (MSGraphApiCore, List[str]) -> List[SubscriptionAzure]
 		"""TODO"""
 		subscriptions_response = core.list_subscriptions()
-		# subscriptions = [SubscriptionAzure(**subscription) for subscription in subscriptions_response["value"] if subscription["appliesTo"] == "User" and subscription["capabilityStatus"] == "Enabled" and any([plan["servicePlanName"] in service_plan_names for plan in subscription["servicePlans"]])]
+		# subscriptions = [SubscriptionAzure.from_dict(**subscription) for subscription in subscriptions_response["value"] if subscription["appliesTo"] == "User" and subscription["capabilityStatus"] == "Enabled" and any([plan["servicePlanName"] in service_plan_names for plan in subscription["servicePlans"]])]
 		# [x.set_core(core) for x in subscriptions]
 		subscriptions = list()
 		for subscription in subscriptions_response["value"]:
@@ -990,7 +997,7 @@ class SubscriptionAzure(AzureObject):
 				for plan in subscription["servicePlans"]:
 					if plan["servicePlanName"] in service_plan_names:
 						# found an office plan
-						sub_sku = SubscriptionAzure(**subscription)
+						sub_sku = SubscriptionAzure.from_dict(subscription)
 						sub_sku.set_core(core)
 						subscriptions.append(sub_sku)
 						break

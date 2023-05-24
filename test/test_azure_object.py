@@ -213,7 +213,7 @@ class TestUserAzure(TestObjectAzure):
 
 	def test_completity(self):
 		# type: () -> None
-		diff = all_methods_called(self.__class__, UserAzure, ["get_not_none_values_as_dict", "set_core", "wait_for_operation", "get_fields", "create_or_modify"])
+		diff = all_methods_called(self.__class__, UserAzure, ["get_not_none_values_as_dict", "set_core", "wait_for_operation", "get_fields", "create_or_modify", "from_dict"])
 		assert len(diff) == 0, "Functions no tested [" + ", ".join(diff) + "]"
 
 	@my_vcr.use_cassette(os.path.join(VCR_PATH, 'TestUserAzure/test_create.yml'))
@@ -386,7 +386,7 @@ class TestGroupAzure(TestObjectAzure):
 
 	def test_completity(self):
 		# type: () -> None
-		diff = all_methods_called(self.__class__, GroupAzure, ["get_not_none_values_as_dict", "set_core", "wait_for_operation", "add_license", "remove_license", "get_fields", "create_or_modify"])
+		diff = all_methods_called(self.__class__, GroupAzure, ["get_not_none_values_as_dict", "set_core", "wait_for_operation", "add_license", "remove_license", "get_fields", "create_or_modify", "from_dict"])
 		assert len(diff) == 0, "Functions no tested [" + ", ".join(diff) + "]"
 
 	@my_vcr.use_cassette(os.path.join(VCR_PATH, 'TestGroupAzure/test_create.yml'))
@@ -586,7 +586,7 @@ class TestTeamAzure(TestObjectAzure):
 
 	def test_completity(self):
 		# type: () -> None
-		diff = all_methods_called(self.__class__, TeamAzure, ["get_not_none_values_as_dict", "set_core", "wait_for_operation", "wait_for_team", "add_license", "invalidate_all_tokens", "get_fields", "remove_license", "member_of", "create_from_group_async"])
+		diff = all_methods_called(self.__class__, TeamAzure, ["get_not_none_values_as_dict", "set_core", "wait_for_operation", "wait_for_team", "add_license", "invalidate_all_tokens", "get_fields", "remove_license", "member_of", "create_from_group_async", "from_dict"])
 		assert len(diff) == 0, "Functions no tested [" + ", ".join(diff) + "]"
 
 	@my_vcr.use_cassette(os.path.join(VCR_PATH, 'TestTeamAzure/test_set_owner.yml'))
@@ -775,7 +775,7 @@ class TestSubscriptionAzure(TestObjectAzure):
 
 	def test_completity(self):
 		# type: () -> None
-		diff = all_methods_called(self.__class__, SubscriptionAzure, ["get_not_none_values_as_dict", "set_core", "wait_for_operation", "reactivate", "deactivate", "delete", "create", "update", "add_license", "get_fields", "remove_license", "member_of"])
+		diff = all_methods_called(self.__class__, SubscriptionAzure, ["get_not_none_values_as_dict", "set_core", "wait_for_operation", "reactivate", "deactivate", "delete", "create", "update", "add_license", "get_fields", "remove_license", "member_of", "from_dict"])
 		assert len(diff) == 0, "Functions no tested [" + ", ".join(diff) + "]"
 
 	@my_vcr.use_cassette(os.path.join(VCR_PATH, 'TestSubscriptionAzure/test_get.yml'))
