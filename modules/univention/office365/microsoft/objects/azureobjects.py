@@ -55,7 +55,7 @@ delete_name_pattern = "ZZZ_deleted_{time}_{orig}"
 
 
 """
-	                                    ┌─────┐
+                                       ┌─────┐
                                         │Token│
                                         └──┬──┘
                                            │
@@ -139,7 +139,7 @@ class AzureObject(object):
 	_logger = None  # type: Union['logging.Logger',type(None)]
 
 	@classmethod
-	def from_dict(cls, data: dict):
+	def from_dict(cls, data):
 		return cls(**{
 			a.name: data.get(a.name, a.default)
 			for a in cls.__attrs_attrs__
