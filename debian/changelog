@@ -1,3 +1,9 @@
+univention-office365 (3.0.1-21) unstable; urgency=medium
+
+  * Bug #55984: Allow to modify mobilePhone attribte
+
+ -- Julia Bremer <bremer@univention.de>  Wed, 31 May 2023 09:48:04 +0200
+
 univention-office365 (3.0.1-20) unstable; urgency=medium
 
   * Bug #56091: Only pass the attributes of the class from a dict.
