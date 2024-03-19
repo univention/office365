@@ -675,6 +675,12 @@ def azure_user_disabled(core, user_id):
 		utils.fail("Account was not deactivated.")
 	return azure_user
 
+def azure_user_deleted(core, user_id):
+	# type: (MSGraphApiCore, str) -> UserAzure
+	azure_user = UserAzure.get(core, user_id, selection=azure_user_selection)
+	if "ZZZ_deleted" not in azure_user.userPrincipalName:
+		utils.fail("User is not ZZZ_deleted")
+	return azure_user
 
 def azure_user_enabled(core, user_id):
 	# type: (MSGraphApiCore, str) -> UserAzure

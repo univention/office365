@@ -38,7 +38,7 @@ import univention.testing.udm as udm_test
 import univention.testing.utils as utils
 from typing import Any, Dict
 
-from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user, check_user_id_from_azure, azure_user_disabled, azure_user_enabled, azure_user_selection
+from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user, check_user_id_from_azure, azure_user_disabled, azure_user_enabled, azure_user_selection, azure_user_deleted
 from helpers.retry import retry_call
 from univention.office365.microsoft.account import AzureAccount
 from univention.office365.microsoft.core import MSGraphApiCore
@@ -112,6 +112,12 @@ with utils.AutomaticListenerRestart():
 				print("*** Unlocking UDM-user (should activate azure-user)...")
 				udm.modify_object(modulename="users/user", dn=user_dn, set={"locked": "none"})
 				azure_user = retry_call(azure_user_enabled, fargs=[core, user_id], tries=6, delay=5)
+
+			# check if disabled user can be deleted
+			udm.modify_object(modulename="users/user", dn=user_dn, set={"disabled": 1})
+			azure_user = retry_call(azure_user_disabled, fargs=[core, user_id], tries=6, delay=5)
+			udm.remove_object(modulename="users/user", dn=user_dn)
+			azure_user = retry_call(azure_user_deleted, fargs=[core, user_id], tries=6, delay=5)
 
 			print("*** All tests succeeded.")
 			print("*** All went well.")

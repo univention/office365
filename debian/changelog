@@ -1,3 +1,9 @@
+univention-office365 (3.0.1-22) unstable; urgency=medium
+
+  * Bug #56815: Delete users in azure even if user is already disabled
+
+ -- Julia Bremer <bremer@univention.de>  Tue, 19 Mar 2024 20:33:47 +0100
+
 univention-office365 (3.0.1-21) unstable; urgency=medium
 
   * Bug #55984: Allow to modify mobilePhone attribte

@@ -436,12 +436,12 @@ class UDMOfficeUser(UDMOfficeObject):
 			self.logger.exception("Bad data in userexpiry: %r", self.userexpiry)
 			return True
 
-	def is_enable(self):
+	def is_m365_user(self):
 		# type: () -> bool
 		return bool(int(getattr(self, "UniventionOffice365Enabled", "0")))
 
-	def should_sync(self):
-		return not self.is_deactivated_locked_or_expired() and self.is_enable()
+	def is_enabled_m365_user(self):
+		return not self.is_deactivated_locked_or_expired() and self.is_m365_user()
 
 
 class UDMOfficeGroup(UDMOfficeObject):
@@ -589,7 +589,7 @@ class UDMOfficeGroup(UDMOfficeObject):
 				except univention.admin.uexceptions.noObject as e:
 					self.logger.warning("UDM User: %r has been removed. In nested_groups_with_azure_users %r", userdn, self.current_connection_alias)
 					continue
-				if udm_user.is_enable():
+				if udm_user.is_m365_user():
 					if self.current_connection_alias in udm_user.adconnection_aliases:
 						yield self
 						break

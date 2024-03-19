@@ -65,7 +65,7 @@ class ListenerModuleTemplate(univention.listener.ListenerModuleHandler):
 		# type:  (str, Dict[str, List[bytes]]) -> None
 		self.logger.info('create dn: %r', dn)
 		udm_user = UDMOfficeUser(ldap_fields=new, ldap_cred=self._ldap_credentials, dn=dn, logger=logger)
-		if udm_user.should_sync():
+		if udm_user.is_enabled_m365_user():
 			self.connector.create(udm_user=udm_user)
 
 	def modify(self, dn, old, new, old_dn):
@@ -83,5 +83,5 @@ class ListenerModuleTemplate(univention.listener.ListenerModuleHandler):
 		# type:  (str, Dict[str, List[bytes]]) -> None
 		self.logger.info('remove dn: %r', dn)
 		udm_user = UDMOfficeUser(ldap_fields=old, ldap_cred=self._ldap_credentials, dn=dn, logger=logger)
-		if udm_user.should_sync():
+		if udm_user.is_m365_user():
 			self.connector.delete(udm_user=udm_user)

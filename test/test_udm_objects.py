@@ -293,13 +293,13 @@ class TestUdmOfficeUser:
 			udm_user_object.udm_object_reference["userexpiry"] = (datetime.datetime.today() + relativedelta(days=1)).strftime('%Y-%m-%d')
 		assert udm_user_object.is_deactivated_locked_or_expired() == any(params)
 
-	def test_is_enable(self, create_udm_user_object):
+	def test_is_m365_user(self, create_udm_user_object):
 		# type: (Callable) -> None
 		udm_user_object = create_udm_user_object()
 		udm_user_object.udm_object_reference['UniventionOffice365Enabled'] = "1"
-		assert udm_user_object.is_enable()
+		assert udm_user_object.is_m365_user()
 		udm_user_object.udm_object_reference['UniventionOffice365Enabled'] = "0"
-		assert not udm_user_object.is_enable()
+		assert not udm_user_object.is_m365_user()
 
 	@pytest.mark.parametrize("params", [(True, False, False, False),
 										(True, False, False, True),
@@ -317,7 +317,7 @@ class TestUdmOfficeUser:
 										(False, True, False, True),
 										(False, True, True, False),
 										(False, True, True, True), ])
-	def test_should_sync(self, params, create_udm_user_object):
+	def test_is_enabled_m365_user(self, params, create_udm_user_object):
 		# type: (Tuple[bool, bool, bool, bool], Callable) -> None
 		udm_user_object = create_udm_user_object()
 		locked, disabled, expired, enabled = params
@@ -329,8 +329,8 @@ class TestUdmOfficeUser:
 			udm_user_object.udm_object_reference["userexpiry"] = (datetime.datetime.today() + relativedelta(days=1)).strftime('%Y-%m-%d')
 		udm_user_object.udm_object_reference["UniventionOffice365Enabled"] = "1" if enabled else "0"
 		assert udm_user_object.is_deactivated_locked_or_expired() == (locked or disabled or expired)
-		assert udm_user_object.is_enable() == enabled
-		assert udm_user_object.should_sync() == ((not(locked or disabled or expired)) and enabled)
+		assert udm_user_object.is_m365_user() == enabled
+		assert udm_user_object.is_enabled_m365_user() == ((not(locked or disabled or expired)) and enabled)
 
 class TestUdmOfficeGroup:
 
@@ -536,8 +536,3 @@ class TestUdmOfficeGroup:
 
 		to_add = first_group.added_owners(other_group)
 		assert to_add == set(other_owners[-1:])
-
-
-
-
-	

@@ -519,7 +519,7 @@ class UserConnector(Connector):
 		"""
 		Given an UDMOfficeUser object, create a new user in Azure.
 		"""
-		if udm_user.should_sync():
+		if udm_user.is_enabled_m365_user():
 			for alias in udm_user.aliases((udm_user.adconnection_aliases or [self.default_adconnection])):
 				core = self.get_core(alias)
 				if not core:
@@ -573,14 +573,14 @@ class UserConnector(Connector):
 			Attrs modify
 		"""
 		# TODO: use some kind of cache for the parsed objects (udm_object => parsed_object)
-		if not old_udm_user.should_sync() and new_udm_user.should_sync():
+		if not old_udm_user.is_enabled_m365_user() and new_udm_user.is_enabled_m365_user():
 			for alias in new_udm_user.aliases(new_udm_user.adconnection_aliases or self.default_adconnection):
 				core = self.get_core(alias)
 				if not core:
 					continue
 				self.new_or_reactivate_user(new_udm_user, core)
 			return
-		elif old_udm_user.should_sync() and not new_udm_user.should_sync():
+		elif old_udm_user.is_enabled_m365_user() and not new_udm_user.is_enabled_m365_user():
 			for alias in old_udm_user.aliases():
 				with new_udm_user.set_current_alias(alias):
 					core = self.get_core(alias)
@@ -591,7 +591,7 @@ class UserConnector(Connector):
 					new_udm_user.modify_azure_attributes(self.prepare_azure_attributes(old_azure, to_remove=True))
 			return
 
-		if new_udm_user.should_sync():
+		if new_udm_user.is_enabled_m365_user():
 			#####
 			# NEW or REACTIVATED account
 			#####
@@ -1162,7 +1162,7 @@ class GroupConnector(Connector):
 				except univention.admin.uexceptions.noObject:
 					self.logger.warning("UDM User: %r has been removed. Not syncing with azure %r", added_member_dn, alias)
 					continue
-				if udm_user.is_enable():
+				if udm_user.is_m365_user():
 					with udm_user.set_current_alias(alias):
 						if udm_user.azure_object_id:
 							users_to_add.append(udm_user.azure_object_id)
