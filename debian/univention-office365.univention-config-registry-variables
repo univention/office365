@@ -75,3 +75,17 @@ Description[de]=Die Variable konfiguriert den Startmodus des Univention MS Offic
 Description[en]=This variable configures the start mode of the Univention MS Office Async Daemons. If set to 'no' or 'disabled', the service cannot be started. If the variable is set to 'manually', the service isn't started during system boot, but can be enabled manually at a later point.
 Type=str
 Categories=service-collaboration
+
+[office365/userexpiry/cron/enable]
+Description[de]=Diese Variable konfiguriert dass eine regelmäßiger Cronjob aktiv ist, der die LDAP Datenbank nach abgelaufenen Benutzerkonten durchsucht. Wenn abgelaufene Benutzer gefunden werden, werden sie in Microsoft 365 deaktiviert, falls sie es noch nicht sind.
+Description[en]=This variable configures if a regular cron job is active, which searches the LDAP database for expired user accounts. When an expired user is found, the user will be disabled in Microsoft 365, if the user is not already disabled.
+Type=bool
+Default=true
+Categories=service-collaboration
+
+[office365/userexpiry/cron]
+Description[de]=Diese Variable konfiguriert wie oft ein cronjob das LDAP auf abgelaufene Benutzerkonten prüft und diese Benutzer in Microsoft 365 deaktiviert. Der Wert dieser Variable ist im Cronjob-Format anzugeben. Per default wird der Cronjob falls aktiviert ein Mal am Tag um 23:30 Uhr ausgeführt.
+Description[en]=This variable configures how often a cron job will searches the LDAP database for expired user accounts and disable them in Microsoft 365. The value of this variable needs to be given in cron schedule expression format. Per default, the job will be executed at 11:30 pm once a day if activated.
+Type=str
+Default=23 40 * * *
+Categories=service-collaboration

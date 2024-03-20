@@ -1,0 +1,13 @@
+@%@UCRWARNING=# @%@
+
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+
+@!@
+script = '/usr/share/univention-office365/scripts/o365_expire --modify'
+interval = configRegistry.get('office365/userexpiry/cron', '45 4 * * *')
+if configRegistry.is_true('office365/userexpiry/cron/enable', False):
+    print('%s   root    %s' % (interval, script))
+else:
+    print('# disabled by UCRv office365/userexpiry/cron/enable')
+@!@
+
