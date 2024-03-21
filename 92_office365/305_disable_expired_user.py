@@ -57,7 +57,7 @@ with utils.AutomaticListenerRestart():
 			core.modify_user(user_id, {"accountEnabled": True})
 			azure_user = retry_call(azure_user_enabled, fargs=[core, user_id], tries=6, delay=5)
 			print("*** Running cronjob..")
-			subprocess.check_output(['/usr/share/univention-office365/scripts/o365_expire', '-m'])
+			subprocess.check_output(['/usr/share/univention-office365/scripts/o365_disable_expired_users', '-m'])
 			print("*** Waiting for user to be disabled again..")
 			azure_user = retry_call(azure_user_disabled, fargs=[core, user_id], tries=6, delay=5)
 			print("*** All tests succeeded.")

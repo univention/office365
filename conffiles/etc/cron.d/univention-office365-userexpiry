@@ -3,8 +3,8 @@
 PATH=/usr/sbin:/usr/bin:/sbin:/bin
 
 @!@
-script = '/usr/share/univention-office365/scripts/o365_expire --modify'
-interval = configRegistry.get('office365/userexpiry/cron', '45 4 * * *')
+script = '/usr/share/univention-office365/scripts/o365_disable_expired_users --modify'
+interval = configRegistry.get('office365/userexpiry/cron', '30 23 * * *')
 if configRegistry.is_true('office365/userexpiry/cron/enable', False):
     print('%s   root    %s' % (interval, script))
 else:

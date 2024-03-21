@@ -66,7 +66,7 @@ def get_customized_logger(options):
 
 
 def parse_arguments(args):
-    parser = ArgumentParser(description="A tool to modify users and manage Azure AD passwords and authentication tokens.")
+    parser = ArgumentParser(description="A tool to disable users in Azure AD when they reached their expiry date.")
     parser.add_argument('-m', '--modify', action='store_true', help='Modify users, default: dry-run')
     parser.add_argument('-o', '--onlyone', metavar="uid", help='Only look at and modify one user (for testing purposes)')
     parser.add_argument('-v', '--verbose', action='store_true', help='Log information on stdout')
