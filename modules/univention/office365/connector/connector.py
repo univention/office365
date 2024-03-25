@@ -574,7 +574,7 @@ class UserConnector(Connector):
 		"""
 		# TODO: use some kind of cache for the parsed objects (udm_object => parsed_object)
 		if not old_udm_user.is_enabled_m365_user() and new_udm_user.is_enabled_m365_user():
-			for alias in new_udm_user.aliases(new_udm_user.adconnection_aliases or self.default_adconnection):
+			for alias in new_udm_user.aliases(new_udm_user.adconnection_aliases or [self.default_adconnection]):
 				core = self.get_core(alias)
 				if not core:
 					continue
