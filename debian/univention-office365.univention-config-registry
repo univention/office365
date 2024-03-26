@@ -7,7 +7,3 @@ Type: file
 File: etc/cron.d/univention-office365-userexpiry
 Variables: office365/userexpiry/cron
 Variables: office365/userexpiry/cron/enable
-
-Type: file
-File: etc/logrotate.d/univention-ms-office-async
-Variables: logrotate/.*
