@@ -53,6 +53,11 @@ from univention.office365.udm_helper import UDMHelper
 from univention.office365.utils.utils import jsonify
 
 
+class GroupType(Enum):
+	SECURITY = "Security Group"
+	M365 = "Microsoft 365 Group"
+
+
 class Version(Enum):
 	V1 = 1
 	V2 = 2
@@ -469,13 +474,17 @@ class UDMOfficeGroup(UDMOfficeObject):
 		if udm_objs:
 			return UDMOfficeGroup(udm_objs.oldattr, ldap_cred, udm_objs["dn"])
 
-	def modify_azure_attributes(self, azure_group_dict):
-		# type: (Optional[Mapping[str, Any]]) -> None
+	def modify_azure_attributes(self, azure_group_dict, is_security_group=True):
+		# type: (Optional[Mapping[str, Any]], Optional[bool]) -> None
 		"""
 		"""
 		if azure_group_dict is not None:
 			if self.current_connection_alias not in self.udm_object_reference["UniventionOffice365ADConnectionAlias"]:
 				self.udm_object_reference["UniventionOffice365ADConnectionAlias"].append(self.current_connection_alias)
+			group_type = GroupType.SECURITY.value if is_security_group else GroupType.M365.value
+			if group_type != self.udm_object_reference.get("UniventionMicrosoft365GroupType"):
+				self.udm_object_reference["UniventionMicrosoft365GroupType"] = group_type
+				self.udm_object_reference["UniventionMicrosoft365ForceGroupType"] = "1"
 		else:
 			self.udm_object_reference["UniventionOffice365ADConnectionAlias"] = [x for x in self.adconnection_aliases if x != self.current_connection_alias]
 		if six.PY2:
@@ -660,3 +669,11 @@ class UDMOfficeGroup(UDMOfficeObject):
 		"""
 		_, removed = self.members_changes(target)
 		return removed
+	
+	def is_security_group(self):
+		# type: () -> List[str]
+		"""
+		Return if the group is a security group or a Microsoft 365 group
+		:return:
+		"""
+		return self.get("UniventionMicrosoft365GroupType", "Security Group") == "Security Group"

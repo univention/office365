@@ -44,3 +44,11 @@ msgstr "Azure AD Verbindung"
 #: modules/univention/syntax.d/office365.py:68
 msgid "User Principal Name"
 msgstr "User Principal Name"
+
+#: modules/univention/syntax.d/office365.py:86
+msgid "Security Group"
+msgstr "Sicherheitsgruppe"
+
+#: modules/univention/syntax.d/office365.py:67
+msgid "Microsoft 365 Group"
+msgstr "Microsoft 365 Gruppe"

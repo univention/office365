@@ -159,7 +159,7 @@ def new_team(core, team_name, owner):
 
 
 @contextlib.contextmanager
-def new_group(core, group_name):
+def new_group(core, group_name, is_security_group=True):
 	# type: (MSGraphApiCore, str) -> GroupAzure
 	description = "Description of {group_name}".format(group_name=group_name)
 	group = GroupAzure(
@@ -167,7 +167,8 @@ def new_group(core, group_name):
 		displayName=group_name,
 		mailEnabled=False,
 		mailNickname=group_name.replace(" ", "_-_"),
-		securityEnabled=True
+		securityEnabled=True,
+		groupTypes=[] if is_security_group else ["Unified"],
 	)
 	group.set_core(core)
 	group.create()
@@ -580,6 +581,16 @@ class TestGroupAzure(TestObjectAzure):
 		with new_group(self.core, name) as group:
 			group_by_name = GroupAzure.get_by_name(self.core, group.displayName)
 			assert group_by_name.id == group.id
+
+	@my_vcr.use_cassette(os.path.join(VCR_PATH, 'TestGroupAzure/test_is_security_group.yml'))
+	def test_is_security_group(self):
+		# type: () -> None
+		""""""
+		name = "test_is_security_group"
+		with new_group(self.core, name, is_security_group=True) as group:
+			assert group.is_security_group()
+		with new_group(self.core, name, is_security_group=False) as group:
+			assert not group.is_security_group()
 
 
 class TestTeamAzure(TestObjectAzure):

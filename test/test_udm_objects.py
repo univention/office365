@@ -55,7 +55,7 @@ sys.modules['ldap'] = mock.MagicMock()
 sys.modules['ldap.filter'] = mock.MagicMock()
 
 from test import ALIASDOMAIN
-from univention.office365.udmwrapper.udmobjects import UDMOfficeUser, UniventionOffice365Data, UDMOfficeObject, Version, UDMOfficeGroup
+from univention.office365.udmwrapper.udmobjects import UDMOfficeUser, UniventionOffice365Data, UDMOfficeObject, Version, UDMOfficeGroup, GroupType
 from univention.office365.udmwrapper import udmobjects
 ldap_cred = {}
 
@@ -349,6 +349,16 @@ class TestUdmOfficeGroup:
 			assert udm_group_object.azure_data[alias] == new_data
 		assert "new_alias" in udm_group_object.azure_data
 		assert "new_alias" in list(udm_group_object.adconnection_aliases)
+		assert GroupType.SECURITY.value == udm_group_object.UniventionMicrosoft365GroupType
+
+		udm_group_object = create_udm_group_object()
+		for alias in udm_group_object.aliases(["new_alias"]):
+			new_data = {"objectId": "test_objectId", "userPrincipalName": "test_userPrincipalName"}
+			udm_group_object.modify_azure_attributes(new_data, is_security_group=False)
+			assert udm_group_object.azure_data[alias] == new_data
+		assert "new_alias" in udm_group_object.azure_data
+		assert "new_alias" in list(udm_group_object.adconnection_aliases)
+		assert GroupType.M365.value == udm_group_object.UniventionMicrosoft365GroupType
 
 	def test_delete_azure_data(self, create_udm_group_object):
 		# type: (Callable) -> None
@@ -536,3 +546,13 @@ class TestUdmOfficeGroup:
 
 		to_add = first_group.added_owners(other_group)
 		assert to_add == set(other_owners[-1:])
+
+	def test_is_security_group(self, create_udm_group_object):
+# type: (Callable) -> None
+		""""""
+		udm_group_object = create_udm_group_object()
+		assert udm_group_object.is_security_group()
+		udm_group_object.udm_object_reference['UniventionMicrosoft365GroupType'] = 'Security Group'
+		assert udm_group_object.is_security_group()
+		udm_group_object.udm_object_reference['UniventionMicrosoft365GroupType'] = 'Microsoft 365 Group'
+		assert not udm_group_object.is_security_group()

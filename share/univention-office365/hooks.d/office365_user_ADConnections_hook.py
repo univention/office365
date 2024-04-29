@@ -40,7 +40,7 @@ from univention.lib.i18n import Translation
 _ = Translation('univention-admin-handlers-office365').translate
 msg_require_mail = _("Microsoft 365 users must have a primary e-mail address specified.")
 msg_require_owner = _("In order to create a Microsoft 365 team from a group, at least one group/team owner has to be specified.")
-
+msg_force_group_type = _("Warning: By changing the group type, the group will be deleted and recreated in Microsoft 365. This can affect the group's permissions and settings. If you want to continue anyway, please tick the 'Force group type' checkbox.")
 
 def decode_o365data(data):
 	return json.loads(zlib.decompress(base64.b64decode(data.encode('ASCII'))))
@@ -61,9 +61,20 @@ class Microsoft365GroupHook(simpleHook):
 		if str2bool(module.get("UniventionMicrosoft365Team")) and not module.get("UniventionMicrosoft365GroupOwners"):
 			raise univention.admin.uexceptions.valueError(msg_require_owner)
 
+	def hook_ldap_addlist(self, module, al=[]):
+		al = [a for a in al if a[0] != "dummyuniventionMicrosoft365ForceGroupType"]
+		return al
+
 	def hook_ldap_pre_modify(self, module):
 		if str2bool(module.get("UniventionMicrosoft365Team")) and not module.get("UniventionMicrosoft365GroupOwners"):
 			raise univention.admin.uexceptions.valueError(msg_require_owner)
+
+		if module.hasChanged("UniventionMicrosoft365GroupType") and not str2bool(module.get("UniventionMicrosoft365ForceGroupType")):
+			raise univention.admin.uexceptions.valueError(msg_force_group_type)
+
+	def hook_ldap_modlist(self, module, ml=[]):
+		ml = [m for m in ml if m[0] != "dummyuniventionMicrosoft365ForceGroupType"]
+		return ml
 
 
 # Look into office365_user_ADConnections_hook.Office365ADConnectionsHook.hook_open to try to undrertand

@@ -118,5 +118,18 @@ msgstr "Bezeichner der Servicepläne, die in dem Profil deaktiviert werden"
 #~ msgid "User Principal Name"
 #~ msgstr "User Principal Name"
 
+#~ msgid "Security Group"
+#~ msgstr "Sicherheitsgruppe"
+
+#~ msgid "Microsoft 365 Group"
+#~ msgstr "Microsoft 365 Gruppe"
+
 msgid "Microsoft 365 users must have a primary e-mail address specified."
 msgstr "Microsoft 365 Benutzer müssen eine primäre E-Mail-Adresse besitzen."
+
+msgid "In order to create a Microsoft 365 team from a group, at least one group/team owner has to be specified."
+msgstr "Um ein Microsoft 365 Team aus einer Gruppe zu erstellen, muss mindestens ein Gruppen-/Team-Eigentümer angegeben werden."
+
+msgid "Warning: By changing the group type, the group will be deleted and recreated in Microsoft 365. This can affect the group's permissions and settings. If you want to continue anyway, please tick the 'Force group type' checkbox."
+msgstr "Warnung: Durch das Ändern des Gruppentyps wird die Gruppe in Microsoft 365 gelöscht und neu erstellt. Dies kann zum Verlust von Zugriffsberechtigungen und Einstellungen der Gruppe führen. Wenn diese Änderung trotzdem durchgeführt werden soll, bitte wählen sie das 'Überschreiben des Gruppentyps erzwingen' Kästchen aus."
+

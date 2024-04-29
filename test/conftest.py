@@ -218,7 +218,8 @@ def create_udm_group_object(mock_univention_libs):
 		'adGroupType': 'univentionGroupType',
 		'sambaPrivileges': 'univentionSambaPrivilegeList',
 		'allowedEmailUsers': 'univentionAllowedEmailUsers',
-		'allowedEmailGroups': 'univentionAllowedEmailGroups'
+		'allowedEmailGroups': 'univentionAllowedEmailGroups',
+		'UniventionMicrosoft365GroupType': 'univentionMicrosoft365GroupType',
 	}
 	return create_udm_object(UDMOfficeGroup, "udm_group_reference.pkl", group_mapping)
 

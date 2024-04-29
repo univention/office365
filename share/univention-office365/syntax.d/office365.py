@@ -28,7 +28,7 @@
 # <http://www.gnu.org/licenses/>.
 
 import univention.admin.localization
-from univention.admin.syntax import string, complex, UDM_Objects
+from univention.admin.syntax import string, complex, UDM_Objects, select
 import univention.admin.uexceptions
 
 
@@ -51,6 +51,7 @@ class univentionOffice365ProfileSyntax(UDM_Objects):
 	udm_filter = '(objectClass=univentionOffice365Profile)'
 	simple = True
 	regex = None
+
 
 
 class univentionOffice365ADConnection(UDM_Objects):
@@ -76,3 +77,12 @@ class univentionOffice365ADConnections(complex):
 	)
 	subsyntax_names = ('AADConnection', 'userPrincipalName')
 	all_required = True
+
+class univentionMicrosoft365GroupType(select):
+	"""Syntax for selecting the gender setting."""
+
+	empty_value = False
+	choices = [
+		('Security Group', _('Security Group')),
+		('Microsoft 365 Group', _('Microsoft 365 Group')),
+	]

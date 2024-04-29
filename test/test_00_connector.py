@@ -482,6 +482,10 @@ class TestGroupConnector:
 		assert azure_group.displayName == udm_fake_group.cn
 		assert azure_group.description == udm_fake_group.description
 		assert azure_group.id == udm_fake_group.azure_object_id
+		assert azure_group.groupTypes == []
+		udm_fake_group.udm_object_reference['UniventionMicrosoft365GroupType'] = 'Microsoft 365 Group'
+		azure_group = self.gc.parse(udm_fake_group, core)
+		assert azure_group.groupTypes == ["Unified"]
 
 	def test_add_ldap_members_to_azure_group(self, create_udm_group_object):
 		# type: (Callable) -> None
@@ -776,6 +780,8 @@ class TestGroupConnector:
 
 		created_group = mock.MagicMock(name="new_create_azure_group")
 		created_group.id = "created_group_object_id"
+		created_group.is_security_group = mock.MagicMock(return_value=True)
+		created_group.is_delete = mock.MagicMock(return_value=True)
 		self.gc._create_group = mock.MagicMock(return_value=created_group)
 
 		# Check no modifications
@@ -800,6 +806,33 @@ class TestGroupConnector:
 		self.gc.check_and_modify_owners.assert_called_once_with(udm_fake_group_old, udm_fake_group_new, created_group, alias)
 		self.gc.check_and_modify_members.assert_called_once_with(udm_fake_group_old, udm_fake_group_new, created_group, core)
 		self.gc.check_and_modify_attributes.assert_called_once_with(udm_fake_group_new, created_group, core)
+
+	def test_migrate_group_type(self, create_udm_group_object):
+		# type: (Callable) -> None
+		alias = "o365domain"
+		udm_fake_group_old = create_udm_group_object()
+		udm_fake_group_old.in_azure = mock.MagicMock(return_value=True)
+		udm_fake_group_old.is_team = mock.MagicMock(return_value=True)
+
+		udm_fake_group_new = create_udm_group_object()
+		udm_fake_group_new.in_azure = mock.MagicMock(return_value=True)
+		udm_fake_group_new.is_team = mock.MagicMock(return_value=False)
+		udm_fake_group_new.current_connection_alias = alias
+
+		azure_group = mock.MagicMock()
+		azure_group.id = "azure_object_id"
+		azure_group.is_delete = mock.MagicMock(return_value=False)
+		azure_group.delete = mock.MagicMock()
+		self.gc.parse = mock.MagicMock(return_value=azure_group)
+		self.gc._create_group = mock.MagicMock()
+		self.gc.deactivate = mock.MagicMock()
+		core = mock.MagicMock()
+		self.gc._cores[alias] = core
+
+		self.gc.migrate_group_type(udm_fake_group_new, azure_group, core)
+
+		self.gc._create_group.assert_called_once()
+		azure_group.delete.assert_called_once()
 
 	def test_add_member(self, create_udm_group_object):
 		alias = "o365domain"

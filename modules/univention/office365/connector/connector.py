@@ -115,6 +115,7 @@ class ConnectorAttributes(UserDict):
 		"univentionMicrosoft365Team",
 		"univentionOffice365Enabled",
 		"univentionOffice365ADConnectionAlias",
+		"univentionMicrosoft365GroupType",
 		"userexpiry",
 		"userPassword",
 	}
@@ -820,7 +821,7 @@ class GroupConnector(Connector):
 	def __init__(self, alias_connections=None, logger=None):
 		# type: (Optional[Dict[str, str]], Optional[Logger]) -> None
 		super(GroupConnector, self).__init__(alias_connections, logger)
-		self.attrs = {"cn", "description", "uniqueMember", "univentionMicrosoft365Team", "univentionMicrosoft365GroupOwners"}
+		self.attrs = {"cn", "description", "uniqueMember", "univentionMicrosoft365Team", "univentionMicrosoft365GroupOwners", "univentionMicrosoft365GroupType"}
 		self.async_task = True
 
 	@staticmethod
@@ -860,15 +861,15 @@ class GroupConnector(Connector):
 		# TODO: check if we need to add group owners to the team here
 
 	def _create_group(self, udm_object, core):
-		# type: (UDMOfficeGroup) -> GroupAzure
+		# type: (UDMOfficeGroup, MSGraphApiCore) -> GroupAzure
 		group_azure = self.parse(udm_object, core)
 		group_azure.create_or_modify()
-		udm_object.modify_azure_attributes(self.prepare_azure_attributes(group_azure))
+		udm_object.modify_azure_attributes(self.prepare_azure_attributes(group_azure), is_security_group=group_azure.is_security_group())
 		self.add_ldap_members_to_azure_group(udm_object, group_azure, core)
 		return group_azure
 
 	def add_ldap_members_to_azure_group(self, udm_object, azure_object, core):
-		# type: (UDMOfficeGroup, GroupAzure) -> None
+		# type: (UDMOfficeGroup, GroupAzure, MSGraphApiCore) -> None
 		"""
 		Recursively look for users and groups to add to the Azure group.
 
@@ -982,6 +983,8 @@ class GroupConnector(Connector):
 						self.logger.warning("Office365Listener.modify_group() azure group doesn't exist (anymore), creating it instead.")
 						azure_group = self._create_group(new_udm_group, core)
 					# modification_attributes_udm_group = new_udm_group
+				if azure_group.is_security_group() != new_udm_group.is_security_group():
+					azure_group = self.migrate_group_type(new_udm_group, azure_group, core)
 
 				# If the azure group is deactivated, reactivate it
 				if azure_group.is_delete():
@@ -1009,6 +1012,30 @@ class GroupConnector(Connector):
 				self.check_and_modify_attributes(new_udm_group, azure_group, core)
 
 				# add owner before removing them. If a group has an owner, removing the last owner will fail
+
+	def migrate_group_type(self, udm_group,  azure_group, core):
+		# type: (UDMOfficeGroup, GroupAzure, MSGraphApiCore) -> GroupAzure
+		"""
+		Change the group type in Azure AD is not possible. The group must be deleted and created again.
+		:param udm_group: UDMOfficeGroup: new group object
+		:param azure_group: GroupAzure: azure group object
+		:param core: MSGraphApiCore: core object
+		:return: GroupAzure: new azure group object
+		"""
+		self.logger.info("Changing group type of group %r is not possible. Deleting group and creating it again.", udm_group.get("cn"))
+		if not azure_group.is_delete():
+			if udm_group.is_team():
+				try:
+					team = TeamAzure(id=udm_group.azure_object_id)
+					team.set_core(core)
+					team.deactivate()
+					self.logger.info("Deleted team %r from Azure AD %r", udm_group.get("cn"), core.account.alias)
+				except MSGraphError as g_exc:
+					self.logger.error("Error while deleting team %r: %r.", udm_group.get("cn"), g_exc)
+			# azure_group.remove_direct_members()
+			azure_group.delete()
+		new_azure_group = self._create_group(udm_group, core)
+		return new_azure_group
 
 	def delete_empty_group(self, azure_group, udm_group=None):
 		# type: (GroupAzure, Optional[UDMOfficeGroup]) -> bool
@@ -1318,8 +1345,16 @@ class GroupConnector(Connector):
 		# type: (UDMOfficeGroup, MSGraphApiCore, bool) -> GroupAzure
 		# anonymize > static > sync
 		# get values to sync
+		data = dict(
+			id=udm_group.azure_object_id,
+			description=udm_group.description or None,
+			displayName=udm_group.cn,
+			mailEnabled=False,
+			mailNickname=udm_group.cn.replace(" ", "_-_"),
+			securityEnabled=True,
+			groupTypes=[] if udm_group.is_security_group() else ["Unified"],
+		)
 
-		data = dict(id=udm_group.azure_object_id, description=udm_group.description or None, displayName=udm_group.cn, mailEnabled=False, mailNickname=udm_group.cn.replace(" ", "_-_"), securityEnabled=True)
 		group_azure = GroupAzure(**data)
 		group_azure.set_core(core)
 		return group_azure

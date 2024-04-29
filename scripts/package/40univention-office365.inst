@@ -33,7 +33,9 @@
 
 ## joinscript api: bindpwdfile
 
-VERSION=10
+set -x
+
+VERSION=11
 
 . /usr/share/univention-join/joinscripthelper.lib
 . /usr/share/univention-lib/all.sh
@@ -314,7 +316,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set ldapMapping=univentionOffice365ADConnectionAlias \
 	--set deleteObjectClass=0 \
 	--set overwriteTab=0 \
-	--set disableUDMWeb=1 \
+	--set disableUDMWeb=0 \
 	--set tabPosition=4 || die
 
 udm settings/extended_attribute create "$@" --ignore_exists \
@@ -393,6 +395,57 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set overwriteTab=0 \
 	--set disableUDMWeb=0 || die
 
+udm settings/extended_attribute create "$@" --ignore_exists \
+	--position "$ea_base" \
+	--set name="UniventionMicrosoft365GroupType" \
+	--set CLIName="UniventionMicrosoft365GroupType" \
+	--set shortDescription="Microsoft 365 group type" \
+	--set translationShortDescription='"de_DE" "Microsoft 365 Gruppen Typ"' \
+	--set longDescription="Defines Microsoft 365 group type.  Changing the group type will delete the group in Microsoft 365 and create a new one. Warning: Microsoft 365 groups cannot be nested into other Microsoft 365 groups." \
+	--set translationLongDescription='"de_DE" "Definiert Microsoft 365 Gruppen Typ. Das Ändern des Gruppentyps wird die Gruppe in Microsoft 365 löschen und sie neu erstellen. Warnung: Microsoft 365 Gruppen können keine Gruppenmitgliedschaft in anderen Microsoft 365 Gruppen haben."' \
+	--set module="groups/group" \
+	--set tabAdvanced=0 \
+	--set tabName="Microsoft 365" \
+	--set tabPosition=8 \
+	--set translationTabName='"de_DE" "Microsoft 365"' \
+	--set syntax=univentionMicrosoft365GroupType \
+	--set hook="Microsoft365GroupHook" \
+	--set default="Security Group" \
+	--set multivalue=0 \
+	--set valueRequired=0 \
+	--set mayChange=1 \
+	--set doNotSearch=0 \
+	--set objectClass=univentionOffice365 \
+	--set ldapMapping=univentionMicrosoft365GroupType \
+	--set deleteObjectClass=0 \
+	--set overwriteTab=0 \
+	--set disableUDMWeb=0 || die
+
+udm settings/extended_attribute create "$@" --ignore_exists \
+	--position "$ea_base" \
+	--set name="UniventionMicrosoft365ForceGroupType" \
+	--set CLIName="UniventionMicrosoft365ForceGroupType" \
+	--set shortDescription="Force Microsoft 365 group type" \
+	--set translationShortDescription='"de_DE" "Erzwinge Microsoft 365 Gruppen Typ"' \
+	--set longDescription="Force to change the Microsoft 365 group type" \
+	--set translationLongDescription='"de_DE" "Erzwinge die Änderung des Microsoft 365 Gruppen Typs"' \
+	--set module="groups/group" \
+	--set tabAdvanced=0 \
+	--set tabName="Microsoft 365" \
+	--set tabPosition=10 \
+	--set translationTabName='"de_DE" "Microsoft 365"' \
+	--set syntax=boolean \
+	--set hook="Microsoft365GroupHook" \
+	--set default="" \
+	--set multivalue=0 \
+	--set valueRequired=0 \
+	--set mayChange=1 \
+	--set doNotSearch=1 \
+	--set objectClass=univentionOffice365 \
+	--set ldapMapping=dummyuniventionMicrosoft365ForceGroupType \
+	--set deleteObjectClass=0 \
+	--set overwriteTab=0 \
+	--set disableUDMWeb=0 || die
 
 # New installation - no joinscript has ever run
 if ! joinscript_check_any_version_executed; then

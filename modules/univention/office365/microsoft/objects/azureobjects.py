@@ -726,6 +726,10 @@ class GroupAzure(AzureObject):
 		# type: () -> bool
 		return self.mailNickname.startswith("ZZZ_deleted_") if self.mailNickname else False
 
+	def is_security_group(self):
+		# type: () -> bool
+		return not "Unified" in self.groupTypes
+
 
 @attr.s
 class TeamAzure(AzureObject):
