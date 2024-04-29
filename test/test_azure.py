@@ -145,7 +145,8 @@ def new_group(core, group_name):
 		displayName=group_name,
 		mailEnabled=False,
 		mailNickname=group_name.replace(" ", "_-_"),
-		securityEnabled=True
+		securityEnabled=True,
+		groupTypes=["Unified"]
 	)
 	result_group = core.create_group(data)
 	try:
@@ -180,7 +181,7 @@ my_vcr = vcr.VCR(
 
 class TestAzure:
 
-	def setup(self):
+	def setup_method(self):
 		# type: () -> None
 		""" """
 
@@ -289,6 +290,19 @@ class TestAzure:
 			self.core.modify_group(group["id"], dict(description=new_description))
 			response = self.core.get_group(group["id"])
 			assert response["description"] == new_description
+
+	# def test_modify_group_type(self):
+	# 	# type: () -> None
+	# 	""" """
+	# 	with new_group(self.core, "test_modify_group_type" + str(random.randint(0, 1000))) as group:
+	# 		from pprint import pprint
+	# 		response = self.core.get_group(group["id"])
+	# 		pprint(response)
+	# 		self.core.modify_group(group["id"], dict(securityEnabled=True, mailEnabled=False))
+	# 		response = self.core.get_group(group["id"])
+	# 		assert response["securityEnabled"] == True
+	# 		assert response["mailEnabled"] == False
+	# 		assert response["groupTypes"] == []
 
 	@my_vcr.use_cassette(os.path.join(VCR_PATH, 'TestAzure/test_delete_group.yml'))
 	def test_delete_group(self):

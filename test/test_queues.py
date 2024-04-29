@@ -41,7 +41,7 @@ CURRENT_PATH = os.path.dirname(os.path.abspath(__file__))
 
 @pytest.mark.skip("To implement")
 class TestJsonFilesQueue:
-	def setup(self):
+	def setup_method(self):
 		# type: () -> None
 		self.queue = JsonFilesQueue(queue_name='tests_queue')
 		self.queue.clear()
@@ -86,7 +86,7 @@ class TestJsonFilesQueue:
 
 @pytest.mark.skip("To implement")
 class TestRedisQueue:
-	def setup(self):
+	def setup_method(self):
 		# type: () -> None
 		self.queue = SimpleQueue(queue_name='tests_queue')
 		self.queue.clear()

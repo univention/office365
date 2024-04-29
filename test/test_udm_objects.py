@@ -139,7 +139,7 @@ def udm_office_user_with_fake_udm_user(udm_office_user):
 
 class TestUDMOfficeObjects:
 
-	def setup(self):
+	def setup_method(self):
 		# type: () -> None
 		pass
 

@@ -197,7 +197,7 @@ my_vcr = vcr.VCR(
 
 class TestObjectAzure:
 
-	def setup(self):
+	def setup_method(self):
 		""" """
 		try:
 			self.account = AzureAccount(alias=ALIASDOMAIN, config_base_path=DOMAIN_PATH)
