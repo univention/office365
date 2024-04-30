@@ -107,6 +107,7 @@ def print_subscriptions(adconnection_alias=None):
 if __name__ == '__main__':
 	if not len(sys.argv) == 2:
 		print('Usage: {} [Azure AD connection alias]'.format(sys.argv[0]))
+		print('Available Azure AD connection aliases: {}'.format(", ".join(UCRHelper.get_adconnection_aliases().keys())))
 		sys.exit(1)
 	try:
 		adconnection_alias = sys.argv[1]
@@ -115,6 +116,7 @@ if __name__ == '__main__':
 		if adconnection_alias not in adconnection_aliases:
 			print('Usage: {} [Azure AD connection alias]'.format(sys.argv[0]))
 			print('Unknown Azure AD connection alias {!r}.'.format(adconnection_alias))
+			print('Available Azure AD connection aliases: {}'.format(", ".join(adconnection_aliases)))
 			sys.exit(1)
 		elif adconnection_alias not in initialized_adconnections:
 			print('Usage: {} [Azure AD connection alias]'.format(sys.argv[0]))

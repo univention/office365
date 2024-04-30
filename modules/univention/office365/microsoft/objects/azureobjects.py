@@ -490,10 +490,10 @@ class UserAzure(AzureObject):
 		"""TODO"""
 
 	@staticmethod
-	def list(core):
-		# type: (MSGraphApiCore) -> List['UserAzure']
+	def list(core, params=None):
+		# type: (MSGraphApiCore, Optional[str]) -> List['UserAzure']
 		""""""
-		users_response = core.list_users()
+		users_response = core.list_users(params=params)
 		users_value = users_response.get("value", [])
 		if users_value:
 			users = [UserAzure.from_dict(x) for x in users_value]
