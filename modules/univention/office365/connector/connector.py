@@ -1126,7 +1126,7 @@ class GroupConnector(Connector):
 	def check_and_modify_teams(self, old_udm_group, new_udm_group, azure_group, alias):
 		# type: (UDMOfficeGroup, UDMOfficeGroup, GroupAzure) -> None
 		# New Team
-		if not old_udm_group.is_team() and new_udm_group.is_team():
+		if (not old_udm_group.is_team() and new_udm_group.is_team()) or (old_udm_group.azure_object_id != new_udm_group.azure_object_id and new_udm_group.is_team()):
 			self.convert_group_to_team(new_udm_group, azure_group)
 
 		# Remove Team from group
