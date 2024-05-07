@@ -1,3 +1,11 @@
+univention-office365 (3.0.1-24) unstable; urgency=medium
+
+  * Bug #51187: Add extended attributes to allow modify the office group type
+  * Bug #56891: Fix Group recreation does not create a team
+  * Bug #56620: Fix script print_users_and_groups
+
+ -- Ivan Barbecho Delgado <ivan.delgado@univention.de>  Tue, 07 May 2024 10:21:43 +0200
+
 univention-office365 (3.0.1-23) unstable; urgency=medium
 
   * Bug #56915: Remove logrotation configuration
