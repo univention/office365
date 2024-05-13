@@ -268,6 +268,7 @@ class UserAzure(AzureObject):
 		- list: returns a list of all users in Azure AD (static)
 		- invalidate_all_tokens: invalidates all tokens for the user in Azure AD
 	"""
+	odataType = "#microsoft.graph.user"
 	aboutMe = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
 	accountEnabled = attr.ib(validator=attr.validators.instance_of((bool, type(None))), default=None)  # bool
 	ageGroup = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
@@ -526,6 +527,7 @@ class GroupAzure(AzureObject):
 		- remove_member: remove a member from a group in Azure AD
 		- list: list all the groups in Azure AD (static)
 	"""
+	odataType = "#microsoft.graph.group"
 	acceptedSenders = attr.ib(validator=attr.validators.instance_of((List, type(None))), default=None)  # List[Dict[str, str]]
 	allowExternalSenders = attr.ib(validator=attr.validators.instance_of((bool, type(None))), default=None)  # bool
 	autoSubscribeNewMembers = attr.ib(validator=attr.validators.instance_of((bool, type(None))), default=None)  # bool
@@ -729,6 +731,23 @@ class GroupAzure(AzureObject):
 	def is_security_group(self):
 		# type: () -> bool
 		return not "Unified" in self.groupTypes
+
+	def get_assignedLicenses(self):
+		for _license in self._core.get_group(self.id, selection="assignedLicenses")["assignedLicenses"]:
+			yield SubscriptionAzure(skuId=_license["skuId"])
+
+	def add_license(self, subs_sku, deactivated_plans=None):
+		# type: (SubscriptionAzure, List) -> None
+		""""""
+		try:
+			self._core.add_license(self.id, subs_sku.skuId, deactivated_plans, self.odataType)
+		except MSGraphError as exc:
+			reraise(AddLicenseError, AddLicenseError(str(exc), self.id, subs_sku.skuId, exc), sys.exc_info()[2])
+	def remove_all_assigned_licenses(self):
+		# type: () -> None
+		""""""
+		for _license in self.get_assignedLicenses():
+			self._core.remove_license(self.id, _license.skuId, self.odataType)
 
 
 @attr.s

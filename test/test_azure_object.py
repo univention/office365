@@ -591,6 +591,37 @@ class TestGroupAzure(TestObjectAzure):
 			assert group.is_security_group()
 		with new_group(self.core, name, is_security_group=False) as group:
 			assert not group.is_security_group()
+	@my_vcr.use_cassette(os.path.join(VCR_PATH, 'TestGroupAzure/test_get_assignedLicenses.yml'))
+	def test_get_assignedLicenses(self):
+		""""""
+		with new_group(self.core, "test_get_assignedLicenses") as group:
+			subs_sku = SubscriptionAzure.list(self.core)
+			assert len(list(group.get_assignedLicenses())) == 0
+			for sku in subs_sku:
+				if sku.has_free_seats():
+					subs_sku = sku
+					break
+			group.add_license(subs_sku=subs_sku)
+			assert subs_sku.skuId in [x.skuId for x in group.get_assignedLicenses()]
+			group.remove_all_assigned_licenses()
+			assert len(list(group.get_assignedLicenses())) == 0
+
+	@my_vcr.use_cassette(os.path.join(VCR_PATH, 'TestGroupAzure/test_remove_all_assigned_licenses.yml'))
+	def test_remove_all_assigned_licenses(self):
+		""""""
+		with new_group(self.core, "test_get_assignedLicenses") as group:
+			subs_sku = SubscriptionAzure.list(self.core)
+			assert len(list(group.get_assignedLicenses())) == 0
+			for sku in subs_sku:
+				if sku.has_free_seats():
+					subs_sku = sku
+					break
+			group.add_license(subs_sku=subs_sku)
+			group_get = GroupAzure.get(self.core, group.id)
+			assert subs_sku.skuId in [x.skuId for x in group_get.get_assignedLicenses()]
+			group.remove_all_assigned_licenses()
+			assert len(list(group.get_assignedLicenses())) == 0
+
 
 
 class TestTeamAzure(TestObjectAzure):

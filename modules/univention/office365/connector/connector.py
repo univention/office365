@@ -1033,6 +1033,7 @@ class GroupConnector(Connector):
 				except MSGraphError as g_exc:
 					self.logger.error("Error while deleting team %r: %r.", udm_group.get("cn"), g_exc)
 			# azure_group.remove_direct_members()
+			azure_group.remove_all_assigned_licenses()
 			azure_group.delete()
 		new_azure_group = self._create_group(udm_group, core)
 		return new_azure_group

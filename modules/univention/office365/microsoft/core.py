@@ -971,18 +971,21 @@ class MSGraphApiCore(object):
 		domains["value"] = [domain for domain in domains["value"] if domain["isVerified"]]
 		return domains
 
-	def add_license(self, user_id, sku_id, deactivate_plans=None):
-		# type: (str, str, List) -> Dict
+	def add_license(self, user_id, sku_id, deactivate_plans=None, odata_type=None):
+		# type: (str, str, List, Optional[str]) -> Dict
 		"""Add license to user_id"""
 		if not user_id:
 			raise ValueError("missing AzureID")
 		assert isinstance(sku_id, str)
 		assert isinstance(deactivate_plans, list) or deactivate_plans is None
 		deactivate_plans = deactivate_plans or []
-
+		if "#microsoft.graph.group" == odata_type:
+			url_func_builder = URLs.groups
+		else:
+			url_func_builder = URLs.users
 		return self._call_graph_api(
 			'POST',
-			URLs.users(path="{user_id}/assignLicense".format(user_id=user_id)),
+			url_func_builder(path="{user_id}/assignLicense".format(user_id=user_id)),
 			data=json.dumps(
 				{
 					"addLicenses": [
@@ -995,19 +998,22 @@ class MSGraphApiCore(object):
 				}
 			),
 			headers={'Content-Type': 'application/json'},
-			expected_status=[200],
+			expected_status=[200, 202],
 		)
 
-	def remove_license(self, user_id, sku_id):
-		# type: (str, str) -> Dict
+	def remove_license(self, user_id, sku_id, odata_type=None):
+		# type: (str, str, Optional[str]) -> Dict
 		"""Remove license from user_id"""
 		if not user_id:
 			raise ValueError("missing AzureID")
 		assert isinstance(sku_id, str)
-
+		if "#microsoft.graph.group" == odata_type:
+			url_func_builder = URLs.groups
+		else:
+			url_func_builder = URLs.users
 		return self._call_graph_api(
 			'POST',
-			URLs.users(path="{user_id}/assignLicense".format(user_id=user_id)),
+			url_func_builder(path="{user_id}/assignLicense".format(user_id=user_id)),
 			data=json.dumps(
 				{
 					"addLicenses": [],
@@ -1015,7 +1021,7 @@ class MSGraphApiCore(object):
 				}
 			),
 			headers={'Content-Type': 'application/json'},
-			expected_status=[200],
+			expected_status=[200, 202],
 		)
 
 	def resolve_object_ids(self, object_ids):
