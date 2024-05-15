@@ -587,7 +587,7 @@ class UDMOfficeGroup(UDMOfficeObject):
 		for nested_groupdn in self.get_nested_group():
 			group = UDMOfficeGroup(ldap_fields={}, ldap_cred=self.ldap_cred, dn=nested_groupdn)
 			with group.set_current_alias(self.current_connection_alias):
-				for x in group.udm_groups_with_azure_users():
+				for x in group.get_nested_groups_with_azure_users():
 					has_user = True
 					yield x
 
