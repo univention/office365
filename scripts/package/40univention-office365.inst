@@ -412,6 +412,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set hook="Microsoft365GroupHook" \
 	--set default="Security Group" \
 	--set multivalue=0 \
+	--set preventUmcDefaultPopup=1 \
 	--set valueRequired=0 \
 	--set mayChange=1 \
 	--set doNotSearch=0 \

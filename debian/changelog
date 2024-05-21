@@ -1,3 +1,11 @@
+univention-office365 (3.0.1-25) unstable; urgency=medium
+
+  * Bug #51187: Suppress UMC default popup. Only warn against changing the grouptype
+    if the group was already synced to azure. Don't warn if the grouptype is changed
+    from "None" to the current default value.
+
+ -- Julia Bremer <bremer@univention.de>  Thu, 23 May 2024 12:28:02 +0200
+
 univention-office365 (3.0.1-24) unstable; urgency=medium
 
   * Bug #51187: Add extended attributes to allow modify the office group type
