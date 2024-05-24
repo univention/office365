@@ -1,3 +1,9 @@
+univention-office365 (5.0.1-1) unstable; urgency=medium
+
+  * Issue #2274: UCS 5.2
+
+ -- Dirk Wiesenthal <wiesenthal@univention.de>  Fri, 24 May 2024 17:19:39 +0200
+
 univention-office365 (3.0.1-25) unstable; urgency=medium
 
   * Bug #51187: Suppress UMC default popup. Only warn against changing the grouptype
