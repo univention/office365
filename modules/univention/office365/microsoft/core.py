@@ -162,7 +162,7 @@ class MSGraphApiCore(object):
 		# type: (str, str) -> Dict
 		""" https://docs.microsoft.com/en-us/graph/api/user-get
 		"""
-		selection = "$select=" + selection if selection and selection is not "" else None
+		selection = "$select=" + selection if selection else None
 		return self._call_graph_api(
 			'GET',
 			URLs.users(path=user_id, params=selection),
@@ -174,7 +174,7 @@ class MSGraphApiCore(object):
 		""" https://docs.microsoft.com/en-us/graph/api/user-get
 		"""
 
-		selection = "$select=" + selection if selection and selection is not "" else None
+		selection = "$select=" + selection if selection else None
 		return self._call_graph_api(
 			'GET',
 			URLs.groups(params=selection, path=group_id),
