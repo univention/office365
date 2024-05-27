@@ -747,7 +747,7 @@ class UserConnector(Connector):
 			userPrincipalName="{0}@{1}".format(local_part_of_email_address, core.account["domain"]),
 			mailNickname=local_part_of_email_address,
 			displayName=data.get("displayName", "no name"),
-			usageLocation=udm_user.get("st") or UCRHelper.get_usage_location()
+			usageLocation=udm_user.get("c") or UCRHelper.get_usage_location()
 		)
 		if set_password:
 			mandatory_attributes.update(dict(passwordProfile=dict(password=create_random_pw(), forceChangePasswordNextSignInWithMfa=False)))

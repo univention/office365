@@ -111,7 +111,7 @@ def ucr_helper():
 	with mock.patch("univention.office365.connector.connector.UCRHelper") as ucr_helper:
 		ucr_helper.ucr_split_value.side_effect = [
 			["givenName", "street", "postalCode"], ["mail", "postalCode"],
-			["l", "st", "displayName", "employeeType", "givenName", "mailPrimaryAddress", "mobile", "mailAlternativeAddress", "mail", "postalCode", "roomNumber", "st", "street", "sn", "telephoneNumber"]
+			["l", "c", "displayName", "employeeType", "givenName", "mailPrimaryAddress", "mobile", "mailAlternativeAddress", "mail", "postalCode", "roomNumber", "c", "street", "sn", "telephoneNumber"]
 		]
 		ucr_helper.ucr_entries_to_dict.side_effect = [
 			{
@@ -125,7 +125,7 @@ def ucr_helper():
 				"mailPrimaryAddress": "otherMails",
 				"postalCode": "postalCode",
 				"roomNumber": "officeLocation",
-				"st": "usageLocation",
+				"c": "usageLocation",
 				"street": "streetAddress",
 				"sn": "surname",
 				"telephoneNumber": "businessPhones",
@@ -153,7 +153,7 @@ class TestConnectorAttributes:
 	def test_all(self, ucr_helper):
 		# type: (mock.MagicMock) -> None
 		a = ConnectorAttributes()
-		assert a.all_sync_keys == {'displayName', 'employeeType', 'l', 'mailAlternativeAddress', 'mailPrimaryAddress', 'mobile', 'roomNumber', 'sn', 'st', 'telephoneNumber', 'givenName', 'street'}
+		assert a.all_sync_keys == {'displayName', 'employeeType', 'l', 'mailAlternativeAddress', 'mailPrimaryAddress', 'mobile', 'roomNumber', 'sn', 'c', 'telephoneNumber', 'givenName', 'street'}
 
 	def test_update_attributes_from_ucr(self, ucr_helper):
 		# type: (mock.MagicMock) -> None
@@ -161,11 +161,11 @@ class TestConnectorAttributes:
 		a.update_attributes_from_ucr()
 		assert a.anonymize == {"givenName", "street", "postalCode"}
 		assert a.never == {"mail", "postalCode"}
-		assert a.sync == {"l", "st", "displayName", "employeeType", "givenName", "mailPrimaryAddress", "mobile", "mailAlternativeAddress", "mail", "postalCode", "roomNumber", "st", "street", "sn", "telephoneNumber"}
+		assert a.sync == {"l", "c", "displayName", "employeeType", "givenName", "mailPrimaryAddress", "mobile", "mailAlternativeAddress", "mail", "postalCode", "roomNumber", "c", "street", "sn", "telephoneNumber"}
 		assert a.static == {"roomNumber": "asdf", "postalCode": "asdf", "l": "asdf"}
 		assert a.mapping == {
 			"l": "city", "displayName": "displayName", "employeeType": "jobTitle", "givenName": "givenName", "mobile": "mobilePhone", "mail": "otherMails", "mailAlternativeAddress": "otherMails", "mailPrimaryAddress": "otherMails", "postalCode": "postalCode",
-			"roomNumber": "officeLocation", "st": "usageLocation", "street": "streetAddress", "sn": "surname", "telephoneNumber": "businessPhones"
+			"roomNumber": "officeLocation", "c": "usageLocation", "street": "streetAddress", "sn": "surname", "telephoneNumber": "businessPhones"
 		}
 		assert a.multiple == {'otherMails': ['mail', 'mailAlternativeAddress', 'mailPrimaryAddress']}
 
@@ -219,7 +219,7 @@ class TestUserConnector:
 				'shadowLastChange',
 				'shadowMax',
 				'sn',
-				'st',
+				'c',
 				'street',
 				'telephoneNumber',
 				'univentionMicrosoft365Team',
@@ -239,7 +239,7 @@ class TestUserConnector:
 				'postalCode': 'postalCode',
 				'roomNumber': 'officeLocation',
 				'sn': 'surname',
-				'st': 'usageLocation',
+				'c': 'usageLocation',
 				'street': 'streetAddress',
 				'telephoneNumber': 'businessPhones'},
 			'never': set(),
@@ -256,7 +256,7 @@ class TestUserConnector:
 				'postalCode',
 				'roomNumber',
 				'sn',
-				'st',
+				'c',
 				'street',
 				'telephoneNumber'},
 			'multiple': {

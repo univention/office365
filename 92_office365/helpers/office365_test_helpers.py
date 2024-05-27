@@ -123,7 +123,7 @@ listener_attributes_data = dict(
 	anonymize=[],
 	listener=[
 		"city", "displayName", "e-mail", "employeeType", "givenName", "jpegPhoto", "mailAlternativeAddress",
-		"mailPrimaryAddress", "mobile", "postalCode", "roomNumber", "sn", "st", "street", "telephoneNumber",
+		"mailPrimaryAddress", "mobile", "postalCode", "roomNumber", "sn", "c", "street", "telephoneNumber",
 		"univentionOffice365Enabled"
 	],
 	mapping=dict(
@@ -146,7 +146,7 @@ listener_attributes_data = dict(
 	static=[],
 	sync=[
 		"city", "displayName", "e-mail", "employeeType", "givenName", "jpegPhoto", "mailAlternativeAddress",
-		"mailPrimaryAddress", "mobile", "postalCode", "roomNumber", "sn", "st", "st", "street", "telephoneNumber"
+		"mailPrimaryAddress", "mobile", "postalCode", "roomNumber", "sn", "c", "c", "street", "telephoneNumber"
 	]
 )
 
