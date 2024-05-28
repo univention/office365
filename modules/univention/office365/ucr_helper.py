@@ -108,8 +108,7 @@ class UCRHelperC(ConfigRegistry):
 
 	@pre_post_decorator(post_name="load")
 	def set_ucs_overview_link(self):
-		sp_query_string = "?spentityid=urn:federation:MicrosoftOnline"
-		sp_link = "https://{}/simplesamlphp/saml2/idp/SSOService.php{}".format(self["ucs/server/sso/fqdn"], sp_query_string)
+		sp_link = f"{self.get_ucs_sso_fqdn()}/realms/ucs/protocol/saml/clients/MicrosoftOnline"
 		ucr_update(self, {
 			"ucs/web/overview/entries/service/office365/description": "Single Sign-On login for Microsoft 365",
 			"ucs/web/overview/entries/service/office365/label": "Microsoft 365 Login",
@@ -226,7 +225,7 @@ class UCRHelperC(ConfigRegistry):
 	@pre_post_decorator(pre_name="load")
 	def get_ucs_sso_fqdn(self):
 		# type: () -> str
-		return self.get('ucs/server/sso/fqdn', "%s.%s" % (self.get('hostname', 'undefined'), self.get('domainname', 'undefined')))
+		return subprocess.check_output(["univention-keycloak", "get-keycloak-base-url"]).decode().strip()
 
 	@pre_post_decorator(pre_name="load")
 	def get_domainname(self):
@@ -237,11 +236,6 @@ class UCRHelperC(ConfigRegistry):
 	def get_saml_certificate(self, default=None):
 		# type: (Optional[str]) -> str
 		return self.get('saml/idp/certificate/certificate', default)
-	
-	@pre_post_decorator(pre_name="load")
-	def get_ssohost(self):
-		# type: () -> str
-		return self.get('ucs/server/sso/fqdn', 'ucs-sso.{domain}'.format(domain=self.get('domainname')))
 
 """
 Singleton instance

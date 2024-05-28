@@ -39,6 +39,7 @@ import sys
 import time
 import traceback
 import uuid
+import subprocess
 
 import six
 from six.moves import UserDict
@@ -278,38 +279,25 @@ class AzureAccount(UserDict):
 
 	def write_saml_setup_script(self):
 		# type: () -> None
-		# TODO should be moved to UCRHelper and AzureAccount
-		ucs_sso_fqdn = UCRHelper.get_ucs_sso_fqdn()
-		cert = ""
-		try:
-			cert_path = SAML_SETUP_SCRIPT_CERT_PATH.format(domainname=UCRHelper.get_domainname(), adconnection_alias='_{}'.format(self.alias) if self.alias else '')
-			with open(UCRHelper.get_saml_certificate(default=cert_path), 'rb') as fd:
-				raw_cert = fd.read()
-		except IOError as exc:
-			self.logger.exception("while reading certificate: %s", exc)
-			raise WriteScriptError(_("Error reading identity provider certificate."), adconnection_alias=self.alias)
-
-		try:
-			cert = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, raw_cert)).decode("ASCII")
-		except OpenSSL.crypto.Error as exc:
-			self.logger.exception("while converting certificate: %s", exc)
-			raise WriteScriptError(_("Error converting identity provider certificate."), adconnection_alias=self.alias)
-
-		saml_uri_supplement = ""
 		if self.alias != UCRHelper.default_adconnection_name:
-			saml_uri_supplement = '/%s' % self.alias
+			realm = self.alias
+		else:
+			realm = "ucs"
 
-		issuer = 'https://{ssohost}/simplesamlphp{supplement}/saml2/idp/metadata.php'.format(ssohost=UCRHelper.get_ssohost(), supplement=saml_uri_supplement)
-
-		# The raw base64 encoded certificate is required
-		cert = cert.replace('-----BEGIN CERTIFICATE-----', '').replace('-----END CERTIFICATE-----', '').replace('\n', '')
-		template = '''
+		domain = self.get_domain()
+		sso_url = subprocess.check_output(["univention-keycloak", "get-keycloak-base-url"]).decode().strip()
+		logon_uri = f"{sso_url}/realms/{realm}/protocol/saml"
+		passive_logon_uri = logon_uri
+		signing_cert = subprocess.check_output(["univention-keycloak", "saml/idp/cert", "get"]).decode().strip()
+		issuer_uri = f"{sso_url}/realms/{realm}"
+		logoff_uri = logon_uri # FIXME: does not work right now
+		template = f'''
 @ECHO OFF
 ECHO Asking for Azure Administator credentials
-powershell Connect-MsolService; Set-MsolDomainAuthentication -DomainName "{domain}" -Authentication Managed; Set-MsolDomainAuthentication -DomainName "{domain}" -FederationBrandName "UCS" -Authentication Federated -ActiveLogOnUri "https://{ucs_sso_fqdn}/simplesamlphp{supplement}/saml2/idp/SSOService.php" -PassiveLogOnUri "https://{ucs_sso_fqdn}/simplesamlphp{supplement}/saml2/idp/SSOService.php" -SigningCertificate "{cert}" -IssuerUri "{issuer}" -LogOffUri "https://{ucs_sso_fqdn}/simplesamlphp{supplement}/saml2/idp/SingleLogoutService.php?ReturnTo=/univention/" -PreferredAuthenticationProtocol SAMLP;  Get-MsolDomain
+powershell Connect-MsolService; Set-MsolDomainAuthentication -DomainName "{domain}" -Authentication Managed; Set-MsolDomainAuthentication -DomainName "{domain}" -FederationBrandName "UCS" -Authentication Federated -ActiveLogOnUri "{logon_uri}" -PassiveLogOnUri "{passive_logon_uri}" -SigningCertificate "{signing_cert}" -IssuerUri "{issuer_uri}" -LogOffUri "{logoff_uri}" -PreferredAuthenticationProtocol SAMLP;  Get-MsolDomain
 ECHO Finished single sign-on configuration change
 pause
-'''.format(domain=self.get_domain(), ucs_sso_fqdn=ucs_sso_fqdn, cert=cert, issuer=issuer, supplement=saml_uri_supplement)
+'''
 
 		try:
 			script_path = SAML_SETUP_SCRIPT_PATH.format(adconnection_alias='_{}'.format(self.alias) if self.alias else '')
