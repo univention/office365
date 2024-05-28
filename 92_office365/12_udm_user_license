@@ -1,4 +1,4 @@
-#!/usr/share/ucs-test/runner python3
+#!/usr/share/ucs-test/runner pytest-3 -s -vvv
 ## -*- coding: utf-8 -*-
 ## desc: create user in azure, check license/plan info
 ## tags: [apptest]
@@ -29,6 +29,8 @@ This test is used to check license and plan info for replicated users.
 """
 import time
 import random
+
+impor pytest
 
 import univention.testing.strings as uts
 import univention.testing.ucr as ucr_test
@@ -65,141 +67,76 @@ def compare_subscriptions(a, b):
 	return a == b
 
 
-def create_azure_user():
-	print("*** Creating office365-activated user in primary group %r..." % group_name)
-	user_args = udm_user_args(ucr, minimal=True)
-	user_args["set"]["UniventionOffice365Enabled"] = 1
-	user_args["set"]["UniventionOffice365ADConnectionAlias"] = adconnection_alias
-	user_args["set"]["primaryGroup"] = group_dn
-	user_dn, username = udm.create_user(**user_args)
+@pytest.mark.parametrize("user_creation_activation_ordering", ["simultaneous", "activation_after_creation"])
+def test_udm_user_license(user_creation_activation_ordering):
 
-	fail_msg = "User was not created properly (no UniventionOffice365ObjectID)."
-	user_id = retry_call(check_user_id_from_azure, fargs=[adconnection_alias, user_dn, fail_msg], tries=5, delay=2)
-	udm_user = retry_call(check_user_in_group_from_azure, fargs=[udm_helper, group_dn, user_dn], tries=5, delay=2)
+	# FIXME
+	if user_creation_activation_ordering == "simultaneous":
+		pytest.skip("https://forge.univention.org/bugzilla/show_bug.cgi?id=57263")
 
-	return user_dn, udm_user, user_id
+	def create_azure_user():
+		print("*** Creating office365-activated user in primary group %r..." % group_name)
+		user_args = udm_user_args(ucr, minimal=True)
+		user_args["set"]["primaryGroup"] = group_dn
+		if user_creation_activation_ordering == "simultaneous":
+			user_args["set"]["UniventionOffice365Enabled"] = 1
+			user_args["set"]["UniventionOffice365ADConnectionAlias"] = adconnection_alias
+			user_dn, username = udm.create_user(**user_args)
+		else:
+			user_dn, username = udm.create_user(**user_args)
+			udm.modify_object("users/user", dn=user_dn, set={"UniventionOffice365Enabled": 1, "UniventionOffice365ADConnectionAlias": adconnection_alias}, wait_for=True)
 
+		fail_msg = "User was not created properly (no UniventionOffice365ObjectID)."
+		user_id = retry_call(check_user_id_from_azure, fargs=[adconnection_alias, user_dn, fail_msg], tries=5, delay=2)
+		udm_user = retry_call(check_user_in_group_from_azure, fargs=[udm_helper, group_dn, user_dn], tries=5, delay=2)
 
-with utils.AutomaticListenerRestart():
-	with udm_test.UCSTestUDM() as udm:
-		with ucr_test.UCSTestConfigRegistry() as ucr:
-			ucr.load()
+		return user_dn, udm_user, user_id
 
-			# Only test one connection, not all...
-			if "o365domain" in initialized_adconnections:
-				# univention internal testdomain with subscriptions
-				adconnection_alias = "o365domain"
-			else:
-				adconnection_alias = random.choice(initialized_adconnections)
+	with utils.AutomaticListenerRestart():
+		with udm_test.UCSTestUDM() as udm:
+			with ucr_test.UCSTestConfigRegistry() as ucr:
+				ucr.load()
 
-			core = MSGraphApiCore(AzureAccount(adconnection_alias))
+				# Only test one connection, not all...
+				if "o365domain" in initialized_adconnections:
+					# univention internal testdomain with subscriptions
+					adconnection_alias = "o365domain"
+				else:
+					adconnection_alias = random.choice(initialized_adconnections)
 
-			print("*** Creating group without a profile...")
-			group_name = uts.random_name()
-			description = uts.random_string()
-			group_dn = udm.create_object(
-				"groups/group",
-				set=dict(
-					name=group_name,
-					description=description
-				),
-				position="cn=groups,{}".format(ucr.get("ldap/base")),
-				check_for_drs_replication=True
-			)
+				core = MSGraphApiCore(AzureAccount(adconnection_alias))
 
-			user_dn, udm_user, user_id = create_azure_user()
-
-			print("*** Checking license of user - should have all plans enabled...")
-			# create id to plan name mapping
-			# create subscription name to id mapping
-			subscriptions_online = SubscriptionAzure.get_enabled(core, UCRHelper.get_service_plan_names())
-			# Check if subscriptions are avaiable for testing
-			num_available_subs = subscriptions_online[0].prepaidUnits["enabled"] + subscriptions_online[0].prepaidUnits["suspended"] + subscriptions_online[0].prepaidUnits["warning"] - subscriptions_online[0].consumedUnits
-			if num_available_subs < 1:
-				utils.fail('There are no subscriptions available for testing in Azure Domain alias %s' % adconnection_alias)
-			ids_to_plan_names = dict()
-			id_to_subscription_name = dict()
-			subscription_name_to_id = dict()
-			for subscription in subscriptions_online:
-				id_to_subscription_name[subscription.skuId] = subscription.skuPartNumber
-				subscription_name_to_id[subscription.skuPartNumber] = subscription.skuId
-				for plan in subscription.servicePlans:
-					ids_to_plan_names[plan['servicePlanId']] = plan['servicePlanName']
-
-			time.sleep(10)
-			azure_user = UserAzure.get(core, user_id, selection=azure_user_selection)
-
-			# deleting as early as possible to free license, and because cleanup fails sometimes
-			print("*** Deleting user...")
-			udm.remove_object('users/user', dn=udm_user.dn)
-
-			if azure_user.assignedLicenses[0]['skuId'] != subscriptions_online[0].skuId:
-				utils.fail(
-					'License of user in Azure (%r/%r) != first one found online (%r/%r).' %
-					(
-						id_to_subscription_name[azure_user.assignedLicenses['skuId']],
-						azure_user.assignedLicenses['skuId'],
-						subscriptions_online[0].skuPartNumber,
-						subscriptions_online[0].skuId
-					)
-				)
-			if any(plan['capabilityStatus'] != 'Enabled' for plan in azure_user.assignedPlans):
-				utils.fail(
-					'Found disabled plan in fall back subscription.\nassignedPlans=%r' %
-					(azure_user.assignedPlans,))
-
-			profile_kwargs_list = [
-				dict(
-					name=uts.random_name(),
-					subscription='ENTERPRISEPACK',
-					whitelisted_plans=['SWAY', 'POWERAPPS_O365_P2', 'YAMMER_ENTERPRISE', 'PROJECTWORKMANAGEMENT'],
-					blacklisted_plans=['SWAY', 'POWERAPPS_O365_P2']
-				),
-				dict(
-					name=uts.random_name(),
-					subscription='ENTERPRISEPACK',
-					whitelisted_plans=['PROJECTWORKMANAGEMENT'],
-					blacklisted_plans=[]
-				),
-				dict(
-					name=uts.random_name(),
-					subscription='ENTERPRISEPACK',
-					whitelisted_plans=[],
-					blacklisted_plans=['TEAMS1', 'RMS_S_ENTERPRISE', 'MCOSTANDARD']
-				),
-			]
-			for profile_kwargs in profile_kwargs_list:
-				print("*** Creating license and setting it on group %r..." % group_name)
-				profile_dn = udm.create_object('office365/profile', **profile_kwargs)
-				udm.modify_object(
+				print("*** Creating group without a profile...")
+				group_name = uts.random_name()
+				description = uts.random_string()
+				group_dn = udm.create_object(
 					"groups/group",
-					dn=group_dn,
-					set=dict(UniventionOffice365Profile=profile_dn),
+					set=dict(
+						name=group_name,
+						description=description
+					),
+					position="cn=groups,{}".format(ucr.get("ldap/base")),
 					check_for_drs_replication=True
 				)
-				print("*** Checking subscription for group %r..." % group_name)
-				subscriptions = SubscriptionProfile.get_profiles_for_groups([group_dn])
-				if len(subscriptions) != 1:
-					utils.fail('Got != 1 subscriptions for group %r.\nsubscriptions=%r' % (group_name, subscriptions))
-				subscription = subscriptions[0]
-				if not compare_subscriptions(subscription, profile_kwargs):
-					utils.fail(
-						'Subscription loaded from LDAP for group %r differs to expectation:\nexpected: %r\nfound: %r' %
-						(group_name, profile_kwargs, subscription))
 
 				user_dn, udm_user, user_id = create_azure_user()
 
-				print("*** Checking subscription for user %r..." % udm_user['username'])
-				users_group_dns = udm_helper.get_udm_user(user_dn)['groups']
-				users_subscription_profiles = SubscriptionProfile.get_profiles_for_groups(users_group_dns)
-				print('SubscriptionProfiles found for %r: %r' % (udm_user['username'], users_subscription_profiles))
-				if len(subscriptions) != 1:
-					utils.fail('Got != 1 subscriptions for user %r.\nsubscriptions=%r' % (udm_user['username'], subscriptions))
-				subscription = subscriptions[0]
-				if not compare_subscriptions(subscription, profile_kwargs):
-					utils.fail(
-						'Subscription loaded from LDAP for user %r differs to expectation:\nexpected: %r\nfound: %r' %
-						(udm_user['username'], profile_kwargs, subscription))
+				print("*** Checking license of user - should have all plans enabled...")
+				# create id to plan name mapping
+				# create subscription name to id mapping
+				subscriptions_online = SubscriptionAzure.get_enabled(core, UCRHelper.get_service_plan_names())
+				# Check if subscriptions are avaiable for testing
+				num_available_subs = subscriptions_online[0].prepaidUnits["enabled"] + subscriptions_online[0].prepaidUnits["suspended"] + subscriptions_online[0].prepaidUnits["warning"] - subscriptions_online[0].consumedUnits
+				if num_available_subs < 1:
+					utils.fail('There are no subscriptions available for testing in Azure Domain alias %s' % adconnection_alias)
+				ids_to_plan_names = dict()
+				id_to_subscription_name = dict()
+				subscription_name_to_id = dict()
+				for subscription in subscriptions_online:
+					id_to_subscription_name[subscription.skuId] = subscription.skuPartNumber
+					subscription_name_to_id[subscription.skuPartNumber] = subscription.skuId
+					for plan in subscription.servicePlans:
+						ids_to_plan_names[plan['servicePlanId']] = plan['servicePlanName']
 
 				time.sleep(10)
 				azure_user = UserAzure.get(core, user_id, selection=azure_user_selection)
@@ -208,34 +145,109 @@ with utils.AutomaticListenerRestart():
 				print("*** Deleting user...")
 				udm.remove_object('users/user', dn=udm_user.dn)
 
-				if id_to_subscription_name[azure_user.assignedLicenses[0]['skuId']] != subscription.subscription:
+				if azure_user.assignedLicenses[0]['skuId'] != subscriptions_online[0].skuId:
 					utils.fail(
-						'Azure user was assigned wrong license.\n'
-						'azure_user.assignedLicenses%r\n'
-						'subscription.subscription=%r' %
-						(azure_user.assignedLicenses, subscription.subscription))
-
-				enabled_plans = set()
-				for plan in azure_user.assignedPlans:
-					if plan['capabilityStatus'] == 'Enabled':
-						enabled_plans.add(ids_to_plan_names[plan['servicePlanId']])
-				whitelisted_plans = set(profile_kwargs['whitelisted_plans'])
-				blacklisted_plans = set(profile_kwargs['blacklisted_plans'])
-
-				debug_msg = 'whitelisted_plans=%r\nblacklisted_plans=%r\nenabled_plans=%r' % (
-					whitelisted_plans, blacklisted_plans, enabled_plans)
-
-				# Only enabled plans are noted on the azure object representation,
-				# we have to check if any blacklisted plan that is also whitelisted is
-				# not in the list of enabled plans
-				if blacklisted_plans.intersection(enabled_plans):
+						'License of user in Azure (%r/%r) != first one found online (%r/%r).' %
+						(
+							id_to_subscription_name[azure_user.assignedLicenses['skuId']],
+							azure_user.assignedLicenses['skuId'],
+							subscriptions_online[0].skuPartNumber,
+							subscriptions_online[0].skuId
+						)
+					)
+				if any(plan['capabilityStatus'] != 'Enabled' for plan in azure_user.assignedPlans):
 					utils.fail(
-						'Blacklisted plans were not disabled: %r\n%s' %
-						(blacklisted_plans - enabled_plans, debug_msg))
-				if whitelisted_plans - blacklisted_plans - enabled_plans:
-					utils.fail(
-						'Whitelisted plans were not enabled: %r\n%s' %
-						(whitelisted_plans - blacklisted_plans - enabled_plans, debug_msg))
-				if whitelisted_plans and len(enabled_plans) > len(whitelisted_plans):
-					utils.fail('More plans enabled than whitelisted plans.\n%s' % debug_msg)
-			print("*** All went well.")
+						'Found disabled plan in fall back subscription.\nassignedPlans=%r' %
+						(azure_user.assignedPlans,))
+
+				profile_kwargs_list = [
+					dict(
+						name=uts.random_name(),
+						subscription='ENTERPRISEPACK',
+						whitelisted_plans=['SWAY', 'POWERAPPS_O365_P2', 'YAMMER_ENTERPRISE', 'PROJECTWORKMANAGEMENT'],
+						blacklisted_plans=['SWAY', 'POWERAPPS_O365_P2']
+					),
+					dict(
+						name=uts.random_name(),
+						subscription='ENTERPRISEPACK',
+						whitelisted_plans=['PROJECTWORKMANAGEMENT'],
+						blacklisted_plans=[]
+					),
+					dict(
+						name=uts.random_name(),
+						subscription='ENTERPRISEPACK',
+						whitelisted_plans=[],
+						blacklisted_plans=['TEAMS1', 'RMS_S_ENTERPRISE', 'MCOSTANDARD']
+					),
+				]
+				for profile_kwargs in profile_kwargs_list:
+					print("*** Creating license and setting it on group %r..." % group_name)
+					profile_dn = udm.create_object('office365/profile', **profile_kwargs)
+					udm.modify_object(
+						"groups/group",
+						dn=group_dn,
+						set=dict(UniventionOffice365Profile=profile_dn),
+						check_for_drs_replication=True
+					)
+					print("*** Checking subscription for group %r..." % group_name)
+					subscriptions = SubscriptionProfile.get_profiles_for_groups([group_dn])
+					if len(subscriptions) != 1:
+						utils.fail('Got != 1 subscriptions for group %r.\nsubscriptions=%r' % (group_name, subscriptions))
+					subscription = subscriptions[0]
+					if not compare_subscriptions(subscription, profile_kwargs):
+						utils.fail(
+							'Subscription loaded from LDAP for group %r differs to expectation:\nexpected: %r\nfound: %r' %
+							(group_name, profile_kwargs, subscription))
+
+					user_dn, udm_user, user_id = create_azure_user()
+
+					print("*** Checking subscription for user %r..." % udm_user['username'])
+					users_group_dns = udm_helper.get_udm_user(user_dn)['groups']
+					users_subscription_profiles = SubscriptionProfile.get_profiles_for_groups(users_group_dns)
+					print('SubscriptionProfiles found for %r: %r' % (udm_user['username'], users_subscription_profiles))
+					if len(subscriptions) != 1:
+						utils.fail('Got != 1 subscriptions for user %r.\nsubscriptions=%r' % (udm_user['username'], subscriptions))
+					subscription = subscriptions[0]
+					if not compare_subscriptions(subscription, profile_kwargs):
+						utils.fail(
+							'Subscription loaded from LDAP for user %r differs to expectation:\nexpected: %r\nfound: %r' %
+							(udm_user['username'], profile_kwargs, subscription))
+
+					time.sleep(10)
+					azure_user = UserAzure.get(core, user_id, selection=azure_user_selection)
+
+					# deleting as early as possible to free license, and because cleanup fails sometimes
+					print("*** Deleting user...")
+					udm.remove_object('users/user', dn=udm_user.dn)
+
+					if id_to_subscription_name[azure_user.assignedLicenses[0]['skuId']] != subscription.subscription:
+						utils.fail(
+							'Azure user was assigned wrong license.\n'
+							'azure_user.assignedLicenses%r\n'
+							'subscription.subscription=%r' %
+							(azure_user.assignedLicenses, subscription.subscription))
+
+					enabled_plans = set()
+					for plan in azure_user.assignedPlans:
+						if plan['capabilityStatus'] == 'Enabled':
+							enabled_plans.add(ids_to_plan_names[plan['servicePlanId']])
+					whitelisted_plans = set(profile_kwargs['whitelisted_plans'])
+					blacklisted_plans = set(profile_kwargs['blacklisted_plans'])
+
+					debug_msg = 'whitelisted_plans=%r\nblacklisted_plans=%r\nenabled_plans=%r' % (
+						whitelisted_plans, blacklisted_plans, enabled_plans)
+
+					# Only enabled plans are noted on the azure object representation,
+					# we have to check if any blacklisted plan that is also whitelisted is
+					# not in the list of enabled plans
+					if blacklisted_plans.intersection(enabled_plans):
+						utils.fail(
+							'Blacklisted plans were not disabled: %r\n%s' %
+							(blacklisted_plans - enabled_plans, debug_msg))
+					if whitelisted_plans - blacklisted_plans - enabled_plans:
+						utils.fail(
+							'Whitelisted plans were not enabled: %r\n%s' %
+							(whitelisted_plans - blacklisted_plans - enabled_plans, debug_msg))
+					if whitelisted_plans and len(enabled_plans) > len(whitelisted_plans):
+						utils.fail('More plans enabled than whitelisted plans.\n%s' % debug_msg)
+				print("*** All went well.")
