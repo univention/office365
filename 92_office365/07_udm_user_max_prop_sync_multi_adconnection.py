@@ -54,11 +54,11 @@ class Test_UDMUserCreation2:
 			"office365/attributes/mapping/mailPrimaryAddress=otherMails",
 			"office365/attributes/mapping/postalCode=postalCode",
 			"office365/attributes/mapping/roomNumber=officeLocation",
-			"office365/attributes/mapping/st=usageLocation",
+			"office365/attributes/mapping/c=usageLocation",
 			"office365/attributes/mapping/street=streetAddress",
 			"office365/attributes/mapping/sn=surname",
 			"office365/attributes/mapping/telephoneNumber=businessPhones",
-			"office365/attributes/sync=l,st,displayName,employeeType,givenName,mailPrimaryAddress,mobile,mailAlternativeAddress,mail,postalCode,roomNumber,st,street,sn,telephoneNumber",
+			"office365/attributes/sync=l,c,displayName,employeeType,givenName,mailPrimaryAddress,mobile,mailAlternativeAddress,mail,postalCode,roomNumber,c,street,sn,telephoneNumber",
 			"office365/debug/werror=yes",
 		])
 		utils.restart_listener()

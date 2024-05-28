@@ -138,7 +138,7 @@ listener_attributes_data = dict(
 		postalCode="postalCode",
 		roomNumber="officeLocation",
 		sn="surname",
-		st="usageLocation",
+		c="usageLocation",
 		street="streetAddress",
 		telephoneNumber="businessPhones",
 	),

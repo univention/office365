@@ -1323,7 +1323,7 @@ _Default:_
   office365/attributes/mapping/mailPrimaryAddress=otherMails  
   office365/attributes/mapping/postalCode=postalCode  
   office365/attributes/mapping/roomNumber=officeLocation  
-  office365/attributes/mapping/st=usageLocation  
+  office365/attributes/mapping/c=usageLocation  
   office365/attributes/mapping/street=streetAddress  
   office365/attributes/mapping/sn=surname  
   office365/attributes/mapping/telephoneNumber=businessPhones
@@ -1337,7 +1337,7 @@ The names of the attributes must be included in `office365/attributes/mapping/.*
 _Type:_ str comma separated list
 
 _Default:_
-`office365/attributes/sync=displayName,employeeType,givenName,l,mailPrimaryAddress,mobile,mailAlternativeAddress,mail,postalCode,roomNumber,st,street,sn,telephoneNumber`
+`office365/attributes/sync=displayName,employeeType,givenName,l,mailPrimaryAddress,mobile,mailAlternativeAddress,mail,postalCode,roomNumber,c,street,sn,telephoneNumber`
 
 ### office365/attributes/static/.*
 

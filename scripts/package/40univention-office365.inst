@@ -35,7 +35,7 @@
 
 set -x
 
-VERSION=11
+VERSION=20
 
 . /usr/share/univention-join/joinscripthelper.lib
 . /usr/share/univention-lib/all.sh
@@ -548,11 +548,11 @@ univention-config-registry set \
 	office365/attributes/mapping/mailPrimaryAddress?otherMails \
 	office365/attributes/mapping/postalCode?postalCode \
 	office365/attributes/mapping/roomNumber?officeLocation \
-	office365/attributes/mapping/st?usageLocation \
+	office365/attributes/mapping/c?usageLocation \
 	office365/attributes/mapping/street?streetAddress \
 	office365/attributes/mapping/sn?surname \
 	office365/attributes/mapping/telephoneNumber?businessPhones \
-	office365/attributes/sync?displayName,employeeType,givenName,l,mailPrimaryAddress,mobile,mailAlternativeAddress,mail,postalCode,roomNumber,st,street,sn,telephoneNumber \
+	office365/attributes/sync?displayName,employeeType,givenName,l,mailPrimaryAddress,mobile,mailAlternativeAddress,mail,postalCode,roomNumber,c,street,sn,telephoneNumber \
 	office365/groups/sync?no || die
 
 # With VERSION 10 we have migrated to Microsoft Graph. It have changes in the names of the attributes.
@@ -561,6 +561,12 @@ if [ "$JS_LAST_EXECUTED_VERSION" -lt 10 ] && [ $JS_LAST_EXECUTED_VERSION -gt 0 ]
   univention-config-registry  set office365/attributes/mapping/roomNumber=officeLocation \
    office365/attributes/mapping/mobile=mobilePhone \
    office365/attributes/mapping/telephoneNumber=businessPhones
+fi
+
+# Bug #50073: By now, /usr/share/univention-directory-manager-tools/udm-remap-country-from-st-to-c must have been run
+if [ "$JS_LAST_EXECUTED_VERSION" -lt 20 ] && [ "$(ucr get office365/attributes/mapping/st)" = "usageLocation" ]; then
+	ucr set office365/attributes/sync="$(ucr get office365/attributes/sync | sed 's/,st,/,c,/')"
+	ucr unset office365/attributes/mapping/st
 fi
 
 udm saml/serviceprovider create "$@" \

@@ -10,7 +10,7 @@
 """
 This test is used to create and modify user in azure, check values usageLocation takes
 The usageLocation for an user in Azure can be set from different values in the system with the next priority:
-1. The UDM attribute `st`
+1. The UDM attribute `c`
 2. From UCR (univention.office365.ucr_helper.UCRHelperC.get_usage_location):
   2.1 The UCR variable `office365/attributes/usageLocation`
   2.2 The UCR variable `ssl/country`
@@ -21,12 +21,12 @@ The next operations are performed on the two preconfigured connections to Azure:
 - create UDM user
 - wait for the user to be replicated in Azure
 - retrieve the user from Azure and check the id
-- check that the usageLocation is set to the same value as in UDM user st attribute
-- modify the UDM user to clear the st attribute
+- check that the usageLocation is set to the same value as in UDM user c attribute
+- modify the UDM user to clear the c attribute
 - check that the usageLocation is set to the same value as in UCR variable `office365/attributes/usageLocation`
 - clear the UCR variable `office365/attributes/usageLocation`
-- modify the UDM user to set the `st` attribute again
-- modify the UDM user to clear the `st` attribute
+- modify the UDM user to set the `c` attribute again
+- modify the UDM user to clear the `c` attribute
 - check that the usageLocation is set to the same value as in UCR variable `ssl/country`
 """
 
@@ -98,17 +98,17 @@ with utils.AutomaticListenerRestart():
 				"office365/attributes/mapping/mailPrimaryAddress=otherMails",
 				"office365/attributes/mapping/postalCode=postalCode",
 				"office365/attributes/mapping/roomNumber=officeLocation",
-				"office365/attributes/mapping/st=usageLocation",
+				"office365/attributes/mapping/c=usageLocation",
 				"office365/attributes/mapping/street=streetAddress",
 				"office365/attributes/mapping/sn=surname",
 				"office365/attributes/mapping/telephoneNumber=businessPhones",
-				"office365/attributes/sync=l,st,displayName,employeeType,givenName,mailPrimaryAddress,mobile,mailAlternativeAddress,mail,postalCode,roomNumber,st,street,sn,telephoneNumber",
+				"office365/attributes/sync=l,c,displayName,employeeType,givenName,mailPrimaryAddress,mobile,mailAlternativeAddress,mail,postalCode,roomNumber,c,street,sn,telephoneNumber",
 				"office365/attributes/usageLocation={}".format(ucr_usageLocation),
 				"office365/debug/werror=yes",
 			])
 			utils.restart_listener()
 
-			print("*** Set office365/attributes/mapping/st=usageLocation")
+			print("*** Set office365/attributes/mapping/c=usageLocation")
 			print("*** Set office365/attributes/usageLocation={}".format(ucr_usageLocation))
 			print("*** Set user[set][country]={}".format(udm_country))
 
