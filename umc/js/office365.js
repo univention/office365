@@ -138,7 +138,7 @@ define([
 					}, {
 						type: Text,
 						name: 'continue',
-						content: this.formatOrderedList([_('Continue by clicking on <i>Next</i>.')], {start: 7})
+						content: this.formatOrderedList([_('Continue by clicking on <i>Next</i>.')], {start: 8})
 					}]
 				}, {
 					name: 'manifest-upload',

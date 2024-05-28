@@ -347,7 +347,7 @@ msgid ""
 "requesting a token."
 msgstr ""
 "Laden Sie den {link} herunter. Er wird verwendet um die Identität "
-"derApplikation, beim Holen eines Tokens, zu beweisen."
+"der Applikation, beim Holen eines Tokens, zu beweisen."
 
 #: office365.js:317
 msgid "public certificate key"

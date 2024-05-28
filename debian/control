@@ -29,6 +29,7 @@ Standards-Version: 3.8.2
 Package: univention-office365
 Architecture: all
 Depends:
+ xxd,
  univention-group-membership-cache,
  shell-univention-lib,
  univention-config,
