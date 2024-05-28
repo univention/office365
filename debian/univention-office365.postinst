@@ -56,11 +56,6 @@ systemctl restart univention-ms-office-async.service
 . /usr/share/univention-lib/base.sh
 call_joinscript 40univention-office365.inst
 
-if dpkg --compare-versions "2.0.0-8" gt-nl "$2"; then
-	# Remove old saml config completely by rewriting saml20-sp-remote.php
-	ucr commit /etc/simplesamlphp/metadata/saml20-sp-remote.php
-fi
-
 a2ensite office365-wsgi
 systemctl reload apache2
 
