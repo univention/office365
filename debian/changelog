@@ -12,7 +12,8 @@ univention-office365 (5.0.1-6) unstable; urgency=medium
 
 univention-office365 (5.0.1-5) unstable; urgency=medium
 
-  * Issue #1671: Keycloak integration added; simplesamlphp integration removed
+  * Issue #1671: Keycloak integration added
+  * Issue #1673: Remove SimpleSAMLphp integration
 
  -- Dirk Wiesenthal <wiesenthal@univention.de>  Tue, 28 May 2024 22:38:17 +0200
 
