@@ -73,244 +73,244 @@ If several operations need to be performed on the same connection, the pool cont
 
 
 class Connection(object):
-	def __init__(self, id, account, core=None):
-		# type: (str, AzureAccount, MSGraphApiCore) -> None
-		self.id = id
-		self.account = account
-		self.core = core or MSGraphApiCore(account)
+    def __init__(self, id, account, core=None):
+        # type: (str, AzureAccount, MSGraphApiCore) -> None
+        self.id = id
+        self.account = account
+        self.core = core or MSGraphApiCore(account)
 
 
 class ConnectionsPool(UserDict):
-	"""
-	Class to manage the connections to the AD.
-	"""
-	def __init__(self, logger=None):
-		# type: (Logger) -> None
-		if six.PY2:
-			UserDict.__init__(self)
-		else:
-			super(ConnectionsPool, self).__init__()
-		self.logger = logger or get_logger("office3365", "o365")
-		self.connections = {}  # type: Dict[str, Connection]
-		self.current = None
+    """
+    Class to manage the connections to the AD.
+    """
+    def __init__(self, logger=None):
+        # type: (Logger) -> None
+        if six.PY2:
+            UserDict.__init__(self)
+        else:
+            super(ConnectionsPool, self).__init__()
+        self.logger = logger or get_logger("office3365", "o365")
+        self.connections = {}  # type: Dict[str, Connection]
+        self.current = None
 
-	def __iter__(self):
-		# type: () -> None
-		for connection in self.connections.values():
-			self.current = connection
-			yield connection.core
-		self.current = None
+    def __iter__(self):
+        # type: () -> None
+        for connection in self.connections.values():
+            self.current = connection
+            yield connection.core
+        self.current = None
 
-	def __getitem__(self, alias):
-		# type: (str) -> Connection
-		return self.connections[alias]
+    def __getitem__(self, alias):
+        # type: (str) -> Connection
+        return self.connections[alias]
 
-	def __setitem__(self, alias, connection):
-		# type: (str, Connection) -> None
-		self.connections[alias] = connection
+    def __setitem__(self, alias, connection):
+        # type: (str, Connection) -> None
+        self.connections[alias] = connection
 
-	def __delitem__(self, alias):
-		# type: (str) -> None
-		del self.connections[alias]
+    def __delitem__(self, alias):
+        # type: (str) -> None
+        del self.connections[alias]
 
-	def __contains__(self, alias):
-		# type: (str) -> bool
-		return alias in self.connections
+    def __contains__(self, alias):
+        # type: (str) -> bool
+        return alias in self.connections
 
-	def __len__(self):
-		# type: () -> int
-		return len(self.connections)
+    def __len__(self):
+        # type: () -> int
+        return len(self.connections)
 
-	def status(self, only_initialized=False):
-		# type: (bool) -> Tuple[str, str, str]
-		for alias, connection in self.connections.items():
-			confdir = connection.account.conf_dirs['CONFDIR']
-			initialized = connection.account.is_initialized()
-			status = 'initialized' if initialized else 'uninitialized'
-			if initialized or not only_initialized:
-				yield (alias, status, confdir)
+    def status(self, only_initialized=False):
+        # type: (bool) -> Tuple[str, str, str]
+        for alias, connection in self.connections.items():
+            confdir = connection.account.conf_dirs['CONFDIR']
+            initialized = connection.account.is_initialized()
+            status = 'initialized' if initialized else 'uninitialized'
+            if initialized or not only_initialized:
+                yield (alias, status, confdir)
 
-	@classmethod
-	def from_ucr(cls):
-		# type: () -> ConnectionsPool
-		"""
-		Update the connections from the UCR.
-		"""
-		pool = None
-		aliases = UCRHelper.get_adconnection_aliases().items()
-		if len(aliases) > 0:
-			pool = cls()
-		for alias, adconnection_id in aliases:
-			connection = Connection(adconnection_id, AzureAccount(alias))
-			pool.connections[alias] = connection
-		return pool
+    @classmethod
+    def from_ucr(cls):
+        # type: () -> ConnectionsPool
+        """
+        Update the connections from the UCR.
+        """
+        pool = None
+        aliases = UCRHelper.get_adconnection_aliases().items()
+        if len(aliases) > 0:
+            pool = cls()
+        for alias, adconnection_id in aliases:
+            connection = Connection(adconnection_id, AzureAccount(alias))
+            pool.connections[alias] = connection
+        return pool
 
-	def sub_pool(self, aliases):
-		# type: (List[str]) -> ConnectionsPool
-		"""
-		Return a sub pool of the current pool.
-		"""
-		sub_pool = self.__class__()
-		for alias in aliases:
-			if alias in self.connections.keys():
-				sub_pool[alias] = self[alias]
-			else:
-				raise KeyError('Azure AD connection alias %s is not listed in UCR %s.' % (alias, UCRHelper.alias_ucrv))
-		return sub_pool
+    def sub_pool(self, aliases):
+        # type: (List[str]) -> ConnectionsPool
+        """
+        Return a sub pool of the current pool.
+        """
+        sub_pool = self.__class__()
+        for alias in aliases:
+            if alias in self.connections.keys():
+                sub_pool[alias] = self[alias]
+            else:
+                raise KeyError('Azure AD connection alias %s is not listed in UCR %s.' % (alias, UCRHelper.alias_ucrv))
+        return sub_pool
 
-	# Only called by the script manage_adaccounts
-	def create_new(self, alias, make_default=False, description="", restart_listener=True):
-		# type: (str, bool, str, bool) -> None
-		if alias in self:
-			self.logger.error('Azure AD connection alias %s is already listed in UCR %s.', alias, UCRHelper.alias_ucrv)
-			return None
-		new_account = AzureAccount.create_local(alias)
-		UCRHelper.set_ucr_for_new_connection(alias, make_default)
-		self[alias] = Connection(new_account["adconnection_id"], new_account)
+    # Only called by the script manage_adaccounts
+    def create_new(self, alias, make_default=False, description="", restart_listener=True):
+        # type: (str, bool, str, bool) -> None
+        if alias in self:
+            self.logger.error('Azure AD connection alias %s is already listed in UCR %s.', alias, UCRHelper.alias_ucrv)
+            return None
+        new_account = AzureAccount.create_local(alias)
+        UCRHelper.set_ucr_for_new_connection(alias, make_default)
+        self[alias] = Connection(new_account["adconnection_id"], new_account)
 
-		# update in udm directory
-		UDMHelper().create_udm_adconnection(alias, description)
+        # update in udm directory
+        UDMHelper().create_udm_adconnection(alias, description)
 
-		# set the needed variable in UCR for UMC
-		UCRHelper.configure_wizard_for_adconnection(alias)
-		if restart_listener:
-			listener_restart()
+        # set the needed variable in UCR for UMC
+        UCRHelper.configure_wizard_for_adconnection(alias)
+        if restart_listener:
+            listener_restart()
 
-	def rename(self, old_alias, new_alias):
-		# type: (str, str) -> None
-		if new_alias in self.connections.keys():
-			self.logger.error('Azure AD connection alias %s is already listed in UCR %s.', new_alias, UCRHelper.alias_ucrv)
-			return None
-		if old_alias not in self.connections.keys():
-			self.logger.error('Azure AD connection alias %s is not listed in UCR %s.', old_alias, UCRHelper.adconnection_alias_ucrv)
-			return None
-		if old_alias in self.connections.keys():
-			self.logger.error('Azure AD connection alias %s is already configured in UCR %s, cannot rename Azure AD connection %s.', new_alias, UCRHelper.adconnection_alias_ucrv, old_adconnection_alias)
-			return None
-		new_adconnection_path = os.path.join(AzureAccount.config_base_path, new_alias)
-		if os.path.exists(new_adconnection_path):
-			self.logger.error('The path for the target Azure AD connection name %s already exists, but no UCR configuration for the Azure AD connection was found.', new_adconnection_path)
-			return None
-		old_adconnection_path = os.path.join(AzureAccount.config_base_path, old_alias)
-		if not os.path.exists(old_adconnection_path):
-			self.logger.error('The path for the old Azure AD connection %s does not exist.', old_adconnection_path)
-			return None
+    def rename(self, old_alias, new_alias):
+        # type: (str, str) -> None
+        if new_alias in self.connections.keys():
+            self.logger.error('Azure AD connection alias %s is already listed in UCR %s.', new_alias, UCRHelper.alias_ucrv)
+            return None
+        if old_alias not in self.connections.keys():
+            self.logger.error('Azure AD connection alias %s is not listed in UCR %s.', old_alias, UCRHelper.adconnection_alias_ucrv)
+            return None
+        if old_alias in self.connections.keys():
+            self.logger.error('Azure AD connection alias %s is already configured in UCR %s, cannot rename Azure AD connection %s.', new_alias, UCRHelper.adconnection_alias_ucrv, old_adconnection_alias)
+            return None
+        new_adconnection_path = os.path.join(AzureAccount.config_base_path, new_alias)
+        if os.path.exists(new_adconnection_path):
+            self.logger.error('The path for the target Azure AD connection name %s already exists, but no UCR configuration for the Azure AD connection was found.', new_adconnection_path)
+            return None
+        old_adconnection_path = os.path.join(AzureAccount.config_base_path, old_alias)
+        if not os.path.exists(old_adconnection_path):
+            self.logger.error('The path for the old Azure AD connection %s does not exist.', old_adconnection_path)
+            return None
 
-		shutil.move(old_adconnection_path, new_adconnection_path)
+        shutil.move(old_adconnection_path, new_adconnection_path)
 
-		UCRHelper.rename_adconnection(old_adconnection_path, new_adconnection_path)
-		listener_restart()
+        UCRHelper.rename_adconnection(old_adconnection_path, new_adconnection_path)
+        listener_restart()
 
-		self.connections[new_alias] = self.connections[old_alias]
-		del self.connections[old_alias]
+        self.connections[new_alias] = self.connections[old_alias]
+        del self.connections[old_alias]
 
-	def remove(self, alias):
-		# type: (str) -> None
-		# Checks
-		if alias not in self.connections.keys():
-			self.logger.error('Azure AD connection alias %s is not listed in UCR %s.', alias, UCRHelper.adconnection_alias_ucrv)
-			return None
+    def remove(self, alias):
+        # type: (str) -> None
+        # Checks
+        if alias not in self.connections.keys():
+            self.logger.error('Azure AD connection alias %s is not listed in UCR %s.', alias, UCRHelper.adconnection_alias_ucrv)
+            return None
 
-		target_path = os.path.join(AzureAccount.config_base_path, alias)
-		if not os.path.exists(target_path):
-			self.logger.warning('Configuration files for the Azure AD connection in %s do not exist. Removing Azure AD connection anyway...', target_path)
+        target_path = os.path.join(AzureAccount.config_base_path, alias)
+        if not os.path.exists(target_path):
+            self.logger.warning('Configuration files for the Azure AD connection in %s do not exist. Removing Azure AD connection anyway...', target_path)
 
-		UDMHelper().remove_udm_adconnection(alias)
-		shutil.rmtree(target_path)
-		UCRHelper.remove_adconnection(alias)
-		listener_restart()
+        UDMHelper().remove_udm_adconnection(alias)
+        shutil.rmtree(target_path)
+        UCRHelper.remove_adconnection(alias)
+        listener_restart()
 
 
 class AccountConnector(object):
-	def __init__(self, logger=None):
-		# type: (Logger) -> None
-		self.logger = logger or get_logger("office365", "o365")
+    def __init__(self, logger=None):
+        # type: (Logger) -> None
+        self.logger = logger or get_logger("office365", "o365")
 
-	@staticmethod
-	def get_adconnections(only_initialized=False):
-		# type: (bool) -> List[Tuple[str, str, str]]
-		res = []
-		aliases = UCRHelper.get_adconnection_aliases().items()
-		for alias, adconnection_id in aliases:
-			account = AzureAccount(alias)
-			confdir = account.conf_dirs['CONFDIR']
-			initialized = account.is_initialized()
-			status = 'initialized' if initialized else 'uninitialized'
-			if (only_initialized is False or initialized):
-				res.append((alias, status, confdir))
-		return res
+    @staticmethod
+    def get_adconnections(only_initialized=False):
+        # type: (bool) -> List[Tuple[str, str, str]]
+        res = []
+        aliases = UCRHelper.get_adconnection_aliases().items()
+        for alias, adconnection_id in aliases:
+            account = AzureAccount(alias)
+            confdir = account.conf_dirs['CONFDIR']
+            initialized = account.is_initialized()
+            status = 'initialized' if initialized else 'uninitialized'
+            if (only_initialized is False or initialized):
+                res.append((alias, status, confdir))
+        return res
 
-	# Only called by the script manage_adconnections
-	@staticmethod
-	def create_new_adconnection(logger, adconnection_alias, make_default=False, description="", restart_listener=True):
-		# type: (Logger, str, bool, str, bool) -> None
-		aliases = UCRHelper.get_adconnection_aliases()
-		if adconnection_alias in aliases:
-			logger.error('Azure AD connection alias %s is already listed in UCR %s.', adconnection_alias, UCRHelper.adconnection_alias_ucrv)
-			return None
-		new_account = AzureAccount(adconnection_alias, lazy_load=True)
-		target_path = new_account.conf_dirs['CONFDIR']
-		if os.path.exists(target_path):
-			logger.error('Path %s already exists, but no UCR configuration for the Azure AD connection was found.', target_path)
-			return None
+    # Only called by the script manage_adconnections
+    @staticmethod
+    def create_new_adconnection(logger, adconnection_alias, make_default=False, description="", restart_listener=True):
+        # type: (Logger, str, bool, str, bool) -> None
+        aliases = UCRHelper.get_adconnection_aliases()
+        if adconnection_alias in aliases:
+            logger.error('Azure AD connection alias %s is already listed in UCR %s.', adconnection_alias, UCRHelper.adconnection_alias_ucrv)
+            return None
+        new_account = AzureAccount(adconnection_alias, lazy_load=True)
+        target_path = new_account.conf_dirs['CONFDIR']
+        if os.path.exists(target_path):
+            logger.error('Path %s already exists, but no UCR configuration for the Azure AD connection was found.', target_path)
+            return None
 
-		# Create de needed files
-		os.mkdir(target_path, 0o700)
-		os.chown(target_path, pwd.getpwnam('listener').pw_uid, 0)
-		for filename in ('cert.fp', 'cert.pem', 'key.pem'):
-			src = os.path.join(new_account.config_base_path, filename)
-			shutil.copy2(src, target_path)
-			os.chown(os.path.join(target_path, filename), pwd.getpwnam('listener').pw_uid, 0)
+        # Create de needed files
+        os.mkdir(target_path, 0o700)
+        os.chown(target_path, pwd.getpwnam('listener').pw_uid, 0)
+        for filename in ('cert.fp', 'cert.pem', 'key.pem'):
+            src = os.path.join(new_account.config_base_path, filename)
+            shutil.copy2(src, target_path)
+            os.chown(os.path.join(target_path, filename), pwd.getpwnam('listener').pw_uid, 0)
 
-		# update ucr with the new adconnection
-		new_account.uninitialize()
+        # update ucr with the new adconnection
+        new_account.uninitialize()
 
-		UCRHelper.set_ucr_for_new_connection(adconnection_alias, make_default)
+        UCRHelper.set_ucr_for_new_connection(adconnection_alias, make_default)
 
-		# update in udm directory
-		UDMHelper().create_udm_adconnection(adconnection_alias, description)
+        # update in udm directory
+        UDMHelper().create_udm_adconnection(adconnection_alias, description)
 
-		# set the needed variable in UCR for UMC
-		UCRHelper.configure_wizard_for_adconnection(adconnection_alias)
-		if restart_listener:
-			listener_restart()
+        # set the needed variable in UCR for UMC
+        UCRHelper.configure_wizard_for_adconnection(adconnection_alias)
+        if restart_listener:
+            listener_restart()
 
-	def rename_adconnection(self, old_adconnection_alias, new_adconnection_alias):
-		# type: (str, str) -> None
-		aliases = UCRHelper.get_adconnection_aliases()
-		if old_adconnection_alias not in aliases:
-			self.logger.error('Azure AD connection alias %s is not listed in UCR %s.', old_adconnection_alias, UCRHelper.adconnection_alias_ucrv)
-			return None
-		if new_adconnection_alias in aliases:
-			self.logger.error('Azure AD connection alias %s is already configured in UCR %s, cannot rename Azure AD connection %s.', new_adconnection_alias, UCRHelper.adconnection_alias_ucrv, old_adconnection_alias)
-			return None
-		new_adconnection_path = os.path.join(AzureAccount.config_base_path, new_adconnection_alias)
-		if os.path.exists(new_adconnection_path):
-			self.logger.error('The path for the target Azure AD connection name %s already exists, but no UCR configuration for the Azure AD connection was found.', new_adconnection_path)
-			return None
-		old_adconnection_path = os.path.join(AzureAccount.config_base_path, old_adconnection_alias)
-		if not os.path.exists(old_adconnection_path):
-			self.logger.error('The path for the old Azure AD connection %s does not exist.', old_adconnection_path)
-			return None
+    def rename_adconnection(self, old_adconnection_alias, new_adconnection_alias):
+        # type: (str, str) -> None
+        aliases = UCRHelper.get_adconnection_aliases()
+        if old_adconnection_alias not in aliases:
+            self.logger.error('Azure AD connection alias %s is not listed in UCR %s.', old_adconnection_alias, UCRHelper.adconnection_alias_ucrv)
+            return None
+        if new_adconnection_alias in aliases:
+            self.logger.error('Azure AD connection alias %s is already configured in UCR %s, cannot rename Azure AD connection %s.', new_adconnection_alias, UCRHelper.adconnection_alias_ucrv, old_adconnection_alias)
+            return None
+        new_adconnection_path = os.path.join(AzureAccount.config_base_path, new_adconnection_alias)
+        if os.path.exists(new_adconnection_path):
+            self.logger.error('The path for the target Azure AD connection name %s already exists, but no UCR configuration for the Azure AD connection was found.', new_adconnection_path)
+            return None
+        old_adconnection_path = os.path.join(AzureAccount.config_base_path, old_adconnection_alias)
+        if not os.path.exists(old_adconnection_path):
+            self.logger.error('The path for the old Azure AD connection %s does not exist.', old_adconnection_path)
+            return None
 
-		shutil.move(old_adconnection_path, new_adconnection_path)
+        shutil.move(old_adconnection_path, new_adconnection_path)
 
-		UCRHelper.rename_adconnection(old_adconnection_path, new_adconnection_path)
-		listener_restart()
+        UCRHelper.rename_adconnection(old_adconnection_path, new_adconnection_path)
+        listener_restart()
 
-	def remove_adconnection(self, adconnection_alias):
-		# type: (str) -> None
-		aliases = UCRHelper.get_adconnection_aliases()
-		# Checks
-		if adconnection_alias not in aliases:
-			self.logger.error('Azure AD connection alias %s is not listed in UCR %s.', adconnection_alias, UCRHelper.adconnection_alias_ucrv)
-			return None
+    def remove_adconnection(self, adconnection_alias):
+        # type: (str) -> None
+        aliases = UCRHelper.get_adconnection_aliases()
+        # Checks
+        if adconnection_alias not in aliases:
+            self.logger.error('Azure AD connection alias %s is not listed in UCR %s.', adconnection_alias, UCRHelper.adconnection_alias_ucrv)
+            return None
 
-		target_path = os.path.join(AzureAccount.config_base_path, adconnection_alias)
-		if not os.path.exists(target_path):
-			self.logger.warning('Configuration files for the Azure AD connection in %s do not exist. Removing Azure AD connection anyway...', target_path)
+        target_path = os.path.join(AzureAccount.config_base_path, adconnection_alias)
+        if not os.path.exists(target_path):
+            self.logger.warning('Configuration files for the Azure AD connection in %s do not exist. Removing Azure AD connection anyway...', target_path)
 
-		UDMHelper().remove_udm_adconnection(adconnection_alias)
-		shutil.rmtree(target_path)
-		UCRHelper.remove_adconnection(adconnection_alias)
-		listener_restart()
+        UDMHelper().remove_udm_adconnection(adconnection_alias)
+        shutil.rmtree(target_path)
+        UCRHelper.remove_adconnection(adconnection_alias)
+        listener_restart()

@@ -62,21 +62,21 @@ from univention.config_registry import ConfigRegistry
 
 
 LOG_FORMATS = dict(
-	DEBUG="%(module)s.%(funcName)s:%(lineno)d  %(message)s",
-	INFO="%(message)s"
+    DEBUG="%(module)s.%(funcName)s:%(lineno)d  %(message)s",
+    INFO="%(message)s"
 )
 for lvl in ["CRITICAL", "ERROR", "WARN", "WARNING"]:
-	LOG_FORMATS[lvl] = LOG_FORMATS["INFO"]
+    LOG_FORMATS[lvl] = LOG_FORMATS["INFO"]
 LOG_FORMATS["NOTSET"] = LOG_FORMATS["DEBUG"]
 
 LOGGING_TO_UDEBUG = dict(
-	CRITICAL=ud.ERROR,
-	ERROR=ud.ERROR,
-	WARN=ud.WARN,
-	WARNING=ud.WARN,
-	INFO=ud.PROCESS,
-	DEBUG=ud.ALL,
-	NOTSET=ud.ALL
+    CRITICAL=ud.ERROR,
+    ERROR=ud.ERROR,
+    WARN=ud.WARN,
+    WARNING=ud.WARN,
+    INFO=ud.PROCESS,
+    DEBUG=ud.ALL,
+    NOTSET=ud.ALL
 )
 
 ucr = ConfigRegistry()
@@ -85,51 +85,51 @@ _werror = ucr.is_true("office365/debug/werror", False)
 
 
 def get_logger(logger_name, short_name=None, udebug_facility=ud.LISTENER):
-	# type: (str, str, Any) -> Logger
-	logger = logging.getLogger(logger_name)
-	if not any(map(lambda x: isinstance(x, UDebugHandler), logger.handlers)):
-		handler = UDebugHandler(udebug_facility=udebug_facility)
-		handler.set_name(short_name or logger_name)
-		handler.setFormatter(LevelDependentFormatter())
-		handler.setLevel(logging.DEBUG)
-		logger.addHandler(handler)
-		logger.setLevel(logging.DEBUG)
-	return logger
+    # type: (str, str, Any) -> Logger
+    logger = logging.getLogger(logger_name)
+    if not any(map(lambda x: isinstance(x, UDebugHandler), logger.handlers)):
+        handler = UDebugHandler(udebug_facility=udebug_facility)
+        handler.set_name(short_name or logger_name)
+        handler.setFormatter(LevelDependentFormatter())
+        handler.setLevel(logging.DEBUG)
+        logger.addHandler(handler)
+        logger.setLevel(logging.DEBUG)
+    return logger
 
 
 class LevelDependentFormatter(logging.Formatter):
-	def format(self, record):
-		if _werror:
-			self._fmt = LOG_FORMATS["DEBUG"]
-		else:
-			self._fmt = LOG_FORMATS[record.levelname]
-		if isinstance(record.args, dict) and "password" in record.args:
-			record.args["password"] = "xxxxxxxxxx"
-		elif hasattr(record.args, "__iter__"):
-			for arg in record.args:
-				if isinstance(arg, dict) and "password" in arg:
-					arg["password"] = "xxxxxxxxxx"
-		return super(LevelDependentFormatter, self).format(record)
+    def format(self, record):
+        if _werror:
+            self._fmt = LOG_FORMATS["DEBUG"]
+        else:
+            self._fmt = LOG_FORMATS[record.levelname]
+        if isinstance(record.args, dict) and "password" in record.args:
+            record.args["password"] = "xxxxxxxxxx"
+        elif hasattr(record.args, "__iter__"):
+            for arg in record.args:
+                if isinstance(arg, dict) and "password" in arg:
+                    arg["password"] = "xxxxxxxxxx"
+        return super(LevelDependentFormatter, self).format(record)
 
 
 class UDebugHandler(logging.Handler):
-	def __init__(self, level=logging.NOTSET, udebug_facility=ud.LISTENER):
-		# type: (int, int) -> None
-		self._udebug_facility = udebug_facility
-		super(UDebugHandler, self).__init__(level)
+    def __init__(self, level=logging.NOTSET, udebug_facility=ud.LISTENER):
+        # type: (int, int) -> None
+        self._udebug_facility = udebug_facility
+        super(UDebugHandler, self).__init__(level)
 
-	def emit(self, record):
-		msg = self.format(record)
-		if PY2 and isinstance(msg, unicode):
-			msg = msg.encode("utf-8")
-		elif PY3 and isinstance(msg, bytes):
-			msg = msg.decode("utf-8", "replace")
+    def emit(self, record):
+        msg = self.format(record)
+        if PY2 and isinstance(msg, unicode):
+            msg = msg.encode("utf-8")
+        elif PY3 and isinstance(msg, bytes):
+            msg = msg.decode("utf-8", "replace")
 
-		if _werror:
-			udebug_level = ud.ERROR
-			true_lvl = "({})".format(record.levelname[0])
-		else:
-			udebug_level = LOGGING_TO_UDEBUG[record.levelname]
-			true_lvl = ""
+        if _werror:
+            udebug_level = ud.ERROR
+            true_lvl = "({})".format(record.levelname[0])
+        else:
+            udebug_level = LOGGING_TO_UDEBUG[record.levelname]
+            true_lvl = ""
 
-		ud.debug(self._udebug_facility, udebug_level, "{}{}: {}".format(self.get_name(), true_lvl, msg))
+        ud.debug(self._udebug_facility, udebug_level, "{}{}: {}".format(self.get_name(), true_lvl, msg))
