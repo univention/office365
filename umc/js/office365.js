@@ -318,7 +318,7 @@ define([
 				lang.replace(_('Download the {link} which is used to prove the application’s identity when requesting a token.'), {link: '<a href="/univention/command/office365/o365_public_signing_cert.pem" target="_blank">' + _('public certificate key') + '</a>'}),
 				_('In the <i>Certificate & secrets</i> section, click on <i>Upload certificate</i> and select the certificate file that was downloaded in the above step. Click on <i>Add</i> to add the certificate to the Azure app.') + this.img(_('upload_certificate_EN.png')),
 				_('In the <i>Manage</i> section, select <i>MANIFEST</i> and then <i>DOWNLOAD</i> on the top. The manifest file will be downloaded onto your computer.') + this.img(_('manage_manifest_EN.png')),
-			], {start: 4});
+			], {start: 5});
 		},
 
 		getTextManifestUploadDomain: function() {

@@ -33,8 +33,6 @@
 
 ## joinscript api: bindpwdfile
 
-set -x
-
 VERSION=20
 
 . /usr/share/univention-join/joinscripthelper.lib
@@ -569,13 +567,22 @@ if [ "$JS_LAST_EXECUTED_VERSION" -lt 20 ] && [ "$(ucr get office365/attributes/m
 	ucr unset office365/attributes/mapping/st
 fi
 
-udm saml/serviceprovider create "$@" \
-	--ignore_exists \
-	--position "cn=saml-serviceprovider,cn=univention,$ldap_base" \
-	--set isActivated=TRUE \
-	--set Identifier=univention-office365 \
-	--set AssertionConsumerService="https://login.microsoftonline.com" \
-	--set rawsimplesamlSPconfig="$(</usr/share/univention-office365/simplesamlSPconfig.php)"
+# get the saml client metadata xml from microsoft
+curl https://nexus.microsoftonline-p.com/federationmetadata/saml20/federationmetadata.xml > /tmp/ms.xml
+# create the client in keycloak
+univention-keycloak saml/sp create \
+	--metadata-file /tmp/ms.xml \
+	--metadata-url urn:federation:MicrosoftOnline \
+	--idp-initiated-sso-url-name MicrosoftOnline \
+	--name-id-format persistent || die
+rm /tmp/ms.xml
+# create a SAML nameid mapper
+univention-keycloak saml-client-nameid-mapper create \
+	urn:federation:MicrosoftOnline \
+	entryUUID \
+	--mapper-nameid-format "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent" \
+	--user-attribute entryUUID \
+	--base64 || die
 
 
 stop_udm_cli_server
