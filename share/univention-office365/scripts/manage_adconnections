@@ -35,6 +35,7 @@ from __future__ import print_function
 import sys
 import argparse
 import logging
+import subprocess
 
 from univention.office365.connector.account_connector import AccountConnector
 from univention.office365.logging2udebug import get_logger
@@ -43,54 +44,55 @@ conf_path = '/etc/univention-office365'
 
 
 def list(args):
-	adconnection_list = account_connector.get_adconnections()
-	if adconnection_list:
-		print("{0:<25} {1:<50} {2:<20}".format("Alias", "Path", "status"))
-		for alias, status, path in adconnection_list:
-			print("{0:<25} {1:<50} {2:<20}".format(alias, path, status))
+    adconnection_list = account_connector.get_adconnections()
+    if adconnection_list:
+        print("{0:<25} {1:<50} {2:<20}".format("Alias", "Path", "status"))
+        for alias, status, path in adconnection_list:
+            print("{0:<25} {1:<50} {2:<20}".format(alias, path, status))
 
 
 def create(args):
-	account_connector.create_new_adconnection(logger, args.alias, args.makedefault)
+    account_connector.create_new_adconnection(logger, args.alias, args.makedefault)
+    subprocess.call(["univention-keycloak", "proxy-realms", "create", args.alias])
 
 
 def rename(args):
-	#AzureADConnectionHandler.rename_adconnection(args.oldalias, args.newalias)
-	print("Not implemented")
+    #AzureADConnectionHandler.rename_adconnection(args.oldalias, args.newalias)
+    print("Not implemented")
 
 
 def remove(args):
-	account_connector.remove_adconnection(args.alias)
+    account_connector.remove_adconnection(args.alias)
 
 
 if __name__ == '__main__':
-	logger = get_logger("office365", "o365")
-	account_connector = AccountConnector(logger=logger)
-	_handler = logging.StreamHandler(sys.stdout)
-	_handler.setLevel(logging.INFO)
-	logger.addHandler(_handler)
+    logger = get_logger("office365", "o365")
+    account_connector = AccountConnector(logger=logger)
+    _handler = logging.StreamHandler(sys.stdout)
+    _handler.setLevel(logging.INFO)
+    logger.addHandler(_handler)
 
-	parser = argparse.ArgumentParser(
-		description='Manage Azure AD connection configuration for the Office 365 connector.',
-	)
-	subparsers = parser.add_subparsers()
+    parser = argparse.ArgumentParser(
+        description='Manage Azure AD connection configuration for the Office 365 connector.',
+    )
+    subparsers = parser.add_subparsers()
 
-	list_p = subparsers.add_parser('list')
-	list_p.set_defaults(func=list)
+    list_p = subparsers.add_parser('list')
+    list_p.set_defaults(func=list)
 
-	create_p = subparsers.add_parser('create')
-	create_p.add_argument('alias', help='The alias name for the new adconnection, refer e.g. to the domainname or schoolname')
-	create_p.add_argument('--makedefault', help='Configure the new adconnection as a default for the listener modules, also see UCR office365/defaultalias', action='store_true')
-	create_p.set_defaults(func=create)
+    create_p = subparsers.add_parser('create')
+    create_p.add_argument('alias', help='The alias name for the new adconnection, refer e.g. to the domainname or schoolname')
+    create_p.add_argument('--makedefault', help='Configure the new adconnection as a default for the listener modules, also see UCR office365/defaultalias', action='store_true')
+    create_p.set_defaults(func=create)
 
-	remove_p = subparsers.add_parser('remove')
-	remove_p.add_argument('alias', help='The alias of the Azure AD connection to be removed')
-	remove_p.set_defaults(func=remove)
+    remove_p = subparsers.add_parser('remove')
+    remove_p.add_argument('alias', help='The alias of the Azure AD connection to be removed')
+    remove_p.set_defaults(func=remove)
 
-	rename_p = subparsers.add_parser('rename')
-	rename_p.add_argument('oldalias', help='The alias of the Azure AD connection to be renamed')
-	rename_p.add_argument('newalias', help='The new name for the alias')
-	rename_p.set_defaults(func=rename)
+    rename_p = subparsers.add_parser('rename')
+    rename_p.add_argument('oldalias', help='The alias of the Azure AD connection to be renamed')
+    rename_p.add_argument('newalias', help='The new name for the alias')
+    rename_p.set_defaults(func=rename)
 
-	args = parser.parse_args()
-	args.func(args)
+    args = parser.parse_args()
+    args.func(args)

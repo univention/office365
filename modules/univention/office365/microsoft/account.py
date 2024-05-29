@@ -287,7 +287,7 @@ class AzureAccount(UserDict):
         sso_url = subprocess.check_output(["univention-keycloak", "get-keycloak-base-url"]).decode().strip()
         logon_uri = f"{sso_url}/realms/{realm}/protocol/saml"
         passive_logon_uri = logon_uri
-        signing_cert = subprocess.check_output(["univention-keycloak", "saml/idp/cert", "get"]).decode().strip()
+        signing_cert = subprocess.check_output(["univention-keycloak", "saml/idp/cert", "get", "--realm-id", realm]).decode().strip()
         issuer_uri = f"{sso_url}/realms/{realm}"
         logoff_uri = logon_uri # FIXME: does not work right now
         template = f'''

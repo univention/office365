@@ -244,6 +244,9 @@ class AccountConnector(object):
     @staticmethod
     def create_new_adconnection(logger, adconnection_alias, make_default=False, description="", restart_listener=True):
         # type: (Logger, str, bool, str, bool) -> None
+        if adconnection_alias == "ucs":
+            logger.error('Name may not be "ucs". This is hard coded to be the realm for the default AD connection')
+            return None
         aliases = UCRHelper.get_adconnection_aliases()
         if adconnection_alias in aliases:
             logger.error('Azure AD connection alias %s is already listed in UCR %s.', adconnection_alias, UCRHelper.adconnection_alias_ucrv)
@@ -277,6 +280,9 @@ class AccountConnector(object):
 
     def rename_adconnection(self, old_adconnection_alias, new_adconnection_alias):
         # type: (str, str) -> None
+        if new_adconnection_alias == "ucs":
+            self.logger.error('Name may not be "ucs". This is hard coded to be the realm for the default AD connection')
+            return None
         aliases = UCRHelper.get_adconnection_aliases()
         if old_adconnection_alias not in aliases:
             self.logger.error('Azure AD connection alias %s is not listed in UCR %s.', old_adconnection_alias, UCRHelper.adconnection_alias_ucrv)

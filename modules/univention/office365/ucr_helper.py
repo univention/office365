@@ -108,7 +108,8 @@ class UCRHelperC(ConfigRegistry):
 
     @pre_post_decorator(post_name="load")
     def set_ucs_overview_link(self):
-        sp_link = f"{self.get_ucs_sso_fqdn()}/realms/ucs/protocol/saml/clients/MicrosoftOnline"
+        realm = "ucs"
+        sp_link = f"{self.get_ucs_sso_fqdn()}/realms/{realm}/protocol/saml/clients/MicrosoftOnline"
         ucr_update(self, {
             "ucs/web/overview/entries/service/office365/description": "Single Sign-On login for Microsoft 365",
             "ucs/web/overview/entries/service/office365/label": "Microsoft 365 Login",
