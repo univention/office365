@@ -166,8 +166,8 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set tabName="Microsoft 365" \
 	--set tabPosition=1 \
 	--set translationTabName='"de_DE" "Microsoft 365"' \
-	--set module="users/user" \
-	--set module="settings/usertemplate" \
+	--append module="users/user" \
+	--append module="settings/usertemplate" \
 	--set syntax=boolean \
 	--set default=0 \
 	--set multivalue=0 \
