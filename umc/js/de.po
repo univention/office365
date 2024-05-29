@@ -331,7 +331,7 @@ msgstr "endpoints_DE.png"
 
 #: office365.js:310
 msgid "Copy the value for <i>FEDERATION METADATA DOCUMENT</i>."
-msgstr "Kopieren Sie den Wert <i>DOKUMENT MIT VERBUNDMETADATEN</i>."
+msgstr "Kopieren Sie den Wert <i>VERBUNDMETADATENDOKUMENT</i>."
 
 #: office365.js:310
 msgid "copy_adconnection_id_EN.png"
