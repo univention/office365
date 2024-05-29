@@ -495,17 +495,6 @@ EOF
 		--set disableUDMWeb=1 || die
 fi
 
-# Add required attributes to saml/idp/ldap/get_attributes
-LDAP_OBJ="$saml_idp_configobject"
-[ -z "$LDAP_OBJ" ] && LDAP_OBJ="id=default-saml-idp,cn=univention,$ldap_base"
-
-O_ATTRS="univentionOffice365Enabled entryUUID univentionOffice365userPrincipalName"
-for attr in ${O_ATTRS}; do
-	udm saml/idpconfig modify "$@" \
-		--dn="$LDAP_OBJ" \
-		--append LdapGetAttributes="$attr"
-done
-
 # user template
 univention-directory-manager settings/usertemplate create "$@" --ignore_exists \
 	--position "cn=templates,cn=univention,$ldap_base" \
