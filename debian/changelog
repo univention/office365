@@ -1,4 +1,4 @@
-univention-office365 (3.0.1-25) unstable; urgency=medium
+univention-office365 (3.0.1-26) unstable; urgency=medium
 
   * Bug #51187: Suppress UMC default popup. Only warn against changing the grouptype
     if the group was already synced to azure. Don't warn if the grouptype is changed

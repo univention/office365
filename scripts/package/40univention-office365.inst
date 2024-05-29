@@ -33,8 +33,6 @@
 
 ## joinscript api: bindpwdfile
 
-set -x
-
 VERSION=11
 
 . /usr/share/univention-join/joinscripthelper.lib
