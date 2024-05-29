@@ -30,7 +30,7 @@ This test is used to check license and plan info for replicated users.
 import time
 import random
 
-impor pytest
+import pytest
 
 import univention.testing.strings as uts
 import univention.testing.ucr as ucr_test

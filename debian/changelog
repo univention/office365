@@ -1,3 +1,9 @@
+univention-office365 (5.0.1-5) unstable; urgency=medium
+
+  * Issue #2274: Fix typo in 92_office365/12_udm_user_license.py
+
+ -- Dirk Wiesenthal <wiesenthal@univention.de>  Wed, 29 May 2024 09:33:18 +0200
+
 univention-office365 (5.0.1-4) unstable; urgency=medium
 
   * Issue #2274: Fix pytest not being executed due to wrong file extension
