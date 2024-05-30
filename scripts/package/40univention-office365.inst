@@ -557,7 +557,7 @@ if [ "$JS_LAST_EXECUTED_VERSION" -lt 20 ] && [ "$(ucr get office365/attributes/m
 fi
 
 # get the saml client metadata xml from microsoft
-curl https://nexus.microsoftonline-p.com/federationmetadata/saml20/federationmetadata.xml > /tmp/ms.xml
+curl https://nexus.microsoftonline-p.com/federationmetadata/saml20/federationmetadata.xml > /tmp/ms.xml || die
 # create the client in keycloak
 univention-keycloak saml/sp create \
 	--metadata-file /tmp/ms.xml \
