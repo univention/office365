@@ -1,3 +1,10 @@
+univention-office365 (5.0.1-9) unstable; urgency=medium
+
+  * Issue #4: Add a script to create portal tiles based on an Azure AD
+    connection
+
+ -- Dirk Wiesenthal <wiesenthal@univention.de>  Fri, 07 Jun 2024 17:02:18 +0200
+
 univention-office365 (5.0.1-8) unstable; urgency=medium
 
   * Issue #3: Add --single-logout-service-url-redirect to the Keycloak client

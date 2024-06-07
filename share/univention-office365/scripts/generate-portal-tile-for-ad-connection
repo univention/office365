@@ -1,0 +1,43 @@
+#!/bin/bash
+
+#set -e
+
+realm="$1"
+shift
+
+if [ -z "$realm" ] || [ "$realm" = "-h" ] || [ "realm" = "--help" ]; then
+	echo "usage: $0 REALM [GROUP_DN, ...]"
+	echo ""
+	echo "Creates a Office 365 login tile in the portal and puts it into"
+	echo "the \"Applications\" category. Useful if you have multiple Azure AD"
+	echo "connections. Note that those tiles would show up for every user in the"
+	echo "portal. You can limit visibility of tiles to certain groups by"
+	echo "specifying these group DNs to the command. But this would require users"
+	echo "to be logged in before seeing the tile."
+	exit 0
+fi
+
+sso_url="$(univention-keycloak get-keycloak-base-url)"
+
+
+groups=()
+
+for i in "$@"; do
+	groups+=( --append "allowedGroups=$i" )
+done
+
+udm portals/entry create \
+	--ignore_exists \
+	--position "cn=entry,cn=portals,cn=univention,$(ucr get ldap/base)" \
+	--set name="office365-$realm" \
+	--set displayName='"en_US" "Microsoft 365 Login ('"$realm"')"' \
+	--set description='"en_US" "Single Sign-On Microsoft 365 ('"$realm"')"' \
+	--set icon="$(base64 /var/www/office365.png)" \
+	--set linkTarget="newwindow" \
+	"${groups[@]}" \
+	--set link='"en_US" "'"$sso_url"'/realms/"'"$realm"'"/protocol/saml/clients/MicrosoftOnline"'
+
+udm portals/category modify \
+	--dn "cn=domain-service,cn=category,cn=portals,cn=univention,$(ucr get ldap/base)" \
+	--append entries="cn=office365-$realm,cn=entry,cn=portals,cn=univention,$(ucr get ldap/base)"
+
