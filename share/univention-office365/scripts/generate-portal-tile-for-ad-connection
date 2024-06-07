@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#set -e
+set -e
 
 realm="$1"
 shift
