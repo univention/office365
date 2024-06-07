@@ -38,6 +38,7 @@ import logging
 import subprocess
 
 from univention.office365.connector.account_connector import AccountConnector
+from univention.office365.ucr_helper import UCRHelper
 from univention.office365.logging2udebug import get_logger
 
 conf_path = '/etc/univention-office365'
@@ -53,7 +54,8 @@ def list(args):
 
 def create(args):
     account_connector.create_new_adconnection(logger, args.alias, args.makedefault)
-    subprocess.call(["univention-keycloak", "proxy-realms", "create", args.alias])
+    if self.alias != UCRHelper.default_adconnection_name:
+        subprocess.call(["univention-keycloak", "proxy-realms", "create", args.alias])
 
 
 def rename(args):

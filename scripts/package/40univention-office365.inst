@@ -563,6 +563,7 @@ univention-keycloak saml/sp create \
 	--metadata-file /tmp/ms.xml \
 	--metadata-url urn:federation:MicrosoftOnline \
 	--idp-initiated-sso-url-name MicrosoftOnline \
+	--single-logout-service-url-redirect https://login.microsoftonline.com/login.srf \
 	--name-id-format persistent || die
 rm /tmp/ms.xml
 # create a SAML nameid mapper

@@ -1,3 +1,9 @@
+univention-office365 (5.0.1-8) unstable; urgency=medium
+
+  * Issue #3: Add --single-logout-service-url-redirect to the Keycloak client
+
+ -- Dirk Wiesenthal <wiesenthal@univention.de>  Fri, 07 Jun 2024 12:49:59 +0200
+
 univention-office365 (5.0.1-7) unstable; urgency=medium
 
   * Issue #2274: Fix typo in 92_office365/12_udm_user_license.py
