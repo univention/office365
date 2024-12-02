@@ -1,4 +1,4 @@
-univention-office365 (3.0.1-28) unstable; urgency=medium
+univention-office365 (3.0.1-29) unstable; urgency=medium
 
   * Bug #57739: Convert wizard to use Graph manifest
 
