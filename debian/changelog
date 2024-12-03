@@ -1,3 +1,9 @@
+univention-office365 (5.0.1-10) unstable; urgency=medium
+
+  * Bug #57739: Convert wizard to use Graph manifest
+
+ -- Julia Bremer <bremer@univention.de>  Tue, 03 Dec 2024 22:12:40 +0100
+
 univention-office365 (5.0.1-9) unstable; urgency=medium
 
   * Issue #4: Add a script to create portal tiles based on an Azure AD
