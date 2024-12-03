@@ -337,8 +337,6 @@ class Manifest(object):
         self.logger.info('Manifest() for adconnection_alias=%r adconnection_id=%r domain=%r', self.adconnection_alias, adconnection_id, domain)
         try:
             self.manifest = json.load(fd)
-            if not all([isinstance(self.manifest, dict), self.app_id, self.reply_url]):  # TODO: do schema validation
-                raise ValueError()
         except ValueError:
             raise ManifestError(_('The manifest is invalid: Invalid JSON document.'))
 
@@ -351,7 +349,7 @@ class Manifest(object):
     def reply_url(self):
         # type: () -> Optional[str]
         try:
-            return self.manifest["replyUrlsWithType"][0]["url"]
+            return self.manifest["web"]["redirectUris"][0]
         except (IndexError, KeyError):
             pass
 
@@ -361,13 +359,13 @@ class Manifest(object):
 
     def transform(self):
         # type: () -> None
-        self.manifest["oauth2AllowImplicitFlow"] = True
-        self.manifest["oauth2AllowIdTokenImplicitFlow"] = True
+        self.manifest["web"]["implicitGrantSettings"]["enableAccessTokenIssuance"] = True
+        self.manifest["web"]["implicitGrantSettings"]["enableIdTokenIssuance"] = True
 
         permissions = {
             # Permission: Azure Active Directory Graph
-                "resourceAppId": "00000003-0000-0000-c000-000000000000",
-                "resourceAccess": resourceAccess
+            "resourceAppId": "00000003-0000-0000-c000-000000000000",
+            "resourceAccess": resourceAccess
         }
 
         for access in self.manifest['requiredResourceAccess']:
@@ -377,4 +375,3 @@ class Manifest(object):
                 break
         else:
             self.manifest['requiredResourceAccess'].append(permissions)
-
