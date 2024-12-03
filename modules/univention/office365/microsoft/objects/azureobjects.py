@@ -170,21 +170,6 @@ class AzureObject(object):
             if hasattr(self, k):
                 setattr(self, k, v)
 
-    # TODO: check if it's the place/class for this static method
-    @staticmethod
-    def wait_for_operation(core, response):
-        # type: (MSGraphApiCore, Dict[str, Any]) -> None
-        if "operations" in response.get("Location", ""):
-            while True:
-                try:
-                    r = core.wait_for_operation(response.get("Location"))
-                except MSGraphError:
-                    time.sleep(10)
-                    continue
-                if r.get("status") == 'succeeded':
-                    break
-                time.sleep(30)
-
     @abstractmethod
     def create(self):
         # type: () -> None
@@ -404,7 +389,6 @@ class UserAzure(AzureObject):
         # self._core.delete_user(self.id)
         self.deactivate(rename=True)
 
-    # TODO update user with the response ??
 
     def update(self, other):
         # type: ('AzureObject') -> Dict[str, Any]
@@ -797,11 +781,11 @@ class TeamAzure(AzureObject):
         """"""
         if hasattr(self, "_owner_id") and self._owner_id:
             response = self._core.create_team(name=self.displayName, owner=self._owner_id, description=self.description)
-            TeamAzure.wait_for_operation(self._core, response)
             self._content_location = response["Content-Location"]
         else:
             raise Exception("Set owner before create the team")
 
+    # Only used for testing
     def wait_for_team(self):
         # type: () -> None
         if self._content_location:
@@ -837,17 +821,7 @@ class TeamAzure(AzureObject):
     @classmethod
     def create_from_group(cls, core, group_id):
         # type: (MSGraphApiCore, str) -> TeamAzure
-        time_slept = 0
-        while True:
-            try:
-                core.create_team_from_group(object_id=group_id)
-                # TeamAzure.wait_for_operation(core, response)
-                break
-            except MSGraphError as e:
-                time.sleep(10)
-                time_slept += 10
-                if time_slept >= 180:
-                    raise e
+        core.create_team_from_group(object_id=group_id)
         team = cls(id=group_id)
         team.set_core(core)
         return team
@@ -856,12 +830,10 @@ class TeamAzure(AzureObject):
         # type: () -> None
         """"""
         data = dict(displayName="ZZZ_deleted_{time}_{orig}".format(time=time.time(), orig=self.displayName), description="deleted group")
-        response = self._core.modify_team(self.id, data)
-        TeamAzure.wait_for_operation(self._core, response)
+        self._core.modify_team(self.id, data)
 
         self._update_from_dict(data)
         self._core.archive_team(self.id)
-        # TeamAzure.wait_for_operation(self._core, response)
         self.isArchived = True
 
     def update(self, other):
@@ -869,26 +841,22 @@ class TeamAzure(AzureObject):
         """"""
         data = (self - other).get_not_none_values_as_dict()
         response = self._core.modify_team(self.id, data)
-        TeamAzure.wait_for_operation(self._core, response)
         self._update_from_dict(response)
 
     def deactivate(self, rename=False):
         # type: (bool) -> None
         """"""
-        response = self._core.archive_team(self.id)
-        TeamAzure.wait_for_operation(self._core, response)
+        self._core.archive_team(self.id)
 
     def reactivate(self):
         # type: () -> None
         """"""
-        response = self._core.unarchive_team(self.id)
-        TeamAzure.wait_for_operation(self._core, response)
+        self._core.unarchive_team(self.id)
 
     def add_member(self, user_id):
         # type: (str) -> Dict[str, Any]
         """"""
         response = self._core.add_team_member(self.id, user_id)
-        TeamAzure.wait_for_operation(self._core, response)
         return response
 
     def add_members(self, users_id):
@@ -902,14 +870,12 @@ class TeamAzure(AzureObject):
         """
         :param membership_id: this is the id returned when member is added or list
         """
-        response = self._core.remove_team_member(self.id, membership_id=membership_id)
-        TeamAzure.wait_for_operation(self._core, response)
+        self._core.remove_team_member(self.id, membership_id=membership_id)
 
     def list_team_members(self):
         # type: () -> List[UserAzure]
         """"""
         response = self._core.list_team_members(self.id)
-        TeamAzure.wait_for_operation(self._core, response)
         users = []
         for user_response in response["value"]:
             user = UserAzure(id=user_response["userId"], displayName=user_response["displayName"])
@@ -922,7 +888,6 @@ class TeamAzure(AzureObject):
         # type: (MSGraphApiCore) -> List[GroupAzure]
         """"""
         response = core.list_teams(paging=True)
-        TeamAzure.wait_for_operation(core, response)
         teams = []
         for team_dict in response["value"]:
             team = GroupAzure()
@@ -936,7 +901,6 @@ class TeamAzure(AzureObject):
         # type: (MSGraphApiCore, str, Optional[List[str]]) -> AzureObject
         """"""
         response = core.get_team(group_id=object_id)
-        TeamAzure.wait_for_operation(core, response)
         team = cls()
         team._update_from_dict(response)
         team.set_core(core)
