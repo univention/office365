@@ -2,7 +2,7 @@
 #
 # Univention Office 365 - jsonstorage
 #
-# Copyright 2016-2022 Univention GmbH
+# Copyright 2016-2025 Univention GmbH
 #
 # http://www.univention.de/
 #
