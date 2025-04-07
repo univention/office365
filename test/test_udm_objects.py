@@ -556,3 +556,24 @@ class TestUdmOfficeGroup:
 		assert udm_group_object.is_security_group()
 		udm_group_object.udm_object_reference['UniventionMicrosoft365GroupType'] = 'Microsoft 365 Group'
 		assert not udm_group_object.is_security_group()
+
+
+	def test_group_type_is_not_set(self, create_udm_group_object):
+		# type: (Callable) -> None
+		""""""
+		udm_group_object = create_udm_group_object()
+		udm_group_object.udm_object_reference['UniventionMicrosoft365GroupType'] = None
+		assert udm_group_object.group_type_is_not_set()
+		udm_group_object.udm_object_reference['UniventionMicrosoft365GroupType'] = ''
+		assert udm_group_object.group_type_is_not_set()
+		udm_group_object.udm_object_reference['UniventionMicrosoft365GroupType'] = 'Security Group'
+		assert not udm_group_object.group_type_is_not_set()
+
+	def test_set_group_type(self, create_udm_group_object):
+		# type: (Callable) -> None
+		""""""
+		udm_group_object = create_udm_group_object()
+		udm_group_object.set_group_type(True)
+		assert udm_group_object.udm_object_reference['UniventionMicrosoft365GroupType'] == GroupType.SECURITY.value
+		udm_group_object.set_group_type(False)
+		assert udm_group_object.udm_object_reference['UniventionMicrosoft365GroupType'] == GroupType.M365.value

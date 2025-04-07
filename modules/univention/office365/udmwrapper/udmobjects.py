@@ -671,9 +671,27 @@ class UDMOfficeGroup(UDMOfficeObject):
 		return removed
 	
 	def is_security_group(self):
-		# type: () -> List[str]
+		# type: () -> bool
 		"""
 		Return if the group is a security group or a Microsoft 365 group
 		:return:
 		"""
 		return self.get("UniventionMicrosoft365GroupType", "Security Group") == "Security Group"
+
+	def group_type_is_not_set(self):
+		# type: () -> bool
+		"""
+		Return if the group type is not set
+		:return:
+		"""
+		return self.get("UniventionMicrosoft365GroupType") in ["", None]
+
+	def set_group_type(self, security_group=True):
+		# type: (bool) -> None
+		"""
+		Set the group type of the group
+		:param group_type: The group type to set
+		:return:
+		"""
+		self.udm_object_reference["UniventionMicrosoft365GroupType"] = GroupType.SECURITY.value if security_group else GroupType.M365.value
+		self.udm_object_reference.modify()
