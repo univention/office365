@@ -983,7 +983,9 @@ class GroupConnector(Connector):
                         self.logger.warning("Office365Listener.modify_group() azure group doesn't exist (anymore), creating it instead.")
                         azure_group = self._create_group(new_udm_group, core)
                     # modification_attributes_udm_group = new_udm_group
-                if azure_group.is_security_group() != new_udm_group.is_security_group():
+                if new_udm_group.group_type_is_not_set():
+                    new_udm_group.set_group_type(security_group=azure_group.is_security_group())
+                elif azure_group.is_security_group() != new_udm_group.is_security_group():
                     azure_group = self.migrate_group_type(new_udm_group, azure_group, core)
 
                 # If the azure group is deactivated, reactivate it
