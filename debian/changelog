@@ -1,3 +1,9 @@
+univention-office365 (5.0.1-12) unstable; urgency=medium
+
+  * Bug #57846: fix last group member is not removed from group in azure
+
+ -- Ivan Barbecho Delgado <ivan.delgado@univention.de>  Fri, 11 Apr 2025 11:31:50 +0200
+
 univention-office365 (5.0.1-11) unstable; urgency=medium
 
   * Bug #57730: fix UniventionMicrosoft365GroupType is an empty string on if group
