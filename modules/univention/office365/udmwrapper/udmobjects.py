@@ -311,7 +311,7 @@ class UDMOfficeObject(UserDict):
 			# update the old dict with the new one
 			old_azure_data.update(new_azure_data)
 		else:
-			old_azure_data.pop(self.current_connection_alias)
+			old_azure_data.pop(self.current_connection_alias, None)
 		self.udm_object_reference["UniventionOffice365Data"] = UniventionOffice365Data(old_azure_data).to_ldap_str()
 
 	def modify_azure_attributes(self, azure_object_dict):
@@ -379,7 +379,7 @@ class UDMOfficeObject(UserDict):
 		"""
 		assert type(self) == type(other)
 		result = {}
-		fieldls = other.udm_object_reference.oldattr.keys()
+		fieldls = set(other.udm_object_reference.oldattr.keys()) | set(self.udm_object_reference.oldattr.keys())
 		for field in fieldls:
 			own_value = self.udm_object_reference.oldattr.get(field, None)
 			other_value = other.udm_object_reference.oldattr.get(field, None)

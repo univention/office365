@@ -1009,9 +1009,9 @@ class GroupConnector(Connector):
 
 				# Check members modifications
 				self.check_and_modify_members(old_udm_group, new_udm_group, azure_group, core)
-
-				# Check other attributes
-				self.check_and_modify_attributes(new_udm_group, azure_group, core)
+				if not azure_group.is_delete():
+					# Check other attributes
+					self.check_and_modify_attributes(new_udm_group, azure_group, core)
 
 				# add owner before removing them. If a group has an owner, removing the last owner will fail
 

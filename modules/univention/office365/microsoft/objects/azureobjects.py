@@ -564,7 +564,9 @@ class GroupAzure(AzureObject):
 			response = self._core.create_group(self.get_not_none_values_as_dict())
 			self._update_from_dict(response)
 		else:
-			self._core.modify_group(self.id, self.get_not_none_values_as_dict())
+			desire_state = self.get_not_none_values_as_dict()
+			desire_state.setdefault("description", " ")
+			self._core.modify_group(self.id, desire_state)
 
 	@classmethod
 	def get_by_name(cls, core, displayName):
@@ -575,7 +577,7 @@ class GroupAzure(AzureObject):
 			group._update_from_dict(response["value"][0])
 			group.set_core(core)
 			return group
-		raise GraphRessourceNotFroundError("Object with displayName: %r not found in azure %r" % (core.account.alias, displayName))
+		raise GraphRessourceNotFroundError("Object with displayName: %r not found in azure %r" % (displayName, core.account.alias))
 
 	# TODO update user with the response ??
 	def exist(self):
@@ -607,7 +609,7 @@ class GroupAzure(AzureObject):
 			"displayName": name,
 			"description": "deleted group",
 			"mailEnabled": False,
-			"mailNickname": name.replace(" ", "_-_")
+			"mailNickname": name[:63].replace(" ", "_-_")
 		}
 		self._core.modify_group(self.id, data)
 		self._update_from_dict(data)
@@ -646,7 +648,7 @@ class GroupAzure(AzureObject):
 		self._core.add_group_owner(group_id=self.id, owner_id=owner_id)
 
 	def remove_owner(self, owner_id):
-		# type: () -> None
+		# type: (str) -> None
 		""""""
 		self._core.remove_group_owner(self.id, owner_id)
 
@@ -727,6 +729,7 @@ class GroupAzure(AzureObject):
 			self._core.add_license(self.id, subs_sku.skuId, deactivated_plans, self.odataType)
 		except MSGraphError as exc:
 			reraise(AddLicenseError, AddLicenseError(str(exc), self.id, subs_sku.skuId, exc), sys.exc_info()[2])
+
 	def remove_all_assigned_licenses(self):
 		# type: () -> None
 		""""""

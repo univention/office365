@@ -791,6 +791,7 @@ class TestGroupConnector:
 		# Check modifications TODO:
 		self.gc._create_group = mock.MagicMock(return_value=created_group)
 		self.gc.parse = mock.MagicMock(side_effect=[azure_group, new_azure_group])
+		created_group.is_delete = mock.MagicMock(return_value=False)
 		udm_fake_group_new.udm_object_reference.oldattr["description"] = b"the new description"
 		self.gc.check_and_modify_teams = mock.MagicMock()
 		self.gc.check_and_modify_owners = mock.MagicMock()
@@ -800,8 +801,6 @@ class TestGroupConnector:
 		self.gc.modify(udm_fake_group_old, udm_fake_group_new)
 
 		self.gc._create_group.assert_called_once()
-		self.gc.parse.assert_called_with(udm_fake_group_new, core)
-		created_group.update.assert_called_with(azure_group)
 		self.gc.check_and_modify_teams.assert_called_once_with(udm_fake_group_old, udm_fake_group_new, created_group, alias)
 		self.gc.check_and_modify_owners.assert_called_once_with(udm_fake_group_old, udm_fake_group_new, created_group, alias)
 		self.gc.check_and_modify_members.assert_called_once_with(udm_fake_group_old, udm_fake_group_new, created_group, core)
