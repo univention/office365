@@ -12,8 +12,8 @@ stages:
 
 variables:
   PACKAGE: univention-office365
-  UCS_VERSION: "${CI_COMMIT_BRANCH//./}0"
-  UCS_RELEASE: "$CI_COMMIT_BRANCH"
+  UCS_VERSION: "${CI_COMMIT_REF_NAME//./}0"
+  UCS_RELEASE: "$CI_COMMIT_REF_NAME"
   SCOPE: "office365"
   LANG: "C.UTF-8"
   DEBIAN_FRONTEND: noninteractive
@@ -23,6 +23,11 @@ variables:
   GIT_STRATEGY: fetch
   GIT_SUBMODULE_STRATEGY: none
   GIT_DEPTH: "3"
+
+job_name:
+  script:
+    - echo "CI_COMMIT_BRANCH=$CI_COMMIT_BRANCH"
+    - printenv
 
 build_package:
   stage: test
