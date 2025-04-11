@@ -12,8 +12,8 @@ stages:
 
 variables:
   PACKAGE: univention-office365
-  UCS_VERSION: "${CI_COMMIT_REF_NAME//./}0"
-  UCS_RELEASE: "$CI_COMMIT_REF_NAME"
+  UCS_VERSION: "$CI_COMMIT_REF_NAME"
+  UCS_RELEASE: "$CI_COMMIT_BRANCH"
   SCOPE: "office365"
   LANG: "C.UTF-8"
   DEBIAN_FRONTEND: noninteractive
