@@ -29,6 +29,8 @@ build_package:
   image: $IMAGE_UCSDEV
   before_script:
     - apt-get -q --assume-yes build-dep .
+    - echo "CI_COMMIT_BRANCH=$CI_COMMIT_BRANCH"
+    - printenv
   script:
     - dpkg-buildpackage
     - install -d -m 755 build
