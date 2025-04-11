@@ -66,8 +66,6 @@ repo_admin:
   rules:
     - if: "$CI_COMMIT_MESSAGE =~ /skip-build/ || $pipeline =~ /skip-build/"
       when: never
-    - if: $FORCE_BUILD
-      when: always
     - if: $CI_COMMIT_BRANCH == "5.0" || $CI_COMMIT_BRANCH == "5.2"
       changes:
         - debian/changelog
@@ -93,8 +91,6 @@ build-package-ng:
   rules:
     - if: "$CI_COMMIT_MESSAGE =~ /skip-build/ || $pipeline =~ /skip-build/"
       when: never
-    - if: $FORCE_BUILD
-      when: always
     - if: $CI_COMMIT_BRANCH == "5.0" || $CI_COMMIT_BRANCH == "5.2"
       changes:
         - debian/changelog
