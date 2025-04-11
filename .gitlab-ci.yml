@@ -12,7 +12,7 @@ stages:
 
 variables:
   PACKAGE: univention-office365
-  UCS_VERSION: "${CI_COMMIT_BRANCH//.}0"
+  UCS_VERSION: "${CI_COMMIT_BRANCH//./}0"
   UCS_RELEASE: "$CI_COMMIT_BRANCH"
   SCOPE: "office365"
   LANG: "C.UTF-8"
@@ -29,8 +29,6 @@ build_package:
   image: $IMAGE_UCSDEV
   before_script:
     - apt-get -q --assume-yes build-dep .
-    - echo "CI_COMMIT_BRANCH=$CI_COMMIT_BRANCH"
-    - printenv
   script:
     - dpkg-buildpackage
     - install -d -m 755 build
