@@ -49,7 +49,6 @@ build_500:
 
 .run_ucslint_template:
   stage: test
-  entrypoint: [""]
   script:
     - ucslint -j ucslint.xml -x 20
   artifacts:
@@ -58,12 +57,14 @@ build_500:
 
 run_ucslint_520:
   image: $IMAGE_UCSLINT:520
+  entrypoint: [""]
   extends: .run_ucslint_template
   rules:
     - if: '$CI_COMMIT_BRANCH == "5.2"'
 
 run_ucslint_500:
   image: $IMAGE_UCSLINT:500
+  entrypoint: [""]
   extends: .run_ucslint_template
   rules:
     - if: '$CI_COMMIT_BRANCH == "5.0"'
