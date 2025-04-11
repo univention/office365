@@ -1,0 +1,36 @@
+#!/bin/bash
+
+while [ $# -gt 0 ]
+do
+	case "$1" in
+		"--binddn")
+			shift
+			binddn="$1"
+			shift
+			;;
+		"--bindpwdfile")
+			shift
+			pwdfile="$1"
+			shift
+			;;
+		"--error-file")
+			shift
+			errorfile="$1"
+			shift
+			;;
+		*)
+			shift
+			;;
+	esac
+done
+
+# Check if univention-saml has the correct version on the DC master
+. /usr/share/univention-lib/ldap.sh
+username=$(ucs_convertDN2UID "$binddn" -D "$binddn" -y "$pwdfile")
+
+if ! univention-ssh "$pwdfile" "$username"@$(ucr get ldap/master) dpkg --compare-versions \"5.0.4-26\" lt-nl \"\$\(dpkg-query --showformat='\$\{Version\}' --show univention-saml\)\"; then
+	echo "Error: The package univention-saml on the DC Master ($(ucr get ldap/master)) must at least be 5.0.4-26 before the app can be updated. Please update the DC Master to at least erratalevel 159." > "$errorfile"
+	exit 1
+fi
+
+exit 0

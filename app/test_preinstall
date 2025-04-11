@@ -1,0 +1,3 @@
+#!/bin/bash
+
+univention-install ucs-test-office365
