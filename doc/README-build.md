@@ -72,13 +72,14 @@ In case these [pipelines](/doc/README-CI.md) do not work, the way to build the p
 ```shell
 #UCS_VERSION=4.4
 #UCS_VERSION=5.0
+#UCS_VERSION=5.2
 
 UCS_SCOPE=$(echo $UCS_VERSION | tr -d '.')
 
 #Import source code, 
 # if this step fail maybe the pipeline import it,
 # in this case you should continue with the next command
-repo_admin.py -G git@git.knut.univention.de:univention/components/office365.git -p univention-office365 -b $UCS_VERSION -P . -s office365 -r $UCS_VERSION-0-0
+repo_admin.py -G git@git.knut.univention.de:univention/dev/projects/office365.git -p univention-office365 -b $UCS_VERSION -P . -s office365 -r $UCS_VERSION-0-0
 #Build  
 b$UCS_SCOPE-scope office365 univention-office365
 ```
@@ -86,9 +87,9 @@ b$UCS_SCOPE-scope office365 univention-office365
 To retrieve the packages you can use the following commands:
 ```shell
 # to retrieve of the 4.4 version
-scp -r emartinena@omar:/var/univention/buildsystem2/apt/ucs_4.4-0-office365/all .
+scp -r omar:/var/univention/buildsystem2/apt/ucs_4.4-0-office365/all .
 # to retrieve of the 5.0 version
-scp -r emartinena@omar:/var/univention/buildsystem2/apt/ucs_5.0-0-office365/all .
+scp -r omar:/var/univention/buildsystem2/apt/ucs_5.0-0-office365/all .
 ```
 
 ### Other branches

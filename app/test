@@ -1,0 +1,5 @@
+#!/bin/bash
+
+ucs-test -s office365 -E dangerous -l test.log -F junit
+
+cp -r test-reports/92_office365 ~/test-reports/92_office365

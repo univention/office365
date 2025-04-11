@@ -1,0 +1,173 @@
+<h1>
+	Univention Microsoft 365 Connector v5.12
+	<div>
+		<ul style="font-size: 12px; font-weight: normal;">
+			<li>
+				<code class="code-colors hljs language-delphi">
+					Wenn eine Gruppe mit Univention Microsoft 365 Connector v5.9 oder älter erstellt und dann in einer neueren Version aktualisiert wurde, wurde der Gruppentyp in "Microsoft 365"-Gruppe geändert. Dies war nicht beabsichtigt und wurde behoben.
+				</code>
+				<a href="https://forge.univention.org/bugzilla/show_bug.cgi?id=57730">Bug 57730</a>
+			</li>
+			<li>
+				<code class="code-colors hljs language-delphi">
+					Der Microsoft 365 Connector hat das letzte Mitglied einer Gruppe in Azure AD nicht aus der Gruppe entfernt. Dies war nicht beabsichtigt und wurde behoben.
+				</code>
+				<a href="https://forge.univention.org/bugzilla/show_bug.cgi?id=57846">Bug 57846</a>
+			</li>
+		</ul>
+	</div>
+</h1>
+<h1>
+	Univention Microsoft 365 Connector v5.11
+	<div>
+		<ul style="font-size: 12px; font-weight: normal;">
+			<li>
+				<code class="code-colors hljs language-delphi">
+					When Microsoft Azure was performing slowly, especially during team archiving, the listener was blocked until that operation was successful. This inhibited listener replication.
+				</code>
+				<a href="https://forge.univention.org/bugzilla/show_bug.cgi?id=">Bug 57755</a>
+			</li>
+			<li>
+				The Microsoft 365 Connector wizard has has been migrated to use the Microsoft Graph Manifest format from now on. The legacy format can not be used in the wizard anymore. <a href="https://forge.univention.org/bugzilla/show_bug.cgi?id=">Bug 57739</a>
+				<br>
+			</li>
+		</ul>
+	</div>
+</h1>
+<h1>
+	<br>
+	Univention Microsoft 365 Connector v5.10
+	<div>
+		<ul style="font-size: 12px; font-weight: normal;">
+			<li>
+				<pre role="region">
+<code class="code-colors hljs language-delphi">The type of groups that are synced to Azure AD can now be selected.
+One can choose between a "Security group", the default
+and a "Microsoft 365" group. The default group type is still "Security Group", but by adjusting the
+extended attribute, that default can also be changed.</code>
+
+
+
+
+
+
+
+				</pre>
+			</li>
+			<li>
+				<pre role="region">
+<code class="code-colors hljs language-delphi">The script print_users_and_group has been adjusted, it broke due to an API change by Microsoft</code>
+
+
+
+
+
+
+
+				</pre>
+			</li>
+			<li>
+				<pre role="region">
+<code class="code-colors hljs language-delphi">There was an Issue where group recreation did not automatically create a new team. This has been fixed </code>
+
+
+
+
+
+
+
+				</pre>
+			</li>
+		</ul>
+	</div>
+</h1>
+<h1>
+	Univention Microsoft 365 Connector v5.9
+	<div>
+		<ul style="font-size: 12px; font-weight: normal;">
+			<li>
+				Eine fehlerhafte, doppelte  Logrotate-Konfiguration wurde entfernt. <a href="https://forge.univention.org/bugzilla/show_bug.cgi?id=56915">Bug 56915</a>
+			</li>
+			<li>
+				Abgelaufene Benutzer-Konten werden nun auch in der Azure Domäne deaktiviert. <a href="https://forge.univention.org/bugzilla/show_bug.cgi?id=56994">Bug 56994</a>
+			</li>
+			<li>
+				Deaktivierte Benutzer-Konten in der Azure Domäne werden nun auch gelöscht, wenn das UCS Benutzer-Konto gelöscht wird. <a href="https://forge.univention.org/bugzilla/show_bug.cgi?id=56815">Bug 56815</a>
+			</li>
+		</ul>
+	</div>
+</h1>
+<h1>
+	Univention Microsoft 365 Connector v5.8
+	<div>
+		<ul style="font-size: 12px; font-weight: normal;">
+			<li>
+				Der Connector war nicht in der Lage das mobilePhone Attribut zu modifizieren, da das Attribut aus der Modifikationsliste gefiltert wurde. Dieses Verhalten wurde behoben. <a href="https://forge.univention.org/bugzilla/show_bug.cgi?id=55984">Bug 55984</a>
+				<br>
+			</li>
+		</ul>
+	</div>
+</h1>
+<h1>
+	Univention Microsoft 365 Connector v5.7
+</h1>
+<ul style="font-size: 12px; font-weight: normal;">
+	<li>
+		Die Azure Graph API Abonnement Response wurde geändert und enthält nun zusätzliche Attribute. Dies führte zu Tracebacks bei der Lizenzvergabe im Microsoft 365 Connector.&nbsp;<a href="https://forge.univention.org/bugzilla/show_bug.cgi?id=56091">Bug 56091</a>
+	</li>
+</ul>
+<h1>
+	Univention Microsoft 365 Connector v5.6
+	<br>
+</h1>
+<h1>
+	<ul style="font-size: 12px; font-weight: normal;">
+		<li>
+			Eine falsch konfigurierte oder fehlerhafte Azure AD-Verbindung (alias) führt nicht mehr zum Ausfall des Connectors. Stattdessen wird die spezifische Verbindung deaktiviert. <a href="https://forge.univention.org/bugzilla/show_bug.cgi?id=54090">Bug 54090</a>
+		</li>
+	</ul>
+	&nbsp; Univention Microsoft 365 Connector v5.5
+	<br>
+</h1>
+<ul style="font-size: 12px; font-weight: normal;">
+	<li>
+		Die Azure Lizenzzuweisung funktioniert nun auch wenn die Lizenzen fast abgelaufen sind <a href="https://forge.univention.org/bugzilla/show_bug.cgi?id=55049">Bug 55049</a>
+	</li>
+</ul>
+<h1>
+	Univention Microsoft 365 Connector v5.3
+	<br>
+</h1>
+<ul style="font-size: 12px; font-weight: normal;">
+	<li>
+		Das Deaktivieren eines Benutzers in UCS ändert nicht länger dessen Azure AD Mailalias <a href="https://forge.univention.org/bugzilla/show_bug.cgi?id=55012">Bug 55012</a>
+	</li>
+	<li>
+		Die Scripte <i>o365_list_users</i> und <i>check_for_empty_groups</i> sind mit dieser Version der App wieder funktionsfähig.
+	</li>
+</ul>
+<h1>
+	Univention Microsoft 365 Connector v5.2
+	<br>
+</h1>
+<ul style="font-size: 12px; font-weight: normal;">
+	<li>
+		In einigen Fällen funktionierte die Synchronisation von Benutzern in die Azure Cloud nach dem Update auf die Connector App Version 5.1 nicht mehr. <a href="https://forge.univention.org/bugzilla/show_bug.cgi?id=54936">Dieses Update behebt einen Fehler im Mapping</a> von LDAP zu Azure Attributen.
+	</li>
+</ul>
+<h1>
+	Univention Microsoft 365 Connector v5.1
+	<br>
+</h1>
+<ul style="font-size: 12px; font-weight: normal;">
+	<li>
+		Der Microsoft 365 Connector wurde vollständig auf die Benutzung der Microsoft Graph API umgestellt. Die bisher genutzt API kann ab Ende 2022 nicht mehr genutzt werden, daher muss die Connector App vorher auf Version 5.1 aktualisiert werden.
+	</li>
+	<li>
+		Falls das Setup des Connectors vor Version 4.0 stattgefunden hat, könnten die Applikationen noch nicht die nötigen Berechtigungen für die Graph API haben
+	</li>
+	<li>
+		<b>Bitte prüfen sie vor dem Upgrade</b> <b>ob jede ihrer Applikationen ausreichende Berechtigungen für die Graph API haben. Diese sind in https://help.univention.com/t/18453 beschrieben</b>
+		<br>
+	</li>
+</ul>
