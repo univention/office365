@@ -10,9 +10,12 @@ stages:
   - import
   - build
 
+script:
+  - UCS_VERSION=$(echo $CI_COMMIT_BRANCH | tr -d '.')0
+
 variables:
   PACKAGE: univention-office365
-  UCS_VERSION: "$(echo $CI_COMMIT_BRANCH | tr -d '.')0"
+#  UCS_VERSION: "$(echo $CI_COMMIT_BRANCH | tr -d '.')0"
   UCS_RELEASE: "$CI_COMMIT_BRANCH"
   SCOPE: "office365"
   LANG: "C.UTF-8"
@@ -24,15 +27,12 @@ variables:
   GIT_SUBMODULE_STRATEGY: none
   GIT_DEPTH: "3"
 
-job_name:
-  script:
-    - echo "CI_COMMIT_BRANCH=$CI_COMMIT_BRANCH"
-    - printenv
-
 build_package:
   stage: test
-  image: $IMAGE_UCSDEV
+#  image: $IMAGE_UCSDEV
+  image: $CI_REGISTRY/phahn/ucs-debbase:$UCS_VERSION
   before_script:
+    - export UCS_VERSION=$(echo $CI_COMMIT_BRANCH | tr -d '.')0
     - apt-get -q --assume-yes build-dep .
   script:
     - dpkg-buildpackage
@@ -45,8 +45,10 @@ build_package:
 run_ucslint:
   stage: test
   image:
-    name: $IMAGE_UCSLINT
+    name: $CI_REGISTRY/ucslint:$UCS_VERSION
     entrypoint: [""]
+  before_script:
+    - export UCS_VERSION=$(echo $CI_COMMIT_BRANCH | tr -d '.')0
   script:
     - ucslint -j ucslint.xml -x 20
   artifacts:
