@@ -12,8 +12,7 @@ stages:
 
 variables:
   PACKAGE: univention-office365
-  UCS_VERSION: $(echo $CI_COMMIT_BRANCH | tr -d '.')0
-  UCS_VERSION2: $(echo $CI_COMMIT_BRANCH | sed 's/\.//g')0
+  UCS_VERSION: "$(echo $CI_COMMIT_BRANCH | tr -d '.')0"
   UCS_RELEASE: "$CI_COMMIT_BRANCH"
   SCOPE: "office365"
   LANG: "C.UTF-8"
