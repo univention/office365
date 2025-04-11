@@ -64,6 +64,7 @@ run_ucslint_520:
 
 run_ucslint_500:
   image: $IMAGE_UCSLINT:500
+  extends: .run_ucslint_template
   rules:
     - if: '$CI_COMMIT_BRANCH == "5.0"'
 
