@@ -10,9 +10,6 @@ stages:
   - import
   - build
 
-script:
-  - UCS_VERSION=$(echo $CI_COMMIT_BRANCH | tr -d '.')0
-
 variables:
   PACKAGE: univention-office365
 #  UCS_VERSION: "$(echo $CI_COMMIT_BRANCH | tr -d '.')0"
