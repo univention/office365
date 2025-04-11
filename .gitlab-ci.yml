@@ -12,21 +12,26 @@ stages:
 
 variables:
   PACKAGE: univention-office365
-  UCS_VERSION: "$(echo $CI_COMMIT_BRANCH | tr -d '.')0"
   UCS_RELEASE: "$CI_COMMIT_BRANCH"
   SCOPE: "office365"
   LANG: "C.UTF-8"
   DEBIAN_FRONTEND: noninteractive
   CI_REGISTRY: docker-registry.knut.univention.de
-  IMAGE_UCSDEV: $CI_REGISTRY/phahn/ucs-debbase:$$(eval echo $UCS_VERSION)
-  IMAGE_UCSLINT: $CI_REGISTRY/ucslint:$$(eval echo $UCS_VERSION)
+  IMAGE_UCSDEV: $CI_REGISTRY/phahn/ucs-debbase
+  IMAGE_UCSLINT: $CI_REGISTRY/ucslint
   GIT_STRATEGY: fetch
   GIT_SUBMODULE_STRATEGY: none
   GIT_DEPTH: "3"
 
+.build_520:
+  image: $IMAGE_UCSDEV:520
+
+.build_500:
+  image: $IMAGE_UCSDEV:500
+
 build_package:
   stage: test
-  image: $IMAGE_UCSDEV
+  extends: .build_520
   before_script:
     - apt-get -q --assume-yes build-dep .
   script:
@@ -36,17 +41,33 @@ build_package:
   artifacts:
     paths:
       - build/
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "5.2"'
+      when: always
+    - if: '$CI_COMMIT_BRANCH == "5.0"'
+      extends: [ .build_500 ]
+
+.run_ucslint_520:
+  image: $IMAGE_UCSLINT:520
+  entrypoint: [""]
+
+.run_ucslint_500:
+  image: $IMAGE_UCSLINT:500
+  entrypoint: [""]
 
 run_ucslint:
   stage: test
-  image:
-    name: $IMAGE_UCSLINT
-    entrypoint: [""]
+  extends: .build_520
   script:
     - ucslint -j ucslint.xml -x 20
   artifacts:
     reports:
       junit: ucslint.xml
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "5.2"'
+      when: always
+    - if: '$CI_COMMIT_BRANCH == "5.0"'
+      extends: [ .run_ucslint_500 ]
 
 repo_admin:
   stage: import
