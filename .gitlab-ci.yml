@@ -59,7 +59,6 @@ run_ucslint_520:
   image:
     name: $IMAGE_UCSLINT:520
     entrypoint: [ "" ]
-  entrypoint: [""]
   extends: .run_ucslint_template
   rules:
     - if: '$CI_COMMIT_BRANCH == "5.2"'
@@ -68,7 +67,6 @@ run_ucslint_500:
   image:
     name: $IMAGE_UCSLINT:500
     entrypoint: [ "" ]
-  entrypoint: [""]
   extends: .run_ucslint_template
   rules:
     - if: '$CI_COMMIT_BRANCH == "5.0"'
