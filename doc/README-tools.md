@@ -8,6 +8,7 @@ There are several useful scripts, they are located in `/usr/share/univention-off
   * `manage_adconnections`
   * `o365_usertokens`
   * `check_for_empty_groups`
+  * `connect_existing_users`
   * `o365_list_users`
   * `print_users_and_groups`
   * `print_subscriptions`
