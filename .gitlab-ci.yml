@@ -12,8 +12,8 @@ stages:
 
 variables:
   PACKAGE: univention-office365
-  UCS_VERSION: "${CI_COMMIT_BRANCH//.}0"
-  UCS_RELEASE: "$CI_COMMIT_BRANCH"
+  UCS_VERSION: "500"
+  UCS_RELEASE: "5.0"
   SCOPE: "office365"
   LANG: "C.UTF-8"
   DEBIAN_FRONTEND: noninteractive
@@ -55,7 +55,7 @@ repo_admin:
   rules:
     - if: "$CI_COMMIT_MESSAGE =~ /skip-build/ || $pipeline =~ /skip-build/"
       when: never
-    - if: $CI_COMMIT_BRANCH == "5.0" || $CI_COMMIT_BRANCH == "5.2"
+    - if: $CI_COMMIT_BRANCH == $UCS_RELEASE
       changes:
         - debian/changelog
   tags:
@@ -80,7 +80,7 @@ build-package-ng:
   rules:
     - if: "$CI_COMMIT_MESSAGE =~ /skip-build/ || $pipeline =~ /skip-build/"
       when: never
-    - if: $CI_COMMIT_BRANCH == "5.0" || $CI_COMMIT_BRANCH == "5.2"
+    - if: $CI_COMMIT_BRANCH == $UCS_RELEASE
       changes:
         - debian/changelog
   tags:
