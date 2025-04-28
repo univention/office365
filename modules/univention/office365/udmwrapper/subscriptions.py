@@ -29,7 +29,7 @@
 # License with the Debian GNU/Linux or Univention distribution in file
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 from univention.office365.udm_helper import UDMHelper
 from univention.office365.logging2udebug import get_logger
@@ -40,7 +40,7 @@ logger = get_logger("office365", "o365")
 
 class SubscriptionProfile(object):
 	def __init__(self, name, subscription=None, whitelisted_plans=None, blacklisted_plans=None):
-		# type: (str, Optional[], Optional[List[str]], Optional[List[str]]) -> None
+		# type: (str, Optional[Dict], Optional[List[str]], Optional[List[str]]) -> None
 		self.name = name
 		self.subscription = subscription  # skuPartNumber
 		self.whitelisted_plans = whitelisted_plans or list()
