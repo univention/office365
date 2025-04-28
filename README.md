@@ -89,6 +89,7 @@ which can only be installed on UCS Systems with role Primary Directory Node or B
 
 # Developer Documentation
 Multiple files are available for developers:
+* Release process: [README-code.md](/doc/README-release.md)
 * Internal code design and description: [README-code.md](/doc/README-code.md)
 * Package build process: [README-build.md](/doc/README-build.md)
 * Description of the implemented tests: [README-test.md](/doc/README-test.md)
