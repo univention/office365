@@ -1,3 +1,9 @@
+univention-office365 (5.0.1-14) unstable; urgency=medium
+
+  * Bug #48641: Add new test and fix typing
+
+ -- Ivan Barbecho Delgado <ivan.delgado@univention.de>  Mon, 28 Apr 2025 09:37:57 +0200
+
 univention-office365 (5.0.1-13) unstable; urgency=medium
 
   * Bug #48641: Add connect_existing_users to usr/share/univention-office365/scripts/

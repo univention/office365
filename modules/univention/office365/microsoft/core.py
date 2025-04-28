@@ -56,7 +56,7 @@ class MSGraphApiCore(object):
 
     """
     def __init__(self, account, logger=None):
-        # type: (AzureAccount, Dict, "logging.Logger") -> None
+        # type: (AzureAccount, "logging.Logger") -> None
         self.account = account
         self.logger = logger or get_logger("office365", "core")
         if not account.check_token():
@@ -64,7 +64,7 @@ class MSGraphApiCore(object):
             )
 
     def get_token(self):
-        # type: (Dict) -> None
+        # type: () -> None
         """
         Get an access token for the given directory id and application id.
         COMPATIBLITY NOTE / CHANGES BETWEEN 'Graph' AND 'Azure'
