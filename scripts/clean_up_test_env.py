@@ -39,13 +39,14 @@ from univention.office365.microsoft.core import MSGraphApiCore
 from univention.office365.microsoft.objects.azureobjects import UserAzure, GroupAzure, SubscriptionAzure
 from univention.office365.ucr_helper import UCRHelper
 
-user_blacklist = [
+user_ignorelist = [
 	"admin@alphadistrict.onmicrosoft.com",
 	"webmaster_univention-azure-tests.de#EXT#@alphadistrict.onmicrosoft.com",
 	"dtroeder@univentiontestgmbh.onmicrosoft.com",
 	"edamrose@univentiontestgmbh.onmicrosoft.com",
+	"azureadmin1@univentiontestgmbh.onmicrosoft.com",
 ]
-group_blacklist = [
+group_ignorelist = [
 	""
 ]
 
@@ -57,12 +58,12 @@ def clean_up_test_env(adconnection_alias):
 	groups = GroupAzure.list(core)
 	for user in users:
 		print(user.userPrincipalName)
-		if user.userPrincipalName not in user_blacklist:
+		if user.userPrincipalName not in user_ignorelist:
 			print("Deleting user {!r}".format(user.userPrincipalName))
 			core.delete_user(user.id)
 	for group in groups:
 		print(group.displayName)
-		if group.displayName not in group_blacklist:
+		if group.displayName not in group_ignorelist:
 			print("Deleting group {!r}".format(group.displayName))
 			core.delete_group(group.id)
 
