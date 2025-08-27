@@ -20,6 +20,7 @@ The next operations are performed on the two preconfigured connections to Azure:
 - delete user
 - try to retrieve the user again and check that it is not found, or it's disabled.
 """
+
 import time
 
 import univention.testing.ucr as ucr_test
@@ -36,65 +37,65 @@ logger = setup_logging()
 
 adconnection_aliases = UCRHelper.get_adconnection_aliases()
 initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAccount(adconnection_alias).is_initialized()]
-assert initialized_adconnections, "run ./01_initialize_external_testenv first!"
+assert initialized_adconnections, 'run ./01_initialize_external_testenv first!'
 
-print("*** adconnection_aliases={!r}.".format(adconnection_aliases))
-print("*** initialized_adconnections={!r}.".format(initialized_adconnections))
+print('*** adconnection_aliases={!r}.'.format(adconnection_aliases))
+print('*** initialized_adconnections={!r}.'.format(initialized_adconnections))
 
 for adconnection_alias in initialized_adconnections:
-	print("*** Running for adconnection_alias={!r}.".format(adconnection_alias))
+    print('*** Running for adconnection_alias={!r}.'.format(adconnection_alias))
 
-	core = MSGraphApiCore(AzureAccount(adconnection_alias))
+    core = MSGraphApiCore(AzureAccount(adconnection_alias))
 
-	args = azure_user_args(core, minimal=True)
+    args = azure_user_args(core, minimal=True)
 
-	# workaround for #42931
-	args["mailNickname"] = "AAA{}".format(args["mailNickname"])
-	args["userPrincipalName"] = "AAA{}".format(args["userPrincipalName"])
+    # workaround for #42931
+    args['mailNickname'] = 'AAA{}'.format(args['mailNickname'])
+    args['userPrincipalName'] = 'AAA{}'.format(args['userPrincipalName'])
 
-	users1 = UserAzure.list(core)
+    users1 = UserAzure.list(core)
 
-	print("*** list_users() returned:")
-	print_users(users1, complete=False, short=True)
+    print('*** list_users() returned:')
+    print_users(users1, complete=False, short=True)
 
-	print("*** create_user(), args={}".format(args))
-	new_user1 = UserAzure(**args)
-	new_user1.set_core(core)
-	new_user1.create()
-	time.sleep(10)
-	print("create_user() returned:")
-	print_users(new_user1, complete=False, short=True)
+    print('*** create_user(), args={}'.format(args))
+    new_user1 = UserAzure(**args)
+    new_user1.set_core(core)
+    new_user1.create()
+    time.sleep(10)
+    print('create_user() returned:')
+    print_users(new_user1, complete=False, short=True)
 
-	with AzureDirectoryTestUsers(core=core, azure_objects=[new_user1]):
-		new_user2 = UserAzure.get(core, new_user1.id, selection=azure_user_selection)
-		for k, v in args.items():
-			if k == "passwordProfile":
-				continue
-			if not getattr(new_user2, k) == v:
-				utils.fail("Attribute {} has value {}, should be {}.".format(k, v, getattr(new_user2, k)))
+    with AzureDirectoryTestUsers(core=core, azure_objects=[new_user1]):
+        new_user2 = UserAzure.get(core, new_user1.id, selection=azure_user_selection)
+        for k, v in args.items():
+            if k == 'passwordProfile':
+                continue
+            if not getattr(new_user2, k) == v:
+                utils.fail('Attribute {} has value {}, should be {}.'.format(k, v, getattr(new_user2, k)))
 
-		users2 = UserAzure.list(core)
+        users2 = UserAzure.list(core)
 
-		old_ids = set([user.id for user in users1])
-		new_ids = set([user.id for user in users2])
-		diff = new_ids - old_ids
-		if len(diff) == 0:
-			utils.fail("Test user disappeared. old_ids={}, new_ids={}".format(old_ids, new_ids))
-		elif len(diff) > 1 or diff.pop() != new_user1.id:
-			utils.fail("Unexpected user(s) found. old_ids={}, new_ids={}".format(old_ids, new_ids))
+        old_ids = set([user.id for user in users1])
+        new_ids = set([user.id for user in users2])
+        diff = new_ids - old_ids
+        if len(diff) == 0:
+            utils.fail('Test user disappeared. old_ids={}, new_ids={}'.format(old_ids, new_ids))
+        elif len(diff) > 1 or diff.pop() != new_user1.id:
+            utils.fail('Unexpected user(s) found. old_ids={}, new_ids={}'.format(old_ids, new_ids))
 
-		print("*** delete_user({})".format(new_user1.id))
-		new_user1.deactivate(rename=True)
-		time.sleep(10)
+        print('*** delete_user({})'.format(new_user1.id))
+        new_user1.deactivate(rename=True)
+        time.sleep(10)
 
-		try:
-			deleted_user = UserAzure.get(core, new_user1.id, selection=azure_user_selection)
-			if deleted_user.accountEnabled:
-				utils.fail("User was not deleted.")
-			else:
-				print("OK: user was deleted.")
-		except MSGraphError:
-			print("OK: user was deleted.")
+        try:
+            deleted_user = UserAzure.get(core, new_user1.id, selection=azure_user_selection)
+            if deleted_user.accountEnabled:
+                utils.fail('User was not deleted.')
+            else:
+                print('OK: user was deleted.')
+        except MSGraphError:
+            print('OK: user was deleted.')
 
-	print("*** All went well for Azure AD connection alias {!r}.".format(adconnection_alias))
-print("*** All went well for all in {!r}.".format(initialized_adconnections))
+    print('*** All went well for Azure AD connection alias {!r}.'.format(adconnection_alias))
+print('*** All went well for all in {!r}.'.format(initialized_adconnections))

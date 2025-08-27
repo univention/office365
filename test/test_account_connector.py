@@ -2,32 +2,8 @@
 #
 # Univention Office 365 - test_account_connector
 #
-# Copyright 2016-2025 Univention GmbH
-#
-# http://www.univention.de/
-#
-# All rights reserved.
-#
-# The source code of this program is made available
-# under the terms of the GNU Affero General Public License version 3
-# (GNU AGPL V3) as published by the Free Software Foundation.
-#
-# Binary versions of this program provided by Univention to you as
-# well as other copyrighted, protected or trademarked materials like
-# Logos, graphics, fonts, specific documentations and configurations,
-# cryptographic keys etc. are subject to a license agreement between
-# you and Univention and not subject to the GNU AGPL V3.
-#
-# In the case you use this program under the terms of the GNU AGPL V3,
-# the program is provided in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public
-# License with the Debian GNU/Linux or Univention distribution in file
-# /usr/share/common-licenses/AGPL-3; if not, see
-# <http://www.gnu.org/licenses/>.
+# SPDX-FileCopyrightText: 2016-2025 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
 
 import sys
 
@@ -40,13 +16,11 @@ import univention
 
 
 def all_methods_called(test_class, class_to_check, exclude):
-	# type: (Type, Type, Set[str]) -> Set[str]
-	method_list = [func for func in dir(class_to_check) if
-				   callable(getattr(class_to_check, func)) and not func.startswith("_")]
-	method_list2 = [func[5:] for func in dir(test_class) if
-					callable(getattr(test_class, func)) and not func.startswith("_") and func.startswith("test_")]
-	diff = set(method_list) - set(method_list2) - set(exclude)
-	return diff
+    # type: (Type, Type, Set[str]) -> Set[str]
+    method_list = [func for func in dir(class_to_check) if callable(getattr(class_to_check, func)) and not func.startswith('_')]
+    method_list2 = [func[5:] for func in dir(test_class) if callable(getattr(test_class, func)) and not func.startswith('_') and func.startswith('test_')]
+    diff = set(method_list) - set(method_list2) - set(exclude)
+    return diff
 
 
 pwd_module = mock.MagicMock()
@@ -72,72 +46,71 @@ sys.modules['os'].chown = mock.MagicMock()
 from univention.office365.connector.account_connector import ConnectionsPool
 
 
-
-
 class TestAccountsPool:
-	total_accounts = 10
-	def setup_method(self):
-		# type: () -> None
-		with mock.patch("univention.office365.ucr_helper.UCRHelper", name="UCRHelperMocked") as UCRHelper:
-			UCRHelper.get_adconnection_aliases = mock.MagicMock(return_value={"alias" + str(x): "id" + str(x) for x in range(0, self.total_accounts)})
-			univention.office365.api.account_connector.UCRHelper = UCRHelper
+    total_accounts = 10
 
-	# def test_completity(self):
-	#	# type: () -> None
-	# 	diff = all_methods_called(self.__class__, AccountsPool, ["get_not_none_values_as_dict", "set_core", "wait_for_operation", "get_fields", "create_or_modify"])
-	# 	assert len(diff) == 0, "Functions no tested [" + ", ".join(diff) + "]"
+    def setup_method(self):
+        # type: () -> None
+        with mock.patch('univention.office365.ucr_helper.UCRHelper', name='UCRHelperMocked') as UCRHelper:
+            UCRHelper.get_adconnection_aliases = mock.MagicMock(return_value={'alias' + str(x): 'id' + str(x) for x in range(0, self.total_accounts)})
+            univention.office365.api.account_connector.UCRHelper = UCRHelper
 
-	@pytest.mark.skip("Not integrated yet")
-	def test_status(self):
-		# type: () -> None
-		self.pool.status()
-		assert False
+    # def test_completity(self):
+    # # type: () -> None
+    # 	diff = all_methods_called(self.__class__, AccountsPool, ["get_not_none_values_as_dict", "set_core", "wait_for_operation", "get_fields", "create_or_modify"])
+    # 	assert len(diff) == 0, "Functions no tested [" + ", ".join(diff) + "]"
 
-	@pytest.mark.skip("Not integrated yet")
-	@mock.patch("univention.office365.api.account_connector.AzureAccount", name="AzureAccountMocked")
-	def test_from_ucr(self, azure_account):
-		# type: (mock.MagicMock) -> None
-		azure_account.side_effect = [mock.MagicMock(name="AzureAccount"+str(x)) for x in range(0, self.total_accounts)]
-		ConnectionsPool.from_ucr()
+    @pytest.mark.skip('Not integrated yet')
+    def test_status(self):
+        # type: () -> None
+        self.pool.status()
+        assert False
 
-	@pytest.mark.skip("Not integrated yet")
-	@mock.patch("univention.office365.api.account_connector.AzureAccount", name="AzureAccountMocked")
-	def test_iteration(self, azure_account):
-		# type: (mock.MagicMock) -> None
-		azure_account.side_effect = [mock.MagicMock(name="AzureAccount"+str(x)) for x in range(0, self.total_accounts)]
-		pool = ConnectionsPool.from_ucr()
-		assert len(pool) == self.total_accounts
+    @pytest.mark.skip('Not integrated yet')
+    @mock.patch('univention.office365.api.account_connector.AzureAccount', name='AzureAccountMocked')
+    def test_from_ucr(self, azure_account):
+        # type: (mock.MagicMock) -> None
+        azure_account.side_effect = [mock.MagicMock(name='AzureAccount' + str(x)) for x in range(0, self.total_accounts)]
+        ConnectionsPool.from_ucr()
 
-	@pytest.mark.skip("Not integrated yet")
-	@mock.patch("univention.office365.api.account_connector.AzureAccount")
-	def test_sub_pool(self, azure_account):
-		# type: (mock.MagicMock) -> None
-		azure_account.side_effect = [mock.MagicMock(name="AzureAccount"+str(x)) for x in range(0, self.total_accounts)]
-		pool = ConnectionsPool.from_ucr()
-		sub_pool = pool.sub_pool(["alias1", "alias5"])
-		assert len(sub_pool) == 2
+    @pytest.mark.skip('Not integrated yet')
+    @mock.patch('univention.office365.api.account_connector.AzureAccount', name='AzureAccountMocked')
+    def test_iteration(self, azure_account):
+        # type: (mock.MagicMock) -> None
+        azure_account.side_effect = [mock.MagicMock(name='AzureAccount' + str(x)) for x in range(0, self.total_accounts)]
+        pool = ConnectionsPool.from_ucr()
+        assert len(pool) == self.total_accounts
 
-	@pytest.mark.skip("Not integrated yet")
-	@mock.patch("univention.office365.api.account_connector.UDMHelper", name="UDMHelpertMocked")
-	@mock.patch("univention.office365.api.account_connector.AzureAccount", name="AzureAccountMocked")
-	def test_create_new(self, azure_account, udm_helper):
-		# type: (mock.MagicMock, mock.MagicMock) -> None
-		azure_account.side_effect = [mock.MagicMock(name="AzureAccount" + str(x)) for x in range(0, self.total_accounts)]
-		pool = ConnectionsPool.from_ucr()
-		pool.create_new("alias32", False, restart_listener=False)
-		azure_account.create_local.assert_has_calls([mock.call("alias32", lazy_load=True)])
+    @pytest.mark.skip('Not integrated yet')
+    @mock.patch('univention.office365.api.account_connector.AzureAccount')
+    def test_sub_pool(self, azure_account):
+        # type: (mock.MagicMock) -> None
+        azure_account.side_effect = [mock.MagicMock(name='AzureAccount' + str(x)) for x in range(0, self.total_accounts)]
+        pool = ConnectionsPool.from_ucr()
+        sub_pool = pool.sub_pool(['alias1', 'alias5'])
+        assert len(sub_pool) == 2
 
-	@pytest.mark.skip("Not integrated yet")
-	@mock.patch("univention.office365.api.account_connector.UDMHelper", name="UDMHelpertMocked")
-	@mock.patch("univention.office365.api.account_connector.AzureAccount", name="AzureAccountMocked")
-	def test_rename(self, azure_account, udm_helper):
-		# type: (mock.MagicMock, mock.MagicMock) -> None
-		azure_account.side_effect = [mock.MagicMock(name="AzureAccount" + str(x)) for x in range(0, self.total_accounts)]
-		pool = ConnectionsPool.from_ucr()
-		pool.rename("alias32", "alias33")
-		azure_account.create_local.assert_has_calls([mock.call("alias32", lazy_load=True)])
+    @pytest.mark.skip('Not integrated yet')
+    @mock.patch('univention.office365.api.account_connector.UDMHelper', name='UDMHelpertMocked')
+    @mock.patch('univention.office365.api.account_connector.AzureAccount', name='AzureAccountMocked')
+    def test_create_new(self, azure_account, udm_helper):
+        # type: (mock.MagicMock, mock.MagicMock) -> None
+        azure_account.side_effect = [mock.MagicMock(name='AzureAccount' + str(x)) for x in range(0, self.total_accounts)]
+        pool = ConnectionsPool.from_ucr()
+        pool.create_new('alias32', False, restart_listener=False)
+        azure_account.create_local.assert_has_calls([mock.call('alias32', lazy_load=True)])
 
-	@pytest.mark.skip("Not integrated yet")
-	def test_remove(self):
-		# type: () -> None
-		assert False
+    @pytest.mark.skip('Not integrated yet')
+    @mock.patch('univention.office365.api.account_connector.UDMHelper', name='UDMHelpertMocked')
+    @mock.patch('univention.office365.api.account_connector.AzureAccount', name='AzureAccountMocked')
+    def test_rename(self, azure_account, udm_helper):
+        # type: (mock.MagicMock, mock.MagicMock) -> None
+        azure_account.side_effect = [mock.MagicMock(name='AzureAccount' + str(x)) for x in range(0, self.total_accounts)]
+        pool = ConnectionsPool.from_ucr()
+        pool.rename('alias32', 'alias33')
+        azure_account.create_local.assert_has_calls([mock.call('alias32', lazy_load=True)])
+
+    @pytest.mark.skip('Not integrated yet')
+    def test_remove(self):
+        # type: () -> None
+        assert False

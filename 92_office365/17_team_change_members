@@ -31,6 +31,7 @@ This test is used to check the team members change in Azure.
 - Remove 2 users from the UDM group
 - Check that the team have 4 members
 """
+
 import univention.testing.utils as utils
 import univention.testing.ucr as ucr_test
 import univention.testing.udm as udm_test
@@ -41,42 +42,42 @@ from univention.office365.microsoft.account import AzureAccount
 from univention.office365.microsoft.core import MSGraphApiCore
 
 with utils.AutomaticListenerRestart():
-	with udm_test.UCSTestUDM() as udm:
-		with ucr_test.UCSTestConfigRegistry() as ucr:
-			ucr.load()
+    with udm_test.UCSTestUDM() as udm:
+        with ucr_test.UCSTestConfigRegistry() as ucr:
+            ucr.load()
 
-			alias = 'o365domain'
+            alias = 'o365domain'
 
-			core = MSGraphApiCore(AzureAccount(alias))
+            core = MSGraphApiCore(AzureAccount(alias))
 
-			handler_set(["office365/groups/sync=yes"])
-			utils.restart_listener()
+            handler_set(['office365/groups/sync=yes'])
+            utils.restart_listener()
 
-			print("*** Creating members ***")
-			user_dn, _ = o365helpers.create_team_member(udm, ucr, alias)
-			user2_dn, _ = o365helpers.create_team_member(udm, ucr, alias)
-			user3_dn, _ = o365helpers.create_team_member(udm, ucr, alias)
+            print('*** Creating members ***')
+            user_dn, _ = o365helpers.create_team_member(udm, ucr, alias)
+            user2_dn, _ = o365helpers.create_team_member(udm, ucr, alias)
+            user3_dn, _ = o365helpers.create_team_member(udm, ucr, alias)
 
-			print("*** Creating Team ***")
-			group_dn, group_name = o365helpers.create_team(udm, ucr, owner_dn=user_dn, users=[user2_dn, user3_dn])
-			created_team = o365helpers.check_team_created(core, group_name)
-			team_id = created_team.id
+            print('*** Creating Team ***')
+            group_dn, group_name = o365helpers.create_team(udm, ucr, owner_dn=user_dn, users=[user2_dn, user3_dn])
+            created_team = o365helpers.check_team_created(core, group_name)
+            team_id = created_team.id
 
-			print("*** Checking that team has 3 members ***")
-			team_members = o365helpers.check_team_members(core, team_id, 3)
+            print('*** Checking that team has 3 members ***')
+            team_members = o365helpers.check_team_members(core, team_id, 3)
 
-			print("*** Creating new members ***")
-			user_dn, _ = o365helpers.create_team_member(udm, ucr, alias, group_dn)
-			user2_dn, _ = o365helpers.create_team_member(udm, ucr, alias, group_dn)
-			user3_dn, _ = o365helpers.create_team_member(udm, ucr, alias, group_dn)
+            print('*** Creating new members ***')
+            user_dn, _ = o365helpers.create_team_member(udm, ucr, alias, group_dn)
+            user2_dn, _ = o365helpers.create_team_member(udm, ucr, alias, group_dn)
+            user3_dn, _ = o365helpers.create_team_member(udm, ucr, alias, group_dn)
 
-			print("*** Checking that team has 6 members ***")
-			_ = o365helpers.check_team_members(core, team_id, 6)
+            print('*** Checking that team has 6 members ***')
+            _ = o365helpers.check_team_members(core, team_id, 6)
 
-			print("*** Remove 2 users ***")
-			udm.remove_object('users/user', dn=user2_dn)
-			udm.remove_object('users/user', dn=user3_dn)
+            print('*** Remove 2 users ***')
+            udm.remove_object('users/user', dn=user2_dn)
+            udm.remove_object('users/user', dn=user3_dn)
 
-			print("*** Checking that team has 4 members ***")
-			_ = o365helpers.check_team_members(core, team_id, 4)
-			print("*** All went well.")
+            print('*** Checking that team has 4 members ***')
+            _ = o365helpers.check_team_members(core, team_id, 4)
+            print('*** All went well.')

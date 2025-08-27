@@ -38,74 +38,76 @@ adconnection_aliases = UCRHelper.get_adconnection_aliases()
 initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAccount(adconnection_alias).is_initialized()]
 
 
-print("*** adconnection_aliases={!r}.".format(adconnection_aliases))
-print("*** initialized_adconnections={!r}.".format(initialized_adconnections))
+print('*** adconnection_aliases={!r}.'.format(adconnection_aliases))
+print('*** initialized_adconnections={!r}.'.format(initialized_adconnections))
 
 if len(initialized_adconnections) < 2:
-	utils.fail('Need at least two initialized adconnections for this test.')
+    utils.fail('Need at least two initialized adconnections for this test.')
 
 with udm_test.UCSTestUDM() as udm:
-	with ucr_test.UCSTestConfigRegistry() as ucr:
-		ucr.load()
+    with ucr_test.UCSTestConfigRegistry() as ucr:
+        ucr.load()
 
-		# TODO: remove adconnection_alias3?
-		adconnection_alias1 = initialized_adconnections[0]
-		adconnection_alias2 = initialized_adconnections[1]
-		if len(initialized_adconnections) > 2:
-			adconnection_alias3 = initialized_adconnections[2]
-		else:
-			adconnection_alias3 = initialized_adconnections[0]
+        # TODO: remove adconnection_alias3?
+        adconnection_alias1 = initialized_adconnections[0]
+        adconnection_alias2 = initialized_adconnections[1]
+        if len(initialized_adconnections) > 2:
+            adconnection_alias3 = initialized_adconnections[2]
+        else:
+            adconnection_alias3 = initialized_adconnections[0]
 
-		print("*** adconnection_alias1={!r}".format(adconnection_alias1))
-		print("*** adconnection_alias2={!r}".format(adconnection_alias2))
-		print("*** adconnection_alias3={!r}".format(adconnection_alias3))
+        print('*** adconnection_alias1={!r}'.format(adconnection_alias1))
+        print('*** adconnection_alias2={!r}'.format(adconnection_alias2))
+        print('*** adconnection_alias3={!r}'.format(adconnection_alias3))
 
-		core = MSGraphApiCore(AzureAccount(adconnection_alias1))
+        core = MSGraphApiCore(AzureAccount(adconnection_alias1))
 
-		user_args = udm_user_args(ucr, minimal=True)
-		user_args["set"]["UniventionOffice365Enabled"] = 1
-		user_args["set"]["UniventionOffice365ADConnectionAlias"] = adconnection_alias1
+        user_args = udm_user_args(ucr, minimal=True)
+        user_args['set']['UniventionOffice365Enabled'] = 1
+        user_args['set']['UniventionOffice365ADConnectionAlias'] = adconnection_alias1
 
-		print("*** Creating user with adconnection_alias1 ({!r})...".format(adconnection_alias1))
-		user_dn, username = udm.create_user(check_for_drs_replication=True, **user_args)
+        print('*** Creating user with adconnection_alias1 ({!r})...'.format(adconnection_alias1))
+        user_dn, username = udm.create_user(check_for_drs_replication=True, **user_args)
 
-		fail_msg = "User was not created properly (no UniventionOffice365ObjectID)."
-		azure_user_id1 = retry_call(check_user_id_from_azure, fargs=[adconnection_alias1, user_dn, fail_msg], tries=5, delay=2)
+        fail_msg = 'User was not created properly (no UniventionOffice365ObjectID).'
+        azure_user_id1 = retry_call(check_user_id_from_azure, fargs=[adconnection_alias1, user_dn, fail_msg], tries=5, delay=2)
 
-		print("*** Checking sync of user properties...")
-		azure_user = UserAzure.get(core, azure_user_id1, selection=azure_user_selection)
-		success, errors = check_udm2azure_user(user_args, azure_user, complete=False)
-		if success:
-			print("*** attributes were synced correctly for adconnection_alias={!r}".format(adconnection_alias1))
-		else:
-			utils.fail("One or more properties were not synced correctly for adconnection_alias1={!r}:\n{}".format("\n".join(map(str, errors)), adconnection_alias1))
+        print('*** Checking sync of user properties...')
+        azure_user = UserAzure.get(core, azure_user_id1, selection=azure_user_selection)
+        success, errors = check_udm2azure_user(user_args, azure_user, complete=False)
+        if success:
+            print('*** attributes were synced correctly for adconnection_alias={!r}'.format(adconnection_alias1))
+        else:
+            utils.fail('One or more properties were not synced correctly for adconnection_alias1={!r}:\n{}'.format('\n'.join(map(str, errors)), adconnection_alias1))
 
-		# 1 -> 2
+        # 1 -> 2
 
-		print("*** Changing UniventionOffice365ADConnectionAlias property from adconnection_alias1 ({!r}) to adconnection_alias2 ({!r})...".format(adconnection_alias1, adconnection_alias2))
-		user_args2 = dict(set=dict(UniventionOffice365ADConnectionAlias=adconnection_alias2), append=dict())
-		udm.modify_object(modulename="users/user", dn=user_dn, **user_args2)
+        print(
+            '*** Changing UniventionOffice365ADConnectionAlias property from adconnection_alias1 ({!r}) to adconnection_alias2 ({!r})...'.format(
+                adconnection_alias1, adconnection_alias2
+            )
+        )
+        user_args2 = dict(set=dict(UniventionOffice365ADConnectionAlias=adconnection_alias2), append=dict())
+        udm.modify_object(modulename='users/user', dn=user_dn, **user_args2)
 
-		retry_call(check_user_was_deleted, fargs=[core, azure_user.id], tries=5, delay=2)
+        retry_call(check_user_was_deleted, fargs=[core, azure_user.id], tries=5, delay=2)
 
-		print("*** Checking that user was created in new Azure AD connection (2) (UniventionOffice365ObjectID must differ)...")
-		core2 = MSGraphApiCore(AzureAccount(adconnection_alias2))
+        print('*** Checking that user was created in new Azure AD connection (2) (UniventionOffice365ObjectID must differ)...')
+        core2 = MSGraphApiCore(AzureAccount(adconnection_alias2))
 
-		fail_msg = "User was not created properly (no UniventionOffice365ObjectID)."
-		azure_user_id2 = retry_call(check_user_id_from_azure, fargs=[adconnection_alias2, user_dn, fail_msg], tries=5, delay=2)
+        fail_msg = 'User was not created properly (no UniventionOffice365ObjectID).'
+        azure_user_id2 = retry_call(check_user_id_from_azure, fargs=[adconnection_alias2, user_dn, fail_msg], tries=5, delay=2)
 
-		if azure_user_id1 == azure_user_id2:
-			utils.fail("UniventionOffice365ObjectID did not change.")
+        if azure_user_id1 == azure_user_id2:
+            utils.fail('UniventionOffice365ObjectID did not change.')
 
-		print("*** Checking sync of user properties (to adconnection_alias2)...")
-		azure_user2 = UserAzure.get(core2, azure_user_id2, selection=azure_user_selection)
-		user_args2 = copy.deepcopy(user_args)
-		user_args2["set"]["UniventionOffice365ADConnectionAlias"] = adconnection_alias2
-		success, errors = check_udm2azure_user(user_args2, azure_user2, complete=False)
-		if success:
-			print("*** attributes were synced correctly for adconnection_alias2={!r}".format(adconnection_alias2))
-		else:
-			utils.fail("One or more properties were not synced correctly for adconnection_alias2={!r}:\n{}".format("\n".join(map(str, errors)), adconnection_alias2))
-		print("*** All went well.")
-
-
+        print('*** Checking sync of user properties (to adconnection_alias2)...')
+        azure_user2 = UserAzure.get(core2, azure_user_id2, selection=azure_user_selection)
+        user_args2 = copy.deepcopy(user_args)
+        user_args2['set']['UniventionOffice365ADConnectionAlias'] = adconnection_alias2
+        success, errors = check_udm2azure_user(user_args2, azure_user2, complete=False)
+        if success:
+            print('*** attributes were synced correctly for adconnection_alias2={!r}'.format(adconnection_alias2))
+        else:
+            utils.fail('One or more properties were not synced correctly for adconnection_alias2={!r}:\n{}'.format('\n'.join(map(str, errors)), adconnection_alias2))
+        print('*** All went well.')

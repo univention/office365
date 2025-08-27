@@ -30,7 +30,6 @@ The next operations are performed on the two preconfigured connections to Azure:
 - check that the usageLocation is set to the same value as in UCR variable `ssl/country`
 """
 
-
 import time
 import random
 
@@ -41,7 +40,15 @@ from typing import Any, Dict
 from univention.config_registry import handler_set, handler_unset
 
 from helpers.retry import retry_call
-from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user, check_user_id_from_azure, check_azure_user_change, usage_locations_code, azure_user_selection
+from helpers.office365_test_helpers import (
+    listener_attributes_data,
+    udm_user_args,
+    check_udm2azure_user,
+    check_user_id_from_azure,
+    check_azure_user_change,
+    usage_locations_code,
+    azure_user_selection,
+)
 from univention.office365.microsoft.account import AzureAccount
 from univention.office365.microsoft.core import MSGraphApiCore
 from univention.office365.microsoft.objects.azureobjects import UserAzure
@@ -51,101 +58,96 @@ adconnection_aliases = UCRHelper.get_adconnection_aliases()
 initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAccount(adconnection_alias).is_initialized()]
 
 
-
 def _test(udm_args, a_user, check_complete):
-	# type: (Dict[str, Any], UserAzure, bool) -> None
-	success, errors = check_udm2azure_user(udm_args, a_user, check_complete)
-	if success:
-		print("*** all attributes were synced correctly")
-	else:
-		utils.fail("One or more properties were not synced correctly:\n{}".format("\n".join(map(str, errors))))
+    # type: (Dict[str, Any], UserAzure, bool) -> None
+    success, errors = check_udm2azure_user(udm_args, a_user, check_complete)
+    if success:
+        print('*** all attributes were synced correctly')
+    else:
+        utils.fail('One or more properties were not synced correctly:\n{}'.format('\n'.join(map(str, errors))))
 
 
 with utils.AutomaticListenerRestart():
-	with udm_test.UCSTestUDM() as udm:
-		with ucr_test.UCSTestConfigRegistry() as ucr:
-			ucr.load()
+    with udm_test.UCSTestUDM() as udm:
+        with ucr_test.UCSTestConfigRegistry() as ucr:
+            ucr.load()
 
-			# Only test one connection, not all...
-			adconnection_alias = random.choice(initialized_adconnections)
+            # Only test one connection, not all...
+            adconnection_alias = random.choice(initialized_adconnections)
 
-			core = MSGraphApiCore(AzureAccount(adconnection_alias))
+            core = MSGraphApiCore(AzureAccount(adconnection_alias))
 
-			ucr_usageLocation = random.choice(usage_locations_code)
-			ucr_ssl_country = ucr["ssl/country"]
-			user_args = udm_user_args(ucr, minimal=False)
-			udm_country = user_args["set"]["country"]
-			user_args["set"]["UniventionOffice365Enabled"] = 1
-			user_args["set"]["UniventionOffice365ADConnectionAlias"] = adconnection_alias
+            ucr_usageLocation = random.choice(usage_locations_code)
+            ucr_ssl_country = ucr['ssl/country']
+            user_args = udm_user_args(ucr, minimal=False)
+            udm_country = user_args['set']['country']
+            user_args['set']['UniventionOffice365Enabled'] = 1
+            user_args['set']['UniventionOffice365ADConnectionAlias'] = adconnection_alias
 
-			print("*** Setting UCRs for maximum property sync...")
-			to_unset = [
-				"office365/attributes/anonymize",
-				"office365/attributes/never",
-				"office365/groups/sync",
-				"office365/subscriptions/service_plan_names"
-			]
-			to_unset.extend([k.split("=")[0] for k, v in ucr.items() if k.startswith("office365/attributes/static/")])
-			handler_unset(to_unset)
-			handler_set([
-				"office365/attributes/mapping/l=city",
-				"office365/attributes/mapping/displayName=displayName",
-				"office365/attributes/mapping/employeeType=jobTitle",
-				"office365/attributes/mapping/givenName=givenName",
-				"office365/attributes/mapping/mobile=mobilePhone",
-				"office365/attributes/mapping/mail=otherMails",
-				"office365/attributes/mapping/mailAlternativeAddress=otherMails",
-				"office365/attributes/mapping/mailPrimaryAddress=otherMails",
-				"office365/attributes/mapping/postalCode=postalCode",
-				"office365/attributes/mapping/roomNumber=officeLocation",
-				"office365/attributes/mapping/c=usageLocation",
-				"office365/attributes/mapping/street=streetAddress",
-				"office365/attributes/mapping/sn=surname",
-				"office365/attributes/mapping/telephoneNumber=businessPhones",
-				"office365/attributes/sync=l,c,displayName,employeeType,givenName,mailPrimaryAddress,mobile,mailAlternativeAddress,mail,postalCode,roomNumber,c,street,sn,telephoneNumber",
-				"office365/attributes/usageLocation={}".format(ucr_usageLocation),
-				"office365/debug/werror=yes",
-			])
-			utils.restart_listener()
+            print('*** Setting UCRs for maximum property sync...')
+            to_unset = ['office365/attributes/anonymize', 'office365/attributes/never', 'office365/groups/sync', 'office365/subscriptions/service_plan_names']
+            to_unset.extend([k.split('=')[0] for k, v in ucr.items() if k.startswith('office365/attributes/static/')])
+            handler_unset(to_unset)
+            handler_set(
+                [
+                    'office365/attributes/mapping/l=city',
+                    'office365/attributes/mapping/displayName=displayName',
+                    'office365/attributes/mapping/employeeType=jobTitle',
+                    'office365/attributes/mapping/givenName=givenName',
+                    'office365/attributes/mapping/mobile=mobilePhone',
+                    'office365/attributes/mapping/mail=otherMails',
+                    'office365/attributes/mapping/mailAlternativeAddress=otherMails',
+                    'office365/attributes/mapping/mailPrimaryAddress=otherMails',
+                    'office365/attributes/mapping/postalCode=postalCode',
+                    'office365/attributes/mapping/roomNumber=officeLocation',
+                    'office365/attributes/mapping/c=usageLocation',
+                    'office365/attributes/mapping/street=streetAddress',
+                    'office365/attributes/mapping/sn=surname',
+                    'office365/attributes/mapping/telephoneNumber=businessPhones',
+                    'office365/attributes/sync=l,c,displayName,employeeType,givenName,mailPrimaryAddress,mobile,mailAlternativeAddress,mail,postalCode,roomNumber,c,street,sn,telephoneNumber',
+                    'office365/attributes/usageLocation={}'.format(ucr_usageLocation),
+                    'office365/debug/werror=yes',
+                ]
+            )
+            utils.restart_listener()
 
-			print("*** Set office365/attributes/mapping/c=usageLocation")
-			print("*** Set office365/attributes/usageLocation={}".format(ucr_usageLocation))
-			print("*** Set user[set][country]={}".format(udm_country))
+            print('*** Set office365/attributes/mapping/c=usageLocation')
+            print('*** Set office365/attributes/usageLocation={}'.format(ucr_usageLocation))
+            print('*** Set user[set][country]={}'.format(udm_country))
 
-			print("*** Creating user with some properties...")
-			user_dn, username = udm.create_user(check_for_drs_replication=True, **user_args)
-			user_id = retry_call(check_user_id_from_azure, fargs=[adconnection_alias, user_dn], tries=5, delay=2)
+            print('*** Creating user with some properties...')
+            user_dn, username = udm.create_user(check_for_drs_replication=True, **user_args)
+            user_id = retry_call(check_user_id_from_azure, fargs=[adconnection_alias, user_dn], tries=5, delay=2)
 
-			print("*** Checking sync of all properties...")
-			azure_user = UserAzure.get(core, user_id, selection=azure_user_selection)
-			_test(user_args, azure_user, check_complete=True)
-			retry_call(check_azure_user_change, fargs=[core, user_id, "usageLocation", udm_country], tries=5, delay=2)
+            print('*** Checking sync of all properties...')
+            azure_user = UserAzure.get(core, user_id, selection=azure_user_selection)
+            _test(user_args, azure_user, check_complete=True)
+            retry_call(check_azure_user_change, fargs=[core, user_id, 'usageLocation', udm_country], tries=5, delay=2)
 
+            print("*** Unsetting UDM property 'country'...")
+            udm.modify_object(
+                modulename='users/user',
+                dn=user_dn,
+                set=dict(country=''),
+            )
+            retry_call(check_azure_user_change, fargs=[core, user_id, 'usageLocation', ucr_usageLocation], tries=5, delay=2)
 
-			print("*** Unsetting UDM property 'country'...")
-			udm.modify_object(
-				modulename="users/user",
-				dn=user_dn,
-				set=dict(country=''),
-			)
-			retry_call(check_azure_user_change, fargs=[core, user_id, "usageLocation", ucr_usageLocation], tries=5, delay=2)
+            print('*** Unsetting UCRV office365/attributes/usageLocation...')
+            handler_unset(['office365/attributes/usageLocation'])
+            print("*** Setting property 'country' back to '{}'...".format(udm_country))
+            udm.modify_object(
+                modulename='users/user',
+                dn=user_dn,
+                set=dict(country=udm_country),
+            )
+            retry_call(check_azure_user_change, fargs=[core, user_id, 'usageLocation', udm_country], tries=5, delay=2)
 
-			print("*** Unsetting UCRV office365/attributes/usageLocation...")
-			handler_unset(["office365/attributes/usageLocation"])
-			print("*** Setting property 'country' back to '{}'...".format(udm_country))
-			udm.modify_object(
-				modulename="users/user",
-				dn=user_dn,
-				set=dict(country=udm_country),
-			)
-			retry_call(check_azure_user_change, fargs=[core, user_id, "usageLocation", udm_country], tries=5, delay=2)
+            print("*** Unsetting property 'country'...")
+            udm.modify_object(
+                modulename='users/user',
+                dn=user_dn,
+                set=dict(country=''),
+            )
+            retry_call(check_azure_user_change, fargs=[core, user_id, 'usageLocation', ucr_ssl_country], tries=5, delay=2)
 
-			print("*** Unsetting property 'country'...")
-			udm.modify_object(
-				modulename="users/user",
-				dn=user_dn,
-				set=dict(country=''),
-			)
-			retry_call(check_azure_user_change, fargs=[core, user_id, "usageLocation", ucr_ssl_country], tries=5, delay=2)
-
-			print("*** All went well.")
+            print('*** All went well.')

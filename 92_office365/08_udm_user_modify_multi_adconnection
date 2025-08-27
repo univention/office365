@@ -21,6 +21,7 @@ The next operations are performed on the two preconfigured connections to Azure:
 - wait for the user to be replicated in Azure
 - compare all the properties of the user in UDM and Azure
 """
+
 import copy
 import pprint
 import time
@@ -43,97 +44,98 @@ adconnection_aliases = UCRHelper.get_adconnection_aliases()
 initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAccount(adconnection_alias).is_initialized()]
 
 
-assert initialized_adconnections, "run ./01_initialize_external_testenv first!"
+assert initialized_adconnections, 'run ./01_initialize_external_testenv first!'
 
-print("*** adconnection_aliases={!r}.".format(adconnection_aliases))
-print("*** initialized_adconnections={!r}.".format(initialized_adconnections))
+print('*** adconnection_aliases={!r}.'.format(adconnection_aliases))
+print('*** initialized_adconnections={!r}.'.format(initialized_adconnections))
 
 
 def _test(core, udm_args, user_id, check_complete):
-	# type: (MSGraphApiCore, Dict[str, Any], str, bool) -> None
-	a_user = UserAzure.get(core, user_id, selection=azure_user_selection)
-	success, errors = check_udm2azure_user(udm_args, a_user, check_complete)
-	if success:
-		print("*** all attributes were synced correctly")
-	else:
-		utils.fail("One or more properties were not synced correctly:\n{}".format("\n".join(map(str, errors))))
+    # type: (MSGraphApiCore, Dict[str, Any], str, bool) -> None
+    a_user = UserAzure.get(core, user_id, selection=azure_user_selection)
+    success, errors = check_udm2azure_user(udm_args, a_user, check_complete)
+    if success:
+        print('*** all attributes were synced correctly')
+    else:
+        utils.fail('One or more properties were not synced correctly:\n{}'.format('\n'.join(map(str, errors))))
 
 
 with utils.AutomaticListenerRestart():
-	with udm_test.UCSTestUDM() as udm:
-		with ucr_test.UCSTestConfigRegistry() as ucr:
-			ucr.load()
+    with udm_test.UCSTestUDM() as udm:
+        with ucr_test.UCSTestConfigRegistry() as ucr:
+            ucr.load()
 
-			for adconnection_alias in initialized_adconnections:
-				print("*** Running for adconnection_alias={!r}.".format(adconnection_alias))
+            for adconnection_alias in initialized_adconnections:
+                print('*** Running for adconnection_alias={!r}.'.format(adconnection_alias))
 
-				core = MSGraphApiCore(AzureAccount(adconnection_alias))
-				# TODO: repeated. Needed? Join.
-				print("*** Setting UCRs for maximum property sync...")
-				to_unset = ["office365/attributes/anonymize", "office365/attributes/never",
-					"office365/groups/sync", "office365/subscriptions/service_plan_names"]
-				to_unset.extend([k.split("=")[0] for k, v in ucr.items() if k.startswith("office365/attributes/static/")])
-				handler_unset(to_unset)
-				handler_set([
-					"office365/attributes/mapping/l=city",
-					"office365/attributes/mapping/displayName=displayName",
-					"office365/attributes/mapping/employeeType=jobTitle",
-					"office365/attributes/mapping/givenName=givenName",
-					"office365/attributes/mapping/mobile=mobilePhone",
-					"office365/attributes/mapping/mail=otherMails",
-					"office365/attributes/mapping/mailAlternativeAddress=otherMails",
-					"office365/attributes/mapping/mailPrimaryAddress=otherMails",
-					"office365/attributes/mapping/postalCode=postalCode",
-					"office365/attributes/mapping/roomNumber=officeLocation",
-					"office365/attributes/mapping/c=usageLocation",
-					"office365/attributes/mapping/street=streetAddress",
-					"office365/attributes/mapping/sn=surname",
-					"office365/attributes/mapping/telephoneNumber=businessPhones",
-					"office365/attributes/sync=l,c,displayName,employeeType,givenName,mailPrimaryAddress,mobile,mailAlternativeAddress,mail,postalCode,roomNumber,c,street,sn,telephoneNumber",
-					"office365/debug/werror=yes",
-				])
-				utils.restart_listener()
+                core = MSGraphApiCore(AzureAccount(adconnection_alias))
+                # TODO: repeated. Needed? Join.
+                print('*** Setting UCRs for maximum property sync...')
+                to_unset = ['office365/attributes/anonymize', 'office365/attributes/never', 'office365/groups/sync', 'office365/subscriptions/service_plan_names']
+                to_unset.extend([k.split('=')[0] for k, v in ucr.items() if k.startswith('office365/attributes/static/')])
+                handler_unset(to_unset)
+                handler_set(
+                    [
+                        'office365/attributes/mapping/l=city',
+                        'office365/attributes/mapping/displayName=displayName',
+                        'office365/attributes/mapping/employeeType=jobTitle',
+                        'office365/attributes/mapping/givenName=givenName',
+                        'office365/attributes/mapping/mobile=mobilePhone',
+                        'office365/attributes/mapping/mail=otherMails',
+                        'office365/attributes/mapping/mailAlternativeAddress=otherMails',
+                        'office365/attributes/mapping/mailPrimaryAddress=otherMails',
+                        'office365/attributes/mapping/postalCode=postalCode',
+                        'office365/attributes/mapping/roomNumber=officeLocation',
+                        'office365/attributes/mapping/c=usageLocation',
+                        'office365/attributes/mapping/street=streetAddress',
+                        'office365/attributes/mapping/sn=surname',
+                        'office365/attributes/mapping/telephoneNumber=businessPhones',
+                        'office365/attributes/sync=l,c,displayName,employeeType,givenName,mailPrimaryAddress,mobile,mailAlternativeAddress,mail,postalCode,roomNumber,c,street,sn,telephoneNumber',
+                        'office365/debug/werror=yes',
+                    ]
+                )
+                utils.restart_listener()
 
-				user_args = udm_user_args(ucr, minimal=False)
-				user_args["set"]["UniventionOffice365Enabled"] = 1
-				user_args["set"]["UniventionOffice365ADConnectionAlias"] = adconnection_alias
-				udm_create_list = copy.deepcopy(user_args)
+                user_args = udm_user_args(ucr, minimal=False)
+                user_args['set']['UniventionOffice365Enabled'] = 1
+                user_args['set']['UniventionOffice365ADConnectionAlias'] = adconnection_alias
+                udm_create_list = copy.deepcopy(user_args)
 
-				udm_modlist_1 = {"set": {}, "append": {}}
-				udm_modlist_1 = dict(set=dict(), append=dict())
-				for key in ["city", "employeeType"]:
-					udm_modlist_1["set"][key] = udm_create_list["set"].pop(key)
-				for key in ["mobileTelephoneNumber", "phone"]:
-					udm_modlist_1["append"][key] = udm_create_list["append"].pop(key)
+                udm_modlist_1 = {'set': {}, 'append': {}}
+                udm_modlist_1 = dict(set=dict(), append=dict())
+                for key in ['city', 'employeeType']:
+                    udm_modlist_1['set'][key] = udm_create_list['set'].pop(key)
+                for key in ['mobileTelephoneNumber', 'phone']:
+                    udm_modlist_1['append'][key] = udm_create_list['append'].pop(key)
 
-				udm_modlist2 = dict(set=dict(), append=dict())
-				for key in ["street", "country"]:
-					udm_modlist2["set"][key] = udm_create_list["set"].pop(key)
-				for key in ["e-mail", "mailAlternativeAddress"]:
-					udm_modlist2["append"][key] = udm_create_list["append"].pop(key)
+                udm_modlist2 = dict(set=dict(), append=dict())
+                for key in ['street', 'country']:
+                    udm_modlist2['set'][key] = udm_create_list['set'].pop(key)
+                for key in ['e-mail', 'mailAlternativeAddress']:
+                    udm_modlist2['append'][key] = udm_create_list['append'].pop(key)
 
-				print("*** Creating user with some properties...")
-				user_dn, username = udm.create_user(check_for_drs_replication=True, **udm_create_list)
+                print('*** Creating user with some properties...')
+                user_dn, username = udm.create_user(check_for_drs_replication=True, **udm_create_list)
 
-				user_id = retry_call(check_user_id_from_azure, fargs=[adconnection_alias, user_dn], tries=12, delay=5)
+                user_id = retry_call(check_user_id_from_azure, fargs=[adconnection_alias, user_dn], tries=12, delay=5)
 
-				print("*** Checking sync of properties #0...")
-				retry_call(_test, fargs=[core, udm_create_list, user_id], fkwargs={"check_complete": False}, tries=12, delay=5)
+                print('*** Checking sync of properties #0...')
+                retry_call(_test, fargs=[core, udm_create_list, user_id], fkwargs={'check_complete': False}, tries=12, delay=5)
 
-				print("*** Adding more properties to user #1...")
-				udm.modify_object(modulename="users/user", dn=user_dn, **udm_modlist_1)
+                print('*** Adding more properties to user #1...')
+                udm.modify_object(modulename='users/user', dn=user_dn, **udm_modlist_1)
 
-				print("*** Checking sync of properties #1...")
-				retry_call(_test, fargs=[core, udm_modlist_1, user_id], fkwargs={"check_complete": False}, tries=12, delay=5)
+                print('*** Checking sync of properties #1...')
+                retry_call(_test, fargs=[core, udm_modlist_1, user_id], fkwargs={'check_complete': False}, tries=12, delay=5)
 
-				print("*** Adding more properties to user #2...")
-				udm.modify_object(modulename="users/user", dn=user_dn, **udm_modlist2)
+                print('*** Adding more properties to user #2...')
+                udm.modify_object(modulename='users/user', dn=user_dn, **udm_modlist2)
 
-				print("*** Checking sync of properties #2...")
-				retry_call(_test, fargs=[core, udm_modlist2, user_id], fkwargs={"check_complete": False}, tries=12, delay=5)
+                print('*** Checking sync of properties #2...')
+                retry_call(_test, fargs=[core, udm_modlist2, user_id], fkwargs={'check_complete': False}, tries=12, delay=5)
 
-				print("*** Checking sync of all properties...")
-				retry_call(_test, fargs=[core, user_args, user_id], fkwargs={"check_complete": True}, tries=12, delay=5)
+                print('*** Checking sync of all properties...')
+                retry_call(_test, fargs=[core, user_args, user_id], fkwargs={'check_complete': True}, tries=12, delay=5)
 
-				print("*** All went well for Azure AD connection {!r}.".format(adconnection_alias))
-			print("*** All went well for all in {!r}.".format(initialized_adconnections))
+                print('*** All went well for Azure AD connection {!r}.'.format(adconnection_alias))
+            print('*** All went well for all in {!r}.'.format(initialized_adconnections))

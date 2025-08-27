@@ -2,32 +2,8 @@
 #
 # Univention Office 365 - udmobjects
 #
-# Copyright 2016-2025 Univention GmbH
-#
-# http://www.univention.de/
-#
-# All rights reserved.
-#
-# The source code of this program is made available
-# under the terms of the GNU Affero General Public License version 3
-# (GNU AGPL V3) as published by the Free Software Foundation.
-#
-# Binary versions of this program provided by Univention to you as
-# well as other copyrighted, protected or trademarked materials like
-# Logos, graphics, fonts, specific documentations and configurations,
-# cryptographic keys etc. are subject to a license agreement between
-# you and Univention and not subject to the GNU AGPL V3.
-#
-# In the case you use this program under the terms of the GNU AGPL V3,
-# the program is provided in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public
-# License with the Debian GNU/Linux or Univention distribution in file
-# /usr/share/common-licenses/AGPL-3; if not, see
-# <http://www.gnu.org/licenses/>.
+# SPDX-FileCopyrightText: 2016-2025 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
 
 
 import base64
@@ -54,8 +30,23 @@ from univention.office365.utils.utils import jsonify
 
 
 class GroupType(Enum):
-    SECURITY = "Security Group"
-    M365 = "Microsoft 365 Group"
+    SECURITY = 'Security Group'
+    M365 = 'Microsoft 365 Group'
+
+
+class GroupVisibility(Enum):
+    '''
+    The defines the valid states of the UDM property UniventionMicrosoft365GroupVisibility.
+    We use the same string constants as Azure here.
+    See also syntax univentionMicrosoft365GroupVisibility
+    Note: Azure behaves differently for Security Groups and MS365 Groups:
+    By default Security Groups have visibility=None (which seems to translate to 'Private'
+    according to MS Azure docs). But MS365 Groups are created with visibility='Public'
+    by default. That's not desired by customers, so we control it via extended attribute.
+    '''
+    PRIVATE = "Private"
+    PUBLIC = "Public"
+    # HIDDENMEMBER = "HiddenMembership"  # Currently we don't support this, yet.
 
 
 class Version(Enum):
@@ -82,8 +73,8 @@ A hierarchy of classes that define specializations on a UDM Object.
 │                 │            │                  │
 └─────────────────┘            └──────────────────┘
 
-At the leaves of this hierarchical tree of classes are UDMOfficeUser and UDMOfficeGroup 
-that implement the necessary methods to obtain and store the necessary information 
+At the leafs of this hierarchical tree of classes are UDMOfficeUser and UDMOfficeGroup
+that implement the necessary methods to obtain and store the necessary information
 from Azure in a LDAP User or Group object.
 """
 
@@ -95,6 +86,7 @@ class UniventionOffice365Data(UserDict):
     This class is used to store the data in a uniform way and to provide a consistent
     interface for the different versions.
     """
+
     def __init__(self, data):
         # type: (Dict[str, Union[Dict[str,str], str]]) -> None
 
@@ -110,11 +102,12 @@ class UniventionOffice365Data(UserDict):
         Decode ldap UniventionOffice365Data
         Calling code must catch zlib.error and TypeError
         """
+        ## FIXME: The attribute should have been declared binary then this b64 step would not be nesessary.
         result = base64.b64decode(ldap_data)
         result = zlib.decompress(result)
-        result = json.loads(result.decode("ASCII"))
+        result = json.loads(result.decode('ASCII'))
         if six.PY2:
-            result = jsonify(result, "ASCII")
+            result = jsonify(result, 'ASCII')
         return UniventionOffice365Data(result)
         # self.update(json.loads(zlib.decompress(base64.b64decode(ldap_data))))
 
@@ -123,19 +116,16 @@ class UniventionOffice365Data(UserDict):
         """
         Encode ldap UniventionOffice365Data
         """
-        result = json.dumps(dict(self)).encode("ASCII")
+        result = json.dumps(dict(self)).encode('ASCII')
         result = zlib.compress(result)
-        result = base64.b64encode(result).decode("ASCII")
+        ## FIXME: The attribute should have been declared binary then this b64 step would not be nesessary.
+        result = base64.b64encode(result).decode('ASCII')
         return result
 
     def migrate(self):
         # type: () -> None
         if 'objectId' in self and not isinstance(self['objectId'], dict):
-            self.update({
-                k: v
-                for k, v in self.items()
-                if isinstance(v, dict)
-            })
+            self.update({k: v for k, v in self.items() if isinstance(v, dict)})
 
 
 # TODO: Implement a .get classmethod with the dn as we have in AzureObjects
@@ -163,6 +153,7 @@ class UDMOfficeObject(UserDict):
         _fields_without_decoding: Return the list of fields that have no decoding specified.
         _fields_without_type_conversion: Return the list of fields that have no type conversion specified.
     """
+
     # TODO: Check if adconnection_alias is really mandatory and would exist in v1 and v2 version of the object
     MODULE = None
     # TODO: can adconnection_aliases be directly obtained by this class?
@@ -174,7 +165,7 @@ class UDMOfficeObject(UserDict):
             UserDict.__init__(self, ldap_fields)
         else:
             super(UDMOfficeObject, self).__init__(ldap_fields)
-        self.logger = logger or get_logger("office365", "o365")
+        self.logger = logger or get_logger('office365', 'o365')
         # not_migrated_to_v3: on v3 UniventionOffice365Data contains a dict with multiple adconnection_alias and for each of them the data of an azure user.
 
         # TODO:
@@ -191,15 +182,15 @@ class UDMOfficeObject(UserDict):
     @property
     def entryUUID(self):
         # type: () -> Union[str, bytes]
-        entryUUID = base64.b64encode(self.udm_object_reference.oldattr["entryUUID"][0])
+        entryUUID = base64.b64encode(self.udm_object_reference.oldattr['entryUUID'][0])
         if six.PY2:
             return entryUUID
-        return entryUUID.decode("ASCII")
+        return entryUUID.decode('ASCII')
 
     @property
     def current_connection_alias(self):
         if not self._current_connection_alias:
-            self.logger.warning("Object %r has not assigned current_connection_alias", self.dn)
+            self.logger.warning('Object %r has not assigned current_connection_alias', self.dn)
         return self._current_connection_alias
 
     @current_connection_alias.setter
@@ -228,7 +219,7 @@ class UDMOfficeObject(UserDict):
             elif item in self.udm_object_reference.oldattr:
                 return self.udm_object_reference.oldattr[item]
             else:
-                raise KeyError("{item} not found in object {dn}".format(item=item, dn=self.dn))
+                raise KeyError('{item} not found in object {dn}'.format(item=item, dn=self.dn))
 
     def __hash__(self):
         # type: () -> int
@@ -248,28 +239,28 @@ class UDMOfficeObject(UserDict):
     @property
     def adconnection_aliases(self):
         # type: () -> List[str]
-        return self.udm_object_reference.get("UniventionOffice365ADConnectionAlias", [])
+        return self.udm_object_reference.get('UniventionOffice365ADConnectionAlias', [])
 
     @property
     def azure_data(self):
         # type: () -> Dict[str, Any]
         try:
-            return UniventionOffice365Data.from_ldap(self.udm_object_reference["UniventionOffice365Data"]) or {}
+            return UniventionOffice365Data.from_ldap(self.udm_object_reference['UniventionOffice365Data']) or {}
         except zlib.error:
             return {}
 
     @property
     def version(self):
         # type: () -> Version
-        if self.udm_object_reference.get("UniventionOffice365ObjectID"):
+        if self.udm_object_reference.get('UniventionOffice365ObjectID'):
             return Version.V1
-        elif self.udm_object_reference.get("UniventionOffice365Data"):
+        elif self.udm_object_reference.get('UniventionOffice365Data'):
             azure_data = self.azure_data.get(self.current_connection_alias)
             if azure_data:
-                if "objectId" in azure_data:
+                if 'objectId' in azure_data:
                     return Version.V3
                 else:
-                    raise ValueError("Unknow version %r" % azure_data)
+                    raise ValueError('Unknow version %r' % azure_data)
             else:
                 return Version.V3
         return Version.V3
@@ -312,7 +303,7 @@ class UDMOfficeObject(UserDict):
             old_azure_data.update(new_azure_data)
         else:
             old_azure_data.pop(self.current_connection_alias, None)
-        self.udm_object_reference["UniventionOffice365Data"] = UniventionOffice365Data(old_azure_data).to_ldap_str()
+        self.udm_object_reference['UniventionOffice365Data'] = UniventionOffice365Data(old_azure_data).to_ldap_str()
 
     def modify_azure_attributes(self, azure_object_dict):
         # type: (Optional[Mapping]) -> None
@@ -342,7 +333,7 @@ class UDMOfficeObject(UserDict):
         # type: () -> Optional[str]
         try:
             azure_data = self.azure_data
-            return azure_data[self.current_connection_alias]["objectId"]
+            return azure_data[self.current_connection_alias]['objectId']
         except KeyError:
             return None
 
@@ -407,7 +398,8 @@ class UDMOfficeUser(UDMOfficeObject):
         is_deactivated_locked_or_expired: checks if the user is deactivated, locked or expired. Returns True if so.
         is_expired: checks if the user is expired. Returns True if so.
     """
-    MODULE = "users/user"
+
+    MODULE = 'users/user'
 
     @classmethod
     def from_udm(cls, udm_user, ldap_cred=None):
@@ -418,11 +410,10 @@ class UDMOfficeUser(UDMOfficeObject):
 
     def modify_azure_attributes(self, azure_user_dict):
         # type: (Optional[Mapping[str, Any]]) -> None
-        """
-        """
+        """ """
         if len(list(azure_user_dict.keys())) == 2:
-            if self.current_connection_alias not in self.udm_object_reference["UniventionOffice365ADConnectionAlias"]:
-                self.udm_object_reference["UniventionOffice365ADConnectionAlias"].append(self.current_connection_alias)
+            if self.current_connection_alias not in self.udm_object_reference['UniventionOffice365ADConnectionAlias']:
+                self.udm_object_reference['UniventionOffice365ADConnectionAlias'].append(self.current_connection_alias)
         if six.PY2:
             UDMOfficeObject.modify_azure_attributes(self, azure_user_dict)
         else:
@@ -430,20 +421,20 @@ class UDMOfficeUser(UDMOfficeObject):
 
     def is_deactivated_locked_or_expired(self):
         # type: () -> bool
-        return bool(int(self.get("disabled"))) or bool(int(self.get("locked"))) or self.is_expired()
+        return bool(int(self.get('disabled'))) or bool(int(self.get('locked'))) or self.is_expired()
 
     def is_expired(self):
         # type: () -> bool
         try:
-            userexpiry = self.udm_object_reference.get("userexpiry")
-            return userexpiry is not None and datetime.datetime.strptime(userexpiry, "%Y-%m-%d") < datetime.datetime.now()
+            userexpiry = self.udm_object_reference.get('userexpiry')
+            return userexpiry is not None and datetime.datetime.strptime(userexpiry, '%Y-%m-%d') < datetime.datetime.now()
         except ValueError:
-            self.logger.exception("Bad data in userexpiry: %r", self.userexpiry)
+            self.logger.exception('Bad data in userexpiry: %r', self.userexpiry)
             return True
 
     def is_m365_user(self):
         # type: () -> bool
-        return bool(int(getattr(self, "UniventionOffice365Enabled", "0")))
+        return bool(int(getattr(self, 'UniventionOffice365Enabled', '0')))
 
     def is_enabled_m365_user(self):
         return not self.is_deactivated_locked_or_expired() and self.is_m365_user()
@@ -464,7 +455,8 @@ class UDMOfficeGroup(UDMOfficeObject):
         owners_dn: Returns the DNs of the owners of the group.
         get_owners: Returns the UDMUsers of the owners of the group.
     """
-    MODULE = "groups/group"
+
+    MODULE = 'groups/group'
 
     @classmethod
     def get_other_by_displayName(cls, displayName, ldap_cred):
@@ -472,21 +464,23 @@ class UDMOfficeGroup(UDMOfficeObject):
         udm_connector = UDMHelper(ldap_cred)
         udm_objs = udm_connector.find_udm_group_by_name(displayName)
         if udm_objs:
-            return UDMOfficeGroup(udm_objs.oldattr, ldap_cred, udm_objs["dn"])
+            return UDMOfficeGroup(udm_objs.oldattr, ldap_cred, udm_objs['dn'])
 
-    def modify_azure_attributes(self, azure_group_dict, is_security_group=True):
+    def modify_azure_attributes(self, azure_group_dict, is_security_group=True, visibility=''):
         # type: (Optional[Mapping[str, Any]], Optional[bool]) -> None
-        """
-        """
+        """ """
         if azure_group_dict is not None:
-            if self.current_connection_alias not in self.udm_object_reference["UniventionOffice365ADConnectionAlias"]:
-                self.udm_object_reference["UniventionOffice365ADConnectionAlias"].append(self.current_connection_alias)
+            if self.current_connection_alias not in self.udm_object_reference['UniventionOffice365ADConnectionAlias']:
+                self.udm_object_reference['UniventionOffice365ADConnectionAlias'].append(self.current_connection_alias)
             group_type = GroupType.SECURITY.value if is_security_group else GroupType.M365.value
-            if group_type != self.udm_object_reference.get("UniventionMicrosoft365GroupType"):
-                self.udm_object_reference["UniventionMicrosoft365GroupType"] = group_type
-                self.udm_object_reference["UniventionMicrosoft365ForceGroupType"] = "1"
+            if group_type != self.udm_object_reference.get('UniventionMicrosoft365GroupType'):
+                self.udm_object_reference['UniventionMicrosoft365GroupType'] = group_type
+                self.udm_object_reference['UniventionMicrosoft365ForceGroupType'] = '1'
+            if not is_security_group and visibility != '':  # '' is a special value here, not expected to come from Azure. So this means if visibility has been passed at all.
+                if visibility != self.get_visibility():
+                    self.set_visibility(visibility)  # Azure may have returned None here (default for Security Groups)
         else:
-            self.udm_object_reference["UniventionOffice365ADConnectionAlias"] = [x for x in self.adconnection_aliases if x != self.current_connection_alias]
+            self.udm_object_reference['UniventionOffice365ADConnectionAlias'] = [x for x in self.adconnection_aliases if x != self.current_connection_alias]
         if six.PY2:
             UDMOfficeObject.modify_azure_attributes(self, azure_group_dict)
         else:
@@ -512,11 +506,11 @@ class UDMOfficeGroup(UDMOfficeObject):
 
     def is_team(self):
         # type: () -> bool
-        return bool(int(self.udm_object_reference.get('UniventionMicrosoft365Team', "0")))
+        return bool(int(self.udm_object_reference.get('UniventionMicrosoft365Team', '0')))
 
     def get_owners_dn(self):
         # type: () -> List[str]
-        return self.udm_object_reference.get("UniventionMicrosoft365GroupOwners", [])
+        return self.udm_object_reference.get('UniventionMicrosoft365GroupOwners', [])
 
     def get_owners(self):
         # type: () -> List[UDMOfficeUser]
@@ -524,16 +518,16 @@ class UDMOfficeGroup(UDMOfficeObject):
 
     def get_members(self):
         # type: () -> List[str]
-        members = [x.decode("utf-8") for x in self.get("uniqueMember", [])]
+        members = [x.decode('utf-8') for x in self.get('uniqueMember', [])]
         return members
 
     def get_nested_group(self):
         # type: () -> List[str]
-        return getattr(self, "nestedGroup", [])
+        return getattr(self, 'nestedGroup', [])
 
     def get_users(self):
         # type: () -> List[str]
-        return getattr(self, "users", [])
+        return getattr(self, 'users', [])
 
     def get_users_from_ldap(self):
         # type: () -> List[str]
@@ -547,14 +541,14 @@ class UDMOfficeGroup(UDMOfficeObject):
         users_to_add = []
         for dn, attr in all_users_lo.items():
             if dn in member_dns:
-                if "univentionOffice365Data" in attr:
-                    encode_office365_data = attr.get("univentionOffice365Data")
+                if 'univentionOffice365Data' in attr:
+                    encode_office365_data = attr.get('univentionOffice365Data')
                     if len(encode_office365_data) == 1:
                         office365_data = UniventionOffice365Data.from_ldap(encode_office365_data[0])
                         if office365_data and self.current_connection_alias in office365_data:
                             adconnection_data = office365_data[self.current_connection_alias]
-                            if "objectId" in adconnection_data and "userPrincipalName" in adconnection_data:
-                                users_to_add.append(adconnection_data["objectId"])
+                            if 'objectId' in adconnection_data and 'userPrincipalName' in adconnection_data:
+                                users_to_add.append(adconnection_data['objectId'])
         return users_to_add
 
     def has_azure_users(self):
@@ -596,7 +590,7 @@ class UDMOfficeGroup(UDMOfficeObject):
                 try:
                     udm_user = UDMOfficeUser(ldap_fields={}, ldap_cred=self.ldap_cred, dn=userdn)
                 except univention.admin.uexceptions.noObject as e:
-                    self.logger.warning("UDM User: %r has been removed. In nested_groups_with_azure_users %r", userdn, self.current_connection_alias)
+                    self.logger.warning('UDM User: %r has been removed. In nested_groups_with_azure_users %r', userdn, self.current_connection_alias)
                     continue
                 if udm_user.is_m365_user():
                     if self.current_connection_alias in udm_user.adconnection_aliases:
@@ -608,7 +602,7 @@ class UDMOfficeGroup(UDMOfficeObject):
     def get_groups_member_of_not_in_azure(self):
         # type: () -> Iterator[UDMOfficeGroup]
         """"""
-        for member_of_dn in self.get("memberOf", []):
+        for member_of_dn in self.get('memberOf', []):
             group = UDMOfficeGroup({}, ldap_cred=self.ldap_cred, dn=member_of_dn)
             with group.set_current_alias(self.current_connection_alias):
                 if not group.azure_object_id:
@@ -671,12 +665,12 @@ class UDMOfficeGroup(UDMOfficeObject):
         return removed
 
     def is_security_group(self):
-        # type: () -> List[str]
+        # type: () -> bool
         """
         Return if the group is a security group or a Microsoft 365 group
         :return:
         """
-        return self.get("UniventionMicrosoft365GroupType", "Security Group") == "Security Group"
+        return self.get('UniventionMicrosoft365GroupType', 'Security Group') == 'Security Group'
 
     def group_type_is_not_set(self):
         # type: () -> bool
@@ -684,7 +678,7 @@ class UDMOfficeGroup(UDMOfficeObject):
         Return if the group type is not set
         :return:
         """
-        return self.get("UniventionMicrosoft365GroupType") in ["", None]
+        return self.get('UniventionMicrosoft365GroupType') in ['', None]
 
     def set_group_type(self, security_group=True):
         # type: (bool) -> None
@@ -693,5 +687,49 @@ class UDMOfficeGroup(UDMOfficeObject):
         :param group_type: The group type to set
         :return:
         """
-        self.udm_object_reference["UniventionMicrosoft365GroupType"] = GroupType.SECURITY.value if security_group else GroupType.M365.value
+        self.udm_object_reference['UniventionMicrosoft365GroupType'] = GroupType.SECURITY.value if security_group else GroupType.M365.value
         self.udm_object_reference.modify()
+
+    def get_visibility(self):
+        # type: () -> str
+        """
+        Return the visibility of a group resource
+
+        The default is determined by the extended attribute.
+        The syntax of this extended attribute allows "empty" values
+        which UDM rerpresents as empty string (meaning that
+        the corresponding backing attribute is not set).
+
+        If there is an empty (or no) default set for the extended attribute
+        (via either --remove default or via --set default="")
+        then we get "" here. We must translate that into None
+        to make the connector ignore it. So, basically there is a
+        difference between UDM and this connector:
+
+        * UDM uses "" for empty values (even if they are not present in LDAP)
+        * office365-connector uses None for empty values
+
+        Azure doesn't support the value "" as visibility.
+
+        :return:
+        """
+        return self.get("UniventionMicrosoft365GroupVisibility") or None
+
+    def visibility_is_not_set(self):
+        # type: () -> bool
+        """
+        Return if the group visibility is not set
+        :return:
+        """
+        return self.get("UniventionMicrosoft365GroupVisibility") in ["", None]
+
+    def set_visibility(self, visibility):
+        # type: (bool) -> None
+        """
+        Set the group visibility
+        :param visibility: The group visibility to set
+        :return:
+        """
+        self.udm_object_reference["UniventionMicrosoft365GroupVisibility"] = visibility
+        # Don't call self.udm_object_reference.modify() here, it's done automatically in modify_azure_attributes
+        # and we must not send the current ml twice to avoid a traceback in case the value is None (Bug #45486).

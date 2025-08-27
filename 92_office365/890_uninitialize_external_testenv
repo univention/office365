@@ -9,12 +9,13 @@
 """
 This test is used to remove externally configured ad connections
 """
+
 from helpers.office365_test_helpers import setup_logging, remove_externally_configured_adconnections
 import univention.testing.utils as utils
 
 logger = setup_logging()
 
 if not remove_externally_configured_adconnections(logger):
-	utils.fail("Removing of externally configured ad connections failed!")
+    utils.fail('Removing of externally configured ad connections failed!')
 
-print("*** All went well.")
+print('*** All went well.')

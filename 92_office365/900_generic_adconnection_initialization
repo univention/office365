@@ -18,6 +18,7 @@ The next operations done for tree new connections to Azure:
 - Remove the connection
 - Check that the account and connection are removed
 """
+
 import os
 import uuid
 import datetime
@@ -36,62 +37,60 @@ adconnection1 = uts.random_username()
 adconnection2 = uts.random_username()
 adconnection3 = uts.random_username()
 
-logger = get_logger("ucs-test", "o365")
+logger = get_logger('ucs-test', 'o365')
 
 account_connector = AccountConnector(logger)
 for adconnection in (adconnection1, adconnection2, adconnection3):
-	AccountConnector.create_new_adconnection(logger, adconnection)
-	new_account = AzureAccount(adconnection, lazy_load=True)
-	CONFDIR = new_account.conf_dirs.get("CONFDIR")
-	print('*** adconnection={!r} CONFDIR={!r}'.format(adconnection, CONFDIR))
-	# os.mkdir(CONFDIR)
+    AccountConnector.create_new_adconnection(logger, adconnection)
+    new_account = AzureAccount(adconnection, lazy_load=True)
+    CONFDIR = new_account.conf_dirs.get('CONFDIR')
+    print('*** adconnection={!r} CONFDIR={!r}'.format(adconnection, CONFDIR))
+    # os.mkdir(CONFDIR)
 
-	DATETIME_FORMAT = "%Y-%m-%d_%H:%M:%S"
-	IDS_FILE = new_account.conf_dirs.get("IDS_FILE")
-	IDS_FILE_BAK = "{}.bak_{}".format(IDS_FILE, datetime.datetime.now().strftime(DATETIME_FORMAT.replace(" ", "_")))
+    DATETIME_FORMAT = '%Y-%m-%d_%H:%M:%S'
+    IDS_FILE = new_account.conf_dirs.get('IDS_FILE')
+    IDS_FILE_BAK = '{}.bak_{}'.format(IDS_FILE, datetime.datetime.now().strftime(DATETIME_FORMAT.replace(' ', '_')))
 
-	try:
-		shutil.move(IDS_FILE, IDS_FILE_BAK)
-		shutil.copy2(IDS_FILE_BAK, IDS_FILE)
-		has_backup = True
-	except IOError:
-		has_backup = False
+    try:
+        shutil.move(IDS_FILE, IDS_FILE_BAK)
+        shutil.copy2(IDS_FILE_BAK, IDS_FILE)
+        has_backup = True
+    except IOError:
+        has_backup = False
 
+    @atexit.register
+    def move_ids_file_back():
+        if has_backup:
+            try:
+                shutil.move(IDS_FILE_BAK, IDS_FILE)
+            except IOError:
+                pass
 
-	@atexit.register
-	def move_ids_file_back():
-		if has_backup:
-			try:
-				shutil.move(IDS_FILE_BAK, IDS_FILE)
-			except IOError:
-				pass
+    new_account.uninitialize()
 
+    if new_account.is_initialized():
+        utils.fail('App should not be initialized.')
 
-	new_account.uninitialize()
+    test_ids = dict(
+        adconnection_id=str(uuid.uuid1()),
+        client_id=uts.random_string(),
+        reply_url=uts.random_string(),
+        domain='{}.{}'.format(uts.random_string(), uts.random_string()),
+        adconnection_alias=adconnection,
+    )
 
-	if new_account.is_initialized():
-		utils.fail("App should not be initialized.")
+    new_account.store_ids(**test_ids)
+    new_account.token.store_tokens(adconnection_alias=adconnection, consent_given=True)
 
-	test_ids = dict(
-		adconnection_id=str(uuid.uuid1()),
-		client_id=uts.random_string(),
-		reply_url=uts.random_string(),
-		domain="{}.{}".format(uts.random_string(), uts.random_string()),
-		adconnection_alias=adconnection
-	)
+    if not new_account.is_initialized():
+        utils.fail('App should be initialized. %r' % new_account)
 
-	new_account.store_ids(**test_ids)
-	new_account.token.store_tokens(adconnection_alias=adconnection, consent_given=True)
+    if not all([v == new_account[k] for k, v in test_ids.items()]):
+        utils.fail('Stored and loaded data differ.')
 
-	if not new_account.is_initialized():
-		utils.fail("App should be initialized. %r" % new_account)
-
-	if not all([v == new_account[k] for k, v in test_ids.items()]):
-		utils.fail("Stored and loaded data differ.")
-
-	account_connector.remove_adconnection(adconnection)
-	assert not os.path.exists(os.path.join(AzureAccount.config_base_path, adconnection))
-	assert adconnection not in UCRHelper.get_adconnection_aliases(), "Adconnection %r already exist in UCR" % adconnection
+    account_connector.remove_adconnection(adconnection)
+    assert not os.path.exists(os.path.join(AzureAccount.config_base_path, adconnection))
+    assert adconnection not in UCRHelper.get_adconnection_aliases(), 'Adconnection %r already exist in UCR' % adconnection
 
 
-print("*** All went well.")
+print('*** All went well.')

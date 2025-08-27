@@ -3,32 +3,8 @@
 #
 # Univention Office 365 - new Azure AD connection script
 #
-# Copyright 2017-2025 Univention GmbH
-#
-# http://www.univention.de/
-#
-# All rights reserved.
-#
-# The source code of this program is made available
-# under the terms of the GNU Affero General Public License version 3
-# (GNU AGPL V3) as published by the Free Software Foundation.
-#
-# Binary versions of this program provided by Univention to you as
-# well as other copyrighted, protected or trademarked materials like
-# Logos, graphics, fonts, specific documentations and configurations,
-# cryptographic keys etc. are subject to a license agreement between
-# you and Univention and not subject to the GNU AGPL V3.
-#
-# In the case you use this program under the terms of the GNU AGPL V3,
-# the program is provided in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public
-# License with the Debian GNU/Linux or Univention distribution in file
-# /usr/share/common-licenses/AGPL-3; if not, see
-# <http://www.gnu.org/licenses/>.
+# SPDX-FileCopyrightText: 2017-2025 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
 
 from __future__ import print_function
 
@@ -47,20 +23,20 @@ conf_path = '/etc/univention-office365'
 def list(args):
     adconnection_list = account_connector.get_adconnections()
     if adconnection_list:
-        print("{0:<25} {1:<50} {2:<20}".format("Alias", "Path", "status"))
+        print('{0:<25} {1:<50} {2:<20}'.format('Alias', 'Path', 'status'))
         for alias, status, path in adconnection_list:
-            print("{0:<25} {1:<50} {2:<20}".format(alias, path, status))
+            print('{0:<25} {1:<50} {2:<20}'.format(alias, path, status))
 
 
 def create(args):
     account_connector.create_new_adconnection(logger, args.alias, args.makedefault)
     if self.alias != UCRHelper.default_adconnection_name:
-        subprocess.call(["univention-keycloak", "proxy-realms", "create", args.alias])
+        subprocess.call(['univention-keycloak', 'proxy-realms', 'create', args.alias])
 
 
 def rename(args):
-    #AzureADConnectionHandler.rename_adconnection(args.oldalias, args.newalias)
-    print("Not implemented")
+    # AzureADConnectionHandler.rename_adconnection(args.oldalias, args.newalias)
+    print('Not implemented')
 
 
 def remove(args):
@@ -68,7 +44,7 @@ def remove(args):
 
 
 if __name__ == '__main__':
-    logger = get_logger("office365", "o365")
+    logger = get_logger('office365', 'o365')
     account_connector = AccountConnector(logger=logger)
     _handler = logging.StreamHandler(sys.stdout)
     _handler.setLevel(logging.INFO)

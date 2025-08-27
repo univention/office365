@@ -3,32 +3,8 @@
 #
 # Univention Office 365 - print users subscriptions
 #
-# Copyright 2016-2025 Univention GmbH
-#
-# http://www.univention.de/
-#
-# All rights reserved.
-#
-# The source code of this program is made available
-# under the terms of the GNU Affero General Public License version 3
-# (GNU AGPL V3) as published by the Free Software Foundation.
-#
-# Binary versions of this program provided by Univention to you as
-# well as other copyrighted, protected or trademarked materials like
-# Logos, graphics, fonts, specific documentations and configurations,
-# cryptographic keys etc. are subject to a license agreement between
-# you and Univention and not subject to the GNU AGPL V3.
-#
-# In the case you use this program under the terms of the GNU AGPL V3,
-# the program is provided in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public
-# License with the Debian GNU/Linux or Univention distribution in file
-# /usr/share/common-licenses/AGPL-3; if not, see
-# <http://www.gnu.org/licenses/>.
+# SPDX-FileCopyrightText: 2016-2025 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
 
 import sys
 from operator import itemgetter
@@ -40,90 +16,90 @@ from univention.office365.ucr_helper import UCRHelper
 
 
 def calc_column_lengths(data, data_fetchers, header_parts):
-	rows = [tuple(len(x) for x in header_parts)]
-	for part in data:
-		rows.append(tuple(max(len(x) for x in str(df(part)).split('\n')) for df in data_fetchers))
-	return tuple(max(r[i] for r in rows) for i in range(len(header_parts)))
+    rows = [tuple(len(x) for x in header_parts)]
+    for part in data:
+        rows.append(tuple(max(len(x) for x in str(df(part)).split('\n')) for df in data_fetchers))
+    return tuple(max(r[i] for r in rows) for i in range(len(header_parts)))
 
 
 def print_table(data, data_fetchers, header_parts, line, epilog, column_lengths=None):
-	if not column_lengths:
-		column_lengths = calc_column_lengths(data, data_fetchers, header_parts)
-	header = (line.replace('<%', '^%') % column_lengths).format(*header_parts)
-	print(header)
-	print('-' * len(header))
-	line %= column_lengths
-	for part in data:
-		print(line.format(*tuple(df(part) for df in data_fetchers)))
-	print('-' * len(header))
-	print(epilog)
+    if not column_lengths:
+        column_lengths = calc_column_lengths(data, data_fetchers, header_parts)
+    header = (line.replace('<%', '^%') % column_lengths).format(*header_parts)
+    print(header)
+    print('-' * len(header))
+    line %= column_lengths
+    for part in data:
+        print(line.format(*tuple(df(part) for df in data_fetchers)))
+    print('-' * len(header))
+    print(epilog)
 
 
 def print_subscriptions(adconnection_alias=None):
-	core = MSGraphApiCore(AzureAccount(adconnection_alias))
-	subscriptions = SubscriptionAzure.list(core)
+    core = MSGraphApiCore(AzureAccount(adconnection_alias))
+    subscriptions = SubscriptionAzure.list(core)
 
-	# print all subscriptions
-	data_fetchers = (
-		itemgetter('skuPartNumber'),
-		itemgetter('appliesTo'),
-		itemgetter('capabilityStatus'),
-		itemgetter('consumedUnits'),
-		lambda x: x['prepaidUnits']["enabled"] + x['prepaidUnits']["suspended"] + x['prepaidUnits']["warning"] - x['consumedUnits'],
-		lambda x: '{enabled}/{suspended}/{warning}'.format(**x['prepaidUnits'])
-	)
-	header_parts = ('Subscription', 'Applies to', 'Status', 'Consumed', 'Remaining', 'Prepaid (*)')
-	line = '{: <%d} | {: <%d} | {: <%d} | {: >%d} | {: >%d} | {: >%d}'
-	epilog = '(*) enabled/suspended/warning\n'
-	header = ' | '.join(header_parts)
-	print(('{: ^%d}' % len(header)).format('Subscriptions'))
-	print(('{: ^%d}' % len(header)).format('=' * (len('Subscriptions') + 8)))
-	data_to_print = [s.get_not_none_values_as_dict() for s in subscriptions]
-	print_table(data_to_print, data_fetchers, header_parts, line, epilog)
+    # print all subscriptions
+    data_fetchers = (
+        itemgetter('skuPartNumber'),
+        itemgetter('appliesTo'),
+        itemgetter('capabilityStatus'),
+        itemgetter('consumedUnits'),
+        lambda x: x['prepaidUnits']['enabled'] + x['prepaidUnits']['suspended'] + x['prepaidUnits']['warning'] - x['consumedUnits'],
+        lambda x: '{enabled}/{suspended}/{warning}'.format(**x['prepaidUnits']),
+    )
+    header_parts = ('Subscription', 'Applies to', 'Status', 'Consumed', 'Remaining', 'Prepaid (*)')
+    line = '{: <%d} | {: <%d} | {: <%d} | {: >%d} | {: >%d} | {: >%d}'
+    epilog = '(*) enabled/suspended/warning\n'
+    header = ' | '.join(header_parts)
+    print(('{: ^%d}' % len(header)).format('Subscriptions'))
+    print(('{: ^%d}' % len(header)).format('=' * (len('Subscriptions') + 8)))
+    data_to_print = [s.get_not_none_values_as_dict() for s in subscriptions]
+    print_table(data_to_print, data_fetchers, header_parts, line, epilog)
 
-	# list plans of all subscriptions
-	data_fetchers = (
-		itemgetter('servicePlanName'),
-		itemgetter('appliesTo'),
-		itemgetter('provisioningStatus'),
-		lambda x: 'x' if x['servicePlanName'] in UCRHelper.get_service_plan_names() else ''
-	)
-	header_parts = ('Service plan', 'Applies to', 'Status', 'in UCRV (*)')
-	line = '{: <%d} | {: <%d} | {: <%d} | {: <%d}'
-	epilog = '(*) office365/subscriptions/service_plan_names\n'
-	header = ' | '.join(header_parts)
-	column_lengths = tuple(0 for x in header_parts)
-	# make columns homogeneous for all subscriptions
-	for subscription in subscriptions:
-		plan_column_length = calc_column_lengths(subscription.servicePlans, data_fetchers, header_parts)
-		column_lengths = tuple(max(column_lengths[x], plan_column_length[x]) for x in range(len(column_lengths)))
-	# print each subscription
-	for subscription in subscriptions:
-		print(('{: ^%d}' % len(header)).format(subscription.skuPartNumber))
-		print(('{: ^%d}' % len(header)).format('=' * (len(subscription.skuPartNumber) + 8)))
-		print_table(subscription.servicePlans, data_fetchers, header_parts, line, epilog, column_lengths)
+    # list plans of all subscriptions
+    data_fetchers = (
+        itemgetter('servicePlanName'),
+        itemgetter('appliesTo'),
+        itemgetter('provisioningStatus'),
+        lambda x: 'x' if x['servicePlanName'] in UCRHelper.get_service_plan_names() else '',
+    )
+    header_parts = ('Service plan', 'Applies to', 'Status', 'in UCRV (*)')
+    line = '{: <%d} | {: <%d} | {: <%d} | {: <%d}'
+    epilog = '(*) office365/subscriptions/service_plan_names\n'
+    header = ' | '.join(header_parts)
+    column_lengths = tuple(0 for x in header_parts)
+    # make columns homogeneous for all subscriptions
+    for subscription in subscriptions:
+        plan_column_length = calc_column_lengths(subscription.servicePlans, data_fetchers, header_parts)
+        column_lengths = tuple(max(column_lengths[x], plan_column_length[x]) for x in range(len(column_lengths)))
+    # print each subscription
+    for subscription in subscriptions:
+        print(('{: ^%d}' % len(header)).format(subscription.skuPartNumber))
+        print(('{: ^%d}' % len(header)).format('=' * (len(subscription.skuPartNumber) + 8)))
+        print_table(subscription.servicePlans, data_fetchers, header_parts, line, epilog, column_lengths)
 
 
 if __name__ == '__main__':
-	if not len(sys.argv) == 2:
-		print('Usage: {} [Azure AD connection alias]'.format(sys.argv[0]))
-		print('Available Azure AD connection aliases: {}'.format(", ".join(UCRHelper.get_adconnection_aliases().keys())))
-		sys.exit(1)
-	try:
-		adconnection_alias = sys.argv[1]
-		adconnection_aliases = UCRHelper.get_adconnection_aliases().keys()
-		initialized_adconnections = [ta for ta in adconnection_aliases if AzureAccount(ta).is_initialized()]
-		if adconnection_alias not in adconnection_aliases:
-			print('Usage: {} [Azure AD connection alias]'.format(sys.argv[0]))
-			print('Unknown Azure AD connection alias {!r}.'.format(adconnection_alias))
-			print('Available Azure AD connection aliases: {}'.format(", ".join(adconnection_aliases)))
-			sys.exit(1)
-		elif adconnection_alias not in initialized_adconnections:
-			print('Usage: {} [Azure AD connection alias]'.format(sys.argv[0]))
-			print('Azure AD connection not yet initialized: {!r}.'.format(adconnection_alias))
-			sys.exit(1)
-		print('Using Azure AD connection alias {!r}.'.format(adconnection_alias))
-	except IndexError:
-		adconnection_alias = None
+    if not len(sys.argv) == 2:
+        print('Usage: {} [Azure AD connection alias]'.format(sys.argv[0]))
+        print('Available Azure AD connection aliases: {}'.format(', '.join(UCRHelper.get_adconnection_aliases().keys())))
+        sys.exit(1)
+    try:
+        adconnection_alias = sys.argv[1]
+        adconnection_aliases = UCRHelper.get_adconnection_aliases().keys()
+        initialized_adconnections = [ta for ta in adconnection_aliases if AzureAccount(ta).is_initialized()]
+        if adconnection_alias not in adconnection_aliases:
+            print('Usage: {} [Azure AD connection alias]'.format(sys.argv[0]))
+            print('Unknown Azure AD connection alias {!r}.'.format(adconnection_alias))
+            print('Available Azure AD connection aliases: {}'.format(', '.join(adconnection_aliases)))
+            sys.exit(1)
+        elif adconnection_alias not in initialized_adconnections:
+            print('Usage: {} [Azure AD connection alias]'.format(sys.argv[0]))
+            print('Azure AD connection not yet initialized: {!r}.'.format(adconnection_alias))
+            sys.exit(1)
+        print('Using Azure AD connection alias {!r}.'.format(adconnection_alias))
+    except IndexError:
+        adconnection_alias = None
 
-	print_subscriptions(adconnection_alias)
+    print_subscriptions(adconnection_alias)

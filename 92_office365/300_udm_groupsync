@@ -19,6 +19,7 @@ This test is used to check the user and group sync to Azure.
 - Repeat the same operation but with the other connection
 - Check that no user or group is mixed created in the other connection
 """
+
 import time
 import copy
 
@@ -39,148 +40,135 @@ from univention.office365.udmwrapper.udmobjects import UDMOfficeUser, UDMOfficeG
 logger = setup_logging()
 adconnection_aliases = UCRHelper.get_adconnection_aliases()
 initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAccount(adconnection_alias).is_initialized()]
-assert initialized_adconnections, "run ./01_initialize_external_testenv first!"
+assert initialized_adconnections, 'run ./01_initialize_external_testenv first!'
 
-print("*** adconnection_aliases={!r}.".format(adconnection_aliases))
-print("*** initialized_adconnections={!r}.".format(initialized_adconnections))
+print('*** adconnection_aliases={!r}.'.format(adconnection_aliases))
+print('*** initialized_adconnections={!r}.'.format(initialized_adconnections))
 
 if len(initialized_adconnections) < 2:
-	utils.fail('Need at least two initialized adconnections for this test.')
+    utils.fail('Need at least two initialized adconnections for this test.')
 
 with utils.AutomaticListenerRestart():
-	with udm_test.UCSTestUDM() as udm:
-		with ucr_test.UCSTestConfigRegistry() as ucr:
-			ucr.load()
+    with udm_test.UCSTestUDM() as udm:
+        with ucr_test.UCSTestConfigRegistry() as ucr:
+            ucr.load()
 
-			handler_set(["office365/groups/sync=yes"])
-			utils.restart_listener()
+            handler_set(['office365/groups/sync=yes'])
+            utils.restart_listener()
 
-			adconnection_alias1 = initialized_adconnections[0]
-			adconnection_alias2 = initialized_adconnections[1]
+            adconnection_alias1 = initialized_adconnections[0]
+            adconnection_alias2 = initialized_adconnections[1]
 
-			print("*** adconnection_alias1={!r}".format(adconnection_alias1))
-			print("*** adconnection_alias2={!r}".format(adconnection_alias2))
+            print('*** adconnection_alias1={!r}'.format(adconnection_alias1))
+            print('*** adconnection_alias2={!r}'.format(adconnection_alias2))
 
-			core_1 = MSGraphApiCore(AzureAccount(adconnection_alias1))
-			core_2 = MSGraphApiCore(AzureAccount(adconnection_alias2))
+            core_1 = MSGraphApiCore(AzureAccount(adconnection_alias1))
+            core_2 = MSGraphApiCore(AzureAccount(adconnection_alias2))
 
-			user_args = udm_user_args(ucr, minimal=True)
-			user_args["set"]["UniventionOffice365Enabled"] = 1
-			user_args["set"]["UniventionOffice365ADConnectionAlias"] = adconnection_alias1
+            user_args = udm_user_args(ucr, minimal=True)
+            user_args['set']['UniventionOffice365Enabled'] = 1
+            user_args['set']['UniventionOffice365ADConnectionAlias'] = adconnection_alias1
 
-			group_name = uts.random_name()
-			description = uts.random_string()
-			group_dn = udm.create_object(
-				"groups/group",
-				set=dict(
-					name=group_name,
-					description=description
-				),
-				position="cn=groups,{}".format(ucr.get("ldap/base")),
-				check_for_drs_replication=True
-			)
+            group_name = uts.random_name()
+            description = uts.random_string()
+            group_dn = udm.create_object(
+                'groups/group', set=dict(name=group_name, description=description), position='cn=groups,{}'.format(ucr.get('ldap/base')), check_for_drs_replication=True
+            )
 
-			print("*** Creating user with in group {!r} in adconnection_alias1 ({!r})...".format(group_name, adconnection_alias1))
-			user_args["set"]["primaryGroup"] = group_dn
-			user_dn, username = udm.create_user(check_for_drs_replication=True, **user_args)
-			time.sleep(10)
+            print('*** Creating user with in group {!r} in adconnection_alias1 ({!r})...'.format(group_name, adconnection_alias1))
+            user_args['set']['primaryGroup'] = group_dn
+            user_dn, username = udm.create_user(check_for_drs_replication=True, **user_args)
+            time.sleep(10)
 
-			print("*** Checking that user was created (UniventionOffice365ObjectID in UDM object)...")
-			udm_user_one = UDMOfficeUser({}, None, dn=user_dn)
-			with udm_user_one.set_current_alias(adconnection_alias1):
-				azure_user_id_one = udm_user_one.azure_object_id
-			if not azure_user_id_one:
-				utils.fail("User was not created properly (no UniventionOffice365ObjectID).")
+            print('*** Checking that user was created (UniventionOffice365ObjectID in UDM object)...')
+            udm_user_one = UDMOfficeUser({}, None, dn=user_dn)
+            with udm_user_one.set_current_alias(adconnection_alias1):
+                azure_user_id_one = udm_user_one.azure_object_id
+            if not azure_user_id_one:
+                utils.fail('User was not created properly (no UniventionOffice365ObjectID).')
 
-			print("*** Checking that group was created (UniventionOffice365ObjectID in UDM object)...")
-			udm_group1 = UDMOfficeGroup({}, None, dn=group_dn)
-			with udm_group1.set_current_alias(adconnection_alias1):
-				group_objectid = udm_group1.azure_object_id
-			if not group_objectid:
-				utils.fail("Created group {!r} has no objectId in UDM Data object  ({!r}).".format(group_name, adconnection_alias1))
+            print('*** Checking that group was created (UniventionOffice365ObjectID in UDM object)...')
+            udm_group1 = UDMOfficeGroup({}, None, dn=group_dn)
+            with udm_group1.set_current_alias(adconnection_alias1):
+                group_objectid = udm_group1.azure_object_id
+            if not group_objectid:
+                utils.fail('Created group {!r} has no objectId in UDM Data object  ({!r}).'.format(group_name, adconnection_alias1))
 
-			print("*** Checking that group was created in azure (list)...")
-			try:
-				azure_group = GroupAzure.get_by_name(core_1, group_name)
-			except GraphRessourceNotFroundError as e:
-				utils.fail("Created group {!r} cannot be retrieved from azure ({!r}).".format(group_name, adconnection_alias1))
+            print('*** Checking that group was created in azure (list)...')
+            try:
+                azure_group = GroupAzure.get_by_name(core_1, group_name)
+            except GraphRessourceNotFroundError as e:
+                utils.fail('Created group {!r} cannot be retrieved from azure ({!r}).'.format(group_name, adconnection_alias1))
 
-			print("*** Checking that user is in group...")
-			member_objectids = azure_group.list_members_id()
+            print('*** Checking that user is in group...')
+            member_objectids = azure_group.list_members_id()
 
-			if not len(member_objectids) == 1:
-				utils.fail("Group {!r} does not contain exactly one member ({!r}).".format(group_name, adconnection_alias1))
+            if not len(member_objectids) == 1:
+                utils.fail('Group {!r} does not contain exactly one member ({!r}).'.format(group_name, adconnection_alias1))
 
-			if not azure_user_id_one in member_objectids:
-				utils.fail("Group {!r} does not contain the user object for user {!r} ({!r}).".format(group_name, username, adconnection_alias1))
+            if not azure_user_id_one in member_objectids:
+                utils.fail('Group {!r} does not contain the user object for user {!r} ({!r}).'.format(group_name, username, adconnection_alias1))
 
+            print('*** Checking that group was NOT created in azure AD2 (list)...')
+            try:
+                azure_group_none = GroupAzure.get_by_name(core_2, group_name)
+                utils.fail('Created group {!r} was retrieved from azure ({!r}). But it should not have been synced there.'.format(group_name, adconnection_alias2))
+            except GraphRessourceNotFroundError as e:
+                pass
 
-			print("*** Checking that group was NOT created in azure AD2 (list)...")
-			try:
-				azure_group_none = GroupAzure.get_by_name(core_2, group_name)
-				utils.fail("Created group {!r} was retrieved from azure ({!r}). But it should not have been synced there.".format(group_name, adconnection_alias2))
-			except GraphRessourceNotFroundError as e:
-				pass
+            # Sync and check user+group for second azure AD
+            group_name_two = uts.random_name()
+            description_two = uts.random_string()
+            group_dn_two = udm.create_object(
+                'groups/group', set=dict(name=group_name_two, description=description_two), position='cn=groups,{}'.format(ucr.get('ldap/base')), check_for_drs_replication=True
+            )
 
-			# Sync and check user+group for second azure AD
-			group_name_two = uts.random_name()
-			description_two = uts.random_string()
-			group_dn_two = udm.create_object(
-				"groups/group",
-				set=dict(
-					name=group_name_two,
-					description=description_two
-				),
-				position="cn=groups,{}".format(ucr.get("ldap/base")),
-				check_for_drs_replication=True
-			)
+            print('*** Creating user 2 in group 2 {!r} in adconnection_alias2 ({!r})...'.format(group_name_two, adconnection_alias2))
+            user_args_two = udm_user_args(ucr, minimal=True)
+            user_args_two['set']['UniventionOffice365Enabled'] = 1
+            user_args_two['set']['UniventionOffice365ADConnectionAlias'] = adconnection_alias2
+            user_args_two['set']['primaryGroup'] = group_dn_two
+            user_dn_two, username_two = udm.create_user(check_for_drs_replication=True, **user_args_two)
+            time.sleep(10)
 
-			print("*** Creating user 2 in group 2 {!r} in adconnection_alias2 ({!r})...".format(group_name_two, adconnection_alias2))
-			user_args_two = udm_user_args(ucr, minimal=True)
-			user_args_two["set"]["UniventionOffice365Enabled"] = 1
-			user_args_two["set"]["UniventionOffice365ADConnectionAlias"] = adconnection_alias2
-			user_args_two["set"]["primaryGroup"] = group_dn_two
-			user_dn_two, username_two = udm.create_user(check_for_drs_replication=True, **user_args_two)
-			time.sleep(10)
+            print('*** Checking that user 2 was created (UniventionOffice365ObjectID in UDM object)...')
+            udm_user_two = UDMOfficeUser({}, None, dn=user_dn_two)
+            with udm_user_two.set_current_alias(adconnection_alias2):
+                azure_user_id_two = udm_user_two.azure_object_id
+            if not azure_user_id_two:
+                utils.fail('User was not created properly (no UniventionOffice365ObjectID).')
 
-			print("*** Checking that user 2 was created (UniventionOffice365ObjectID in UDM object)...")
-			udm_user_two = UDMOfficeUser({}, None, dn=user_dn_two)
-			with udm_user_two.set_current_alias(adconnection_alias2):
-				azure_user_id_two = udm_user_two.azure_object_id
-			if not azure_user_id_two:
-				utils.fail("User was not created properly (no UniventionOffice365ObjectID).")
+            print('*** Checking that group 2 was created (UniventionOffice365ObjectID in UDM object)...')
+            udm_group_two = UDMOfficeGroup({}, None, dn=group_dn_two)
+            with udm_group_two.set_current_alias(adconnection_alias2):
+                group_objectid = udm_group_two.azure_object_id
+            if not group_objectid:
+                utils.fail('Created group {!r} has no objectId in UDM Data object  ({!r}).'.format(group_name_two, adconnection_alias2))
 
-			print("*** Checking that group 2 was created (UniventionOffice365ObjectID in UDM object)...")
-			udm_group_two = UDMOfficeGroup({}, None, dn=group_dn_two)
-			with udm_group_two.set_current_alias(adconnection_alias2):
-				group_objectid = udm_group_two.azure_object_id
-			if not group_objectid:
-				utils.fail("Created group {!r} has no objectId in UDM Data object  ({!r}).".format(group_name_two, adconnection_alias2))
+            print('*** Checking that group 2 was created in azure (list)...')
+            try:
+                azure_group_two = GroupAzure.get_by_name(core_2, group_name_two)
+            except GraphRessourceNotFroundError as e:
+                utils.fail('Created group {!r} cannot be retrieved from azure ({!r}).'.format(group_name_two, adconnection_alias2))
 
-			print("*** Checking that group 2 was created in azure (list)...")
-			try:
-				azure_group_two = GroupAzure.get_by_name(core_2, group_name_two)
-			except GraphRessourceNotFroundError as e:
-				utils.fail("Created group {!r} cannot be retrieved from azure ({!r}).".format(group_name_two, adconnection_alias2))
+            print('*** Checking that user 2 is in group 2...')
+            member_objectids = azure_group_two.list_members_id()
 
-			print("*** Checking that user 2 is in group 2...")
-			member_objectids = azure_group_two.list_members_id()
+            if not len(member_objectids) == 1:
+                utils.fail('Group {!r} does not contain exactly one member ({!r}).'.format(group_name_two, adconnection_alias1))
 
-			if not len(member_objectids) == 1:
-				utils.fail("Group {!r} does not contain exactly one member ({!r}).".format(group_name_two, adconnection_alias1))
+            if not azure_user_id_two in member_objectids:
+                utils.fail('Group {!r} does not contain the user object for user {!r} ({!r}).'.format(group_name_two, username_two, adconnection_alias1))
 
-			if not azure_user_id_two in member_objectids:
-				utils.fail("Group {!r} does not contain the user object for user {!r} ({!r}).".format(group_name_two, username_two, adconnection_alias1))
-
-			print("*** Checking that group 2 was NOT created in azure AD1 (list)...")
-			try:
-				azure_group_none = GroupAzure.get_by_name(core_1, group_name_two)
-				utils.fail("Created group {!r} was retrieved from azure ({!r}). But it should not have been synced there.".format(group_name_two, adconnection_alias1))
-			except GraphRessourceNotFroundError as e:
-				pass
-			print("*** All went well.")
+            print('*** Checking that group 2 was NOT created in azure AD1 (list)...')
+            try:
+                azure_group_none = GroupAzure.get_by_name(core_1, group_name_two)
+                utils.fail('Created group {!r} was retrieved from azure ({!r}). But it should not have been synced there.'.format(group_name_two, adconnection_alias1))
+            except GraphRessourceNotFroundError as e:
+                pass
+            print('*** All went well.')
 
 # Cleanup
-to_unset = ["office365/groups/sync"]
+to_unset = ['office365/groups/sync']
 handler_unset(to_unset)
 utils.restart_listener()

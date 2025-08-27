@@ -2,32 +2,8 @@
 #
 # Univention Office 365 - manifest
 #
-# Copyright 2016-2025 Univention GmbH
-#
-# http://www.univention.de/
-#
-# All rights reserved.
-#
-# The source code of this program is made available
-# under the terms of the GNU Affero General Public License version 3
-# (GNU AGPL V3) as published by the Free Software Foundation.
-#
-# Binary versions of this program provided by Univention to you as
-# well as other copyrighted, protected or trademarked materials like
-# Logos, graphics, fonts, specific documentations and configurations,
-# cryptographic keys etc. are subject to a license agreement between
-# you and Univention and not subject to the GNU AGPL V3.
-#
-# In the case you use this program under the terms of the GNU AGPL V3,
-# the program is provided in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public
-# License with the Debian GNU/Linux or Univention distribution in file
-# /usr/share/common-licenses/AGPL-3; if not, see
-# <http://www.gnu.org/licenses/>.
+# SPDX-FileCopyrightText: 2016-2025 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
 
 
 import json
@@ -321,16 +297,15 @@ class ApplicationPermissions:
     app_rol_id_to_name = dict([(x[1], x[0]) for x in name_to_app_rol_id.items()])
 
 
-permissions_needed_name = ["Directory.ReadWrite.All", "Group.ReadWrite.All", "User.ReadWrite.All", "TeamMember.ReadWrite.All"]
+permissions_needed_name = ['Directory.ReadWrite.All', 'Group.ReadWrite.All', 'User.ReadWrite.All', 'TeamMember.ReadWrite.All']
 
-resourceAccess = [{"id": ApplicationPermissions.name_to_app_rol_id[name], "type": "Role"} for name in permissions_needed_name]
+resourceAccess = [{'id': ApplicationPermissions.name_to_app_rol_id[name], 'type': 'Role'} for name in permissions_needed_name]
 
 
 class Manifest(object):
-
     def __init__(self, fd, adconnection_alias, adconnection_id, domain, logger=None):
         # type: ("SupportsRead", str, str, str, "logging.Logger") -> None
-        self.logger = logger or get_logger("office365", "o365")
+        self.logger = logger or get_logger('office365', 'o365')
         self.adconnection_id = adconnection_id
         self.adconnection_alias = adconnection_alias
         self.domain = domain
@@ -349,7 +324,7 @@ class Manifest(object):
     def reply_url(self):
         # type: () -> Optional[str]
         try:
-            return self.manifest["web"]["redirectUris"][0]
+            return self.manifest['web']['redirectUris'][0]
         except (IndexError, KeyError):
             pass
 
@@ -359,19 +334,19 @@ class Manifest(object):
 
     def transform(self):
         # type: () -> None
-        self.manifest["web"]["implicitGrantSettings"]["enableAccessTokenIssuance"] = True
-        self.manifest["web"]["implicitGrantSettings"]["enableIdTokenIssuance"] = True
+        self.manifest['web']['implicitGrantSettings']['enableAccessTokenIssuance'] = True
+        self.manifest['web']['implicitGrantSettings']['enableIdTokenIssuance'] = True
 
         permissions = {
             # Permission: Azure Active Directory Graph
-            "resourceAppId": "00000003-0000-0000-c000-000000000000",
-            "resourceAccess": resourceAccess
+            'resourceAppId': '00000003-0000-0000-c000-000000000000',
+            'resourceAccess': resourceAccess,
         }
 
         for access in self.manifest['requiredResourceAccess']:
-            if permissions["resourceAppId"] == access['resourceAppId']:
+            if permissions['resourceAppId'] == access['resourceAppId']:
                 # append permissions without duplicates
-                [access["resourceAccess"].append(p) for p in permissions["resourceAccess"] if p not in access["resourceAccess"]]
+                [access['resourceAccess'].append(p) for p in permissions['resourceAccess'] if p not in access['resourceAccess']]
                 break
         else:
             self.manifest['requiredResourceAccess'].append(permissions)

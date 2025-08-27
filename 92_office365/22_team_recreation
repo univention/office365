@@ -15,6 +15,7 @@ This test is used to check the team recreation in Azure.
 - create group in UDM with UniventionMicrosoft365Team=1 and UniventionMicrosoft365GroupOwners=user_dn
 - Check the recreation of the team in Azure (It's using the wait_for_seconds decorator to wait for the team to be created up to 500 seconds)
 """
+
 from __future__ import print_function
 
 import time
@@ -30,39 +31,30 @@ from univention.office365.microsoft.core import MSGraphApiCore
 from univention.office365.microsoft.objects.azureobjects import GroupAzure
 
 with utils.AutomaticListenerRestart():
-	with udm_test.UCSTestUDM() as udm:
-		with ucr_test.UCSTestConfigRegistry() as ucr:
-			ucr.load()
+    with udm_test.UCSTestUDM() as udm:
+        with ucr_test.UCSTestConfigRegistry() as ucr:
+            ucr.load()
 
-			alias = 'o365domain'
+            alias = 'o365domain'
 
-			core = MSGraphApiCore(AzureAccount(alias))
+            core = MSGraphApiCore(AzureAccount(alias))
 
-			handler_set(["office365/groups/sync=yes"])
-			utils.restart_listener()
+            handler_set(['office365/groups/sync=yes'])
+            utils.restart_listener()
 
-			print("*** Creating members ***")
-			user_dn, username = o365helpers.create_team_member(udm, ucr, alias)
-			print("*** Creating Team ***")
-			team_dn, team_name = o365helpers.create_team(udm, ucr, owner_dn=user_dn, users=[user_dn])
+            print('*** Creating members ***')
+            user_dn, username = o365helpers.create_team_member(udm, ucr, alias)
+            print('*** Creating Team ***')
+            team_dn, team_name = o365helpers.create_team(udm, ucr, owner_dn=user_dn, users=[user_dn])
 
-			team = o365helpers.check_team_created(core, team_name)
-			if not team:
-				utils.fail("Team {!r} was not created in Azure.".format(team_name))
-			group_azure = GroupAzure.get_by_name(core, team_name)
+            team = o365helpers.check_team_created(core, team_name)
+            if not team:
+                utils.fail('Team {!r} was not created in Azure.'.format(team_name))
+            group_azure = GroupAzure.get_by_name(core, team_name)
 
-			group_azure.delete()
+            group_azure.delete()
 
-			udm.modify_object(
-				modulename="groups/group",
-				dn=team_dn,
-				set=dict(
-					description="Modified description"
-				),
-				check_for_drs_replication=True
-			)
-			team = o365helpers.check_team_created(core, team_name)
+            udm.modify_object(modulename='groups/group', dn=team_dn, set=dict(description='Modified description'), check_for_drs_replication=True)
+            team = o365helpers.check_team_created(core, team_name)
 
-
-
-			print("*** All went well.")
+            print('*** All went well.')

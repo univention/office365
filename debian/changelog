@@ -1,3 +1,9 @@
+univention-office365 (5.0.2) unstable; urgency=medium
+
+  * univention/dev/projects/office365#7: Create MS365 Groups as Private by default
+
+ -- Arvid Requate <requate@univention.de>  Wed, 13 Aug 2025 22:53:40 +0200
+
 univention-office365 (5.0.1-14) unstable; urgency=medium
 
   * Bug #48641: Add new test and fix typing

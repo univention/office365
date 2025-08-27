@@ -17,6 +17,7 @@ This test is used to check the behavior when a user is added to a group twice.
 - Try to add the users several times to the group
 - Check the group id is listed in the users member_of lists
 """
+
 import time
 
 import univention.testing.strings as uts
@@ -26,6 +27,7 @@ import univention.testing.utils as utils
 from univention.config_registry import handler_set, handler_unset
 
 from helpers.office365_test_helpers import udm_user_args, setup_logging, check_user_office365_data_updated
+
 # TODO: Move to fixture
 from univention.office365.microsoft.account import AzureAccount
 from univention.office365.microsoft.core import MSGraphApiCore
@@ -36,84 +38,84 @@ from univention.office365.udmwrapper.udmobjects import UDMOfficeUser, UDMOfficeG
 logger = setup_logging()
 adconnection_aliases = UCRHelper.get_adconnection_aliases()
 initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAccount(adconnection_alias).is_initialized()]
-assert initialized_adconnections, "run ./01_initialize_external_testenv first!"
+assert initialized_adconnections, 'run ./01_initialize_external_testenv first!'
 
-print("*** adconnection_aliases={!r}.".format(adconnection_aliases))
-print("*** initialized_adconnections={!r}.".format(initialized_adconnections))
+print('*** adconnection_aliases={!r}.'.format(adconnection_aliases))
+print('*** initialized_adconnections={!r}.'.format(initialized_adconnections))
 
 with utils.AutomaticListenerRestart():
-	with udm_test.UCSTestUDM() as udm:
-		with ucr_test.UCSTestConfigRegistry() as ucr:
-			ucr.load()
+    with udm_test.UCSTestUDM() as udm:
+        with ucr_test.UCSTestConfigRegistry() as ucr:
+            ucr.load()
 
-			handler_set(["office365/groups/sync=yes"])
-			utils.restart_listener()
+            handler_set(['office365/groups/sync=yes'])
+            utils.restart_listener()
 
-			adconnection_alias = initialized_adconnections[0]
-			core = MSGraphApiCore(AzureAccount(adconnection_alias))
+            adconnection_alias = initialized_adconnections[0]
+            core = MSGraphApiCore(AzureAccount(adconnection_alias))
 
-			# create a group
-			group_name = uts.random_name()
-			group_dn = udm.create_object(
-				"groups/group",
-				set=dict(name=group_name),
-				position="cn=groups,{}".format(ucr.get("ldap/base")),
-			)
+            # create a group
+            group_name = uts.random_name()
+            group_dn = udm.create_object(
+                'groups/group',
+                set=dict(name=group_name),
+                position='cn=groups,{}'.format(ucr.get('ldap/base')),
+            )
 
-			# create user
-			user_args = udm_user_args(ucr, minimal=True)
-			user_args["set"]["UniventionOffice365Enabled"] = 1
-			user_args["set"]["UniventionOffice365ADConnectionAlias"] = adconnection_alias
-			user_args["set"]["primaryGroup"] = group_dn
-			user_dn1, username1 = udm.create_user(**user_args)
-			user_args = udm_user_args(ucr, minimal=True)
-			user_args["set"]["UniventionOffice365Enabled"] = 1
-			user_args["set"]["UniventionOffice365ADConnectionAlias"] = adconnection_alias
-			user_dn2, username2 = udm.create_user(**user_args)
+            # create user
+            user_args = udm_user_args(ucr, minimal=True)
+            user_args['set']['UniventionOffice365Enabled'] = 1
+            user_args['set']['UniventionOffice365ADConnectionAlias'] = adconnection_alias
+            user_args['set']['primaryGroup'] = group_dn
+            user_dn1, username1 = udm.create_user(**user_args)
+            user_args = udm_user_args(ucr, minimal=True)
+            user_args['set']['UniventionOffice365Enabled'] = 1
+            user_args['set']['UniventionOffice365ADConnectionAlias'] = adconnection_alias
+            user_dn2, username2 = udm.create_user(**user_args)
 
-			# wait for user to be created in azure
-			check_user_office365_data_updated(user_dn2)
+            # wait for user to be created in azure
+            check_user_office365_data_updated(user_dn2)
 
-			# get user id
-			udm_user1 = UDMOfficeUser({}, None, dn=user_dn1)
-			udm_user2 = UDMOfficeUser({}, None, dn=user_dn2)
-			with udm_user1.set_current_alias(adconnection_alias), udm_user2.set_current_alias(adconnection_alias):
-				assert udm_user1.azure_object_id
-				assert udm_user2.azure_object_id
-				user_id_1 = udm_user1.azure_object_id
-				user_id_2 = udm_user1.azure_object_id
-				azure_user1 = UserAzure.get(core, user_id_1)
-				azure_user2 = UserAzure.get(core, user_id_2)
-				assert azure_user1
-				assert azure_user2
+            # get user id
+            udm_user1 = UDMOfficeUser({}, None, dn=user_dn1)
+            udm_user2 = UDMOfficeUser({}, None, dn=user_dn2)
+            with udm_user1.set_current_alias(adconnection_alias), udm_user2.set_current_alias(adconnection_alias):
+                assert udm_user1.azure_object_id
+                assert udm_user2.azure_object_id
+                user_id_1 = udm_user1.azure_object_id
+                user_id_2 = udm_user1.azure_object_id
+                azure_user1 = UserAzure.get(core, user_id_1)
+                azure_user2 = UserAzure.get(core, user_id_2)
+                assert azure_user1
+                assert azure_user2
 
-			# get group id
-			udm_group = UDMOfficeGroup({}, None, dn=group_dn)
-			with udm_group.set_current_alias(adconnection_alias):
-				group_object_id = udm_group.azure_object_id
-				azure_group = GroupAzure.get(core, group_object_id)
-				print('group id: {}'.format(group_object_id))
+            # get group id
+            udm_group = UDMOfficeGroup({}, None, dn=group_dn)
+            with udm_group.set_current_alias(adconnection_alias):
+                group_object_id = udm_group.azure_object_id
+                azure_group = GroupAzure.get(core, group_object_id)
+                print('group id: {}'.format(group_object_id))
 
-			# check user1 is member of group
-			assert group_object_id in azure_user1.member_of(ids_only=True)
+            # check user1 is member of group
+            assert group_object_id in azure_user1.member_of(ids_only=True)
 
-			# (re)add
-			azure_group.add_members([user_id_1, user_id_2])
-			azure_group.add_members([user_id_1])
-			azure_group.add_members([user_id_1])
-			azure_group.add_members([user_id_2])
-			azure_group.add_members([user_id_2])
-			azure_group.add_members([user_id_1, user_id_2])
-			azure_group.add_members([user_id_1, user_id_2])
-			azure_group.add_members([user_id_1, user_id_2])
+            # (re)add
+            azure_group.add_members([user_id_1, user_id_2])
+            azure_group.add_members([user_id_1])
+            azure_group.add_members([user_id_1])
+            azure_group.add_members([user_id_2])
+            azure_group.add_members([user_id_2])
+            azure_group.add_members([user_id_1, user_id_2])
+            azure_group.add_members([user_id_1, user_id_2])
+            azure_group.add_members([user_id_1, user_id_2])
 
-			# TODO: Wouldn't it be true also if the users are added several times to the group?
-			# check both users are member of group
-			assert group_object_id in azure_user1.member_of(ids_only=True)
-			assert group_object_id in azure_user2.member_of(ids_only=True)
-			print("*** All went well.")
+            # TODO: Wouldn't it be true also if the users are added several times to the group?
+            # check both users are member of group
+            assert group_object_id in azure_user1.member_of(ids_only=True)
+            assert group_object_id in azure_user2.member_of(ids_only=True)
+            print('*** All went well.')
 
 # Cleanup
-to_unset = ["office365/groups/sync"]
+to_unset = ['office365/groups/sync']
 handler_unset(to_unset)
 utils.restart_listener()

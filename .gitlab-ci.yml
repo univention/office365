@@ -19,7 +19,7 @@ variables:
   DEBIAN_FRONTEND: noninteractive
   CI_REGISTRY: docker-registry.knut.univention.de
   IMAGE_UCSDEV: $CI_REGISTRY/phahn/ucs-debbase:$UCS_VERSION
-  IMAGE_UCSLINT: $CI_REGISTRY/ucslint:500
+  IMAGE_UCSLINT: $CI_REGISTRY/ucslint:522
   GIT_STRATEGY: fetch
   GIT_SUBMODULE_STRATEGY: none
   GIT_DEPTH: "3"

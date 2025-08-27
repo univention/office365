@@ -4,32 +4,8 @@
 # Univention App Center
 #  univention-appcenter-listener-converter
 #
-# Copyright 2018-2025 Univention GmbH
-#
-# https://www.univention.de/
-#
-# All rights reserved.
-#
-# The source code of this program is made available
-# under the terms of the GNU Affero General Public License version 3
-# (GNU AGPL V3) as published by the Free Software Foundation.
-#
-# Binary versions of this program provided by Univention to you as
-# well as other copyrighted, protected or trademarked materials like
-# Logos, graphics, fonts, specific documentations and configurations,
-# cryptographic keys etc. are subject to a license agreement between
-# you and Univention and not subject to the GNU AGPL V3.
-#
-# In the case you use this program under the terms of the GNU AGPL V3,
-# the program is provided in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public
-# License with the Debian GNU/Linux or Univention distribution in file
-# /usr/share/common-licenses/AGPL-3; if not, see
-# <https://www.gnu.org/licenses/>.
+# SPDX-FileCopyrightText: 2018-2025 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
 
 from __future__ import print_function
 
@@ -50,72 +26,72 @@ from univention.office365.microsoft.exceptions.core_exceptions import MSGraphErr
 
 
 def worker(once, logger):
-	q = JsonFilesQueue("o365asyncqueue")
-	while True:
-		if len(q) == 0:
-			if once:
-				logger.info('')
-				logger.info('Goodbye ...')
-				logger.info('')
-				sys.exit(0)
-			logger.debug('Sleeping ...')
-			time.sleep(30)
-			continue
-		task = MSGraphCoreTask.from_dict(q.dequeue())
-		task.set_logger(logger)
-		logger.debug('Job {}: found'.format(task.dump()))
-		ret = False
-		try:
-			ret = task.process()
-		except MSGraphError as e:
-			logger.error(e)
-		if ret:
-			logger.info('Job {}: successful'.format(task.dump()))
-		else:
-			filename = q.enqueue(task, error=True)
-			logger.error('Job {}: failed'.format(filename))
-			logger.error('Job {}: data {}'.format(filename, task.dump()))
+    q = JsonFilesQueue('o365asyncqueue')
+    while True:
+        if len(q) == 0:
+            if once:
+                logger.info('')
+                logger.info('Goodbye ...')
+                logger.info('')
+                sys.exit(0)
+            logger.debug('Sleeping ...')
+            time.sleep(30)
+            continue
+        task = MSGraphCoreTask.from_dict(q.dequeue())
+        task.set_logger(logger)
+        logger.debug('Job {}: found'.format(task.dump()))
+        ret = False
+        try:
+            ret = task.process()
+        except MSGraphError as e:
+            logger.error(e)
+        if ret:
+            logger.info('Job {}: successful'.format(task.dump()))
+        else:
+            filename = q.enqueue(task, error=True)
+            logger.error('Job {}: failed'.format(filename))
+            logger.error('Job {}: data {}'.format(filename, task.dump()))
 
 
 def main():
-	data_dir = ASYNC_DATA_DIR
-	failed_dir = ASYNC_FAILED_DIR
-	usage = '%(prog)s'
-	description = '%(prog)s runs async jobs for the ms office listener (reads json files from {})'.format(data_dir)
-	parser = ArgumentParser(usage=usage, description=description)
-	parser.add_argument('--once', action='store_true', help='Only once and then quit (otherwise will loop forever).')
-	parser.add_argument('--no-delete', action='store_true', help='Do not delete job files.')
-	parser.add_argument('--retry-count', type=int, default=6, help='If the job fails, retry job for max RETRY_COUNT times (defaut: %(default)s)')
-	args = parser.parse_args()
-	logger = get_logger('ms-office-async')
-	lock = None
-	for directory in [data_dir, failed_dir]:
-		if not os.path.isdir(directory):
-			os.makedirs(directory)
-	try:
-		for i in range(10):
-			lock = get_lock('univention-ms-office-async', nonblocking=True)
-			if lock:
-				break
-			else:
-				logger.debug('waiting for lock')
-				print('waiting for lock')
-				time.sleep(1)
-		else:
-			print('Could not get lock, another process is running, exiting', file=sys.stderr)
-			logger.error('Could not get lock, another process is running, exiting')
-			sys.exit(1)
+    data_dir = ASYNC_DATA_DIR
+    failed_dir = ASYNC_FAILED_DIR
+    usage = '%(prog)s'
+    description = '%(prog)s runs async jobs for the ms office listener (reads json files from {})'.format(data_dir)
+    parser = ArgumentParser(usage=usage, description=description)
+    parser.add_argument('--once', action='store_true', help='Only once and then quit (otherwise will loop forever).')
+    parser.add_argument('--no-delete', action='store_true', help='Do not delete job files.')
+    parser.add_argument('--retry-count', type=int, default=6, help='If the job fails, retry job for max RETRY_COUNT times (defaut: %(default)s)')
+    args = parser.parse_args()
+    logger = get_logger('ms-office-async')
+    lock = None
+    for directory in [data_dir, failed_dir]:
+        if not os.path.isdir(directory):
+            os.makedirs(directory)
+    try:
+        for i in range(10):
+            lock = get_lock('univention-ms-office-async', nonblocking=True)
+            if lock:
+                break
+            else:
+                logger.debug('waiting for lock')
+                print('waiting for lock')
+                time.sleep(1)
+        else:
+            print('Could not get lock, another process is running, exiting', file=sys.stderr)
+            logger.error('Could not get lock, another process is running, exiting')
+            sys.exit(1)
 
-		# drop privileges here, instead of USER=listener in service file,
-		# because get_lock needs access to /var/run (which is owned by root)
-		pwnam = pwd.getpwnam('listener')
-		os.setegid(pwnam[3])
-		os.seteuid(pwnam[2])
-		worker(args.once, logger)
-	finally:
-		if lock:
-			release_lock(lock)
+        # drop privileges here, instead of USER=listener in service file,
+        # because get_lock needs access to /var/run (which is owned by root)
+        pwnam = pwd.getpwnam('listener')
+        os.setegid(pwnam[3])
+        os.seteuid(pwnam[2])
+        worker(args.once, logger)
+    finally:
+        if lock:
+            release_lock(lock)
 
 
 if __name__ == '__main__':
-	main()
+    main()

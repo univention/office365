@@ -22,6 +22,7 @@ This test is used to check that the user is member of a group after deactivation
 - Reactivate the deactivated user
 - Check that the user is member of the groups
 """
+
 import time
 
 import univention.testing.strings as uts
@@ -44,135 +45,135 @@ from univention.office365.udmwrapper.udmobjects import UDMOfficeGroup
 logger = setup_logging()
 adconnection_aliases = UCRHelper.get_adconnection_aliases()
 initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAccount(adconnection_alias).is_initialized()]
-assert initialized_adconnections, "run ./01_initialize_external_testenv first!"
+assert initialized_adconnections, 'run ./01_initialize_external_testenv first!'
 
-print("*** adconnection_aliases={!r}.".format(adconnection_aliases))
-print("*** initialized_adconnections={!r}.".format(initialized_adconnections))
+print('*** adconnection_aliases={!r}.'.format(adconnection_aliases))
+print('*** initialized_adconnections={!r}.'.format(initialized_adconnections))
 
 
 def test_membership(ucr, udm, check):
+    ucr.load()
 
-	ucr.load()
+    attr, disable, enable = check
+    print('*** Test activate and reactivate: %s ***' % attr)
+    handler_set(['office365/groups/sync=yes'])
+    utils.restart_listener()
 
-	attr, disable, enable = check
-	print("*** Test activate and reactivate: %s ***" % attr)
-	handler_set(["office365/groups/sync=yes"])
-	utils.restart_listener()
+    adconnection_alias = initialized_adconnections[0]
+    adconnection_alias_other = initialized_adconnections[1]
+    core = MSGraphApiCore(AzureAccount(adconnection_alias))
 
-	adconnection_alias = initialized_adconnections[0]
-	adconnection_alias_other = initialized_adconnections[1]
-	core = MSGraphApiCore(AzureAccount(adconnection_alias))
+    # create a groups
+    group_name1 = uts.random_name()
+    group_dn1 = udm.create_object(
+        'groups/group',
+        set=dict(name=group_name1),
+        position='cn=groups,{}'.format(ucr.get('ldap/base')),
+    )
+    group_name2 = uts.random_name()
+    group_dn2 = udm.create_object(
+        'groups/group',
+        set=dict(name=group_name2),
+        position='cn=groups,{}'.format(ucr.get('ldap/base')),
+    )
 
-	# create a groups
-	group_name1 = uts.random_name()
-	group_dn1 = udm.create_object(
-		"groups/group",
-		set=dict(name=group_name1),
-		position="cn=groups,{}".format(ucr.get("ldap/base")),
-	)
-	group_name2 = uts.random_name()
-	group_dn2 = udm.create_object(
-		"groups/group",
-		set=dict(name=group_name2),
-		position="cn=groups,{}".format(ucr.get("ldap/base")),
-	)
+    # create user (just so that group_dn2 is not empty)
+    user_args = udm_user_args(ucr, minimal=True)
+    user_args['set']['UniventionOffice365Enabled'] = 1
+    user_args['set']['UniventionOffice365ADConnectionAlias'] = adconnection_alias
+    user_args['set']['groups'] = group_dn2
+    user_dn_1, _ = udm.create_user(**user_args)
+    # create user
+    user_args = udm_user_args(ucr, minimal=True)
+    user_args['set']['UniventionOffice365Enabled'] = 1
+    user_args['set']['UniventionOffice365ADConnectionAlias'] = adconnection_alias
+    user_args['set']['primaryGroup'] = group_dn1
+    user_args['set']['groups'] = group_dn2
+    user_dn, username = udm.create_user(**user_args)
 
-	# create user (just so that group_dn2 is not empty)
-	user_args = udm_user_args(ucr, minimal=True)
-	user_args["set"]["UniventionOffice365Enabled"] = 1
-	user_args["set"]["UniventionOffice365ADConnectionAlias"] = adconnection_alias
-	user_args["set"]["groups"] = group_dn2
-	user_dn_1, _ = udm.create_user(**user_args)
-	# create user
-	user_args = udm_user_args(ucr, minimal=True)
-	user_args["set"]["UniventionOffice365Enabled"] = 1
-	user_args["set"]["UniventionOffice365ADConnectionAlias"] = adconnection_alias
-	user_args["set"]["primaryGroup"] = group_dn1
-	user_args["set"]["groups"] = group_dn2
-	user_dn, username = udm.create_user(**user_args)
+    # wait for user to be created in azure
+    user_id_1 = retry_call(check_user_id_from_azure, fargs=[adconnection_alias, user_dn_1], tries=90, delay=1)
 
-	# wait for user to be created in azure
-	user_id_1 = retry_call(check_user_id_from_azure, fargs=[adconnection_alias, user_dn_1], tries=90, delay=1)
+    user_id = retry_call(check_user_id_from_azure, fargs=[adconnection_alias, user_dn], tries=90, delay=1)
 
-	user_id = retry_call(check_user_id_from_azure, fargs=[adconnection_alias, user_dn], tries=90, delay=1)
+    # get group id
+    group_objectid1 = UDMOfficeGroup({}, None, dn=group_dn1)
+    with group_objectid1.set_current_alias(adconnection_alias):
+        group_objectid1_id = group_objectid1.azure_object_id
 
-	# get group id
-	group_objectid1 = UDMOfficeGroup({}, None, dn=group_dn1)
-	with group_objectid1.set_current_alias(adconnection_alias):
-		group_objectid1_id = group_objectid1.azure_object_id
+    group_objectid2 = UDMOfficeGroup({}, None, dn=group_dn2)
+    with group_objectid2.set_current_alias(adconnection_alias):
+        group_objectid2_id = group_objectid2.azure_object_id
 
-	group_objectid2 = UDMOfficeGroup({}, None, dn=group_dn2)
-	with group_objectid2.set_current_alias(adconnection_alias):
-		group_objectid2_id = group_objectid2.azure_object_id
+    # check user is member of group
+    azure_user = UserAzure.get(core, user_id)
+    print('user is member of: {}'.format(azure_user.member_of(ids_only=True)))
+    assert group_objectid1_id in azure_user.member_of(ids_only=True)
+    assert group_objectid2_id in azure_user.member_of(ids_only=True)
 
-	# check user is member of group
-	azure_user = UserAzure.get(core, user_id)
-	print('user is member of: {}'.format(azure_user.member_of(ids_only=True)))
-	assert group_objectid1_id in azure_user.member_of(ids_only=True)
-	assert group_objectid2_id in azure_user.member_of(ids_only=True)
+    # deactivate office user, groups should be clean
+    udm.modify_object(modulename='users/user', dn=user_dn, set={attr: disable})
+    retry_call(azure_user_disabled, fargs=[core, user_id], tries=90, delay=1)
 
-	# deactivate office user, groups should be clean
-	udm.modify_object(modulename="users/user", dn=user_dn, set={attr: disable})
-	retry_call(azure_user_disabled, fargs=[core, user_id], tries=90, delay=1)
+    # check that user is not member of any group
+    assert len(azure_user.member_of(ids_only=True)) == 0
 
-	# check that user is not member of any group
-	assert len(azure_user.member_of(ids_only=True)) == 0
+    # TODO: Does the groups list the deactivated user as a member?
 
-	# TODO: Does the groups list the deactivated user as a member?
+    # create a udm group to check azure group creation during re-activation
+    group_name_new = uts.random_name()
+    group_dn_new = udm.create_object(
+        'groups/group',
+        set=dict(name=group_name_new, users=[user_dn]),
+        position='cn=groups,{}'.format(ucr.get('ldap/base')),
+    )
+    # and another one for a different connection alias
+    group_name_new_other = uts.random_name()
+    group_dn_new_other = udm.create_object(
+        'groups/group',
+        set=dict(name=group_name_new_other, users=[user_dn]),
+        position='cn=groups,{}'.format(ucr.get('ldap/base')),
+    )
 
-	# create a udm group to check azure group creation during re-activation
-	group_name_new = uts.random_name()
-	group_dn_new = udm.create_object(
-		"groups/group",
-		set=dict(name=group_name_new, users=[user_dn]),
-		position="cn=groups,{}".format(ucr.get("ldap/base")),
-	)
-	# and another one for a different connection alias
-	group_name_new_other = uts.random_name()
-	group_dn_new_other = udm.create_object(
-		"groups/group",
-		set=dict(name=group_name_new_other, users=[user_dn]),
-		position="cn=groups,{}".format(ucr.get("ldap/base")),
-	)
+    udm_group_new_other = UDMOfficeGroup({}, None, dn=group_dn_new_other)
+    user_args = udm_user_args(ucr, minimal=True)
+    user_args['set']['UniventionOffice365Enabled'] = 1
+    user_args['set']['UniventionOffice365ADConnectionAlias'] = adconnection_alias_other
+    user_args['set']['primaryGroup'] = group_dn_new_other
+    user_dn_other, username_other = udm.create_user(**user_args)
 
-	udm_group_new_other = UDMOfficeGroup({}, None, dn=group_dn_new_other)
-	user_args = udm_user_args(ucr, minimal=True)
-	user_args["set"]["UniventionOffice365Enabled"] = 1
-	user_args["set"]["UniventionOffice365ADConnectionAlias"] = adconnection_alias_other
-	user_args["set"]["primaryGroup"] = group_dn_new_other
-	user_dn_other, username_other = udm.create_user(**user_args)
+    # wait for user to be synced to azure
+    retry_call(check_user_id_from_azure, fargs=[adconnection_alias_other, user_dn_other], tries=90, delay=1)
 
-	# wait for user to be synced to azure
-	retry_call(check_user_id_from_azure, fargs=[adconnection_alias_other, user_dn_other], tries=90, delay=1)
+    # reactivate user, user should be member of groups
+    udm.modify_object(modulename='users/user', dn=user_dn, set={attr: enable})
+    retry_call(azure_user_enabled, fargs=[core, user_id], tries=90, delay=1)
 
-	# reactivate user, user should be member of groups
-	udm.modify_object(modulename="users/user", dn=user_dn, set={attr: enable})
-	retry_call(azure_user_enabled, fargs=[core, user_id], tries=90, delay=1)
+    # get group id's
+    udm_group_new = UDMOfficeGroup({}, None, dn=group_dn_new)
+    with udm_group_new.set_current_alias(adconnection_alias):
+        group_objectid_new_id = udm_group_new.azure_object_id
+    udm_group_new_other = UDMOfficeGroup({}, None, dn=group_dn_new_other)
+    with udm_group_new_other.set_current_alias(adconnection_alias):
+        group_objectid_new_other_id = udm_group_new_other.azure_object_id
 
-	# get group id's
-	udm_group_new = UDMOfficeGroup({}, None, dn=group_dn_new)
-	with udm_group_new.set_current_alias(adconnection_alias):
-		group_objectid_new_id = udm_group_new.azure_object_id
-	udm_group_new_other = UDMOfficeGroup({}, None, dn=group_dn_new_other)
-	with udm_group_new_other.set_current_alias(adconnection_alias):
-		group_objectid_new_other_id = udm_group_new_other.azure_object_id
+    # check group membership of user
+    assert group_objectid1_id in azure_user.member_of(ids_only=True)
+    assert group_objectid2_id in azure_user.member_of(ids_only=True)
+    assert group_objectid_new_id in azure_user.member_of(ids_only=True)
+    assert group_objectid_new_other_id in azure_user.member_of(ids_only=True)
+    print('*** All went well.')
 
-	# check group membership of user
-	assert group_objectid1_id in azure_user.member_of(ids_only=True)
-	assert group_objectid2_id in azure_user.member_of(ids_only=True)
-	assert group_objectid_new_id in azure_user.member_of(ids_only=True)
-	assert group_objectid_new_other_id in azure_user.member_of(ids_only=True)
-	print("*** All went well.")
 
 with utils.AutomaticListenerRestart():
-	for check in [('UniventionOffice365Enabled', 0, 1), ('disabled', 1, 0)]:
-		with udm_test.UCSTestUDM() as udm:
-			with ucr_test.UCSTestConfigRegistry() as ucr:
-				test_membership(ucr, udm, check)
-				print("*** All went well.")
+    for check in [('UniventionOffice365Enabled', 0, 1), ('disabled', 1, 0)]:
+        with udm_test.UCSTestUDM() as udm:
+            with ucr_test.UCSTestConfigRegistry() as ucr:
+                test_membership(ucr, udm, check)
+                print('*** All went well.')
 
 # Cleanup
-to_unset = ["office365/groups/sync"]
+to_unset = ['office365/groups/sync']
 handler_unset(to_unset)
 utils.restart_listener()
 

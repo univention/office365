@@ -3,32 +3,8 @@
 #
 # Univention Microsoft 365 - print users and groups
 #
-# Copyright 2016-2025 Univention GmbH
-#
-# http://www.univention.de/
-#
-# All rights reserved.
-#
-# The source code of this program is made available
-# under the terms of the GNU Affero General Public License version 3
-# (GNU AGPL V3) as published by the Free Software Foundation.
-#
-# Binary versions of this program provided by Univention to you as
-# well as other copyrighted, protected or trademarked materials like
-# Logos, graphics, fonts, specific documentations and configurations,
-# cryptographic keys etc. are subject to a license agreement between
-# you and Univention and not subject to the GNU AGPL V3.
-#
-# In the case you use this program under the terms of the GNU AGPL V3,
-# the program is provided in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public
-# License with the Debian GNU/Linux or Univention distribution in file
-# /usr/share/common-licenses/AGPL-3; if not, see
-# <http://www.gnu.org/licenses/>.
+# SPDX-FileCopyrightText: 2016-2025 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
 
 from __future__ import print_function
 
@@ -46,55 +22,56 @@ from univention.office365.microsoft.account import AzureAccount
 from univention.office365.microsoft.core import MSGraphApiCore
 from univention.office365.udmwrapper.udmobjects import UniventionOffice365Data
 
-logger = get_logger("office365", "o365")
+logger = get_logger('office365', 'o365')
 
 cores = {}
 
 
 def print_azure_user_from_ldap_user(ldap_user):
-	try:
-		adconnection_objects = UniventionOffice365Data.from_ldap(ldap_user["UniventionOffice365Data"])
-	except (zlib.error, TypeError):
-		logger.error("Error decoding o365data for user %s", ldap_user[1]["uid"][0])
-		adconnection_objects = {}
-	except KeyError:
-		logger.error("Error: user %s is not correctly synced to Azure (missing univentionOffice365Data attribute)", ldap_user["dn"])
-		return
-	print("Local user: %s" % ldap_user["username"])
-	for alias, values in adconnection_objects.items():
-		print("Ad connection alias: %r" % alias)
-		if alias not in cores:
-			cores[alias] = MSGraphApiCore(AzureAccount(alias))
-		core = cores[alias]
-		try:
-			pp.pprint(core.get_user(user_id=values['objectId']))
-		except Exception as ex:
-			traceback.print_exc()
-			continue
+    try:
+        adconnection_objects = UniventionOffice365Data.from_ldap(ldap_user['UniventionOffice365Data'])
+    except (zlib.error, TypeError):
+        logger.error('Error decoding o365data for user %s', ldap_user[1]['uid'][0])
+        adconnection_objects = {}
+    except KeyError:
+        logger.error('Error: user %s is not correctly synced to Azure (missing univentionOffice365Data attribute)', ldap_user['dn'])
+        return
+    print('Local user: %s' % ldap_user['username'])
+    for alias, values in adconnection_objects.items():
+        print('Ad connection alias: %r' % alias)
+        if alias not in cores:
+            cores[alias] = MSGraphApiCore(AzureAccount(alias))
+        core = cores[alias]
+        try:
+            pp.pprint(core.get_user(user_id=values['objectId']))
+        except Exception as ex:
+            traceback.print_exc()
+            continue
+
 
 # Query local LDAP for users
 # Get their azure account object and pretty-print it
 if __name__ == '__main__':
-	parser = OptionParser()
-	parser.add_option('-o', '--onlyone', dest='oneuser', help='option: uid; Only look at one user (for testing purposes)')
-	options, args = parser.parse_args()
+    parser = OptionParser()
+    parser.add_option('-o', '--onlyone', dest='oneuser', help='option: uid; Only look at one user (for testing purposes)')
+    options, args = parser.parse_args()
 
-	ucr = ConfigRegistry()
-	ucr.load()
-	base = ucr["ldap/base"]
-	lo, po = univention.admin.uldap.getAdminConnection()
-	univention.admin.modules.update()
-	usermod = univention.admin.modules.get('users/user')
-	univention.admin.modules.init(lo, po, usermod)
-	config = univention.admin.config.config()
+    ucr = ConfigRegistry()
+    ucr.load()
+    base = ucr['ldap/base']
+    lo, po = univention.admin.uldap.getAdminConnection()
+    univention.admin.modules.update()
+    usermod = univention.admin.modules.get('users/user')
+    univention.admin.modules.init(lo, po, usermod)
+    config = univention.admin.config.config()
 
-	pp = pprint.PrettyPrinter(indent=2)
+    pp = pprint.PrettyPrinter(indent=2)
 
-	lookup_result = []
-	if options.oneuser:
-		lookup_result = usermod.lookup(config, lo, filter_s="uid=%s" % options.oneuser, base=base)
-	else:
-		lookup_result = usermod.lookup(config, lo, filter_s="(&(univentionOffice365Enabled=1)(univentionObjectType=users/user))", base=base)
+    lookup_result = []
+    if options.oneuser:
+        lookup_result = usermod.lookup(config, lo, filter_s='uid=%s' % options.oneuser, base=base)
+    else:
+        lookup_result = usermod.lookup(config, lo, filter_s='(&(univentionOffice365Enabled=1)(univentionObjectType=users/user))', base=base)
 
-	for ldap_user in lookup_result:
-		print_azure_user_from_ldap_user(ldap_user)
+    for ldap_user in lookup_result:
+        print_azure_user_from_ldap_user(ldap_user)

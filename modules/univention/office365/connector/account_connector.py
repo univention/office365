@@ -2,32 +2,8 @@
 #
 # Univention Office 365 - account_connector
 #
-# Copyright 2016-2025 Univention GmbH
-#
-# http://www.univention.de/
-#
-# All rights reserved.
-#
-# The source code of this program is made available
-# under the terms of the GNU Affero General Public License version 3
-# (GNU AGPL V3) as published by the Free Software Foundation.
-#
-# Binary versions of this program provided by Univention to you as
-# well as other copyrighted, protected or trademarked materials like
-# Logos, graphics, fonts, specific documentations and configurations,
-# cryptographic keys etc. are subject to a license agreement between
-# you and Univention and not subject to the GNU AGPL V3.
-#
-# In the case you use this program under the terms of the GNU AGPL V3,
-# the program is provided in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public
-# License with the Debian GNU/Linux or Univention distribution in file
-# /usr/share/common-licenses/AGPL-3; if not, see
-# <http://www.gnu.org/licenses/>.
+# SPDX-FileCopyrightText: 2016-2025 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
 
 
 import os
@@ -48,7 +24,8 @@ from univention.office365.ucr_helper import UCRHelper
 # TODO move to UCRHelper
 from univention.office365.udm_helper import UDMHelper
 from univention.office365.utils.utils import listener_restart
-'''
+
+"""
 # Connections to Azure
 Currently the connector can be configured with several connections to Azure.
 
@@ -69,7 +46,7 @@ identifying where the information is expected to be synchronized. This set of al
 With a pool (or sub pool) we can iterate over it and perform the operation we need through the corresponding configured connection.
 
 If several operations need to be performed on the same connection, the pool contains a reference to the connection that is currently in use.
-'''
+"""
 
 
 class Connection(object):
@@ -84,13 +61,14 @@ class ConnectionsPool(UserDict):
     """
     Class to manage the connections to the AD.
     """
+
     def __init__(self, logger=None):
         # type: (Logger) -> None
         if six.PY2:
             UserDict.__init__(self)
         else:
             super(ConnectionsPool, self).__init__()
-        self.logger = logger or get_logger("office3365", "o365")
+        self.logger = logger or get_logger('office3365', 'o365')
         self.connections = {}  # type: Dict[str, Connection]
         self.current = None
 
@@ -159,14 +137,14 @@ class ConnectionsPool(UserDict):
         return sub_pool
 
     # Only called by the script manage_adaccounts
-    def create_new(self, alias, make_default=False, description="", restart_listener=True):
+    def create_new(self, alias, make_default=False, description='', restart_listener=True):
         # type: (str, bool, str, bool) -> None
         if alias in self:
             self.logger.error('Azure AD connection alias %s is already listed in UCR %s.', alias, UCRHelper.alias_ucrv)
             return None
         new_account = AzureAccount.create_local(alias)
         UCRHelper.set_ucr_for_new_connection(alias, make_default)
-        self[alias] = Connection(new_account["adconnection_id"], new_account)
+        self[alias] = Connection(new_account['adconnection_id'], new_account)
 
         # update in udm directory
         UDMHelper().create_udm_adconnection(alias, description)
@@ -185,11 +163,18 @@ class ConnectionsPool(UserDict):
             self.logger.error('Azure AD connection alias %s is not listed in UCR %s.', old_alias, UCRHelper.adconnection_alias_ucrv)
             return None
         if old_alias in self.connections.keys():
-            self.logger.error('Azure AD connection alias %s is already configured in UCR %s, cannot rename Azure AD connection %s.', new_alias, UCRHelper.adconnection_alias_ucrv, old_adconnection_alias)
+            self.logger.error(
+                'Azure AD connection alias %s is already configured in UCR %s, cannot rename Azure AD connection %s.',
+                new_alias,
+                UCRHelper.adconnection_alias_ucrv,
+                old_adconnection_alias,
+            )
             return None
         new_adconnection_path = os.path.join(AzureAccount.config_base_path, new_alias)
         if os.path.exists(new_adconnection_path):
-            self.logger.error('The path for the target Azure AD connection name %s already exists, but no UCR configuration for the Azure AD connection was found.', new_adconnection_path)
+            self.logger.error(
+                'The path for the target Azure AD connection name %s already exists, but no UCR configuration for the Azure AD connection was found.', new_adconnection_path
+            )
             return None
         old_adconnection_path = os.path.join(AzureAccount.config_base_path, old_alias)
         if not os.path.exists(old_adconnection_path):
@@ -224,7 +209,7 @@ class ConnectionsPool(UserDict):
 class AccountConnector(object):
     def __init__(self, logger=None):
         # type: (Logger) -> None
-        self.logger = logger or get_logger("office365", "o365")
+        self.logger = logger or get_logger('office365', 'o365')
 
     @staticmethod
     def get_adconnections(only_initialized=False):
@@ -236,15 +221,15 @@ class AccountConnector(object):
             confdir = account.conf_dirs['CONFDIR']
             initialized = account.is_initialized()
             status = 'initialized' if initialized else 'uninitialized'
-            if (only_initialized is False or initialized):
+            if only_initialized is False or initialized:
                 res.append((alias, status, confdir))
         return res
 
     # Only called by the script manage_adconnections
     @staticmethod
-    def create_new_adconnection(logger, adconnection_alias, make_default=False, description="", restart_listener=True):
+    def create_new_adconnection(logger, adconnection_alias, make_default=False, description='', restart_listener=True):
         # type: (Logger, str, bool, str, bool) -> None
-        if adconnection_alias == "ucs":
+        if adconnection_alias == 'ucs':
             logger.error('Name may not be "ucs". This is hard coded to be the realm for the default AD connection')
             return None
         aliases = UCRHelper.get_adconnection_aliases()
@@ -280,7 +265,7 @@ class AccountConnector(object):
 
     def rename_adconnection(self, old_adconnection_alias, new_adconnection_alias):
         # type: (str, str) -> None
-        if new_adconnection_alias == "ucs":
+        if new_adconnection_alias == 'ucs':
             self.logger.error('Name may not be "ucs". This is hard coded to be the realm for the default AD connection')
             return None
         aliases = UCRHelper.get_adconnection_aliases()
@@ -288,11 +273,18 @@ class AccountConnector(object):
             self.logger.error('Azure AD connection alias %s is not listed in UCR %s.', old_adconnection_alias, UCRHelper.adconnection_alias_ucrv)
             return None
         if new_adconnection_alias in aliases:
-            self.logger.error('Azure AD connection alias %s is already configured in UCR %s, cannot rename Azure AD connection %s.', new_adconnection_alias, UCRHelper.adconnection_alias_ucrv, old_adconnection_alias)
+            self.logger.error(
+                'Azure AD connection alias %s is already configured in UCR %s, cannot rename Azure AD connection %s.',
+                new_adconnection_alias,
+                UCRHelper.adconnection_alias_ucrv,
+                old_adconnection_alias,
+            )
             return None
         new_adconnection_path = os.path.join(AzureAccount.config_base_path, new_adconnection_alias)
         if os.path.exists(new_adconnection_path):
-            self.logger.error('The path for the target Azure AD connection name %s already exists, but no UCR configuration for the Azure AD connection was found.', new_adconnection_path)
+            self.logger.error(
+                'The path for the target Azure AD connection name %s already exists, but no UCR configuration for the Azure AD connection was found.', new_adconnection_path
+            )
             return None
         old_adconnection_path = os.path.join(AzureAccount.config_base_path, old_adconnection_alias)
         if not os.path.exists(old_adconnection_path):

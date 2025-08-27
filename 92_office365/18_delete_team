@@ -16,6 +16,7 @@ This test is used to check the team deletion in Azure.
 - check the team creation in Azure
 - check the team deletion in Azure after the UDM context manager deletes the created team
 """
+
 import univention.testing.utils as utils
 import univention.testing.ucr as ucr_test
 import univention.testing.udm as udm_test
@@ -26,27 +27,27 @@ from univention.office365.microsoft.account import AzureAccount
 from univention.office365.microsoft.core import MSGraphApiCore
 
 with utils.AutomaticListenerRestart():
-	with ucr_test.UCSTestConfigRegistry() as ucr:
-		with udm_test.UCSTestUDM() as udm:
-			ucr.load()
+    with ucr_test.UCSTestConfigRegistry() as ucr:
+        with udm_test.UCSTestUDM() as udm:
+            ucr.load()
 
-			alias = 'o365domain'
+            alias = 'o365domain'
 
-			core = MSGraphApiCore(AzureAccount(alias))
+            core = MSGraphApiCore(AzureAccount(alias))
 
-			handler_set(["office365/groups/sync=yes"])
-			utils.restart_listener()
+            handler_set(['office365/groups/sync=yes'])
+            utils.restart_listener()
 
-			print("*** Creating members ***")
-			user_dn, username = o365helpers.create_team_member(udm, ucr, alias)
+            print('*** Creating members ***')
+            user_dn, username = o365helpers.create_team_member(udm, ucr, alias)
 
-			print("*** Creating Team ***")
-			group_dn, group_name = o365helpers.create_team(udm, ucr, owner_dn=user_dn, users=[user_dn])
+            print('*** Creating Team ***')
+            group_dn, group_name = o365helpers.create_team(udm, ucr, owner_dn=user_dn, users=[user_dn])
 
-			print("*** Checking Team ***")
-			created_team = o365helpers.check_team_created(core, group_name)
+            print('*** Checking Team ***')
+            created_team = o365helpers.check_team_created(core, group_name)
 
-		print("*** Checking Team Archived***")
-		created_team = o365helpers.check_team_archived(core, group_name)
+        print('*** Checking Team Archived***')
+        created_team = o365helpers.check_team_archived(core, group_name)
 
-		print("*** All went well.")
+        print('*** All went well.')

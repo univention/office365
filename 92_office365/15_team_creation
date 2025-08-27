@@ -15,6 +15,7 @@ This test is used to check the team creation in Azure.
 - create group in UDM with UniventionMicrosoft365Team=1 and UniventionMicrosoft365GroupOwners=user_dn
 - Check the creation of the team in Azure (It's using the wait_for_seconds decorator to wait for the team to be created up to 500 seconds)
 """
+
 from __future__ import print_function
 
 import time
@@ -29,21 +30,21 @@ from univention.office365.microsoft.account import AzureAccount
 from univention.office365.microsoft.core import MSGraphApiCore
 
 with utils.AutomaticListenerRestart():
-	with udm_test.UCSTestUDM() as udm:
-		with ucr_test.UCSTestConfigRegistry() as ucr:
-			ucr.load()
+    with udm_test.UCSTestUDM() as udm:
+        with ucr_test.UCSTestConfigRegistry() as ucr:
+            ucr.load()
 
-			alias = 'o365domain'
+            alias = 'o365domain'
 
-			core = MSGraphApiCore(AzureAccount(alias))
+            core = MSGraphApiCore(AzureAccount(alias))
 
-			handler_set(["office365/groups/sync=yes"])
-			utils.restart_listener()
+            handler_set(['office365/groups/sync=yes'])
+            utils.restart_listener()
 
-			print("*** Creating members ***")
-			user_dn, username = o365helpers.create_team_member(udm, ucr, alias)
-			print("*** Creating Team ***")
-			team_dn, team_name = o365helpers.create_team(udm, ucr, owner_dn=user_dn, users=[user_dn])
+            print('*** Creating members ***')
+            user_dn, username = o365helpers.create_team_member(udm, ucr, alias)
+            print('*** Creating Team ***')
+            team_dn, team_name = o365helpers.create_team(udm, ucr, owner_dn=user_dn, users=[user_dn])
 
-			team = o365helpers.check_team_created(core, team_name)
-			print("*** All went well.")
+            team = o365helpers.check_team_created(core, team_name)
+            print('*** All went well.')

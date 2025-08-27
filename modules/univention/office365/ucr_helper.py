@@ -2,32 +2,8 @@
 #
 # Univention Office 365 - ucr_helper
 #
-# Copyright 2016-2025 Univention GmbH
-#
-# http://www.univention.de/
-#
-# All rights reserved.
-#
-# The source code of this program is made available
-# under the terms of the GNU Affero General Public License version 3
-# (GNU AGPL V3) as published by the Free Software Foundation.
-#
-# Binary versions of this program provided by Univention to you as
-# well as other copyrighted, protected or trademarked materials like
-# Logos, graphics, fonts, specific documentations and configurations,
-# cryptographic keys etc. are subject to a license agreement between
-# you and Univention and not subject to the GNU AGPL V3.
-#
-# In the case you use this program under the terms of the GNU AGPL V3,
-# the program is provided in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public
-# License with the Debian GNU/Linux or Univention distribution in file
-# /usr/share/common-licenses/AGPL-3; if not, see
-# <http://www.gnu.org/licenses/>.
+# SPDX-FileCopyrightText: 2016-2025 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
 
 
 import os
@@ -51,23 +27,25 @@ def pre_post_decorator(pre_name=None, post_name=None):
             if post_name and hasattr(self, post_name) and isinstance(getattr(self, post_name), Callable):
                 getattr(self, post_name)()
             return result
+
         return wrapper
+
     return decorator
 
 
 class UCRHelperC(ConfigRegistry):
-    group_sync_ucrv = "office365/groups/sync"
+    group_sync_ucrv = 'office365/groups/sync'
     adconnection_filter_ucrv = 'office365/adconnection/filter'
     adconnection_alias_ucrv = 'office365/adconnection/alias/'
     adconnection_wizard_ucrv = 'office365/adconnection/wizard'
-    usage_location_ucrv = "office365/attributes/usageLocation"
-    ssl_country_ucrv = "ssl/country"
+    usage_location_ucrv = 'office365/attributes/usageLocation'
+    ssl_country_ucrv = 'ssl/country'
     office365_migrate_adconnection_ucrv = 'office365/migrate/adconnectionalias'
     default_adconnection_alias_ucrv = 'office365/defaultalias'
-    default_adconnection_name = "defaultADconnection"
-    default_azure_service_plan_names = "SHAREPOINTWAC, SHAREPOINTWAC_DEVELOPER, OFFICESUBSCRIPTION, OFFICEMOBILE_SUBSCRIPTION, SHAREPOINTWAC_EDU"
+    default_adconnection_name = 'defaultADconnection'
+    default_azure_service_plan_names = 'SHAREPOINTWAC, SHAREPOINTWAC_DEVELOPER, OFFICESUBSCRIPTION, OFFICEMOBILE_SUBSCRIPTION, SHAREPOINTWAC_EDU'
 
-    @pre_post_decorator(pre_name="load")
+    @pre_post_decorator(pre_name='load')
     def ucr_split_value(self, key):
         # type: (str) -> list
         """
@@ -75,9 +53,9 @@ class UCRHelperC(ConfigRegistry):
         key = "value1, value2, value3 "
         returns ["value1", "value2", "value3"]
         """
-        return [x.strip() for x in self.get(key, "").strip().split(",") if x.strip()]
+        return [x.strip() for x in self.get(key, '').strip().split(',') if x.strip()]
 
-    @pre_post_decorator(pre_name="load")
+    @pre_post_decorator(pre_name='load')
     def ucr_entries_to_dict(self, key_pattern):
         # type: (str) -> Dict
         """
@@ -87,18 +65,18 @@ class UCRHelperC(ConfigRegistry):
         key/pattern/asdf3 = "value3"
         returns {"asdf1": "value1", "asdf2": "value2", "asdf3": "value3"}
         """
-        return {k.split("/")[-1]: v.strip() for k, v in self.items() if k.startswith(key_pattern)}
+        return {k.split('/')[-1]: v.strip() for k, v in self.items() if k.startswith(key_pattern)}
 
-    @pre_post_decorator(pre_name="load")
+    @pre_post_decorator(pre_name='load')
     def get_adconnection_aliases(self):
         # type: () -> Dict
         """
         Extract the AD connection aliases from UCR. Name of the ad connection is the key and ('initialized' or 'uninitialized') is the value.
         @return: dict filtered with only ad connection aliases
         """
-        return {k[len(self.adconnection_alias_ucrv):]: v for k, v in self.items() if k.startswith(self.adconnection_alias_ucrv)}
+        return {k[len(self.adconnection_alias_ucrv) :]: v for k, v in self.items() if k.startswith(self.adconnection_alias_ucrv)}
 
-    @pre_post_decorator(pre_name="load")
+    @pre_post_decorator(pre_name='load')
     def get_adconnection_filtered_in(self):
         """
         Returns a list of AD connections that are filtered in.
@@ -106,54 +84,57 @@ class UCRHelperC(ConfigRegistry):
         ucr_value = self[self.adconnection_filter_ucrv] or ''
         return ucr_value.strip().split()
 
-    @pre_post_decorator(post_name="load")
+    @pre_post_decorator(post_name='load')
     def set_ucs_overview_link(self):
-        realm = "ucs"
-        sp_link = f"{self.get_ucs_sso_fqdn()}/realms/{realm}/protocol/saml/clients/MicrosoftOnline"
-        ucr_update(self, {
-            "ucs/web/overview/entries/service/office365/description": "Single Sign-On login for Microsoft 365",
-            "ucs/web/overview/entries/service/office365/label": "Microsoft 365 Login",
-            "ucs/web/overview/entries/service/office365/link": sp_link,
-            "ucs/web/overview/entries/service/office365/description/de": "Single-Sign-On Link für Microsoft 365",
-            "ucs/web/overview/entries/service/office365/label/de": "Microsoft 365 Login",
-            "ucs/web/overview/entries/service/office365/priority": "50",
-            "ucs/web/overview/entries/service/office365/icon": "/office365.png",
-            "ucs/web/overview/entries/service/office365/link-target": "newwindow"
-        })
+        realm = 'ucs'
+        sp_link = f'{self.get_ucs_sso_fqdn()}/realms/{realm}/protocol/saml/clients/MicrosoftOnline'
+        ucr_update(
+            self,
+            {
+                'ucs/web/overview/entries/service/office365/description': 'Single Sign-On login for Microsoft 365',
+                'ucs/web/overview/entries/service/office365/label': 'Microsoft 365 Login',
+                'ucs/web/overview/entries/service/office365/link': sp_link,
+                'ucs/web/overview/entries/service/office365/description/de': 'Single-Sign-On Link für Microsoft 365',
+                'ucs/web/overview/entries/service/office365/label/de': 'Microsoft 365 Login',
+                'ucs/web/overview/entries/service/office365/priority': '50',
+                'ucs/web/overview/entries/service/office365/icon': '/office365.png',
+                'ucs/web/overview/entries/service/office365/link-target': 'newwindow',
+            },
+        )
 
-    @pre_post_decorator(post_name="load")
+    @pre_post_decorator(post_name='load')
     def rename_adconnection(self, old_adconnection_alias, new_adconnection_alias):
         ucrv_set = '{}={}'.format('%s%s' % (self.adconnection_alias_ucrv, new_adconnection_alias), self.ucr.get('%s%s' % (self.adconnection_alias_ucrv, old_adconnection_alias)))
         handler_set([ucrv_set])
         ucrv_unset = '%s%s' % (self.adconnection_alias_ucrv, old_adconnection_alias)
         handler_unset([ucrv_unset])
 
-    @pre_post_decorator(post_name="load")
-    def set_ucr_for_new_connection(self, adconnection_alias, make_default, value="uninitialized"):
+    @pre_post_decorator(post_name='load')
+    def set_ucr_for_new_connection(self, adconnection_alias, make_default, value='uninitialized'):
         # type: (str, bool, str) -> None
         ucrv = ['{}{}={}'.format(self.adconnection_alias_ucrv, adconnection_alias, value)]
         if make_default:
             ucrv.append('{}={}'.format(self.default_adconnection_alias_ucrv, adconnection_alias))
         handler_set(ucrv)
 
-    @pre_post_decorator(post_name="load")
+    @pre_post_decorator(post_name='load')
     def remove_adconnection(self, adconnection_alias):
         ucrv_unset = '%s%s' % (self.adconnection_alias_ucrv, adconnection_alias)
         handler_unset([ucrv_unset])
 
     @property
-    @pre_post_decorator(pre_name="load")
+    @pre_post_decorator(pre_name='load')
     def group_sync(self):
         # type: () -> bool
         return self.is_true(self.group_sync_ucrv, False)
 
-    @pre_post_decorator(pre_name="load")
+    @pre_post_decorator(pre_name='load')
     def get_service_plan_names(self):
         # type: () -> List[str]
-        ucr_service_plan_names = self.get("office365/subscriptions/service_plan_names") or self.default_azure_service_plan_names
-        return [spn.strip() for spn in ucr_service_plan_names.split(",")]
+        ucr_service_plan_names = self.get('office365/subscriptions/service_plan_names') or self.default_azure_service_plan_names
+        return [spn.strip() for spn in ucr_service_plan_names.split(',')]
 
-    @pre_post_decorator(post_name="load")
+    @pre_post_decorator(post_name='load')
     def configure_wizard_for_adconnection(self, adconnection_alias):
         # type: (str) -> None
         # configure UCR to let wizard configure this adconnection
@@ -163,7 +144,7 @@ class UCRHelperC(ConfigRegistry):
         handler_set([ucrv_set])
         subprocess.call(['pkill', '-f', '/usr/sbin/univention-management-console-module -m office365'])
 
-    @pre_post_decorator(pre_name="load")
+    @pre_post_decorator(pre_name='load')
     def adconnection_wizard(self):
         # type: () -> str
         return self.get(self.adconnection_wizard_ucrv) or None
@@ -176,7 +157,7 @@ class UCRHelperC(ConfigRegistry):
         logger.error('Unknown Azure AD connection ID %r.', adconnection_id)
         return None
 
-    @pre_post_decorator(pre_name="load")
+    @pre_post_decorator(pre_name='load')
     def get_http_proxies(self, logger):
         # type: (Logger) -> Dict[str,str]
         res = dict()
@@ -210,7 +191,7 @@ class UCRHelperC(ConfigRegistry):
         logger.debug('proxy settings: %r', res_redacted)
         return res
 
-    @pre_post_decorator(pre_name="load")
+    @pre_post_decorator(pre_name='load')
     def get_usage_location(self):
         # type: () -> str
         res = self.get(self.usage_location_ucrv) or self.get(self.ssl_country_ucrv)
@@ -218,25 +199,26 @@ class UCRHelperC(ConfigRegistry):
             raise RuntimeError("Invalid usageLocation '{}' - user cannot be created.".format(res))
         return res
 
-    @pre_post_decorator(pre_name="load")
+    @pre_post_decorator(pre_name='load')
     def get_default_adconnection(self):
         # type: () -> Optional[str]
         return self.get(self.default_adconnection_alias_ucrv)
 
-    @pre_post_decorator(pre_name="load")
+    @pre_post_decorator(pre_name='load')
     def get_ucs_sso_fqdn(self):
         # type: () -> str
-        return subprocess.check_output(["univention-keycloak", "get-keycloak-base-url"]).decode().strip()
+        return subprocess.check_output(['univention-keycloak', 'get-keycloak-base-url']).decode().strip()
 
-    @pre_post_decorator(pre_name="load")
+    @pre_post_decorator(pre_name='load')
     def get_domainname(self):
         # type: () -> str
         return self.get('domainname', 'undefined')
 
-    @pre_post_decorator(pre_name="load")
+    @pre_post_decorator(pre_name='load')
     def get_saml_certificate(self, default=None):
         # type: (Optional[str]) -> str
         return self.get('saml/idp/certificate/certificate', default)
+
 
 """
 Singleton instance

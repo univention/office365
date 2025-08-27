@@ -1,32 +1,8 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 #
-# Copyright 2024-2025 Univention GmbH
-#
-# http://www.univention.de/
-#
-# All rights reserved.
-#
-# The source code of this program is made available
-# under the terms of the GNU Affero General Public License version 3
-# (GNU AGPL V3) as published by the Free Software Foundation.
-#
-# Binary versions of this program provided by Univention to you as
-# well as other copyrighted, protected or trademarked materials like
-# Logos, graphics, fonts, specific documentations and configurations,
-# cryptographic keys etc. are subject to a license agreement between
-# you and Univention and not subject to the GNU AGPL V3.
-#
-# In the case you use this program under the terms of the GNU AGPL V3,
-# the program is provided in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public
-# License with the Debian GNU/Linux or Univention distribution in file
-# /usr/share/common-licenses/AGPL-3; if not, see
-# <http://www.gnu.org/licenses/>.
+# SPDX-FileCopyrightText: 2024-2025 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
 
 """
 Univention Microsoft 365 disable expired users
@@ -54,11 +30,11 @@ from univention.office365.microsoft.exceptions.core_exceptions import MSGraphErr
 
 
 def get_customized_logger(options):
-    logger = get_logger("office365", "o365")
+    logger = get_logger('office365', 'o365')
     if options.verbose:
         _handler = logging.StreamHandler(sys.stdout)
     else:
-        _handler = SysLogHandler(address="/dev/log", facility=SysLogHandler.LOG_SYSLOG)
+        _handler = SysLogHandler(address='/dev/log', facility=SysLogHandler.LOG_SYSLOG)
     _handler.setLevel(logging.INFO)
     logger.addHandler(_handler)
 
@@ -66,39 +42,36 @@ def get_customized_logger(options):
 
 
 def parse_arguments(args):
-    parser = ArgumentParser(description="A tool to disable users in Azure AD when they reached their expiry date.")
+    parser = ArgumentParser(description='A tool to disable users in Azure AD when they reached their expiry date.')
     parser.add_argument('-m', '--modify', action='store_true', help='Modify users, default: dry-run')
-    parser.add_argument('-o', '--onlyone', metavar="uid", help='Only look at and modify one user (for testing purposes)')
+    parser.add_argument('-o', '--onlyone', metavar='uid', help='Only look at and modify one user (for testing purposes)')
     parser.add_argument('-v', '--verbose', action='store_true', help='Log information on stdout')
     options = parser.parse_args()
     return options
 
 
 def main(options):
-    logger.info("M365_Expire: Disabling expired Microsoft 365 users")
+    logger.info('M365_Expire: Disabling expired Microsoft 365 users')
     try:
         udm = UDM.machine().version(2)
         usermod = udm.get('users/user')
     except Exception as exc:
-        logger.exception(f"M365_Expire: Failed to initilize Microsoft 365 token reset script: {exc}")
+        logger.exception(f'M365_Expire: Failed to initilize Microsoft 365 token reset script: {exc}')
         raise
 
-    today = datetime.utcnow().strftime("%Y%m%d%H%M%SZ")
+    today = datetime.utcnow().strftime('%Y%m%d%H%M%SZ')
     if options.onlyone:
-        ldap_filter = f"(&(univentionObjectType=users/user)(uid={options.onlyone}))"
+        ldap_filter = f'(&(univentionObjectType=users/user)(uid={options.onlyone}))'
     else:
-        ldap_filter = (
-            f"(&(univentionOffice365Enabled=1)(univentionObjectType=users/user)"
-            f"(krb5ValidEnd=*)(krb5ValidEnd<={today}))"
-        )
+        ldap_filter = f'(&(univentionOffice365Enabled=1)(univentionObjectType=users/user)(krb5ValidEnd=*)(krb5ValidEnd<={today}))'
     for user in usermod.search(filter_s=ldap_filter):
         try:
             adconnection_objects = UniventionOffice365Data.from_ldap(user.props.UniventionOffice365Data)
         except (zlib.error, TypeError):
-            logger.error("M365_Expire: Error decoding o365data for user {uid}")
+            logger.error('M365_Expire: Error decoding o365data for user {uid}')
             adconnection_objects = {}
         except KeyError:
-            logger.error(f"M365_Expire: Error: user {user.props.username} is not correctly synced to Azure (missing univentionOffice365Data attribute)")
+            logger.error(f'M365_Expire: Error: user {user.props.username} is not correctly synced to Azure (missing univentionOffice365Data attribute)')
 
         for alias, values in adconnection_objects.items():
             core = MSGraphApiCore(AzureAccount(alias))
@@ -106,19 +79,19 @@ def main(options):
                 azure_user = UserAzure.get(core, object_id=values['objectId'])
                 azure_user_enabled = UserAzure.get(core, object_id=values['objectId'], selection=['accountEnabled']).accountEnabled
             except MSGraphError as exc:
-                logger.error(f"M365_Expire: Could not get user: {user.props.username} in connection: {alias} from Azure: {exc}")
+                logger.error(f'M365_Expire: Could not get user: {user.props.username} in connection: {alias} from Azure: {exc}')
                 continue
 
             if azure_user_enabled:
                 if not options.modify:
-                    logger.info(f"M365_Expire: Would modify user: {user.props.username} in connection: {alias}")
+                    logger.info(f'M365_Expire: Would modify user: {user.props.username} in connection: {alias}')
                     continue
                 try:
                     azure_user.deactivate(rename=False)
                 except MSGraphError as exc:
-                    logger.error(f"M365_Expire: Could not deactivate user: {user.props.username} in connection: {alias} from Azure: {exc}")
+                    logger.error(f'M365_Expire: Could not deactivate user: {user.props.username} in connection: {alias} from Azure: {exc}')
                     continue
-                logger.info(f"M365_Expire: Modified user: {user.props.username} in connection {alias}")
+                logger.info(f'M365_Expire: Modified user: {user.props.username} in connection {alias}')
 
 
 if __name__ == '__main__':

@@ -29,6 +29,7 @@ This test is used to test account deactivation, locking, expiration.
 - check replication in Azure
 - modify locked property in UDM to none to reactivate
 """
+
 import time
 import datetime
 import random
@@ -38,7 +39,16 @@ import univention.testing.udm as udm_test
 import univention.testing.utils as utils
 from typing import Any, Dict
 
-from helpers.office365_test_helpers import listener_attributes_data, udm_user_args, check_udm2azure_user, check_user_id_from_azure, azure_user_disabled, azure_user_enabled, azure_user_selection, azure_user_deleted
+from helpers.office365_test_helpers import (
+    listener_attributes_data,
+    udm_user_args,
+    check_udm2azure_user,
+    check_user_id_from_azure,
+    azure_user_disabled,
+    azure_user_enabled,
+    azure_user_selection,
+    azure_user_deleted,
+)
 from helpers.retry import retry_call
 from univention.office365.microsoft.account import AzureAccount
 from univention.office365.microsoft.core import MSGraphApiCore
@@ -51,73 +61,74 @@ initialized_adconnections = [adconnection_alias for adconnection_alias in adconn
 
 # TODO: deduplicate
 def _test(udm_args, a_user, check_complete):
-	# type: (Dict[str, Any], UserAzure, bool) -> None
-	success, errors = check_udm2azure_user(udm_args, a_user, check_complete)
-	if success:
-		print("*** all attributes were synced correctly")
-	else:
-		utils.fail("One or more properties were not synced correctly:\n{}".format("\n".join(map(str, errors))))
+    # type: (Dict[str, Any], UserAzure, bool) -> None
+    success, errors = check_udm2azure_user(udm_args, a_user, check_complete)
+    if success:
+        print('*** all attributes were synced correctly')
+    else:
+        utils.fail('One or more properties were not synced correctly:\n{}'.format('\n'.join(map(str, errors))))
+
 
 # Create function and parametrize
 with utils.AutomaticListenerRestart():
-	with udm_test.UCSTestUDM() as udm:
-		with ucr_test.UCSTestConfigRegistry() as ucr:
-			ucr.load()
-			#
-			# Only test one connection, not all...
-			adconnection_alias = random.choice(initialized_adconnections)
+    with udm_test.UCSTestUDM() as udm:
+        with ucr_test.UCSTestConfigRegistry() as ucr:
+            ucr.load()
+            #
+            # Only test one connection, not all...
+            adconnection_alias = random.choice(initialized_adconnections)
 
-			core = MSGraphApiCore(AzureAccount(adconnection_alias))
+            core = MSGraphApiCore(AzureAccount(adconnection_alias))
 
-			user_args = udm_user_args(ucr, minimal=True)
-			user_args["set"]["UniventionOffice365Enabled"] = 1
-			user_args["set"]["UniventionOffice365ADConnectionAlias"] = adconnection_alias
+            user_args = udm_user_args(ucr, minimal=True)
+            user_args['set']['UniventionOffice365Enabled'] = 1
+            user_args['set']['UniventionOffice365ADConnectionAlias'] = adconnection_alias
 
-			print("*** Creating user...")
-			user_dn, username = udm.create_user(check_for_drs_replication=True, **user_args)
-			user_id = retry_call(check_user_id_from_azure, fargs=[adconnection_alias, user_dn], tries=6, delay=5)
+            print('*** Creating user...')
+            user_dn, username = udm.create_user(check_for_drs_replication=True, **user_args)
+            user_id = retry_call(check_user_id_from_azure, fargs=[adconnection_alias, user_dn], tries=6, delay=5)
 
-			print("*** Checking sync of properties...")
-			azure_user = UserAzure.get(core, user_id, selection=azure_user_selection)
-			_test(user_args, azure_user, check_complete=False)
+            print('*** Checking sync of properties...')
+            azure_user = UserAzure.get(core, user_id, selection=azure_user_selection)
+            _test(user_args, azure_user, check_complete=False)
 
-			print("*** Deactivating office365-option (should deactivate azure-user)...")
-			udm.modify_object(modulename="users/user", dn=user_dn, set={"UniventionOffice365Enabled": 0})
-			azure_user = retry_call(azure_user_disabled, fargs=[core, user_id], tries=6, delay=5)
+            print('*** Deactivating office365-option (should deactivate azure-user)...')
+            udm.modify_object(modulename='users/user', dn=user_dn, set={'UniventionOffice365Enabled': 0})
+            azure_user = retry_call(azure_user_disabled, fargs=[core, user_id], tries=6, delay=5)
 
-			print("*** Activating office365-option (should activate azure-user)...")
-			udm.modify_object(modulename="users/user", dn=user_dn, set={"UniventionOffice365Enabled": 1})
-			azure_user = retry_call(azure_user_enabled, fargs=[core, user_id], tries=6, delay=5)
+            print('*** Activating office365-option (should activate azure-user)...')
+            udm.modify_object(modulename='users/user', dn=user_dn, set={'UniventionOffice365Enabled': 1})
+            azure_user = retry_call(azure_user_enabled, fargs=[core, user_id], tries=6, delay=5)
 
-			print("*** Setting account expired for user (should deactivate azure-user)...")
-			udm.modify_object(modulename="users/user", dn=user_dn, set={"userexpiry": datetime.datetime.now().strftime("%Y-%m-%d")})
-			azure_user = retry_call(azure_user_disabled, fargs=[core, user_id], tries=6, delay=5)
+            print('*** Setting account expired for user (should deactivate azure-user)...')
+            udm.modify_object(modulename='users/user', dn=user_dn, set={'userexpiry': datetime.datetime.now().strftime('%Y-%m-%d')})
+            azure_user = retry_call(azure_user_disabled, fargs=[core, user_id], tries=6, delay=5)
 
-			print("*** Unsetting account expired for user (should activate azure-user)...")
-			udm.modify_object(modulename="users/user", dn=user_dn, set={"userexpiry": ""})
-			azure_user = retry_call(azure_user_enabled, fargs=[core, user_id], tries=6, delay=5)
+            print('*** Unsetting account expired for user (should activate azure-user)...')
+            udm.modify_object(modulename='users/user', dn=user_dn, set={'userexpiry': ''})
+            azure_user = retry_call(azure_user_enabled, fargs=[core, user_id], tries=6, delay=5)
 
-			for account_state in ["all", "kerberos", "posix", "posix_kerberos", "windows", "windows_kerberos", "windows_posix"]:
-				print("*** Deactivating UDM-user (method %s) (should deactivate azure-user)..." % account_state)
-				udm.modify_object(modulename="users/user", dn=user_dn, set={"disabled": account_state})
-				azure_user = retry_call(azure_user_disabled, fargs=[core, user_id], tries=6, delay=5)
-				print("*** Reactivating UDM-user (should activate azure-user)...")
-				udm.modify_object(modulename="users/user", dn=user_dn, set={"disabled": "none"})
-				azure_user = retry_call(azure_user_enabled, fargs=[core, user_id], tries=6, delay=5)
+            for account_state in ['all', 'kerberos', 'posix', 'posix_kerberos', 'windows', 'windows_kerberos', 'windows_posix']:
+                print('*** Deactivating UDM-user (method %s) (should deactivate azure-user)...' % account_state)
+                udm.modify_object(modulename='users/user', dn=user_dn, set={'disabled': account_state})
+                azure_user = retry_call(azure_user_disabled, fargs=[core, user_id], tries=6, delay=5)
+                print('*** Reactivating UDM-user (should activate azure-user)...')
+                udm.modify_object(modulename='users/user', dn=user_dn, set={'disabled': 'none'})
+                azure_user = retry_call(azure_user_enabled, fargs=[core, user_id], tries=6, delay=5)
 
-			for lock_state in ["all", "posix", "windows"]:
-				print("*** Locking UDM-user (method %s) (should deactivate azure-user)..." % lock_state)
-				udm.modify_object(modulename="users/user", dn=user_dn, set={"locked": lock_state})
-				azure_user = retry_call(azure_user_disabled, fargs=[core, user_id], tries=6, delay=5)
-				print("*** Unlocking UDM-user (should activate azure-user)...")
-				udm.modify_object(modulename="users/user", dn=user_dn, set={"locked": "none"})
-				azure_user = retry_call(azure_user_enabled, fargs=[core, user_id], tries=6, delay=5)
+            for lock_state in ['all', 'posix', 'windows']:
+                print('*** Locking UDM-user (method %s) (should deactivate azure-user)...' % lock_state)
+                udm.modify_object(modulename='users/user', dn=user_dn, set={'locked': lock_state})
+                azure_user = retry_call(azure_user_disabled, fargs=[core, user_id], tries=6, delay=5)
+                print('*** Unlocking UDM-user (should activate azure-user)...')
+                udm.modify_object(modulename='users/user', dn=user_dn, set={'locked': 'none'})
+                azure_user = retry_call(azure_user_enabled, fargs=[core, user_id], tries=6, delay=5)
 
-			# check if disabled user can be deleted
-			udm.modify_object(modulename="users/user", dn=user_dn, set={"disabled": 1})
-			azure_user = retry_call(azure_user_disabled, fargs=[core, user_id], tries=6, delay=5)
-			udm.remove_object(modulename="users/user", dn=user_dn)
-			azure_user = retry_call(azure_user_deleted, fargs=[core, user_id], tries=6, delay=5)
+            # check if disabled user can be deleted
+            udm.modify_object(modulename='users/user', dn=user_dn, set={'disabled': 1})
+            azure_user = retry_call(azure_user_disabled, fargs=[core, user_id], tries=6, delay=5)
+            udm.remove_object(modulename='users/user', dn=user_dn)
+            azure_user = retry_call(azure_user_deleted, fargs=[core, user_id], tries=6, delay=5)
 
-			print("*** All tests succeeded.")
-			print("*** All went well.")
+            print('*** All tests succeeded.')
+            print('*** All went well.')

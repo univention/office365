@@ -17,6 +17,7 @@ This test is used to check the synchronization and performance for groups with m
 - Check that the group in UDM is updated and replicated to o365domain
 - For each user in UDM check that the group is in the list returned by memberOf
 """
+
 import time
 
 import univention.testing.strings as uts
@@ -37,10 +38,10 @@ from univention.office365.udmwrapper.udmobjects import UDMOfficeUser, UDMOfficeG
 logger = setup_logging()
 adconnection_aliases = UCRHelper.get_adconnection_aliases()
 initialized_adconnections = [adconnection_alias for adconnection_alias in adconnection_aliases if AzureAccount(adconnection_alias).is_initialized()]
-assert initialized_adconnections, "run ./01_initialize_external_testenv first!"
+assert initialized_adconnections, 'run ./01_initialize_external_testenv first!'
 
-print("*** adconnection_aliases={!r}.".format(adconnection_aliases))
-print("*** initialized_adconnections={!r}.".format(initialized_adconnections))
+print('*** adconnection_aliases={!r}.'.format(adconnection_aliases))
+print('*** initialized_adconnections={!r}.'.format(initialized_adconnections))
 
 USERS = 125
 THRESHOLD = 600
@@ -52,76 +53,71 @@ THRESHOLD = 600
 # 51m15,087s plain
 
 with utils.AutomaticListenerRestart():
-	with udm_test.UCSTestUDM() as udm:
-		with ucr_test.UCSTestConfigRegistry() as ucr:
-			ucr.load()
+    with udm_test.UCSTestUDM() as udm:
+        with ucr_test.UCSTestConfigRegistry() as ucr:
+            ucr.load()
 
-			handler_set(["office365/groups/sync=yes"])
-			utils.restart_listener()
+            handler_set(['office365/groups/sync=yes'])
+            utils.restart_listener()
 
-			adconnection_alias = initialized_adconnections[0]
-			core = MSGraphApiCore(AzureAccount(adconnection_alias))
+            adconnection_alias = initialized_adconnections[0]
+            core = MSGraphApiCore(AzureAccount(adconnection_alias))
 
-			start_time = time.time()
+            start_time = time.time()
 
-			# create a group
-			group_name = uts.random_name()
-			group_dn = udm.create_object(
-				"groups/group",
-				set=dict(name=group_name),
-				position="cn=groups,{}".format(ucr.get("ldap/base")),
-				check_for_drs_replication=False
-			)
+            # create a group
+            group_name = uts.random_name()
+            group_dn = udm.create_object('groups/group', set=dict(name=group_name), position='cn=groups,{}'.format(ucr.get('ldap/base')), check_for_drs_replication=False)
 
-			# create users
-			username = uts.random_name()
-			users = []
-			for i in range(USERS):
-				user_args = udm_user_args(ucr, minimal=True, sufix=str(i))
-				user_args["set"]["UniventionOffice365Enabled"] = 1
-				user_args["set"]["UniventionOffice365ADConnectionAlias"] = adconnection_alias
-				user_args["set"]["primaryGroup"] = group_dn
-				users.append(udm.create_user(**user_args))
+            # create users
+            username = uts.random_name()
+            users = []
+            for i in range(USERS):
+                user_args = udm_user_args(ucr, minimal=True, sufix=str(i))
+                user_args['set']['UniventionOffice365Enabled'] = 1
+                user_args['set']['UniventionOffice365ADConnectionAlias'] = adconnection_alias
+                user_args['set']['primaryGroup'] = group_dn
+                users.append(udm.create_user(**user_args))
 
-			# wait for users to be created in azure
-			user_dn, _ = users[-1]
-			print("*** Checking user Office365Data is updated")
-			check_user_office365_data_updated(user_dn)
+            # wait for users to be created in azure
+            user_dn, _ = users[-1]
+            print('*** Checking user Office365Data is updated')
+            check_user_office365_data_updated(user_dn)
 
-			# get user ids
-			users_azure = list()
-			for user_dn, _ in users:
-				print(user_dn)
-				udm_user = UDMOfficeUser({}, None, user_dn)
+            # get user ids
+            users_azure = list()
+            for user_dn, _ in users:
+                print(user_dn)
+                udm_user = UDMOfficeUser({}, None, user_dn)
 
-				# check only users that were created in azure
-				with udm_user.set_current_alias(adconnection_alias):
-					user_id = udm_user.azure_object_id
-					assert user_id
-					azure_user = UserAzure(id=user_id)
-					azure_user.set_core(core)
-					users_azure.append(azure_user)
+                # check only users that were created in azure
+                with udm_user.set_current_alias(adconnection_alias):
+                    user_id = udm_user.azure_object_id
+                    assert user_id
+                    azure_user = UserAzure(id=user_id)
+                    azure_user.set_core(core)
+                    users_azure.append(azure_user)
 
-			# get group id
-			udm_group = UDMOfficeGroup({}, None, group_dn)
-			with udm_group.set_current_alias(adconnection_alias):
-				group_object_id = udm_group.azure_object_id
-				assert group_object_id
-			print('ObjectId for group {}: {}'.format(group_dn, group_object_id))
+            # get group id
+            udm_group = UDMOfficeGroup({}, None, group_dn)
+            with udm_group.set_current_alias(adconnection_alias):
+                group_object_id = udm_group.azure_object_id
+                assert group_object_id
+            print('ObjectId for group {}: {}'.format(group_dn, group_object_id))
 
-			# check users are member of group
-			for azure_user in users_azure:
-				member_of = azure_user.member_of(ids_only=True)
-				assert group_object_id in member_of
+            # check users are member of group
+            for azure_user in users_azure:
+                member_of = azure_user.member_of(ids_only=True)
+                assert group_object_id in member_of
 
-			# check duration
-			end_time = time.time()
-			diff = end_time - start_time
-			print('Creating users/checking group membership took {}s'.format(int(diff)))
-			assert diff <= THRESHOLD, 'duration {} <= threshold {}'.format(diff, THRESHOLD)
-			print("*** All went well.")
+            # check duration
+            end_time = time.time()
+            diff = end_time - start_time
+            print('Creating users/checking group membership took {}s'.format(int(diff)))
+            assert diff <= THRESHOLD, 'duration {} <= threshold {}'.format(diff, THRESHOLD)
+            print('*** All went well.')
 
 # Cleanup
-to_unset = ["office365/groups/sync"]
+to_unset = ['office365/groups/sync']
 handler_unset(to_unset)
 utils.restart_listener()

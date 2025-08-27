@@ -3,32 +3,8 @@
 #
 # Univention Office 365 - print users and groups
 #
-# Copyright 2016-2025 Univention GmbH
-#
-# http://www.univention.de/
-#
-# All rights reserved.
-#
-# The source code of this program is made available
-# under the terms of the GNU Affero General Public License version 3
-# (GNU AGPL V3) as published by the Free Software Foundation.
-#
-# Binary versions of this program provided by Univention to you as
-# well as other copyrighted, protected or trademarked materials like
-# Logos, graphics, fonts, specific documentations and configurations,
-# cryptographic keys etc. are subject to a license agreement between
-# you and Univention and not subject to the GNU AGPL V3.
-#
-# In the case you use this program under the terms of the GNU AGPL V3,
-# the program is provided in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public
-# License with the Debian GNU/Linux or Univention distribution in file
-# /usr/share/common-licenses/AGPL-3; if not, see
-# <http://www.gnu.org/licenses/>.
+# SPDX-FileCopyrightText: 2016-2025 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
 
 import sys
 from operator import itemgetter
@@ -40,141 +16,135 @@ from univention.office365.ucr_helper import UCRHelper
 
 
 def calc_column_lengths(data, data_fetchers, header_parts):
-	rows = [tuple(len(x) for x in header_parts)]
-	for part in data:
-		rows.append(tuple(max(len(x) for x in str(df(part)).split('\n')) for df in data_fetchers))
-	return tuple(max(r[i] for r in rows) for i in range(len(header_parts)))
+    rows = [tuple(len(x) for x in header_parts)]
+    for part in data:
+        rows.append(tuple(max(len(x) for x in str(df(part)).split('\n')) for df in data_fetchers))
+    return tuple(max(r[i] for r in rows) for i in range(len(header_parts)))
 
 
 def print_table(data, data_fetchers, header_parts, line, epilog, column_lengths=None):
-	if not column_lengths:
-		column_lengths = calc_column_lengths(data, data_fetchers, header_parts)
-	header = (line.replace('<%', '^%') % column_lengths).format(*header_parts)
-	print(header)
-	print('-' * len(header))
-	line %= column_lengths
-	for part in data:
-		print(line.format(*tuple(df(part) for df in data_fetchers)))
-	print('-' * len(header))
-	print(epilog)
+    if not column_lengths:
+        column_lengths = calc_column_lengths(data, data_fetchers, header_parts)
+    header = (line.replace('<%', '^%') % column_lengths).format(*header_parts)
+    print(header)
+    print('-' * len(header))
+    line %= column_lengths
+    for part in data:
+        print(line.format(*tuple(df(part) for df in data_fetchers)))
+    print('-' * len(header))
+    print(epilog)
 
 
 def print_users_and_groups(adconnection_alias=None):
-	core = MSGraphApiCore(AzureAccount(adconnection_alias))
+    core = MSGraphApiCore(AzureAccount(adconnection_alias))
 
-	users = UserAzure.list(core, params='$select=displayName,userPrincipalName,accountEnabled,assignedPlans,assignedLicenses')
-	groups = GroupAzure.list(core)
-	subscriptions = SubscriptionAzure.list(core)
+    users = UserAzure.list(core, params='$select=displayName,userPrincipalName,accountEnabled,assignedPlans,assignedLicenses')
+    groups = GroupAzure.list(core)
+    subscriptions = SubscriptionAzure.list(core)
 
-	# print users
-	plans = set(
-		plan['service'] for user in users
-		for plan in user.assignedPlans
-		if plan['capabilityStatus'] == 'Enabled'
-	)
-	plan_to_num = dict((plan, num) for num, plan in enumerate(sorted(plans), 1))
-	subscription_id_to_name = dict((sub.skuId, sub.skuPartNumber) for sub in subscriptions)
-	sub_names_to_num = dict((sub, num) for num, sub in enumerate(sorted(subscription_id_to_name.values()), 1))
+    # print users
+    plans = set(plan['service'] for user in users for plan in user.assignedPlans if plan['capabilityStatus'] == 'Enabled')
+    plan_to_num = dict((plan, num) for num, plan in enumerate(sorted(plans), 1))
+    subscription_id_to_name = dict((sub.skuId, sub.skuPartNumber) for sub in subscriptions)
+    sub_names_to_num = dict((sub, num) for num, sub in enumerate(sorted(subscription_id_to_name.values()), 1))
 
-	data_fetchers = (
-		lambda x: '(DEL) {}'.format(x['displayName'][26:]) if x['displayName'].startswith("ZZZ_deleted_") else x[
-			'displayName'],
-		lambda x: 'x' if x['accountEnabled'] else '',
-		itemgetter('userPrincipalName'),
-		lambda x: ', '.join(str(sub_names_to_num[subscription_id_to_name[y['skuId']]]) for y in x['assignedLicenses']),
-		lambda x: ', '.join(
-			map(str, sorted(set(
-				plan_to_num[x['service']]
-				for x in x['assignedPlans']
-				if x['capabilityStatus'] == 'Enabled')
-			)))
-	)
-	header_parts = ('User', 'Enabled', 'User Principal Name', 'Licenses (*)', 'Enabled plans (*)')
-	line = '{: <%d} | {: <%d} | {: <%d} | {: <%d} | {: <%d}'
-	epilog = '(*)  '
-	epilog += ', '.join(['{}: {}'.format(num, sub) for sub, num in sorted(sub_names_to_num.items(), key=itemgetter(1))])
-	epilog += '\n(**) '
-	plan_names = sorted(plan_to_num.keys())
-	for i in range(0, len(plan_names), 4):
-		epilog += '{}{}\n'.format(
-			'     ' if i > 0 else '',
-			', '.join(['{}: {}'.format(plan_to_num[plan], plan) for plan in plan_names[i:i + 4]]))
-	users_to_print = [x.get_not_none_values_as_dict() for x in users]
-	print_table(users_to_print, data_fetchers, header_parts, line, epilog)
+    data_fetchers = (
+        lambda x: '(DEL) {}'.format(x['displayName'][26:]) if x['displayName'].startswith('ZZZ_deleted_') else x['displayName'],
+        lambda x: 'x' if x['accountEnabled'] else '',
+        itemgetter('userPrincipalName'),
+        lambda x: ', '.join(str(sub_names_to_num[subscription_id_to_name[y['skuId']]]) for y in x['assignedLicenses']),
+        lambda x: ', '.join(map(str, sorted(set(plan_to_num[x['service']] for x in x['assignedPlans'] if x['capabilityStatus'] == 'Enabled')))),
+    )
+    header_parts = ('User', 'Enabled', 'User Principal Name', 'Licenses (*)', 'Enabled plans (*)')
+    line = '{: <%d} | {: <%d} | {: <%d} | {: <%d} | {: <%d}'
+    epilog = '(*)  '
+    epilog += ', '.join(['{}: {}'.format(num, sub) for sub, num in sorted(sub_names_to_num.items(), key=itemgetter(1))])
+    epilog += '\n(**) '
+    plan_names = sorted(plan_to_num.keys())
+    for i in range(0, len(plan_names), 4):
+        epilog += '{}{}\n'.format('     ' if i > 0 else '', ', '.join(['{}: {}'.format(plan_to_num[plan], plan) for plan in plan_names[i : i + 4]]))
+    users_to_print = [x.get_not_none_values_as_dict() for x in users]
+    print_table(users_to_print, data_fetchers, header_parts, line, epilog)
 
-	# print groups
-	members_by_group = dict()
-	for group in groups:
-		members_by_group[group.displayName] = group.list_members()
+    # print groups
+    members_by_group = dict()
+    for group in groups:
+        members_by_group[group.displayName] = (group.visibility, group.list_members())
 
-	group_members = list()
-	for name, members in members_by_group.items():
-		membernames = list()
-		for member in members:
-			if isinstance(member, UserAzure):
-				membername = member.userPrincipalName
-				if membername.startswith("ZZZ_deleted_"):
-					membername = "(DEL) {}".format(membername[26:])
-			elif isinstance(member, GroupAzure):
-				membername = member.displayName
-				if membername.startswith("ZZZ_deleted_"):
-					membername = "(DEL, group) {}".format(membername[26:])
-				else:
-					membername = '(group) {}'.format(membername)
-			else:
-				membername = member.id
-				membernames.append(membername)
-		group_members.append((name, membernames))
+    group_members = list()
+    for name, (visibility, members) in members_by_group.items():
+        membernames = list()
+        for member in members:
+            if isinstance(member, UserAzure):
+                membername = member.userPrincipalName
+                if membername.startswith('ZZZ_deleted_'):
+                    membername = '(DEL) {}'.format(membername[26:])
+                else:
+                    membername = '(user) {}'.format(membername)
+                    membernames.append(membername)
+            elif isinstance(member, GroupAzure):
+                membername = member.displayName
+                if membername.startswith('ZZZ_deleted_'):
+                    membername = '(DEL, group) {}'.format(membername[26:])
+                else:
+                    membername = '(group) {}'.format(membername)
+                    membernames.append(membername)
+            else:
+                membername = member.id
+                membernames.append(membername)
+        group_members.append((name, str(visibility), membernames))
 
-	header_parts = ('Group', '#', 'Members')
-	line = '{: <%d} | {: <%d} | {: <%d}'
-	data_fetchers = (
-		itemgetter(0),
-		lambda x: len(x[1]),
-		lambda x: '\n'.join(x[1])
-	)
-	column_lengths = calc_column_lengths(group_members, data_fetchers, header_parts)
-	continuation_line = line % column_lengths
+    header_parts = ('Group', 'visibility', '#', 'Members')
+    line = '{: <%d} | {: <%d} | {: <%d} | {: <%d}'
+    data_fetchers = (
+        itemgetter(0),
+        itemgetter(1),
+        lambda x: len(x[2]),
+        lambda x: '\n'.join(x[2])
+    )
+    column_lengths = calc_column_lengths(group_members, data_fetchers, header_parts)
+    continuation_line = line % column_lengths
 
-	def lis2str(li):
-		if not li:
-			return ''
-		elif len(li) == 1:
-			return li[0]
-		else:
-			li2 = [li[0]]
-			li2.extend(continuation_line.format('', '', x) for x in li[1:])
-			return '\n'.join(li2)
+    def lis2str(li):
+        if not li:
+            return ''
+        elif len(li) == 1:
+            return li[0]
+        else:
+            li2 = [li[0]]
+            li2.extend(continuation_line.format('', '', '', x) for x in li[1:])
+            return '\n'.join(li2)
 
-	data_fetchers = (
-		itemgetter(0),
-		lambda x: len(x[1]),
-		lambda x: lis2str(x[1])
-	)
-	epilog = ''
-	print_table(group_members, data_fetchers, header_parts, line, epilog, column_lengths)
+    data_fetchers = (
+        itemgetter(0),
+        itemgetter(1),
+        lambda x: len(x[2]),
+        lambda x: lis2str(x[2])
+    )
+    epilog = ''
+    print_table(group_members, data_fetchers, header_parts, line, epilog, column_lengths)
 
 
 if __name__ == '__main__':
-	if not len(sys.argv) == 2:
-		print('Usage: {} [Azure AD connection alias]'.format(sys.argv[0]))
-		print('Available Azure AD connection aliases: {}'.format(", ".join(UCRHelper.get_adconnection_aliases().keys())))
-		sys.exit(1)
-	try:
-		adconnection_alias = sys.argv[1]
-		adconnection_aliases = UCRHelper.get_adconnection_aliases().keys()
-		initialized_adconnections = [ta for ta in adconnection_aliases if AzureAccount(ta).is_initialized()]
-		if adconnection_alias not in adconnection_aliases:
-			print('Usage: {} [Azure AD connection alias]'.format(sys.argv[0]))
-			print('Unknown Azure AD connection alias {!r}.'.format(adconnection_alias))
-			print('Available Azure AD connection aliases: {}'.format(", ".join(adconnection_aliases)))
-			sys.exit(1)
-		elif adconnection_alias not in initialized_adconnections:
-			print('Usage: {} [Azure AD connection alias]'.format(sys.argv[0]))
-			print('Azure AD connection not yet initialized: {!r}.'.format(adconnection_alias))
-			sys.exit(1)
-		print('Using Azure AD connection alias {!r}.'.format(adconnection_alias))
-	except IndexError:
-		adconnection_alias = None
+    if not len(sys.argv) == 2:
+        print('Usage: {} [Azure AD connection alias]'.format(sys.argv[0]))
+        print('Available Azure AD connection aliases: {}'.format(', '.join(UCRHelper.get_adconnection_aliases().keys())))
+        sys.exit(1)
+    try:
+        adconnection_alias = sys.argv[1]
+        adconnection_aliases = UCRHelper.get_adconnection_aliases().keys()
+        initialized_adconnections = [ta for ta in adconnection_aliases if AzureAccount(ta).is_initialized()]
+        if adconnection_alias not in adconnection_aliases:
+            print('Usage: {} [Azure AD connection alias]'.format(sys.argv[0]))
+            print('Unknown Azure AD connection alias {!r}.'.format(adconnection_alias))
+            print('Available Azure AD connection aliases: {}'.format(', '.join(adconnection_aliases)))
+            sys.exit(1)
+        elif adconnection_alias not in initialized_adconnections:
+            print('Usage: {} [Azure AD connection alias]'.format(sys.argv[0]))
+            print('Azure AD connection not yet initialized: {!r}.'.format(adconnection_alias))
+            sys.exit(1)
+        print('Using Azure AD connection alias {!r}.'.format(adconnection_alias))
+    except IndexError:
+        adconnection_alias = None
 
-	print_users_and_groups(adconnection_alias)
+    print_users_and_groups(adconnection_alias)

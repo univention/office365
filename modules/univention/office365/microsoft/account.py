@@ -2,32 +2,8 @@
 #
 # Univention Office 365 - account
 #
-# Copyright 2016-2025 Univention GmbH
-#
-# http://www.univention.de/
-#
-# All rights reserved.
-#
-# The source code of this program is made available
-# under the terms of the GNU Affero General Public License version 3
-# (GNU AGPL V3) as published by the Free Software Foundation.
-#
-# Binary versions of this program provided by Univention to you as
-# well as other copyrighted, protected or trademarked materials like
-# Logos, graphics, fonts, specific documentations and configurations,
-# cryptographic keys etc. are subject to a license agreement between
-# you and Univention and not subject to the GNU AGPL V3.
-#
-# In the case you use this program under the terms of the GNU AGPL V3,
-# the program is provided in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public
-# License with the Debian GNU/Linux or Univention distribution in file
-# /usr/share/common-licenses/AGPL-3; if not, see
-# <http://www.gnu.org/licenses/>.
+# SPDX-FileCopyrightText: 2016-2025 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
 
 
 import base64
@@ -71,13 +47,13 @@ from univention.office365.ucr_helper import UCRHelper
 
 _ = Translation('univention-management-console-module-office365').translate
 
-SCOPE = ["Directory.ReadWrite.All"]  # https://msdn.microsoft.com/Library/Azure/Ad/Graph/howto/azure-ad-graph-api-permission-scopes#DirectoryRWDetail
-SAML_SETUP_SCRIPT_PATH = "/var/lib/univention-office365/saml_setup{adconnection_alias}.bat"
+SCOPE = ['Directory.ReadWrite.All']  # https://msdn.microsoft.com/Library/Azure/Ad/Graph/howto/azure-ad-graph-api-permission-scopes#DirectoryRWDetail
+SAML_SETUP_SCRIPT_PATH = '/var/lib/univention-office365/saml_setup{adconnection_alias}.bat'
 
-oauth2_auth_url = "https://login.microsoftonline.com/{adconnection}/oauth2/authorize?{params}"
-oauth2_token_url = "https://login.microsoftonline.com/{adconnection_id}/oauth2/token"
-oauth2_token_issuer = "https://sts.windows.net/{adconnection_id}/"
-federation_metadata_url = "https://login.microsoftonline.com/{adconnection_id}/federationmetadata/2007-06/federationmetadata.xml"
+oauth2_auth_url = 'https://login.microsoftonline.com/{adconnection}/oauth2/authorize?{params}'
+oauth2_token_url = 'https://login.microsoftonline.com/{adconnection_id}/oauth2/token'
+oauth2_token_issuer = 'https://sts.windows.net/{adconnection_id}/'
+federation_metadata_url = 'https://login.microsoftonline.com/{adconnection_id}/federationmetadata/2007-06/federationmetadata.xml'
 
 
 class AzureAccount(UserDict):
@@ -89,18 +65,22 @@ class AzureAccount(UserDict):
             UserDict.__init__(self)
         else:
             super(AzureAccount, self).__init__()
-        self.logger = logger or get_logger("office365", "o365")
+        self.logger = logger or get_logger('office365', 'o365')
         if alias is None:
-            self.logger.error("get_conf_path called with None in alias argument")
+            self.logger.error('get_conf_path called with None in alias argument')
             for line_traceback in traceback.format_stack(limit=10):
                 self.logger.error(line_traceback)
             if UCRHelper.adconnection_wizard() is None:
-                extra_info = _('The reason might be that the Univention Configuration Registry variable {ucr_wizard} is not set.\n'
-                               'If it\'s not, you can set to the default value "{ad_default}"\n'
-                               'Command to check: ucr get {ucr_wizard}\n'
-                               'Command to set: "ucr set {ucr_wizard}={ad_default}"').format(ucr_wizard=UCRHelper.adconnection_wizard_ucrv, ad_default=UCRHelper.default_adconnection_name)
+                extra_info = _(
+                    'The reason might be that the Univention Configuration Registry variable {ucr_wizard} is not set.\n'
+                    'If it\'s not, you can set to the default value "{ad_default}"\n'
+                    'Command to check: ucr get {ucr_wizard}\n'
+                    'Command to set: "ucr set {ucr_wizard}={ad_default}"'
+                ).format(ucr_wizard=UCRHelper.adconnection_wizard_ucrv, ad_default=UCRHelper.default_adconnection_name)
             else:
-                extra_info = _('The reason might be that the Univention Configuration Registry variable {ucr_wizard} is set to "{ucr_wizard_value}".\n').format(ucr_wizard=UCRHelper.adconnection_wizard_ucrv, ucr_wizard_value=UCRHelper.adconnection_wizard())
+                extra_info = _('The reason might be that the Univention Configuration Registry variable {ucr_wizard} is set to "{ucr_wizard_value}".\n').format(
+                    ucr_wizard=UCRHelper.adconnection_wizard_ucrv, ucr_wizard_value=UCRHelper.adconnection_wizard()
+                )
             raise ValueError(_('No AD connection alias specified\n') + extra_info)
         self.alias = alias
         self.config_base_path = config_base_path or self.config_base_path
@@ -110,12 +90,12 @@ class AzureAccount(UserDict):
         conf_dir = os.path.join(config_base_path, alias)
         self.conf_dirs = {
             'CONFDIR': conf_dir,
-            'SSL_KEY': os.path.join(conf_dir, "key.pem"),
-            'SSL_CERT': os.path.join(conf_dir, "cert.pem"),
-            'SSL_CERT_FP': os.path.join(conf_dir, "cert.fp"),
-            'IDS_FILE': os.path.join(conf_dir, "ids.json"),
-            'TOKEN_FILE': os.path.join(conf_dir, "token.json"),
-            'MANIFEST_FILE': os.path.join(conf_dir, "manifest.json"),
+            'SSL_KEY': os.path.join(conf_dir, 'key.pem'),
+            'SSL_CERT': os.path.join(conf_dir, 'cert.pem'),
+            'SSL_CERT_FP': os.path.join(conf_dir, 'cert.fp'),
+            'IDS_FILE': os.path.join(conf_dir, 'ids.json'),
+            'TOKEN_FILE': os.path.join(conf_dir, 'token.json'),
+            'MANIFEST_FILE': os.path.join(conf_dir, 'manifest.json'),
         }
         if not lazy_load:
             self.load_ids_from_file()
@@ -151,12 +131,12 @@ class AzureAccount(UserDict):
         obvious in which file which IDs can be found and how they were called
         in the past and how they are called now.
         """
-        ids_json = JsonStorage(self.conf_dirs["IDS_FILE"]).read()
+        ids_json = JsonStorage(self.conf_dirs['IDS_FILE']).read()
         # TODO: remove this when the old API is not mantained anymore
         # TODO: add to migration script
-        if "client_id" in ids_json:
+        if 'client_id' in ids_json:
             ids_json['application_id'] = ids_json['client_id']  # name has changed with graph!
-        if "adconnection_id" in ids_json:
+        if 'adconnection_id' in ids_json:
             ids_json['directory_id'] = ids_json['adconnection_id']  # also known as 'tenant id'
         self.update(ids_json)
 
@@ -179,7 +159,10 @@ class AzureAccount(UserDict):
             encoded_signature_string = encoded_signature.decode('utf-8').strip('=')
             return encoded_signature_string
 
-        client_assertion_header = {'alg': 'RS256', 'x5t': ssl_fingerprint, }
+        client_assertion_header = {
+            'alg': 'RS256',
+            'x5t': ssl_fingerprint,
+        }
 
         # thanks to Vittorio Bertocci for this:
         # http://www.cloudidentity.com/blog/2015/02/06/requesting-an-aad-token-with-a-certificate-without-adal/
@@ -198,14 +181,10 @@ class AzureAccount(UserDict):
     def client_assertion(self, oauth_endpoint=None):
         # type: (str) -> str
         oauth_endpoint = oauth_endpoint or URLs.ms_login(self['directory_id'])
-        with open(os.path.join(self.config_base_path, self.alias, "cert.fp"), 'r') as f_ssl_fingerprint, \
-                open(os.path.join(self.config_base_path, self.alias, "key.pem"), 'r') as f_ssl_key:
-            return self._get_client_assertion(
-                oauth_endpoint,
-                f_ssl_fingerprint.read(),
-                f_ssl_key.read(),
-                self["application_id"]
-            )
+        with open(os.path.join(self.config_base_path, self.alias, 'cert.fp'), 'r') as f_ssl_fingerprint, open(
+            os.path.join(self.config_base_path, self.alias, 'key.pem'), 'r'
+        ) as f_ssl_key:
+            return self._get_client_assertion(oauth_endpoint, f_ssl_fingerprint.read(), f_ssl_key.read(), self['application_id'])
 
     def is_initialized(self):
         # type: () -> bool
@@ -213,7 +192,7 @@ class AzureAccount(UserDict):
         self.logger.debug('adconnection_alias=%r', self.alias)
         self.load_ids_from_file()
         try:
-            return all([self.get(x, False) for x in ["client_id", "adconnection_id", "reply_url", "domain"]])
+            return all([self.get(x, False) for x in ['client_id', 'adconnection_id', 'reply_url', 'domain']])
         except KeyError as exc:
             # self.logger.info("AzureAuth.is_initialized(%r): %r", self.alias, exc)  # TODO uncomment
             return False
@@ -222,8 +201,8 @@ class AzureAccount(UserDict):
         # type: () -> None
         """"""
         self.logger.debug('adconnection_alias=%r', self.alias)
-        JsonStorage(self.conf_dirs["IDS_FILE"]).purge()
-        JsonStorage(self.conf_dirs["TOKEN_FILE"]).purge()
+        JsonStorage(self.conf_dirs['IDS_FILE']).purge()
+        JsonStorage(self.conf_dirs['TOKEN_FILE']).purge()
 
     def store_manifest(self, manifest):
         # type: (Manifest) -> None
@@ -236,10 +215,10 @@ class AzureAccount(UserDict):
     def store_ids(self, **kwargs):
         # type: (Dict) -> None
         """"""
-        if "adconnection_id" in kwargs:
-            tid = kwargs["adconnection_id"]
+        if 'adconnection_id' in kwargs:
+            tid = kwargs['adconnection_id']
             try:
-                if not (tid == "common" or uuid.UUID(tid)):
+                if not (tid == 'common' or uuid.UUID(tid)):
                     raise ValueError()
             except ValueError:
                 raise ADConnectionIDError(_("ADConnection-ID '{}' has wrong format.".format(tid)))
@@ -250,7 +229,7 @@ class AzureAccount(UserDict):
     def get_domain(self):
         # type: () -> None
         """"""
-        return self["domain"]
+        return self['domain']
 
     def get_authorization_url(self):
         # type: () -> str
@@ -259,11 +238,19 @@ class AzureAccount(UserDict):
         self.token = Token(self.alias, self.config_base_path, nonce=nonce)
         self.load_ids_from_file()
         try:
-            client_id = self["client_id"]
-            reply_url = self["reply_url"]
+            client_id = self['client_id']
+            reply_url = self['reply_url']
         except KeyError as exc:
-            reraise(NoIDsStored, NoIDsStored(_("The configuration of Azure AD connection {adconnection} is incomplete and misses some data. Please run the wizard again.").format(adconnection=self.alias), chained_exc=exc, adconnection_alias=self.alias), sys.exc_info()[2])
-        adconnection = self.get("adconnection_id") or "common"
+            reraise(
+                NoIDsStored,
+                NoIDsStored(
+                    _('The configuration of Azure AD connection {adconnection} is incomplete and misses some data. Please run the wizard again.').format(adconnection=self.alias),
+                    chained_exc=exc,
+                    adconnection_alias=self.alias,
+                ),
+                sys.exc_info()[2],
+            )
+        adconnection = self.get('adconnection_id') or 'common'
         params = {
             'client_id': client_id,
             'redirect_uri': reply_url,
@@ -272,7 +259,7 @@ class AzureAccount(UserDict):
             'nonce': nonce,
             'prompt': 'admin_consent',
             'response_mode': 'form_post',
-            'resource': URLs.resource_url()
+            'resource': URLs.resource_url(),
         }
         return oauth2_auth_url.format(adconnection=adconnection, params=urlencode(params))
 
@@ -281,15 +268,15 @@ class AzureAccount(UserDict):
         if self.alias != UCRHelper.default_adconnection_name:
             realm = self.alias
         else:
-            realm = "ucs"
+            realm = 'ucs'
 
         domain = self.get_domain()
-        sso_url = subprocess.check_output(["univention-keycloak", "get-keycloak-base-url"]).decode().strip()
-        logon_uri = f"{sso_url}/realms/{realm}/protocol/saml"
+        sso_url = subprocess.check_output(['univention-keycloak', 'get-keycloak-base-url']).decode().strip()
+        logon_uri = f'{sso_url}/realms/{realm}/protocol/saml'
         passive_logon_uri = logon_uri
-        signing_cert = subprocess.check_output(["univention-keycloak", "saml/idp/cert", "get", "--realm-id", realm]).decode().strip()
-        issuer_uri = f"{sso_url}/realms/{realm}"
-        logoff_uri = logon_uri # FIXME: does not work right now
+        signing_cert = subprocess.check_output(['univention-keycloak', 'saml/idp/cert', 'get', '--realm-id', realm]).decode().strip()
+        issuer_uri = f'{sso_url}/realms/{realm}'
+        logoff_uri = logon_uri  # FIXME: does not work right now
         template = f'''
 @ECHO OFF
 ECHO Asking for Azure Administator credentials
@@ -304,18 +291,18 @@ pause
                 fd.write(template)
             os.chmod(script_path, 0o644)
         except IOError as exc:
-            self.logger.exception("while writing powershell script: %s", exc)
-            raise WriteScriptError(_("Error writing SAML setup script."), adconnection_alias=self.alias)
+            self.logger.exception('while writing powershell script: %s', exc)
+            raise WriteScriptError(_('Error writing SAML setup script.'), adconnection_alias=self.alias)
 
     def _get_key_file_data(self):
         # type: () -> str
-        with open(self.conf_dirs['SSL_KEY'], "rb") as pem_file:
+        with open(self.conf_dirs['SSL_KEY'], 'rb') as pem_file:
             key_data = pem_file.read()
         return key_data
 
     def _load_certificate_fingerprint(self):
         # type: () -> str
-        with open(self.conf_dirs['SSL_CERT_FP'], "r") as fd:
+        with open(self.conf_dirs['SSL_CERT_FP'], 'r') as fd:
             fp = fd.read()
         return fp.strip()
 
@@ -334,8 +321,16 @@ pause
             try:
                 fed = requests.get(federation_metadata_url.format(adconnection_id=adconnection_id), proxies=URLs.proxies(self.logger))
             except RequestException as exc:
-                self.logger.exception("Error downloading federation metadata.")
-                reraise(TokenValidationError, TokenValidationError(_("Error downloading certificates from Azure for AD connection {adconnection}. Please run the wizard again.").format(adconnection=self.alias), chained_exc=exc, adconnection_alias=self.alias), sys.exc_info()[2])
+                self.logger.exception('Error downloading federation metadata.')
+                reraise(
+                    TokenValidationError,
+                    TokenValidationError(
+                        _('Error downloading certificates from Azure for AD connection {adconnection}. Please run the wizard again.').format(adconnection=self.alias),
+                        chained_exc=exc,
+                        adconnection_alias=self.alias,
+                    ),
+                    sys.exc_info()[2],
+                )
             # the federation metadata document is a XML file
             dom_tree = parseString(_discard_garbage(fed.text))
             # the certificates we want are inside:
@@ -346,21 +341,24 @@ pause
             certs = set()
             collection = dom_tree.documentElement
             # walk xml tree, checking conditions, collecting certificates and mccabes
-            for rd_elem in collection.getElementsByTagName("RoleDescriptor"):
-                if rd_elem.getAttribute("xsi:type") == "fed:SecurityTokenServiceType":
-                    for kd_elem in rd_elem.getElementsByTagName("KeyDescriptor"):
-                        if kd_elem.getAttribute("use") == "signing":
-                            for cert_elem in kd_elem.getElementsByTagName("X509Certificate"):
+            for rd_elem in collection.getElementsByTagName('RoleDescriptor'):
+                if rd_elem.getAttribute('xsi:type') == 'fed:SecurityTokenServiceType':
+                    for kd_elem in rd_elem.getElementsByTagName('KeyDescriptor'):
+                        if kd_elem.getAttribute('use') == 'signing':
+                            for cert_elem in kd_elem.getElementsByTagName('X509Certificate'):
                                 certs.add(cert_elem.firstChild.data)
             if not certs:
-                self.logger.exception("Could not find certificate in federation metadata: %r", _discard_garbage(fed.text))
-                raise TokenValidationError(_("Error reading certificates of Azure AD connection {adconnection} from Azure. Please run the wizard again.").format(adconnection=self.alias), adconnection_alias=self.alias)
+                self.logger.exception('Could not find certificate in federation metadata: %r', _discard_garbage(fed.text))
+                raise TokenValidationError(
+                    _('Error reading certificates of Azure AD connection {adconnection} from Azure. Please run the wizard again.').format(adconnection=self.alias),
+                    adconnection_alias=self.alias,
+                )
             return certs
 
         def _new_cryptography_checks(client_id, adconnection_id, id_token):
             # type: (str, str, str) -> None
             # check JWT validity, incl. signature
-            self.logger.debug("Running new cryptography checks incl signature verification.")
+            self.logger.debug('Running new cryptography checks incl signature verification.')
             azure_certs = list(_get_azure_certs(adconnection_id))
             verified = False
             jwt_exceptions = list()
@@ -371,30 +369,52 @@ pause
                 cert_obj = load_pem_x509_certificate(x509_pem, default_backend())
                 public_key = cert_obj.public_key()
                 try:
-                    jwt.decode(id_token, public_key, algorithms=["RS256"], options={"verify_iss": True, "verify_aud": True}, audience=client_id, issuer=oauth2_token_issuer.format(adconnection_id=adconnection_id), leeway=120)
+                    jwt.decode(
+                        id_token,
+                        public_key,
+                        algorithms=['RS256'],
+                        options={'verify_iss': True, 'verify_aud': True},
+                        audience=client_id,
+                        issuer=oauth2_token_issuer.format(adconnection_id=adconnection_id),
+                        leeway=120,
+                    )
                     verified = True
                     break
                 except jwt.InvalidTokenError as exc:  # all jwt exceptions inherit from jwt.InvalidTokenError
                     jwt_exceptions.append(exc)
             if not verified:
-                self.logger.error("JWT verification error(s): %s\nID token: %r", " ".join(map(str, jwt_exceptions)), id_token)
-                raise TokenValidationError(_("The received token for Azure AD connection {adconnection} is not valid. Please run the wizard again.").format(adconnection=self.alias), adconnection_alias=self.alias)
-            self.logger.debug("Verified ID token.")
+                self.logger.error('JWT verification error(s): %s\nID token: %r', ' '.join(map(str, jwt_exceptions)), id_token)
+                raise TokenValidationError(
+                    _('The received token for Azure AD connection {adconnection} is not valid. Please run the wizard again.').format(adconnection=self.alias),
+                    adconnection_alias=self.alias,
+                )
+            self.logger.debug('Verified ID token.')
 
         # get the adconnection ID from the id token
         header_, body, signature_ = Token.parse(id_token)
         adconnection_id = body['tid']
         self.load_ids_from_file()
         try:
-            client_id = self["client_id"]
-            reply_url = self["reply_url"]
+            client_id = self['client_id']
+            reply_url = self['reply_url']
         except KeyError as exc:
-            reraise(NoIDsStored, NoIDsStored(_("The configuration of Azure AD connection {adconnection} is incomplete and misses some data. Please run the wizard again.").format(adconnection=self.alias), chained_exc=exc, adconnection_alias=self.alias), sys.exc_info()[2])
+            reraise(
+                NoIDsStored,
+                NoIDsStored(
+                    _('The configuration of Azure AD connection {adconnection} is incomplete and misses some data. Please run the wizard again.').format(adconnection=self.alias),
+                    chained_exc=exc,
+                    adconnection_alias=self.alias,
+                ),
+                sys.exc_info()[2],
+            )
 
-        nonce_old = self.token["nonce"]
-        if not body["nonce"] == nonce_old:
-            self.logger.error("Stored (%r) and received (%r) nonce of token do not match. ID token: %r.", nonce_old, body["nonce"], id_token)
-            raise TokenValidationError(_("The received token for Azure AD connection {adconnection} is not valid. Please run the wizard again.").format(adconnection=self.alias), adconnection_alias=self.alias)
+        nonce_old = self.token['nonce']
+        if not body['nonce'] == nonce_old:
+            self.logger.error('Stored (%r) and received (%r) nonce of token do not match. ID token: %r.', nonce_old, body['nonce'], id_token)
+            raise TokenValidationError(
+                _('The received token for Azure AD connection {adconnection} is not valid. Please run the wizard again.').format(adconnection=self.alias),
+                adconnection_alias=self.alias,
+            )
         # check validity of token
         _new_cryptography_checks(client_id, adconnection_id, id_token)
         self.store_ids(adconnection_alias=self.alias, client_id=client_id, adconnection_id=adconnection_id, reply_url=reply_url)
@@ -418,5 +438,3 @@ pause
 
         # update ucr with the new adconnection
         new_account.uninitialize()
-
-

@@ -4,36 +4,12 @@
 # MS Office 365 provisioning
 #  join script
 #
-# Copyright 2016-2025 Univention GmbH
-#
-# http://www.univention.de/
-#
-# All rights reserved.
-#
-# The source code of this program is made available
-# under the terms of the GNU Affero General Public License version 3
-# (GNU AGPL V3) as published by the Free Software Foundation.
-#
-# Binary versions of this program provided by Univention to you as
-# well as other copyrighted, protected or trademarked materials like
-# Logos, graphics, fonts, specific documentations and configurations,
-# cryptographic keys etc. are subject to a license agreement between
-# you and Univention and not subject to the GNU AGPL V3.
-#
-# In the case you use this program under the terms of the GNU AGPL V3,
-# the program is provided in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public
-# License with the Debian GNU/Linux or Univention distribution in file
-# /usr/share/common-licenses/AGPL-3; if not, see
-# <http://www.gnu.org/licenses/>.
+# SPDX-FileCopyrightText: 2016-2025 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
 
 ## joinscript api: bindpwdfile
 
-VERSION=20
+VERSION=21
 
 . /usr/share/univention-join/joinscripthelper.lib
 . /usr/share/univention-lib/all.sh
@@ -442,6 +418,33 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set doNotSearch=1 \
 	--set objectClass=univentionOffice365 \
 	--set ldapMapping=dummyuniventionMicrosoft365ForceGroupType \
+	--set deleteObjectClass=0 \
+	--set overwriteTab=0 \
+	--set disableUDMWeb=0 || die
+
+udm settings/extended_attribute create "$@" --ignore_exists \
+	--position "$ea_base" \
+	--set name="UniventionMicrosoft365GroupVisibility" \
+	--set CLIName="UniventionMicrosoft365GroupVisibility" \
+	--set shortDescription="Microsoft 365 group visibility" \
+	--set translationShortDescription='"de_DE" "Microsoft 365 Gruppensichtbarkeit"' \
+	--set longDescription="Defines Microsoft 365 group visibility." \
+	--set translationLongDescription='"de_DE" "Definiert Microsoft 365 Gruppensichtbarkeit."' \
+	--set module="groups/group" \
+	--set tabAdvanced=0 \
+	--set tabName="Microsoft 365" \
+	--set tabPosition=9 \
+	--set translationTabName='"de_DE" "Microsoft 365"' \
+	--set syntax=univentionMicrosoft365GroupVisibility \
+	--set hook="Microsoft365GroupHook" \
+	--set default="Private" \
+	--set multivalue=0 \
+	--set preventUmcDefaultPopup=1 \
+	--set valueRequired=0 \
+	--set mayChange=1 \
+	--set doNotSearch=0 \
+	--set objectClass=univentionOffice365 \
+	--set ldapMapping=univentionMicrosoft365GroupVisibility \
 	--set deleteObjectClass=0 \
 	--set overwriteTab=0 \
 	--set disableUDMWeb=0 || die

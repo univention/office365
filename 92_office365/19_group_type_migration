@@ -14,6 +14,7 @@ This test is used to check the creation of a Microsoft 365 group and the change 
 - create group in UDM with UniventionMicrosoft365GroupType="Security Group"
 - Check if changes de group type to "Microsoft 365 Group" are reflected in the Azure AD
 """
+
 from __future__ import print_function
 
 import pytest
@@ -35,127 +36,107 @@ from univention.office365.udmwrapper.udmobjects import UDMOfficeUser, UDMOfficeG
 
 
 def check_all(user_dn, group_dn, group_name, adconnection_alias, core, expected_group_type=GroupType.SECURITY):
-	print("*** Checking that user was created (UniventionOffice365ObjectID in UDM object)...")
-	udm_user_one = UDMOfficeUser({}, None, dn=user_dn)
-	with udm_user_one.set_current_alias(adconnection_alias):
-		azure_user_id_one = udm_user_one.azure_object_id
-	if not azure_user_id_one:
-		utils.fail("User was not created properly (no UniventionOffice365ObjectID).")
+    print('*** Checking that user was created (UniventionOffice365ObjectID in UDM object)...')
+    udm_user_one = UDMOfficeUser({}, None, dn=user_dn)
+    with udm_user_one.set_current_alias(adconnection_alias):
+        azure_user_id_one = udm_user_one.azure_object_id
+    if not azure_user_id_one:
+        utils.fail('User was not created properly (no UniventionOffice365ObjectID).')
 
-	print("*** Checking that group was created (UniventionOffice365ObjectID in UDM object)...")
-	udm_group1 = UDMOfficeGroup({}, None, dn=group_dn)
-	with udm_group1.set_current_alias(adconnection_alias):
-		group_objectid = udm_group1.azure_object_id
-	if not group_objectid:
-		utils.fail("Created group {!r} has no objectId in UDM Data object  ({!r}).".format(group_name, adconnection_alias))
+    print('*** Checking that group was created (UniventionOffice365ObjectID in UDM object)...')
+    udm_group1 = UDMOfficeGroup({}, None, dn=group_dn)
+    with udm_group1.set_current_alias(adconnection_alias):
+        group_objectid = udm_group1.azure_object_id
+    if not group_objectid:
+        utils.fail('Created group {!r} has no objectId in UDM Data object  ({!r}).'.format(group_name, adconnection_alias))
 
-	print("*** Checking that group was created in azure (list)...")
-	try:
-		azure_group = GroupAzure.get_by_name(core, group_name)
-	except GraphRessourceNotFroundError as e:
-		utils.fail("Created group {!r} cannot be retrieved from azure ({!r}).".format(group_name, adconnection_alias))
+    print('*** Checking that group was created in azure (list)...')
+    try:
+        azure_group = GroupAzure.get_by_name(core, group_name)
+    except GraphRessourceNotFroundError as e:
+        utils.fail('Created group {!r} cannot be retrieved from azure ({!r}).'.format(group_name, adconnection_alias))
 
-	assert azure_group.id == group_objectid, "Group object id in UDM does not match the object id in Azure"
+    assert azure_group.id == group_objectid, 'Group object id in UDM does not match the object id in Azure'
 
-	print("*** Checking that user is in group...")
-	member_objectids = azure_group.list_members_id()
+    print('*** Checking that user is in group...')
+    member_objectids = azure_group.list_members_id()
 
-	if not len(member_objectids) == 1:
-		utils.fail("Group {!r} does not contain exactly one member ({!r}).".format(group_name, adconnection_alias))
+    if not len(member_objectids) == 1:
+        utils.fail('Group {!r} does not contain exactly one member ({!r}).'.format(group_name, adconnection_alias))
 
-	if not azure_user_id_one in member_objectids:
-		utils.fail("Group {!r} does not contain the user object ({!r}).".format(group_name, adconnection_alias))
+    if not azure_user_id_one in member_objectids:
+        utils.fail('Group {!r} does not contain the user object ({!r}).'.format(group_name, adconnection_alias))
 
-	assert udm_group1.UniventionMicrosoft365GroupType == expected_group_type.value, "Group type in UDM does not match the expected group type"
-	assert azure_group.groupTypes == [] if expected_group_type == GroupType.SECURITY else ["Unified"], "Group type in Azure does not match the expected group type"
-	assert azure_group.mailEnabled == False if expected_group_type == GroupType.SECURITY else True, "Group type in Azure does not match the expected group type"
-	return group_objectid
+    assert udm_group1.UniventionMicrosoft365GroupType == expected_group_type.value, 'Group type in UDM does not match the expected group type'
+    assert azure_group.groupTypes == [] if expected_group_type == GroupType.SECURITY else ['Unified'], 'Group type in Azure does not match the expected group type'
+    assert azure_group.mailEnabled == False if expected_group_type == GroupType.SECURITY else True, 'Group type in Azure does not match the expected group type'
+    return group_objectid
+
 
 with utils.AutomaticListenerRestart():
-	with udm_test.UCSTestUDM() as udm:
-		with ucr_test.UCSTestConfigRegistry() as ucr:
-			ucr.load()
+    with udm_test.UCSTestUDM() as udm:
+        with ucr_test.UCSTestConfigRegistry() as ucr:
+            ucr.load()
 
-			adconnection_alias = 'o365domain'
+            adconnection_alias = 'o365domain'
 
-			core = MSGraphApiCore(AzureAccount(adconnection_alias))
+            core = MSGraphApiCore(AzureAccount(adconnection_alias))
 
-			handler_set(["office365/groups/sync=yes"])
-			utils.restart_listener()
+            handler_set(['office365/groups/sync=yes'])
+            utils.restart_listener()
 
-			user_args = o365helpers.udm_user_args(ucr, minimal=True)
-			user_args["set"]["UniventionOffice365Enabled"] = 1
-			user_args["set"]["UniventionOffice365ADConnectionAlias"] = adconnection_alias
+            user_args = o365helpers.udm_user_args(ucr, minimal=True)
+            user_args['set']['UniventionOffice365Enabled'] = 1
+            user_args['set']['UniventionOffice365ADConnectionAlias'] = adconnection_alias
 
-			print("*** Creating group ***")
-			group_name = uts.random_name()
-			description = uts.random_string()
-			group_dn = udm.create_object(
-				"groups/group",
-				set=dict(
-					name=group_name,
-					description=description
-				),
-				position="cn=groups,{}".format(ucr.get("ldap/base")),
-				check_for_drs_replication=True
-			)
+            print('*** Creating group ***')
+            group_name = uts.random_name()
+            description = uts.random_string()
+            group_dn = udm.create_object(
+                'groups/group', set=dict(name=group_name, description=description), position='cn=groups,{}'.format(ucr.get('ldap/base')), check_for_drs_replication=True
+            )
 
-			print("\n*** Creating user with in group {!r} in adconnection_alias ({!r})...".format(group_name, adconnection_alias))
-			user_args["set"]["primaryGroup"] = group_dn
-			user_dn, username = udm.create_user(check_for_drs_replication=True, **user_args)
+            print('\n*** Creating user with in group {!r} in adconnection_alias ({!r})...'.format(group_name, adconnection_alias))
+            user_args['set']['primaryGroup'] = group_dn
+            user_dn, username = udm.create_user(check_for_drs_replication=True, **user_args)
 
-			first_group_objectid = check_all(user_dn, group_dn, group_name, adconnection_alias, core, GroupType.SECURITY)
+            first_group_objectid = check_all(user_dn, group_dn, group_name, adconnection_alias, core, GroupType.SECURITY)
 
-			print("*** Changing group type to Microsoft 365 Group ***")
-			try:
-				udm.modify_object(
-					modulename="groups/group",
-					dn=group_dn,
-					set=dict(
-						UniventionMicrosoft365GroupType=GroupType.M365.value
-					),
-					check_for_drs_replication=True
-				)
-			except udm_test.UCSTestUDM_ModifyUDMObjectFailed as e:
-				pass
-			else:
-				utils.fail("Changing group type to Microsoft 365 Group should not be possible without setting the UniventionMicrosoft365ForceGroupType flag")
+            print('*** Changing group type to Microsoft 365 Group ***')
+            try:
+                udm.modify_object(modulename='groups/group', dn=group_dn, set=dict(UniventionMicrosoft365GroupType=GroupType.M365.value), check_for_drs_replication=True)
+            except udm_test.UCSTestUDM_ModifyUDMObjectFailed as e:
+                pass
+            else:
+                utils.fail('Changing group type to Microsoft 365 Group should not be possible without setting the UniventionMicrosoft365ForceGroupType flag')
 
-			udm.modify_object(
-				modulename="groups/group",
-				dn=group_dn,
-				set=dict(
-					UniventionMicrosoft365GroupType=GroupType.M365.value,
-					UniventionMicrosoft365ForceGroupType=1
-				),
-				check_for_drs_replication=True
-			)
+            udm.modify_object(
+                modulename='groups/group',
+                dn=group_dn,
+                set=dict(UniventionMicrosoft365GroupType=GroupType.M365.value, UniventionMicrosoft365ForceGroupType=1),
+                check_for_drs_replication=True,
+            )
 
-			with pytest.raises(MSGraphError):
-				GroupAzure.get(core, first_group_objectid)
+            with pytest.raises(MSGraphError):
+                GroupAzure.get(core, first_group_objectid)
 
-			second_group_objectid = check_all(user_dn, group_dn, group_name, adconnection_alias, core, GroupType.M365)
+            second_group_objectid = check_all(user_dn, group_dn, group_name, adconnection_alias, core, GroupType.M365)
 
-			assert first_group_objectid != second_group_objectid, "Group object id in Azure did not change after changing the group type"
+            assert first_group_objectid != second_group_objectid, 'Group object id in Azure did not change after changing the group type'
 
-			print("*** Changing group type back to Security Group ***")
-			udm.modify_object(
-				modulename="groups/group",
-				dn=group_dn,
-				set=dict(
-					UniventionMicrosoft365GroupType=GroupType.SECURITY.value,
-					UniventionMicrosoft365ForceGroupType=1
-				),
-				check_for_drs_replication=True
-			)
+            print('*** Changing group type back to Security Group ***')
+            udm.modify_object(
+                modulename='groups/group',
+                dn=group_dn,
+                set=dict(UniventionMicrosoft365GroupType=GroupType.SECURITY.value, UniventionMicrosoft365ForceGroupType=1),
+                check_for_drs_replication=True,
+            )
 
-			with pytest.raises(MSGraphError):
-				GroupAzure.get(core, second_group_objectid)
+            with pytest.raises(MSGraphError):
+                GroupAzure.get(core, second_group_objectid)
 
-			third_group_objectid = check_all(user_dn, group_dn, group_name, adconnection_alias, core, GroupType.SECURITY)
+            third_group_objectid = check_all(user_dn, group_dn, group_name, adconnection_alias, core, GroupType.SECURITY)
 
+            assert first_group_objectid != third_group_objectid, 'Group object id in Azure did not change back after changing the group type'
 
-			assert first_group_objectid != third_group_objectid, "Group object id in Azure did not change back after changing the group type"
-
-
-		print("*** All went well.")
+        print('*** All went well.')

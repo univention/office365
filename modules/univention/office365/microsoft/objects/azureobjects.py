@@ -2,32 +2,8 @@
 #
 # Univention Office 365 - azureobjects
 #
-# Copyright 2016-2025 Univention GmbH
-#
-# http://www.univention.de/
-#
-# All rights reserved.
-#
-# The source code of this program is made available
-# under the terms of the GNU Affero General Public License version 3
-# (GNU AGPL V3) as published by the Free Software Foundation.
-#
-# Binary versions of this program provided by Univention to you as
-# well as other copyrighted, protected or trademarked materials like
-# Logos, graphics, fonts, specific documentations and configurations,
-# cryptographic keys etc. are subject to a license agreement between
-# you and Univention and not subject to the GNU AGPL V3.
-#
-# In the case you use this program under the terms of the GNU AGPL V3,
-# the program is provided in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public
-# License with the Debian GNU/Linux or Univention distribution in file
-# /usr/share/common-licenses/AGPL-3; if not, see
-# <http://www.gnu.org/licenses/>.
+# SPDX-FileCopyrightText: 2016-2025 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
 
 
 import re
@@ -49,9 +25,9 @@ from univention.office365.microsoft.exceptions.exceptions import GraphRessourceN
 from univention.office365.utils.utils import create_random_pw
 from univention.office365.asyncqueue.tasks.azuretask import MSGraphCoreTask
 
-logger = get_logger("office365", "azure_objects")
+logger = get_logger('office365', 'azure_objects')
 
-delete_name_pattern = "ZZZ_deleted_{time}_{orig}"
+delete_name_pattern = 'ZZZ_deleted_{time}_{orig}'
 
 
 """
@@ -93,6 +69,7 @@ delete_name_pattern = "ZZZ_deleted_{time}_{orig}"
                                                                 │
 """
 
+
 @attr.s
 @six.add_metaclass(abc.ABCMeta)
 class AzureObject(object):
@@ -116,6 +93,7 @@ class AzureObject(object):
         - get: get the object from the Azure API.
         - list: # TODO: what is this expected to return?
     """
+
     assignedLicenses = attr.ib(validator=attr.validators.instance_of((List, type(None))), default=None)  #: List[Dict[str, str]]
     calendar = attr.ib(validator=attr.validators.instance_of((Dict, type(None))), default=None)  #: Dict[str, str]
     calendarView = attr.ib(validator=attr.validators.instance_of((List, type(None))), default=None)  #: List[Dict[str, str]]
@@ -140,10 +118,7 @@ class AzureObject(object):
 
     @classmethod
     def from_dict(cls, data: dict):
-        return cls(**{
-            a.name: data.get(a.name, a.default)
-            for a in cls.__attrs_attrs__
-        })
+        return cls(**{a.name: data.get(a.name, a.default) for a in cls.__attrs_attrs__})
 
     @classmethod
     def get_fields(cls):
@@ -152,12 +127,12 @@ class AzureObject(object):
 
     def get_not_none_values_as_dict(self):
         # type: () -> Dict[str, Any]
-        return {k: v for k, v in self.__dict__.items() if v is not None and "_" not in k}
+        return {k: v for k, v in self.__dict__.items() if v is not None and '_' not in k}
 
     def __sub__(self, other):
         # type: (AzureObject) -> AzureObject
         # TODO: could use the get_not_none_values_as_dict method?
-        return other.__class__(**{k: v for k, v in other.__dict__.items() if self.__dict__[k] != v and "_" not in k})
+        return other.__class__(**{k: v for k, v in other.__dict__.items() if self.__dict__[k] != v and '_' not in k})
 
     def set_core(self, core):
         # type: (MSGraphApiCore) -> None
@@ -225,9 +200,9 @@ class AzureObject(object):
         """"""
         groups_response = self._core.member_of(self.id)
         if ids_only:
-            return [g["id"] for g in groups_response["value"]]
+            return [g['id'] for g in groups_response['value']]
         groups = []
-        for group_response in groups_response["value"]:
+        for group_response in groups_response['value']:
             group = GroupAzure()
             group._update_from_dict(group_response)
             group.set_core(self._core)
@@ -253,7 +228,8 @@ class UserAzure(AzureObject):
         - list: returns a list of all users in Azure AD (static)
         - invalidate_all_tokens: invalidates all tokens for the user in Azure AD
     """
-    odataType = "#microsoft.graph.user"
+
+    odataType = '#microsoft.graph.user'
     aboutMe = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
     accountEnabled = attr.ib(validator=attr.validators.instance_of((bool, type(None))), default=None)  # bool
     ageGroup = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
@@ -359,12 +335,12 @@ class UserAzure(AzureObject):
         try:
             response = self._core.add_user(self.get_not_none_values_as_dict())
         except MSGraphError as exc:
-            if hasattr(exc.response, "json"):
+            if hasattr(exc.response, 'json'):
                 # TODO move to core_exception
-                if "error" in exc.response.json() and "details" in exc.response.json()["error"]:
-                    details = exc.response.json()["error"]["details"]
+                if 'error' in exc.response.json() and 'details' in exc.response.json()['error']:
+                    details = exc.response.json()['error']['details']
                     for d in details:
-                        if d.get("code") == "ObjectConflict" and d.get("target") == "userPrincipalName":
+                        if d.get('code') == 'ObjectConflict' and d.get('target') == 'userPrincipalName':
                             # The user already exists, so we need to modify it
                             # get the user from azure by its
                             user_azure = self.get(self._core, self.userPrincipalName)
@@ -372,7 +348,7 @@ class UserAzure(AzureObject):
                             # update the azure user with the new values
                             user_azure.update(self)
                             return
-                        elif d.get("code") == "ObjectConflict" and d.get("target") == "onPremisesImmutableId":
+                        elif d.get('code') == 'ObjectConflict' and d.get('target') == 'onPremisesImmutableId':
                             user_azure = self.get_by_onPremisesImmutableID(self._core, self.onPremisesImmutableId)
                             self.id = user_azure.id
                             # update the azure user with the new values
@@ -381,6 +357,7 @@ class UserAzure(AzureObject):
                 # Only if the user fails to be created and don't exist in azure either
                 raise
         self._update_from_dict(response)
+
     # TODO update user with the response ??
 
     def delete(self):
@@ -389,15 +366,14 @@ class UserAzure(AzureObject):
         # self._core.delete_user(self.id)
         self.deactivate(rename=True)
 
-
     def update(self, other):
         # type: ('AzureObject') -> Dict[str, Any]
         """"""
         data = (self - other).get_not_none_values_as_dict()
-        can_only_be_created_not_modified = ["passwordProfile", "id", "assignedLicenses"]
+        can_only_be_created_not_modified = ['passwordProfile', 'id', 'assignedLicenses']
         for attrib in can_only_be_created_not_modified:
             if attrib in data:
-                self._logger.info("Tried to modify %s but it can only be created. This attribute will not be updated", attrib)
+                self._logger.info('Tried to modify %s but it can only be created. This attribute will not be updated', attrib)
                 del data[attrib]
         if data:
             self._core.modify_user(self.id, data)
@@ -413,7 +389,7 @@ class UserAzure(AzureObject):
         if rename:
             if re.match(r'^ZZZ_deleted_.+_.+', self.userPrincipalName):
                 # this shouldn't happen
-                self._logger.warning("User %r (%s) already deactivated, ignoring.", self.userPrincipalName, self._core.account.alias)
+                self._logger.warning('User %r (%s) already deactivated, ignoring.', self.userPrincipalName, self._core.account.alias)
                 pass
             else:
                 modifications_user.displayName = delete_name_pattern.format(time=time.time(), orig=self.displayName)
@@ -425,19 +401,19 @@ class UserAzure(AzureObject):
         self._update_from_dict(data)
         # TODO check if the assignedLicenses is clean
         groups = self._core.member_of(self.id)
-        for group in groups["value"]:
+        for group in groups['value']:
             try:
                 # the groups endpoint expects the actual id and can't work wit userPrincipalName
-                self._core.remove_group_member(group["id"], self.id)
+                self._core.remove_group_member(group['id'], self.id)
             except MSGraphError as e:
-                self._logger.warning("Member %r can't be remove from group %r" % (self.id, group["id"]))
+                self._logger.warning("Member %r can't be remove from group %r" % (self.id, group['id']))
                 continue
         for _license in self.get_assignedLicenses():
             self.remove_license(_license)
 
     def get_assignedLicenses(self):
-        for _license in self._core.get_user(self.id, selection="assignedLicenses")["assignedLicenses"]:
-            yield SubscriptionAzure(skuId=_license["skuId"])
+        for _license in self._core.get_user(self.id, selection='assignedLicenses')['assignedLicenses']:
+            yield SubscriptionAzure(skuId=_license['skuId'])
 
     def reactivate(self, rename=False):
         # type: (bool) -> None
@@ -449,7 +425,7 @@ class UserAzure(AzureObject):
         # type: (MSGraphApiCore, str, Optional[List[str]]) -> UserAzure
         """"""
         user = cls()
-        response = core.get_user(object_id, selection=",".join(selection) if selection else None)
+        response = core.get_user(object_id, selection=','.join(selection) if selection else None)
         user._update_from_dict(response)
         user.set_core(core)
         return user
@@ -458,7 +434,7 @@ class UserAzure(AzureObject):
     def get_by_onPremisesImmutableID(cls, core, immutableId):
         # type: (MSGraphApiCore, str) -> Optional[UserAzure]
         response = core.list_users(params="$filter=onPremisesImmutableID eq '{}'".format(immutableId))
-        users_value = response.get("value", [])
+        users_value = response.get('value', [])
         if len(users_value) == 1:
             user = UserAzure.from_dict(users_value[0])
             user.set_core(core)
@@ -479,7 +455,7 @@ class UserAzure(AzureObject):
         # type: (MSGraphApiCore, Optional[str]) -> List['UserAzure']
         """"""
         users_response = core.list_users(params=params)
-        users_value = users_response.get("value", [])
+        users_value = users_response.get('value', [])
         if users_value:
             users = [UserAzure.from_dict(x) for x in users_value]
             [x.set_core(core) for x in users]
@@ -511,7 +487,8 @@ class GroupAzure(AzureObject):
         - remove_member: remove a member from a group in Azure AD
         - list: list all the groups in Azure AD (static)
     """
-    odataType = "#microsoft.graph.group"
+
+    odataType = '#microsoft.graph.group'
     acceptedSenders = attr.ib(validator=attr.validators.instance_of((List, type(None))), default=None)  # List[Dict[str, str]]
     allowExternalSenders = attr.ib(validator=attr.validators.instance_of((bool, type(None))), default=None)  # bool
     autoSubscribeNewMembers = attr.ib(validator=attr.validators.instance_of((bool, type(None))), default=None)  # bool
@@ -565,26 +542,26 @@ class GroupAzure(AzureObject):
             self._update_from_dict(response)
         else:
             desire_state = self.get_not_none_values_as_dict()
-            desire_state.setdefault("description", " ")
+            desire_state.setdefault('description', ' ')
             self._core.modify_group(self.id, desire_state)
 
     @classmethod
     def get_by_name(cls, core, displayName):
         # type: (MSGraphApiCore, str) -> GroupAzure
         response = core.list_groups("$filter=displayName eq '{value}'".format(value=displayName))
-        if response["value"]:
+        if response['value']:
             group = cls()
-            group._update_from_dict(response["value"][0])
+            group._update_from_dict(response['value'][0])
             group.set_core(core)
             return group
-        raise GraphRessourceNotFroundError("Object with displayName: %r not found in azure %r" % (displayName, core.account.alias))
+        raise GraphRessourceNotFroundError('Object with displayName: %r not found in azure %r' % (displayName, core.account.alias))
 
     # TODO update user with the response ??
     def exist(self):
         # type: () -> bool
         response = self._core.list_groups("$filter=displayName eq '{value}'".format(value=self.displayName))
-        if response["value"]:
-            self.id = response["value"][0]["id"]
+        if response['value']:
+            self.id = response['value'][0]['id']
             return True
         return False
 
@@ -604,13 +581,8 @@ class GroupAzure(AzureObject):
     def deactivate(self, rename=False):
         # type: (bool) -> None
         """"""
-        name = "ZZZ_deleted_{time}_{orig}".format(time=time.time(), orig=self.displayName)
-        data = {
-            "displayName": name,
-            "description": "deleted group",
-            "mailEnabled": False,
-            "mailNickname": name[:63].replace(" ", "_-_")
-        }
+        name = 'ZZZ_deleted_{time}_{orig}'.format(time=time.time(), orig=self.displayName)
+        data = {'displayName': name, 'description': 'deleted group', 'mailEnabled': False, 'mailNickname': name[:63].replace(' ', '_-_')}
         self._core.modify_group(self.id, data)
         self._update_from_dict(data)
 
@@ -623,8 +595,21 @@ class GroupAzure(AzureObject):
     def get(cls, core, object_id, selection=None):
         # type: (MSGraphApiCore, str, Optional[List[str]]) -> GroupAzure
         """"""
-        attrs = [x.name for x in attr.fields(cls) if x.name not in ["hasMembersWithLicenseErrors", "allowExternalSenders", "autoSubscribeNewMembers", "hideFromAddressLists", "hideFromOutlookClients", "isSubscribedByMail", "unseenCount"]]
-        response = core.get_group(group_id=object_id, selection=",".join(attrs))
+        attrs = [
+            x.name
+            for x in attr.fields(cls)
+            if x.name
+            not in [
+                'hasMembersWithLicenseErrors',
+                'allowExternalSenders',
+                'autoSubscribeNewMembers',
+                'hideFromAddressLists',
+                'hideFromOutlookClients',
+                'isSubscribedByMail',
+                'unseenCount',
+            ]
+        ]
+        response = core.get_group(group_id=object_id, selection=','.join(attrs))
         group = cls()
         group._update_from_dict(response)
         group.set_core(core)
@@ -644,7 +629,7 @@ class GroupAzure(AzureObject):
         # type: (str, bool) -> Optional[MSGraphCoreTask]
         """"""
         if async_task:
-            return MSGraphCoreTask(self._core.account.alias, "add_group_owner", dict(group_id=self.id, owner_id=owner_id))
+            return MSGraphCoreTask(self._core.account.alias, 'add_group_owner', dict(group_id=self.id, owner_id=owner_id))
         self._core.add_group_owner(group_id=self.id, owner_id=owner_id)
 
     def remove_owner(self, owner_id):
@@ -657,14 +642,14 @@ class GroupAzure(AzureObject):
         """"""
         members_response = self._core.list_group_members(self.id)
         members = []
-        for member_response in members_response["value"]:
-            if "user" in member_response['@odata.type']:
+        for member_response in members_response['value']:
+            if 'user' in member_response['@odata.type']:
                 member = UserAzure()
-            elif "group" in member_response['@odata.type']:
+            elif 'group' in member_response['@odata.type']:
                 member = GroupAzure()
             else:
                 member = AzureObject()
-                member_response = dict(id=member_response["id"])
+                member_response = dict(id=member_response['id'])
             member._update_from_dict(member_response)
             member.set_core(self._core)
             members.append(member)
@@ -673,8 +658,8 @@ class GroupAzure(AzureObject):
     def list_members_id(self):
         # type: () -> List[str]
         """"""
-        members_response = self._core.list_group_members(self.id, filter="$select=id")
-        return [x["id"] for x in members_response["value"]]
+        members_response = self._core.list_group_members(self.id, filter='$select=id')
+        return [x['id'] for x in members_response['value']]
 
     def remove_direct_members(self):
         # type: () -> None
@@ -686,7 +671,7 @@ class GroupAzure(AzureObject):
         # type: () -> List[UserAzure]
         users_response = self._core.list_group_owners(self.id)
         users = []
-        for user_response in users_response["value"]:
+        for user_response in users_response['value']:
             user = UserAzure()
             user._update_from_dict(user_response)
             user.set_core(self._core)
@@ -703,7 +688,7 @@ class GroupAzure(AzureObject):
         # type: (MSGraphApiCore) -> List['GroupAzure']
         """"""
         groups_response = core.list_groups()
-        groups_value = groups_response.get("value", [])
+        groups_value = groups_response.get('value', [])
         if groups_value:
             groups = [GroupAzure.from_dict(x) for x in groups_value]
             [x.set_core(core) for x in groups]
@@ -712,15 +697,15 @@ class GroupAzure(AzureObject):
 
     def is_delete(self):
         # type: () -> bool
-        return self.mailNickname.startswith("ZZZ_deleted_") if self.mailNickname else False
+        return self.mailNickname.startswith('ZZZ_deleted_') if self.mailNickname else False
 
     def is_security_group(self):
         # type: () -> bool
-        return not "Unified" in self.groupTypes
+        return not 'Unified' in self.groupTypes
 
     def get_assignedLicenses(self):
-        for _license in self._core.get_group(self.id, selection="assignedLicenses")["assignedLicenses"]:
-            yield SubscriptionAzure(skuId=_license["skuId"])
+        for _license in self._core.get_group(self.id, selection='assignedLicenses')['assignedLicenses']:
+            yield SubscriptionAzure(skuId=_license['skuId'])
 
     def add_license(self, subs_sku, deactivated_plans=None):
         # type: (SubscriptionAzure, List) -> None
@@ -758,6 +743,7 @@ class TeamAzure(AzureObject):
         - list: list the teams in Azure AD (static).
         - get: get the team in Azure AD (class method).
     """
+
     description = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
     internalId = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
     classification = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
@@ -782,11 +768,11 @@ class TeamAzure(AzureObject):
     def create(self):
         # type: () -> None
         """"""
-        if hasattr(self, "_owner_id") and self._owner_id:
+        if hasattr(self, '_owner_id') and self._owner_id:
             response = self._core.create_team(name=self.displayName, owner=self._owner_id, description=self.description)
-            self._content_location = response["Content-Location"]
+            self._content_location = response['Content-Location']
         else:
-            raise Exception("Set owner before create the team")
+            raise Exception('Set owner before create the team')
 
     # Only used for testing
     def wait_for_team(self):
@@ -819,7 +805,7 @@ class TeamAzure(AzureObject):
     @staticmethod
     def create_from_group_async(alias, group_id, sub_tacks):
         # type: (str, str, List[MSGraphCoreTask]) -> MSGraphCoreTask
-        return MSGraphCoreTask(alias, "create_team_from_group", dict(object_id=group_id), sub_tasks=sub_tacks)
+        return MSGraphCoreTask(alias, 'create_team_from_group', dict(object_id=group_id), sub_tasks=sub_tacks)
 
     @classmethod
     def create_from_group(cls, core, group_id):
@@ -832,7 +818,7 @@ class TeamAzure(AzureObject):
     def delete(self):
         # type: () -> None
         """"""
-        data = dict(displayName="ZZZ_deleted_{time}_{orig}".format(time=time.time(), orig=self.displayName), description="deleted group")
+        data = dict(displayName='ZZZ_deleted_{time}_{orig}'.format(time=time.time(), orig=self.displayName), description='deleted group')
         self._core.modify_team(self.id, data)
 
         self._update_from_dict(data)
@@ -866,7 +852,7 @@ class TeamAzure(AzureObject):
         # type: (List[str]) -> List[str]
         """"""
         response = self._core.add_team_members(self.id, users_id)
-        return [x["userId"] for x in response["value"] if x["error"] is not None]
+        return [x['userId'] for x in response['value'] if x['error'] is not None]
 
     def delete_member(self, membership_id):
         # type: (str) -> None
@@ -880,8 +866,8 @@ class TeamAzure(AzureObject):
         """"""
         response = self._core.list_team_members(self.id)
         users = []
-        for user_response in response["value"]:
-            user = UserAzure(id=user_response["userId"], displayName=user_response["displayName"])
+        for user_response in response['value']:
+            user = UserAzure(id=user_response['userId'], displayName=user_response['displayName'])
             user.set_core(self._core)
             users.append(user)
         return users
@@ -892,7 +878,7 @@ class TeamAzure(AzureObject):
         """"""
         response = core.list_teams(paging=True)
         teams = []
-        for team_dict in response["value"]:
+        for team_dict in response['value']:
             team = GroupAzure()
             team._update_from_dict(team_dict)
             team.set_core(core)
@@ -924,6 +910,7 @@ class SubscriptionAzure(AzureObject):
         - get_plans_names: get the plan names of the subscription
         - get_plans_id_from_names: get the plan ids for a list of plan names
     """
+
     appliesTo = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
     capabilityStatus = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
     consumedUnits = attr.ib(validator=attr.validators.instance_of((int, type(None))), default=None)  # int
@@ -962,7 +949,7 @@ class SubscriptionAzure(AzureObject):
         # type: (MSGraphApiCore, str, Optional[List[str]]) -> 'SubscriptionAzure'
         """"""
         subscription_response = core.get_subscriptionSku(subs_sku_id=object_id)
-        subscription_response.pop("@odata.context")
+        subscription_response.pop('@odata.context')
         return cls.from_dict(subscription_response)
 
     @staticmethod
@@ -970,7 +957,7 @@ class SubscriptionAzure(AzureObject):
         # type: (MSGraphApiCore) -> List[SubscriptionAzure]
         """"""
         subscriptions_response = core.list_subscriptions()
-        subscriptions = [SubscriptionAzure.from_dict(subscription) for subscription in subscriptions_response["value"]]
+        subscriptions = [SubscriptionAzure.from_dict(subscription) for subscription in subscriptions_response['value']]
         [x.set_core(core) for x in subscriptions]
         return subscriptions
 
@@ -982,11 +969,11 @@ class SubscriptionAzure(AzureObject):
         # subscriptions = [SubscriptionAzure.from_dict(**subscription) for subscription in subscriptions_response["value"] if subscription["appliesTo"] == "User" and subscription["capabilityStatus"] == "Enabled" and any([plan["servicePlanName"] in service_plan_names for plan in subscription["servicePlans"]])]
         # [x.set_core(core) for x in subscriptions]
         subscriptions = list()
-        for subscription in subscriptions_response["value"]:
-            if not (subscription["appliesTo"] == "User" and subscription["capabilityStatus"] == "Enabled"):
+        for subscription in subscriptions_response['value']:
+            if not (subscription['appliesTo'] == 'User' and subscription['capabilityStatus'] == 'Enabled'):
                 continue
-            for plan in subscription["servicePlans"]:
-                if not plan["servicePlanName"] in service_plan_names:
+            for plan in subscription['servicePlans']:
+                if not plan['servicePlanName'] in service_plan_names:
                     continue
                 # found an office plan
                 sub_sku = SubscriptionAzure.from_dict(subscription)
@@ -998,7 +985,7 @@ class SubscriptionAzure(AzureObject):
     def has_free_seats(self):
         # type: () -> bool
         """"""
-        return (self.prepaidUnits["enabled"] + self.prepaidUnits["warning"]) > self.consumedUnits
+        return (self.prepaidUnits['enabled'] + self.prepaidUnits['warning']) > self.consumedUnits
 
     def get_plans_names(self):
         # type: () -> List
