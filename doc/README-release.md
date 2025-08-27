@@ -13,7 +13,7 @@ For the release you need to create 3 new app versions in the test appcenter:
 
 Format of the new version:
  * `new_version_for_5.0` -> 5.x -> Eg. 5.13
- * `new_version_for_5.2` -> 6.y -> Eg. 6.2
+ * `new_version_for_5.2` -> 6.y -> Eg. 6.4
 
 **Important**: After creating the new versions you need to check that all of them have the same `component_id`
 

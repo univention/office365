@@ -1,4 +1,16 @@
 <h1>
+	Univention Microsoft 365 Connector v6.3
+	<div>
+		<ul style="font-size: 12px; font-weight: normal;">
+			<li>
+				<code class="code-colors hljs language-delphi">
+					Groups can now be created as "Private" or "Public".
+				</code>
+			</li>
+		</ul>
+	</div>
+</h1>
+<h1>
 	Univention Microsoft 365 Connector v6.2
 	<div>
 		<ul style="font-size: 12px; font-weight: normal;">
