@@ -1,3 +1,9 @@
+univention-office365 (5.0.3) unstable; urgency=medium
+
+  * univention/dev/projects/office365#3: Fix typo
+
+ -- Dirk Wiesenthal <wiesenthal@univention.de>  Wed, 27 Aug 2025 11:44:30 +0200
+
 univention-office365 (5.0.2) unstable; urgency=medium
 
   * univention/dev/projects/office365#7: Create MS365 Groups as Private by default
