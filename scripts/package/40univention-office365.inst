@@ -407,7 +407,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set module="groups/group" \
 	--set tabAdvanced=0 \
 	--set tabName="Microsoft 365" \
-	--set tabPosition=10 \
+	--set tabPosition=8 \
 	--set translationTabName='"de_DE" "Microsoft 365"' \
 	--set syntax=boolean \
 	--set hook="Microsoft365GroupHook" \
@@ -433,7 +433,7 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set module="groups/group" \
 	--set tabAdvanced=0 \
 	--set tabName="Microsoft 365" \
-	--set tabPosition=9 \
+	--set tabPosition=10 \
 	--set translationTabName='"de_DE" "Microsoft 365"' \
 	--set syntax=univentionMicrosoft365GroupVisibility \
 	--set hook="Microsoft365GroupHook" \

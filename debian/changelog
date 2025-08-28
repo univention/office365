@@ -1,3 +1,9 @@
+univention-office365 (5.0.4) unstable; urgency=medium
+
+  * univention/dev/projects/office365#7: Improved EA layout
+
+ -- Dirk Wiesenthal <wiesenthal@univention.de>  Thu, 28 Aug 2025 12:40:54 +0200
+
 univention-office365 (5.0.3) unstable; urgency=medium
 
   * univention/dev/projects/office365#3: Fix typo
