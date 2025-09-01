@@ -279,8 +279,17 @@ class AzureAccount(UserDict):
         logoff_uri = logon_uri  # FIXME: does not work right now
         template = f'''
 @ECHO OFF
-ECHO Asking for Azure Administator credentials
-powershell Connect-MsolService; Set-MsolDomainAuthentication -DomainName "{domain}" -Authentication Managed; Set-MsolDomainAuthentication -DomainName "{domain}" -FederationBrandName "UCS" -Authentication Federated -ActiveLogOnUri "{logon_uri}" -PassiveLogOnUri "{passive_logon_uri}" -SigningCertificate "{signing_cert}" -IssuerUri "{issuer_uri}" -LogOffUri "{logoff_uri}" -PreferredAuthenticationProtocol SAMLP;  Get-MsolDomain
+ECHO Asking for Azure Administrator credentials
+powershell Connect-MgGraph -Scopes "Domain.ReadWrite.All", "Directory.ReadWrite.All"; 
+Set-MgDomainAuthentication -DomainId "{domain}" -AuthenticationMethod Managed; 
+Set-MgDomainAuthentication -DomainId "{domain}" -AuthenticationMethod Federated -FederationBrandName "UCS" `
+    -ActiveSignInUri "{logon_uri}" `
+    -PassiveSignInUri "{passive_logon_uri}" `
+    -SigningCertificate "{signing_cert}" `
+    -IssuerUri "{issuer_uri}" `
+    -LogOffUri "{logoff_uri}" `
+    -PreferredAuthenticationProtocol "SAMLP"; 
+Get-MgDomain
 ECHO Finished single sign-on configuration change
 pause
 '''

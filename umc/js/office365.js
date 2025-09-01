@@ -262,7 +262,7 @@ define([
 			return this.formatParagraphs([
 				_('Welcome to the <a href="https://products.office.com/" target="_blank">Microsoft 365</a> setup wizard.'),
 				_('It will guide you through the process of setting up automatic provisioning of Microsoft 365 accounts for your user accounts.'),
-				_('To use this app you need a Microsoft 365 admin account, a global administrator account in the corresponding Azure AD and a <a href="https://azure.microsoft.com/en-us/documentation/articles/active-directory-add-domain/" target="_blank">verified domain</a>.'),
+				_('To use this app you need a Microsoft 365 admin account, a global administrator account in the corresponding Azure AD and a <a href="https://learn.microsoft.com/en-us/entra/fundamentals/add-custom-domain" target="_blank">verified domain</a>.'),
 				_('In addition, a Windows PC with at least Windows 7 is required to configure single sign-on for this domain.')
 			]);
 		},
@@ -330,9 +330,9 @@ define([
 		getTextSingleSignOnSetup: function() {
 			return '<p>' + _('To finish configuration, single sign-on has to be configured for the Microsoft 365 domain. Microsoft only supports to configure single sign-on by running a Microsoft Powershell script on a Windows PC.') + '</p>' + this.formatOrderedList([
 				_('If you open this setup wizard again at a later time, a link on the first page will take you back to this instructions.'),
-				_('To use the single sign-on script, your Windows PC must have at least installed the <a href="%s" target="_blank">.NET runtime environment version 4.5.1.</a>.', _('https://www.microsoft.com/download/details.aspx?id=40779')),
-				_('Install the latest version of Microsoft Powershell, at least <a href="%s" target="_blank">Windows Management Framework 5.1</a> has to be installed.', _('https://aka.ms/wmf5download')),
-				_('On your Windows PC, follow the <a href="%s" target="_blank">instructions from Microsoft PowerShell Gallery</a> to install the <i>Microsoft Online Services PowerShell for Azure Active Directory</i> module.', _('https://www.powershellgallery.com/packages/MSOnline')),
+				_('To use the single sign-on script, your Windows PC must have at least installed the <a href="%s" target="_blank">.NET Framework (based on your Windows version):</a>.', _('https://learn.microsoft.com/en-us/dotnet/framework/install/')),
+				_('Install the latest version of Microsoft Powershell, at least <a href="%s" target="_blank">Install PowerShell 7.5.2</a> has to be installed.', _('https://github.com/PowerShell/PowerShell/releases/download/v7.5.2/PowerShell-7.5.2-win-x64.msi')),
+				_('On your Windows PC, follow these instructions to install the necessary modules to execute the setup script:</br> <code>Install-Module PowerShellGet -Force</br>Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser</br>Install-Module Microsoft.Graph -Scope AllUsers -Repository PSGallery -Force</br>Install-Module Microsoft.Graph.Beta -Repository PSGallery -Force</code>'),
 				_('Make sure that the verified domain which is set up in Azure Active Directory is <b>not</b> configured as the primary domain. Otherwise, the next step will fail.'),
 				lang.replace(_('Download the {link} for Microsoft Powershell.'), {link: '<a href="/univention/command/office365/saml_setup.bat" target="_blank">' + _('SAML configuration script') + '</a>'}) + ' ' +
 				_('Execute the downloaded SAML configuration script, and authenticate with the Azure Active Directory domain administrator account.') + this.img(_('saml_setup_script_windows_EN.png')),
@@ -521,7 +521,7 @@ define([
 					dialog.alert([
 						_('This wizard helps you to configure the connection between UCS and Microsoft 365.'), '<br>',
 						_('You need a <a href="%(domain)s" target="_blank">verified domain</a> and access to the <a href="%(dev)s" target="_blank">Microsoft Azure Portal</a> with a Microsoft 365 administrator account.', {
-							domain: entities.encode(_('https://azure.microsoft.com/en-us/documentation/articles/active-directory-add-domain/')),
+							domain: entities.encode(_('https://learn.microsoft.com/en-us/entra/fundamentals/add-custom-domain')),
 							dev: entities.encode(_('https://manage.windowsazure.com/'))
 						})
 					].join(' '), _('Microsoft 365 setup wizard'));

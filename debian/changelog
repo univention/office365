@@ -1,3 +1,9 @@
+univention-office365 (5.0.5) unstable; urgency=medium
+
+  * Bug #52413: Fix SSO setup wizard
+
+ -- Ole Schwiegert <schwiegert@univention.de>  Thu, 28 Aug 2025 13:57:00 +0200
+
 univention-office365 (5.0.4) unstable; urgency=medium
 
   * univention/dev/projects/office365#7: Improved EA layout
