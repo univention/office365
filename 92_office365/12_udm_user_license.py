@@ -162,12 +162,12 @@ def test_udm_user_license(user_creation_activation_ordering):
                 profile_kwargs_list = [
                     dict(
                         name=uts.random_name(),
-                        subscription='ENTERPRISEPACK',
-                        whitelisted_plans=['SWAY', 'POWERAPPS_O365_P2', 'YAMMER_ENTERPRISE', 'PROJECTWORKMANAGEMENT'],
-                        blacklisted_plans=['SWAY', 'POWERAPPS_O365_P2'],
+                        subscription='SPE_F1', # 'SPE_F1',
+                        whitelisted_plans=['SWAY', 'YAMMER_ENTERPRISE'],
+                        blacklisted_plans=['SWAY'],
                     ),
-                    dict(name=uts.random_name(), subscription='ENTERPRISEPACK', whitelisted_plans=['PROJECTWORKMANAGEMENT'], blacklisted_plans=[]),
-                    dict(name=uts.random_name(), subscription='ENTERPRISEPACK', whitelisted_plans=[], blacklisted_plans=['TEAMS1', 'RMS_S_ENTERPRISE', 'MCOSTANDARD']),
+                    dict(name=uts.random_name(), subscription='SPE_F1', whitelisted_plans=['SWAY'], blacklisted_plans=[]),
+                    dict(name=uts.random_name(), subscription='SPE_F1', whitelisted_plans=[], blacklisted_plans=['TEAMS1', 'RMS_S_ENTERPRISE', 'MCOSTANDARD']),
                 ]
                 for profile_kwargs in profile_kwargs_list:
                     print('*** Creating license and setting it on group %r...' % group_name)
