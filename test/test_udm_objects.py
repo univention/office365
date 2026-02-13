@@ -215,8 +215,17 @@ class TestUDMOfficeObjects:
         udm_user1 = udm_object()
         udm_user2 = udm_object()
         assert len(list(udm_user1.diff_keys(udm_user2))) == 0
-        udm_user1.udm_object_reference.oldattr['displayName'] = 'new_displayName'
-        assert udm_user1.diff_keys(udm_user2) == {'displayName'}
+        udm_user1.udm_object_reference.oldattr["displayName"] = "new_displayName"
+        assert udm_user1.diff_keys(udm_user2) == {"displayName"}
+        udm_user2.udm_object_reference.oldattr["discription"] = "old_description"
+        assert udm_user1.diff_keys(udm_user2) == {"displayName", "discription"}
+        udm_user1.udm_object_reference.oldattr["name"] = "unchanged_value"
+        udm_user2.udm_object_reference.oldattr["name"] = "unchanged_value"
+        assert udm_user1.diff_keys(udm_user2) == {"displayName", "discription"}
+        udm_user2.udm_object_reference.oldattr["name"] = "value"
+        assert udm_user1.diff_keys(udm_user2) == {"name", "displayName", "discription"}
+
+
 
 
 class TestUdmOfficeUser:

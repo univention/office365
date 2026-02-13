@@ -1,3 +1,9 @@
+univention-office365 (5.0.7) unstable; urgency=medium
+
+  * Issue univention/dev/projects/office365#5: Reactivate teams after being deactivated
+
+ -- Juan Pedro Torres Munoz <juan.torres-munoz@univention.de>  Wed, 11 Feb 2026 15:40:32 +0100
+
 univention-office365 (5.0.6) unstable; urgency=medium
 
   * Issue univention/dev/projects/office365#7 Update test to new licenses

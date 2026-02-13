@@ -1135,7 +1135,13 @@ class GroupConnector(Connector):
         # type: (UDMOfficeGroup, UDMOfficeGroup, GroupAzure) -> None
         # New Team
         if (not old_udm_group.is_team() and new_udm_group.is_team()) or (old_udm_group.azure_object_id != new_udm_group.azure_object_id and new_udm_group.is_team()):
-            self.convert_group_to_team(new_udm_group, azure_group)
+            try:
+                team_azure = TeamAzure.get(azure_group._core, object_id=azure_group.id)
+                team_azure.reactivate()
+            except ItemNotFound:
+                self.convert_group_to_team(new_udm_group, azure_group)
+            except MSGraphError as g_exc:
+                self.logger.error("Error while checking/reactivating team %r: %r.", azure_group.displayName, g_exc)
 
         # Remove Team from group
         elif old_udm_group.is_team() and not new_udm_group.is_team():

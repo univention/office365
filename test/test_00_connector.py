@@ -56,7 +56,7 @@ univention.office365.connector.connector.filter_format = lambda x, y: x % y
 from univention.office365.connector.connector import UserConnector, GroupConnector, ConnectorAttributes, UCRHelper, SubscriptionProfile
 from univention.office365.microsoft.objects.azureobjects import UserAzure, GroupAzure
 from univention.office365.udmwrapper.udmobjects import UniventionOffice365Data
-
+from univention.office365.microsoft.exceptions.core_exceptions import ItemNotFound, MSGraphError
 UCRHelper.get_adconnection_filtered_in = mock.MagicMock(return_value=[])
 # UCRHelper["office365/subscriptions/service_plan_names"] = None
 UCRHelper.get_service_plan_names = mock.MagicMock(
@@ -635,13 +635,20 @@ class TestGroupConnector:
         udm_fake_group_old.is_team = mock.MagicMock(return_value=False)
         udm_fake_group_new.is_team = mock.MagicMock(return_value=True)
 
-        self.gc.check_and_modify_teams(udm_fake_group_old, udm_fake_group_new, azure_group, alias)
-        self.gc.convert_group_to_team.assert_called_once_with(udm_fake_group_new, azure_group)
+        with mock.patch("univention.office365.connector.connector.TeamAzure") as mock_team:
+            mock_team.get.side_effect = ItemNotFound(MSGraphError(None, "message"))
+            self.gc.check_and_modify_teams(udm_fake_group_old, udm_fake_group_new, azure_group, alias)
+            self.gc.convert_group_to_team.assert_called_once_with(udm_fake_group_new, azure_group)
+
+        # Check reactivate team
+        with mock.patch("univention.office365.connector.connector.TeamAzure") as mock_team:
+            self.gc.check_and_modify_teams(udm_fake_group_old, udm_fake_group_new, azure_group, alias)
+            mock_team.get.return_value.reactivate.assert_called_once()
 
         # Check deactivate/remove team
         udm_fake_group_old.is_team = mock.MagicMock(return_value=True)
         udm_fake_group_new.is_team = mock.MagicMock(return_value=False)
-        with mock.patch('univention.office365.connector.connector.TeamAzure') as mock_team:
+        with mock.patch("univention.office365.connector.connector.TeamAzure") as mock_team:
             self.gc.check_and_modify_teams(udm_fake_group_old, udm_fake_group_new, azure_group, alias)
             mock_team.get.return_value.deactivate.assert_called_once()
 
