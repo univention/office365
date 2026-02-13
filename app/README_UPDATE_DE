@@ -1,4 +1,16 @@
 <h1>
+	Univention Microsoft 365 Connector v6.4
+	<div>
+		<ul style="font-size: 12px; font-weight: normal;">
+			<li>
+				<code class="code-colors hljs language-delphi">
+					Teams können jetzt de- und reaktiviert werden nach der initialen Erstellung.
+				</code>
+			</li>
+		</ul>
+	</div>
+</h1>
+<h1>
 	Univention Microsoft 365 Connector v6.3
 	<div>
 		<ul style="font-size: 12px; font-weight: normal;">

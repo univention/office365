@@ -6,14 +6,16 @@ This document outlines the process for releasing the Office365 connector.
 
 Since UCS 5.2 has been released this repo has 2 branches: one for UCS 5.0 and one for UCS 5.2.
 
+For the release you need to only create 1 new app version (`5.2`), however, if the change is a security fix it should be also
+released for `5.0` and `5.1`.
 For the release you need to create 3 new app versions in the test appcenter:
-1. 5.0 './univention-appcenter-control new-version 5.0/office365=<latest_published_version> 5.0/office365=<new_version_for_5.0>'
-2. 5.1 './univention-appcenter-control new-version 5.0/office365=<new_version_for_5.0> 5.1/office365=<new_version_for_5.0>'
+1. ~~5.0 './univention-appcenter-control new-version 5.0/office365=<latest_published_version> 5.0/office365=<new_version_for_5.0>'~~
+2. ~~5.1 './univention-appcenter-control new-version 5.0/office365=<new_version_for_5.0> 5.1/office365=<new_version_for_5.0>'~~
 3. 5.2 './univention-appcenter-control new-version 5.0/office365=<new_version_for_5.0> 5.2/office365=<new_version_for_5.2>'
 
 Format of the new version:
  * `new_version_for_5.0` -> 5.x -> Eg. 5.13
- * `new_version_for_5.2` -> 6.y -> Eg. 6.4
+ * `new_version_for_5.2` -> 6.y -> Eg. 6.5
 
 **Important**: After creating the new versions you need to check that all of them have the same `component_id`
 
