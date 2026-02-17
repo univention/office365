@@ -60,6 +60,15 @@ component_id=office365_20250411121705
 ./copy_from_appcenter.test.sh 5.2 $component_id
 ```
 
+### Unlock the mirror
+
+```bash
+ssh omar
+sudo bash
+ucr unset update/mirror/disabled
+exit
+```
+
 ### Update the mirror
 
 ```bash
@@ -69,13 +78,4 @@ cd /var/univention/buildsystem2/mirror/appcenter
 sudo update_mirror.sh --verbose --debug appcenter
 # If everything looks good, run the update
 sudo update_mirror.sh --verbose appcenter
-```
-
-### Unlock the mirror
-
-```bash
-ssh omar
-sudo bash
-ucr unset update/mirror/disabled
-exit
 ```
