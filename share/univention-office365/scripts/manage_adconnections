@@ -31,7 +31,7 @@ def list(args):
 def create(args):
     account_connector.create_new_adconnection(logger, args.alias, args.makedefault)
     if args.alias != UCRHelper.default_adconnection_name:
-        subprocess.call(['univention-keycloak', 'proxy-realms', 'create', args.alias])
+        subprocess.call(['univention-keycloak', 'proxy-realms', 'create', args.alias], env=UCRHelper.get_proxy_subprocess_env(logger))
 
 
 def rename(args):

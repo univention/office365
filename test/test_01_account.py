@@ -111,6 +111,33 @@ class TestAzureAccount:
         account = accound_M.AzureAccount(alias=ALIASDOMAIN, config_base_path=DOMAIN_PATH)
         assert account.get_domain() == account['domain']
 
+    def test_write_saml_setup_script_uses_proxy_subprocess_env(self):
+        # type: () -> None
+        account = accound_M.AzureAccount(alias=ALIASDOMAIN, config_base_path=DOMAIN_PATH)
+        env = {'http_proxy': 'http://proxy.example:3128'}
+        script_template = (
+            '__ENTRA_DOMAIN__\n'
+            '__KEYCLOAK_BASE_URL__\n'
+            '__KEYCLOAK_REALM__\n'
+            '__DISPLAY_NAME__\n'
+            '__SAML_SIGNING_CERTIFICATE__\n'
+        )
+
+        with mock.patch.object(accound_M.UCRHelper, 'get_proxy_subprocess_env', return_value=env) as get_proxy_subprocess_env, mock.patch(
+            'univention.office365.microsoft.account.subprocess.check_output',
+            side_effect=[b'https://sso.example.invalid', b'SIGNING_CERT'],
+        ) as check_output, mock.patch('builtins.open', mock.mock_open(read_data=script_template)) as open_mock, mock.patch('univention.office365.microsoft.account.os.chmod'):
+            account.write_saml_setup_script()
+
+        get_proxy_subprocess_env.assert_called_once_with(account.logger)
+        check_output.assert_has_calls(
+            [
+                mock.call(['univention-keycloak', 'get-keycloak-base-url'], stderr=accound_M.subprocess.PIPE, env=env),
+                mock.call(['univention-keycloak', 'saml/idp/cert', 'get', '--realm-id', ALIASDOMAIN, '--output', '/dev/stdout'], stderr=accound_M.subprocess.PIPE, env=env),
+            ]
+        )
+        open_mock.assert_any_call(accound_M.SAML_SETUP_SCRIPT_TEMPLATE_PATH, 'r')
+
     # @pytest.mark.skip
     # def test_parse_id_token(self):
     # # type: () -> None

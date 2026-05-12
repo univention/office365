@@ -1,3 +1,10 @@
+univention-office365 (5.0.10) unstable; urgency=medium
+
+  * Issue univention/dev/internal/dev-issues/dev-incidents#218: Fix proxy
+    settings for Keycloak subprocesses
+
+ -- Yannik Strittmatter <yannik.strittmatter@univention.de>  Thu, 09 Jul 2026 12:30:00 +0200
+
 univention-office365 (5.0.9) unstable; urgency=medium
 
   * Issue univention/dev/projects/office365#17: Fix 365 saml setup script

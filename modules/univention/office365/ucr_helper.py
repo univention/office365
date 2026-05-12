@@ -9,13 +9,12 @@
 import os
 import re
 import subprocess
-from logging import Logger
+from logging import Logger, getLogger
 from typing import Dict, Optional, Callable, List
 from functools import wraps
 
 from univention.config_registry import ConfigRegistry, handler_set, handler_unset
 from univention.config_registry.frontend import ucr_update
-
 
 def pre_post_decorator(pre_name=None, post_name=None):
     def decorator(f):
@@ -192,6 +191,36 @@ class UCRHelperC(ConfigRegistry):
         return res
 
     @pre_post_decorator(pre_name='load')
+    def get_proxy_subprocess_env(self, logger=None):
+        # type: (Optional[Logger]) -> Dict[str,str]
+        logger = logger or getLogger(__name__)
+        env = os.environ.copy()
+        proxies = self.get_http_proxies(logger)
+
+        for req_key, env_keys in {
+            'http': ('http_proxy', 'HTTP_PROXY'),
+            'https': ('https_proxy', 'HTTPS_PROXY'),
+        }.items():
+            if req_key in proxies:
+                for env_key in env_keys:
+                    env[env_key] = proxies[req_key]
+            else:
+                for env_key in env_keys:
+                    env.pop(env_key, None)
+
+        no_proxy = None
+        for env_key in ('NO_PROXY', 'no_proxy'):
+            if env_key in os.environ:
+                no_proxy = os.environ[env_key]
+        if self.get('proxy/no_proxy'):
+            no_proxy = self['proxy/no_proxy']
+        if no_proxy:
+            env['no_proxy'] = no_proxy
+            env['NO_PROXY'] = no_proxy
+
+        return env
+
+    @pre_post_decorator(pre_name='load')
     def get_usage_location(self):
         # type: () -> str
         res = self.get(self.usage_location_ucrv) or self.get(self.ssl_country_ucrv)
@@ -207,7 +236,7 @@ class UCRHelperC(ConfigRegistry):
     @pre_post_decorator(pre_name='load')
     def get_ucs_sso_fqdn(self):
         # type: () -> str
-        return subprocess.check_output(['univention-keycloak', 'get-keycloak-base-url']).decode().strip()
+        return subprocess.check_output(['univention-keycloak', 'get-keycloak-base-url'], env=self.get_proxy_subprocess_env()).decode().strip()
 
     @pre_post_decorator(pre_name='load')
     def get_domainname(self):

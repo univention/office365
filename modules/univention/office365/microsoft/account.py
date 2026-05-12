@@ -57,7 +57,6 @@ oauth2_token_url = 'https://login.microsoftonline.com/{adconnection_id}/oauth2/t
 oauth2_token_issuer = 'https://sts.windows.net/{adconnection_id}/'
 federation_metadata_url = 'https://login.microsoftonline.com/{adconnection_id}/federationmetadata/2007-06/federationmetadata.xml'
 
-
 class AzureAccount(UserDict):
     config_base_path = OFFICE365_API_PATH
 
@@ -275,10 +274,13 @@ class AzureAccount(UserDict):
         else:
             keycloak_realm = "ucs"
 
+        env = UCRHelper.get_proxy_subprocess_env(self.logger)
+
         try:
             keycloak_base_url = subprocess.check_output(
                 ["univention-keycloak", "get-keycloak-base-url"],
                 stderr=subprocess.PIPE,
+                env=env,
             ).decode("utf-8").strip().rstrip("/")
         except Exception as exc:
             self.logger.exception("while detecting Keycloak base URL: %s", exc)
@@ -299,6 +301,7 @@ class AzureAccount(UserDict):
                     "/dev/stdout",
                 ],
                 stderr=subprocess.PIPE,
+                env=env,
             )
         except Exception as exc:
             self.logger.exception("while reading Keycloak SAML certificate: %s", exc)
