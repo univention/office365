@@ -223,7 +223,7 @@ define([
 					widgets: [{
 						type: Text,
 						name: 'infos',
-						content: _('Synchronized users can log into Microsoft 365 by using the link on the <a href="/univention/" target="_blank">UCS portal</a>.') + '<br>' + this.img(_('sso-login_EN.png'))
+						content: _('Synchronized users can log into Microsoft 365 by using the link on the <a href="/univention/" target="_blank">UCS portal</a>.') + '<br>' + this.img(_('sso-login_EN.png'), true)
 					}]
 				}, {
 					name: 'error',
@@ -275,7 +275,7 @@ define([
 				_('If existing applications are not shown, select <i>All applications</i> above the search field.'),
 				_('Click <i>NEW REGISTRATION</i> to add a new application to your directory.') + this.img(_('top_bar_add_app_EN.png')),
 				_('Enter a name for your application, e.g. <i>UCS Microsoft 365</i>.'),
-				_('As supported account type select <i>Accounts in this organizational directory only</i>.') + this.img(_('app_name_EN.png')),
+				_('As supported account type select <i>Accounts in this organizational directory only</i>.') + this.img(_('app_name_EN.png'), true),
 				_('In the category <i>Redirect URI</i>, make sure <i>Web</i> is selected in the dropdown. Copy the value below and paste it into the textfield in the Azure wizard.')
 			]);
 		},
@@ -298,8 +298,15 @@ define([
 		},
 
 		getTextManifestUploadDomain: function() {
-			return _('The setup wizard now needs the domain that was verified during the configuration of the Microsoft 365 account. Insert it into the text box below.');
-		},
+                        return this.formatOrderedList([
+                                _('The setup wizard now needs a domain that was verified during the configuration of the Microsoft 365 account.'),
+                                _('To find this domain, search for <i>Domain Names</i> in the search-bar of the Microsoft Azure Portal.'),
+                                _('If you click on a domain, you will see additional information. Make sure the selected domain has "Custom" as its type and "Verified" as status.'),
+                                this.img(_('azure_search_domain_EN.png'), true) + '\n',
+                                this.img(_('azure_verified_domain_EN.png'), true),
+                                _('Insert the domain name into the text box below.'),
+                        ]);
+                },
 
 		getTextManifestUpload: function() {
 			return _('Please upload the manifest that you just downloaded from the Azure Portal by using the upload button below. (The downloaded manifest is a file with the same name as the app and ends in ".json".)') + ' ' + _('After uploading the manifest you will be offered to download a file <i>manifest.json</i>. Store this file on your computer.');
@@ -324,7 +331,7 @@ define([
 		},
 
 		getTextAzureAuthorizationImage: function() {
-			return this.img(_('ms_authorize_screen_text_and_image_EN.png'));
+			return this.img(_('ms_authorize_screen_text_and_image_EN.png'), true);
 		},
 
 		getTextSingleSignOnSetup: function() {
@@ -335,7 +342,7 @@ define([
 				_('On your Windows PC, follow these instructions to install the necessary modules to execute the setup script:</br> <code>Install-Module PowerShellGet -Force</br>Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser</br>Install-Module Microsoft.Graph -Scope AllUsers -Repository PSGallery -Force</br>Install-Module Microsoft.Graph.Beta -Repository PSGallery -Force</code>'),
 				_('Make sure that the verified domain which is set up in Azure Active Directory is <b>not</b> configured as the primary domain. Otherwise, the next step will fail.'),
 				lang.replace(_('Download the {link} for Microsoft Powershell.'), {link: '<a href="/univention/command/office365/saml_setup.bat" target="_blank">' + _('SAML configuration script') + '</a>'}) + ' ' +
-				_('Execute the downloaded SAML configuration script, and authenticate with the Azure Active Directory domain administrator account.') + this.img(_('saml_setup_script_windows_EN.png')),
+				_('Execute the downloaded SAML configuration script, and authenticate with the Azure Active Directory domain administrator account.') + this.img(_('saml_setup_script_windows_EN.png'), true),
 				_('If the script has been executed successfully, single sign-on configuration is completed. Continue by clicking on <i>Next</i>.')
 			]);
 		},
@@ -353,7 +360,7 @@ define([
 		getTextSuccessPage1: function() {
 			return this.formatParagraphs([
 				_('You can now enable the Microsoft Azure synchronization for users on the <i>Microsoft 365</i> tab in the %s.', [tools.linkToModule({module: 'udm', flavor: 'users/user'})]),
-				_('To learn more about configuring individual subscriptions and service plans for users, see <a href="%s" target="_blank">the Microsoft 365 Connector documentation</a>', _('http://wiki.univention.de/index.php?title=Microsoft_Office_365_Connector')) + '<br>' + this.img(_('umc_office365_EN.png'))
+				_('To learn more about configuring individual subscriptions and service plans for users, see <a href="%s" target="_blank">the Microsoft 365 Connector documentation</a>', _('http://wiki.univention.de/index.php?title=Microsoft_Office_365_Connector')) + '<br>' + this.img(_('umc_office365_EN.png'), true)
 			]);
 		},
 
@@ -366,8 +373,12 @@ define([
 			return '<ol ' + start + 'style="padding: 0; list-style-position: inside;"><li>' + data.join('</li><li>')  + '</li></ol>';
 		},
 
-		img: function(image) {
-			return '<br/><img style="min-width: 250px; max-width: 100%; padding-left: 1em;" src="' + entities.encode(require.toUrl('umc/modules/office365/' + image)) + '">';
+		img: function(image, shadow) {
+			var src = entities.encode(require.toUrl('umc/modules/office365/' + image));
+			if (shadow) {
+				return '<br/><span class="office365-screenshot-frame"><img class="office365-screenshot" src="' + src + '"></span>';
+			}
+			return '<br/><img class="office365-screenshot" src="' + src + '">';
 		},
 
 		initWizard: function(data) {

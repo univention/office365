@@ -3,8 +3,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: univention-admin-handlers-office365\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-01-04 12:29+0100\n"
+"Report-Msgid-Bugs-To: packages@univention.de\n"
+"POT-Creation-Date: 2026-06-22 17:34+0200\n"
 "PO-Revision-Date: 2016-12-12 12:29+0100\n"
 "Last-Translator: packages@univention.de\n"
 "Language-Team: German\n"
@@ -13,73 +13,124 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: unicode\n"
 
-#: ad-connection.py:41
-msgid "Microsoft 365 Azure AD Connection"
-msgstr "Microsoft 365 Azure AD Verbindung"
-
-#: ad-connection.py:42
-msgid "Management of Microsoft 365 Azure AD connections"
-msgstr "Verwaltung von Microsoft 365 Azure AD Verbindungen"
-
-#: ad-connection.py:55
-msgid "Name"
-msgstr "Name"
-
-#: ad-connection.py:56
+#: share/univention-office365/handler.d/ad-connection.py:34
 msgid "Alias name of the connection."
 msgstr "Alias Name der Verbindung."
 
-#: ad-connection.py:63
+#: share/univention-office365/syntax.d/office365.py:51
+msgid "Azure AD connection"
+msgstr "Azure AD Verbindung"
+
+#: share/univention-office365/handler.d/ad-connection.py:41
 msgid "Description"
 msgstr "Beschreibung"
 
-#: ad-connection.py:70 profile.py:82
-msgid "General"
-msgstr "Allgemein"
-
-#: ad-connection.py:70
-msgid "Microsoft 365 Azure AD Alias"
-msgstr "Microsoft 365 Azure AD Alias"
-
-#: profile.py:41 profile.py:82
-msgid "Microsoft 365 Profile"
-msgstr "Microsoft 365 Profil"
-
-#: profile.py:42
-msgid "Management of Microsoft 365 profiles"
-msgstr "Verwaltung von Microsoft 365 Profilen"
-
-#: profile.py:55
-msgid "Profile name"
-msgstr "Profilname"
-
-#: profile.py:56
+#: share/univention-office365/handler.d/profile.py:34
 msgid "Displayed profile name when selecting a profile"
 msgstr "Angezeigter Profilname, wenn ein Profil ausgewählt wird"
 
-#: profile.py:62
-msgid "Subscription identifier"
-msgstr "Bezeichner der Subskription"
+#: share/univention-office365/handler.d/ad-connection.py:49
+#: share/univention-office365/handler.d/profile.py:61
+msgid "General"
+msgstr "Allgemein"
 
-#: profile.py:63
-msgid "Internal Name of the subscription, as shown by cli tool"
-msgstr "Interner Name der Subskription, wie vom cli Programm angezeigt"
-
-#: profile.py:68
-msgid "Service plan whitelist"
-msgstr "Whitelist der Servicepläne"
-
-#: profile.py:69
+#: share/univention-office365/handler.d/profile.py:47
 msgid "Identifiers of service plans, which will be activated for the profile"
 msgstr "Bezeichner der Servicepläne, die in dem Profil aktiviert werden"
 
-#: profile.py:74
+#: share/univention-office365/handler.d/profile.py:53
+msgid ""
+"Identifiers of service plans, which will be deactivated for the profile"
+msgstr "Bezeichner der Servicepläne, die in dem Profil deaktiviert werden"
+
+#: share/univention-office365/hooks.d/office365_user_ADConnections_hook.py:18
+msgid ""
+"In order to create a Microsoft 365 team from a group, at least one "
+"group/team owner has to be specified."
+msgstr ""
+"Um ein Microsoft 365 Team aus einer Gruppe zu erstellen, muss mindestens ein"
+" Gruppen-/Team-Eigentümer angegeben werden."
+
+#: share/univention-office365/handler.d/profile.py:41
+msgid "Internal Name of the subscription, as shown by cli tool"
+msgstr "Interner Name der Subskription, wie vom cli Programm angezeigt"
+
+#: share/univention-office365/handler.d/ad-connection.py:20
+msgid "Management of Microsoft 365 Azure AD connections"
+msgstr "Verwaltung von Microsoft 365 Azure AD Verbindungen"
+
+#: share/univention-office365/handler.d/profile.py:20
+msgid "Management of Microsoft 365 profiles"
+msgstr "Verwaltung von Microsoft 365 Profilen"
+
+#: share/univention-office365/handler.d/ad-connection.py:50
+msgid "Microsoft 365 Azure AD Alias"
+msgstr "Microsoft 365 Azure AD Alias"
+
+#: share/univention-office365/handler.d/ad-connection.py:19
+msgid "Microsoft 365 Azure AD Connection"
+msgstr "Microsoft 365 Azure AD Verbindung"
+
+#: share/univention-office365/syntax.d/office365.py:64
+msgid "Microsoft 365 Group"
+msgstr "Microsoft 365 Gruppe"
+
+#: share/univention-office365/handler.d/profile.py:19
+#: share/univention-office365/handler.d/profile.py:62
+msgid "Microsoft 365 Profile"
+msgstr "Microsoft 365 Profil"
+
+#: share/univention-office365/hooks.d/office365_user_ADConnections_hook.py:17
+msgid "Microsoft 365 users must have a primary e-mail address specified."
+msgstr "Microsoft 365 Benutzer müssen eine primäre E-Mail-Adresse besitzen."
+
+#: share/univention-office365/handler.d/ad-connection.py:33
+msgid "Name"
+msgstr "Name"
+
+#: share/univention-office365/syntax.d/office365.py:82
+msgid "Private"
+msgstr ""
+
+#: share/univention-office365/handler.d/profile.py:33
+msgid "Profile name"
+msgstr "Profilname"
+
+#: share/univention-office365/syntax.d/office365.py:83
+msgid "Public"
+msgstr ""
+
+#: share/univention-office365/syntax.d/office365.py:63
+msgid "Security Group"
+msgstr "Sicherheitsgruppe"
+
+#: share/univention-office365/handler.d/profile.py:52
 msgid "Service plan blacklist"
 msgstr "Blacklist der Servicepläne"
 
-#: profile.py:75
-msgid "Identifiers of service plans, which will be deactivated for the profile"
-msgstr "Bezeichner der Servicepläne, die in dem Profil deaktiviert werden"
+#: share/univention-office365/handler.d/profile.py:46
+msgid "Service plan whitelist"
+msgstr "Whitelist der Servicepläne"
+
+#: share/univention-office365/handler.d/profile.py:40
+msgid "Subscription identifier"
+msgstr "Bezeichner der Subskription"
+
+#: share/univention-office365/syntax.d/office365.py:52
+msgid "User Principal Name"
+msgstr "User Principal Name"
+
+#: share/univention-office365/hooks.d/office365_user_ADConnections_hook.py:20
+msgid ""
+"Warning: By changing the group type, the group will be deleted and recreated"
+" in Microsoft 365. This can affect the group's permissions and settings. If "
+"you want to continue anyway, please tick the 'Force group type' checkbox."
+msgstr ""
+"Warnung: Durch das Ändern des Gruppentyps wird die Gruppe in Microsoft 365 "
+"gelöscht und neu erstellt. Dies kann zum Verlust von Zugriffsberechtigungen "
+"und Einstellungen der Gruppe führen. Wenn diese Änderung trotzdem "
+"durchgeführt werden soll, bitte wählen sie das 'Überschreiben des "
+"Gruppentyps erzwingen' Kästchen aus."
 
 #~ msgid "Office 365 Profile"
 #~ msgstr "Office 365 Profil"
@@ -87,25 +138,3 @@ msgstr "Bezeichner der Servicepläne, die in dem Profil deaktiviert werden"
 #~ msgid "Office 365 users must have a primary e-mail address specified."
 #~ msgstr ""
 #~ "Office 365 Benutzer müssen eine Primäre E-Mailadresse angegeben haben."
-
-#~ msgid "Azure AD connection"
-#~ msgstr "Azure AD Verbindung"
-
-#~ msgid "User Principal Name"
-#~ msgstr "User Principal Name"
-
-#~ msgid "Security Group"
-#~ msgstr "Sicherheitsgruppe"
-
-#~ msgid "Microsoft 365 Group"
-#~ msgstr "Microsoft 365 Gruppe"
-
-msgid "Microsoft 365 users must have a primary e-mail address specified."
-msgstr "Microsoft 365 Benutzer müssen eine primäre E-Mail-Adresse besitzen."
-
-msgid "In order to create a Microsoft 365 team from a group, at least one group/team owner has to be specified."
-msgstr "Um ein Microsoft 365 Team aus einer Gruppe zu erstellen, muss mindestens ein Gruppen-/Team-Eigentümer angegeben werden."
-
-msgid "Warning: By changing the group type, the group will be deleted and recreated in Microsoft 365. This can affect the group's permissions and settings. If you want to continue anyway, please tick the 'Force group type' checkbox."
-msgstr "Warnung: Durch das Ändern des Gruppentyps wird die Gruppe in Microsoft 365 gelöscht und neu erstellt. Dies kann zum Verlust von Zugriffsberechtigungen und Einstellungen der Gruppe führen. Wenn diese Änderung trotzdem durchgeführt werden soll, bitte wählen sie das 'Überschreiben des Gruppentyps erzwingen' Kästchen aus."
-

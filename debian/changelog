@@ -1,3 +1,9 @@
+univention-office365 (5.0.8) unstable; urgency=medium
+
+  * Issue univention/dev/ucs#3342: Clarify "verified domain name" in setup wizard
+
+ -- Yannik Strittmatter <yannik.strittmatter@univention.de>  Tue, 09 Jun 2026 14:59:55 +0200
+
 univention-office365 (5.0.7) unstable; urgency=medium
 
   * Issue univention/dev/projects/office365#5: Reactivate teams after being deactivated

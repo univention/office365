@@ -9,6 +9,35 @@
     min-height: 50px;
 }
 
+.office365-screenshot {
+    min-width: 250px;
+    max-width: 100%;
+    display: block;
+    margin-left: 1em;
+}
+
+.office365-screenshot-frame {
+    display: inline-block;
+    position: relative;
+    margin-left: 1em;
+    padding: 8px;
+    background: #fff;
+    box-sizing: border-box;
+    max-width: 100%;
+}
+
+.office365-screenshot-frame .office365-screenshot {
+    margin-left: 0;
+}
+
+.office365-screenshot-frame::after {
+    content: "";
+    position: absolute;
+    inset: 8px;
+    pointer-events: none;
+    box-shadow: 0 0 10px 2px rgba(0, 0, 0, 0.35);
+}
+
 @media (max-width: 767px) {
     .umc .umc-office365-page .umcPageIcon {
         height: 100px;
