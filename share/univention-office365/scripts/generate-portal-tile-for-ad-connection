@@ -10,7 +10,7 @@ set -e
 realm="$1"
 shift
 
-if [ -z "$realm" ] || [ "$realm" = "-h" ] || [ "realm" = "--help" ]; then
+if [ -z "$realm" ] || [ "$realm" = "-h" ] || [ "$realm" = "--help" ]; then
 	echo "usage: $0 REALM [GROUP_DN, ...]"
 	echo ""
 	echo "Creates a Office 365 login tile in the portal and puts it into"

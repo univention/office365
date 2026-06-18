@@ -10,12 +10,13 @@ import base64
 import json
 import os
 import pwd
+import re
 import shutil
+import subprocess
 import sys
 import time
 import traceback
 import uuid
-import subprocess
 
 import six
 from six.moves import UserDict
@@ -48,7 +49,8 @@ from univention.office365.ucr_helper import UCRHelper
 _ = Translation('univention-management-console-module-office365').translate
 
 SCOPE = ['Directory.ReadWrite.All']  # https://msdn.microsoft.com/Library/Azure/Ad/Graph/howto/azure-ad-graph-api-permission-scopes#DirectoryRWDetail
-SAML_SETUP_SCRIPT_PATH = '/var/lib/univention-office365/saml_setup{adconnection_alias}.bat'
+SAML_SETUP_SCRIPT_PATH = "/var/lib/univention-office365/saml_setup{adconnection_alias}.ps1"
+SAML_SETUP_SCRIPT_TEMPLATE_PATH = "/usr/share/univention-office365/templates/saml_setup.ps1"
 
 oauth2_auth_url = 'https://login.microsoftonline.com/{adconnection}/oauth2/authorize?{params}'
 oauth2_token_url = 'https://login.microsoftonline.com/{adconnection_id}/oauth2/token'
@@ -265,43 +267,122 @@ class AzureAccount(UserDict):
 
     def write_saml_setup_script(self):
         # type: () -> None
-        if self.alias != UCRHelper.default_adconnection_name:
-            realm = self.alias
-        else:
-            realm = 'ucs'
 
-        domain = self.get_domain()
-        sso_url = subprocess.check_output(['univention-keycloak', 'get-keycloak-base-url']).decode().strip()
-        logon_uri = f'{sso_url}/realms/{realm}/protocol/saml'
-        passive_logon_uri = logon_uri
-        signing_cert = subprocess.check_output(['univention-keycloak', 'saml/idp/cert', 'get', '--realm-id', realm]).decode().strip()
-        issuer_uri = f'{sso_url}/realms/{realm}'
-        logoff_uri = logon_uri  # FIXME: does not work right now
-        template = f'''
-@ECHO OFF
-ECHO Asking for Azure Administrator credentials
-powershell Connect-MgGraph -Scopes "Domain.ReadWrite.All", "Directory.ReadWrite.All"; 
-Set-MgDomainAuthentication -DomainId "{domain}" -AuthenticationMethod Managed; 
-Set-MgDomainAuthentication -DomainId "{domain}" -AuthenticationMethod Federated -FederationBrandName "UCS" `
-    -ActiveSignInUri "{logon_uri}" `
-    -PassiveSignInUri "{passive_logon_uri}" `
-    -SigningCertificate "{signing_cert}" `
-    -IssuerUri "{issuer_uri}" `
-    -LogOffUri "{logoff_uri}" `
-    -PreferredAuthenticationProtocol "SAMLP"; 
-Get-MgDomain
-ECHO Finished single sign-on configuration change
-pause
-'''
+        # The Keycloak realm is "ucs" for the default connection and the
+        # connection alias for further connections.
+        if self.alias != UCRHelper.default_adconnection_name:
+            keycloak_realm = self.alias
+        else:
+            keycloak_realm = "ucs"
 
         try:
-            script_path = SAML_SETUP_SCRIPT_PATH.format(adconnection_alias='_{}'.format(self.alias) if self.alias else '')
-            with open(script_path, 'w') as fd:
-                fd.write(template)
+            keycloak_base_url = subprocess.check_output(
+                ["univention-keycloak", "get-keycloak-base-url"],
+                stderr=subprocess.PIPE,
+            ).decode("utf-8").strip().rstrip("/")
+        except Exception as exc:
+            self.logger.exception("while detecting Keycloak base URL: %s", exc)
+            raise WriteScriptError(
+                _("Error detecting Keycloak base URL."),
+                adconnection_alias=self.alias,
+            )
+
+        try:
+            raw_cert = subprocess.check_output(
+                [
+                    "univention-keycloak",
+                    "saml/idp/cert",
+                    "get",
+                    "--realm-id",
+                    keycloak_realm,
+                    "--output",
+                    "/dev/stdout",
+                ],
+                stderr=subprocess.PIPE,
+            )
+        except Exception as exc:
+            self.logger.exception("while reading Keycloak SAML certificate: %s", exc)
+            raise WriteScriptError(
+                _("Error reading Keycloak SAML identity provider certificate."),
+                adconnection_alias=self.alias,
+            )
+
+        # The Keycloak helper may return the certificate either as PEM or as
+        # plain base64. Microsoft Graph's signingCertificate field expects only
+        # the base64 payload, so strip PEM markers and all whitespace.
+        cert = (
+            raw_cert.decode("ASCII")
+                .replace("-----BEGIN CERTIFICATE-----", "")
+                .replace("-----END CERTIFICATE-----", "")
+                .replace("\n", "")
+                .replace("\r", "")
+                .replace(" ", "")
+                .replace("\t", "")
+        )
+
+        if not cert:
+            self.logger.error("Keycloak SAML certificate output is empty")
+            raise WriteScriptError(
+                _("Error reading Keycloak SAML identity provider certificate."),
+                adconnection_alias=self.alias,
+            )
+
+        display_name = "UCS Keycloak"
+        if self.alias and self.alias != UCRHelper.default_adconnection_name:
+            display_name = "UCS Keycloak ({})".format(self.alias)
+
+        try:
+            with open(SAML_SETUP_SCRIPT_TEMPLATE_PATH, "r") as fd:
+                script = fd.read()
+        except IOError as exc:
+            self.logger.exception("while reading SAML setup script template: %s", exc)
+            raise WriteScriptError(
+                _("Error reading SAML setup script template."),
+                adconnection_alias=self.alias,
+            )
+
+        def powershell_single_quoted_string(value):
+            # PowerShell escapes single quotes inside single-quoted strings by doubling them.
+            return value.replace("'", "''")
+
+
+        replacements = {
+            "__ENTRA_DOMAIN__": powershell_single_quoted_string(self.get_domain()),
+            "__KEYCLOAK_BASE_URL__": powershell_single_quoted_string(keycloak_base_url),
+            "__KEYCLOAK_REALM__": powershell_single_quoted_string(keycloak_realm),
+            "__DISPLAY_NAME__": powershell_single_quoted_string(display_name),
+            "__SAML_SIGNING_CERTIFICATE__": powershell_single_quoted_string(cert),
+        }
+
+        for placeholder, value in replacements.items():
+            if script.count(placeholder) != 1:
+                self.logger.error(
+                    "SAML setup script template does not contain exactly one %s placeholder: %s",
+                    placeholder,
+                    SAML_SETUP_SCRIPT_TEMPLATE_PATH,
+                )
+                raise WriteScriptError(
+                    _("Error reading SAML setup script template."),
+                    adconnection_alias=self.alias,
+                )
+
+            script = script.replace(placeholder, value)
+
+        try:
+            script_path = SAML_SETUP_SCRIPT_PATH.format(
+                adconnection_alias="_{}".format(self.alias) if self.alias else ""
+            )
+
+            with open(script_path, "w") as fd:
+                fd.write(script)
+
             os.chmod(script_path, 0o644)
         except IOError as exc:
-            self.logger.exception('while writing powershell script: %s', exc)
-            raise WriteScriptError(_('Error writing SAML setup script.'), adconnection_alias=self.alias)
+            self.logger.exception("while writing SAML setup script: %s", exc)
+            raise WriteScriptError(
+                _("Error writing SAML setup script."),
+                adconnection_alias=self.alias,
+            )
 
     def _get_key_file_data(self):
         # type: () -> str

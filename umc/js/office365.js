@@ -341,7 +341,7 @@ define([
 				_('Install the latest version of Microsoft Powershell, at least <a href="%s" target="_blank">Install PowerShell 7.5.2</a> has to be installed.', _('https://github.com/PowerShell/PowerShell/releases/download/v7.5.2/PowerShell-7.5.2-win-x64.msi')),
 				_('On your Windows PC, follow these instructions to install the necessary modules to execute the setup script:</br> <code>Install-Module PowerShellGet -Force</br>Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser</br>Install-Module Microsoft.Graph -Scope AllUsers -Repository PSGallery -Force</br>Install-Module Microsoft.Graph.Beta -Repository PSGallery -Force</code>'),
 				_('Make sure that the verified domain which is set up in Azure Active Directory is <b>not</b> configured as the primary domain. Otherwise, the next step will fail.'),
-				lang.replace(_('Download the {link} for Microsoft Powershell.'), {link: '<a href="/univention/command/office365/saml_setup.bat" target="_blank">' + _('SAML configuration script') + '</a>'}) + ' ' +
+				lang.replace(_('Download the {link} for Microsoft Powershell.'), {link: '<a href="/univention/command/office365/saml_setup.ps1" target="_blank">' + _('SAML configuration script') + '</a>'}) + ' ' +
 				_('Execute the downloaded SAML configuration script, and authenticate with the Azure Active Directory domain administrator account.') + this.img(_('saml_setup_script_windows_EN.png'), true),
 				_('If the script has been executed successfully, single sign-on configuration is completed. Continue by clicking on <i>Next</i>.')
 			]);

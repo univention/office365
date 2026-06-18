@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: univention-management-console-module-office365\n"
 "Report-Msgid-Bugs-To: packages@univention.de\n"
-"POT-Creation-Date: 2026-06-22 17:34+0200\n"
+"POT-Creation-Date: 2026-06-29 15:36+0200\n"
 "PO-Revision-Date: 2016-01-14 11:26+0100\n"
 "Last-Translator: Univention GmbH <packages@univention.de>\n"
 "Language-Team: Univention GmbH <packages@univention.de>\n"
@@ -126,7 +126,7 @@ msgstr "Fahren Sie durch klicken auf <i>Weiter</i> fort."
 msgid "Copy the value for <i>FEDERATION METADATA DOCUMENT</i>."
 msgstr "Kopieren Sie den Wert <i>VERBUNDMETADATENDOKUMENT</i>."
 
-#: umc/js/office365.js:409
+#: umc/js/office365.js:407
 msgid ""
 "Could not open a new browser window. Please deactivate all pop up blocker "
 "for this site."
@@ -179,7 +179,7 @@ msgstr ""
 "entsprechende Konten im Microsoft-Verzeichnis angelegt und ausgewählte "
 "Kontoattribute zu diesem synchronisiert."
 
-#: umc/js/office365.js:532
+#: umc/js/office365.js:530
 msgid "Help"
 msgstr "Hilfe"
 
@@ -213,9 +213,10 @@ msgstr ""
 msgid ""
 "If you click on a domain, you will see additional information. Make sure the "
 "selected domain has \"Custom\" as its type and \"Verified\" as status."
-msgstr "Klicken Sie auf eine Domäne, um weitere Informationen anzuzeigen. "
-"Stellen Sie sicher, dass die ausgewählte Domäne \"Benutzerdefiniert\" als "
-"Typ und \"Verifiziert\" als Status hat."
+msgstr ""
+"Klicken Sie auf eine Domäne, um weitere Informationen anzuzeigen. Stellen "
+"Sie sicher, dass die ausgewählte Domäne \"Benutzerdefiniert\" als Typ und "
+"\"Verifiziert\" als Status hat."
 
 #: umc/js/office365.js:339
 msgid ""
@@ -284,7 +285,7 @@ msgstr ""
 "Powershell. Es muss mindestens <a href=\"%s\" target=\"_blank\">Windows "
 "Powershell 7.5.2</a> installiert sein."
 
-#: umc/js/office365.js:465
+#: umc/js/office365.js:463
 msgid ""
 "It is necessary to <a href=\"https://%(url)s\" target=\"_blank\">run this "
 "wizard while using the Univention Management Console with a https connection."
@@ -330,7 +331,7 @@ msgstr ""
 "Stellen Sie sicher, dass die neu erstellte Anwendung ausgewählt ist oder "
 "öffnen Sie sie durch einen Klick."
 
-#: umc/js/office365.js:426
+#: umc/js/office365.js:424
 msgid "Microsoft 365 configuration"
 msgstr "Microsoft 365 Konfiguration"
 
@@ -338,7 +339,7 @@ msgstr "Microsoft 365 Konfiguration"
 msgid "Microsoft 365 setup complete"
 msgstr "Microsoft 365 Einrichtung abgeschlossen"
 
-#: umc/js/office365.js:540
+#: umc/js/office365.js:538
 msgid "Microsoft 365 setup wizard"
 msgstr "Microsoft 365 Einrichtungsassistent"
 
@@ -477,10 +478,10 @@ msgid ""
 "The setup wizard now needs a domain that was verified during the "
 "configuration of the Microsoft 365 account."
 msgstr ""
-"Der Einrichtungsassistent benötigt eine Domäne, die während der Konfiguration "
-"des Microsoft 365 Kontos eingerichtet wurde."
+"Der Einrichtungsassistent benötigt eine Domäne, die während der "
+"Konfiguration des Microsoft 365 Kontos eingerichtet wurde."
 
-#: umc/js/office365.js:535
+#: umc/js/office365.js:533
 msgid ""
 "This wizard helps you to configure the connection between UCS and Microsoft "
 "365."
@@ -607,7 +608,7 @@ msgstr ""
 "welche LDAP-Attribute (z.B. Vorname, Nachname, etc.) eines Benutzerkontos "
 "synchronisiert werden."
 
-#: umc/js/office365.js:468
+#: umc/js/office365.js:466
 msgid "Warning"
 msgstr "Warnung"
 
@@ -664,7 +665,7 @@ msgid "You may add or remove attributes from the list by using the %s."
 msgstr ""
 "Sie können mithilfe des %s Attribute von der Liste löschen oder hinzufügen."
 
-#: umc/js/office365.js:536
+#: umc/js/office365.js:534
 msgid ""
 "You need a <a href=\"%(domain)s\" target=\"_blank\">verified domain</a> and "
 "access to the <a href=\"%(dev)s\" target=\"_blank\">Microsoft Azure Portal</"
@@ -732,11 +733,11 @@ msgstr ""
 msgid "https://learn.microsoft.com/en-us/dotnet/framework/install/"
 msgstr "https://learn.microsoft.com/en-us/dotnet/framework/install/"
 
-#: umc/js/office365.js:537
+#: umc/js/office365.js:535
 msgid "https://learn.microsoft.com/en-us/entra/fundamentals/add-custom-domain"
 msgstr "https://learn.microsoft.com/de-de/dotnet/framework/install/"
 
-#: umc/js/office365.js:538
+#: umc/js/office365.js:536
 msgid "https://manage.windowsazure.com/"
 msgstr "https://manage.windowsazure.com/"
 

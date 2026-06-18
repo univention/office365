@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: univention-office365\n"
 "Report-Msgid-Bugs-To: packages@univention.de\n"
-"POT-Creation-Date: 2026-06-22 17:34+0200\n"
+"POT-Creation-Date: 2026-06-29 15:36+0200\n"
 "PO-Revision-Date: 2019-10-24 18:35+0200\n"
 "Last-Translator: Univention GmbH <packages@univention.de>\n"
 "Language-Team: Univention GmbH <packages@univention.de>\n"
@@ -12,11 +12,15 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: modules/univention/office365/microsoft/account.py:224
+#: modules/univention/office365/microsoft/account.py:226
 msgid "ADConnection-ID '{}' has wrong format."
 msgstr "ADConnection-ID '{}' hat ein ungültiges Format."
 
-#: modules/univention/office365/microsoft/account.py:337
+#: modules/univention/office365/microsoft/account.py:286
+msgid "Error detecting Keycloak base URL."
+msgstr "Fehler bei der Erkennung der Keycloak Basis-URL"
+
+#: modules/univention/office365/microsoft/account.py:418
 #, python-brace-format
 msgid ""
 "Error downloading certificates from Azure for AD connection {adconnection}. "
@@ -25,7 +29,17 @@ msgstr ""
 "Fehler beim Herunterladen der Zertifikate von Azure für AD Connection "
 "{adconnection}. Bitte führen Sie den Einrichtungsassistent erneut aus."
 
-#: modules/univention/office365/microsoft/account.py:362
+#: modules/univention/office365/microsoft/account.py:306
+#: modules/univention/office365/microsoft/account.py:326
+msgid "Error reading Keycloak SAML identity provider certificate."
+msgstr "Fehler beim Lesen des Identity Provider Zertifikates"
+
+#: modules/univention/office365/microsoft/account.py:340
+#: modules/univention/office365/microsoft/account.py:365
+msgid "Error reading SAML setup script template."
+msgstr "Fehler beim Schreiben des SAML Installations-Skriptes."
+
+#: modules/univention/office365/microsoft/account.py:443
 #, python-brace-format
 msgid ""
 "Error reading certificates of Azure AD connection {adconnection} from Azure."
@@ -34,16 +48,16 @@ msgstr ""
 "Fehler beim Lesen von Azures Zertifikaten für AD Connection {adconnection}. "
 "Bitte führen Sie den Einrichtungsassistent erneut aus."
 
-#: modules/univention/office365/microsoft/account.py:304
+#: modules/univention/office365/microsoft/account.py:383
 msgid "Error writing SAML setup script."
 msgstr "Fehler beim Schreiben des SAML Installations-Skriptes."
 
-#: modules/univention/office365/microsoft/account.py:84
+#: modules/univention/office365/microsoft/account.py:86
 msgid "No AD connection alias specified\n"
 msgstr "Kein AD-Verbindungsalias angegeben\n"
 
-#: modules/univention/office365/microsoft/account.py:247
-#: modules/univention/office365/microsoft/account.py:413
+#: modules/univention/office365/microsoft/account.py:249
+#: modules/univention/office365/microsoft/account.py:494
 #, python-brace-format
 msgid ""
 "The configuration of Azure AD connection {adconnection} is incomplete and "
@@ -57,7 +71,7 @@ msgstr ""
 msgid "The manifest is invalid: Invalid JSON document."
 msgstr "Das Manifest ist ungültig: ungültiges JSON Dokument."
 
-#: modules/univention/office365/microsoft/account.py:75
+#: modules/univention/office365/microsoft/account.py:77
 #, python-brace-format
 msgid ""
 "The reason might be that the Univention Configuration Registry variable {ucr_wizard} is not set.\n"
@@ -70,7 +84,7 @@ msgstr ""
 "Zu prüfender Befehl: ucr get {ucr_wizard}\n"
 "Befehl zum Setzen: \"ucr set {ucr_wizard}={ad_default}\""
 
-#: modules/univention/office365/microsoft/account.py:81
+#: modules/univention/office365/microsoft/account.py:83
 #, python-brace-format
 msgid ""
 "The reason might be that the Univention Configuration Registry variable "
@@ -79,8 +93,8 @@ msgstr ""
 "Der Grund dafür könnte sein, dass die Univention Configuration Registry "
 "Variable {ucr_wizard} auf \"{ucr_wizard_value}\" gesetzt ist.\n"
 
-#: modules/univention/office365/microsoft/account.py:397
-#: modules/univention/office365/microsoft/account.py:424
+#: modules/univention/office365/microsoft/account.py:478
+#: modules/univention/office365/microsoft/account.py:505
 #, python-brace-format
 msgid ""
 "The received token for Azure AD connection {adconnection} is not valid. "
@@ -91,9 +105,6 @@ msgstr ""
 
 #~ msgid "Error converting identity provider certificate."
 #~ msgstr "Fehler beim Umwandeln des Identity Provider Zertifikates."
-
-#~ msgid "Error reading identity provider certificate."
-#~ msgstr "Fehler beim Lesen des Identity Provider Zertifikates"
 
 #, python-brace-format
 #~ msgid ""

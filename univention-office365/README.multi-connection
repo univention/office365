@@ -37,7 +37,7 @@ If all looks good, run the same command without "--dryrun".
 
 SAML configuration script for Microsoft Powershell
 --------------------------------------------------
-To download the SAML configuration script for Microsoft Powershell created for a adconnection by the wizard, go to the filesystem of the server and copy /var/lib/univention-office365/saml_setup<ADCONNECTION_ALIAS>.bat.
+To download the SAML configuration script for Microsoft Powershell created for a adconnection by the wizard, go to the filesystem of the server and copy /var/lib/univention-office365/saml_setup<ADCONNECTION_ALIAS>.ps1.
 
 selective listener resync
 -------------------------

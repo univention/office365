@@ -20,3 +20,4 @@ share/univention-office365/scripts/o365_disable_expired_users usr/share/univenti
 share/univention-office365/scripts/generate-portal-tile-for-ad-connection usr/share/univention-office365/scripts/
 share/univention-office365/univention-ms-office-async usr/share/univention-office365/
 office365-wsgi.conf etc/apache2/sites-available/
+share/univention-office365/templates/saml_setup.ps1 usr/share/univention-office365/templates/
