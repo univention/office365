@@ -4,13 +4,13 @@
 		<ul style="font-size: 12px; font-weight: normal;">
 			<li>
 				<code class="code-colors hljs language-delphi">
-					The MS365 SAML setup powershell script, shipped through the Microsoft365 setup wizard, has been fixed and
+					The Microsoft 365 SAML setup powershell script, shipped through the Microsoft365 setup wizard, has been fixed and
 					adapted to the Microsoft Graph Powershell library.
 				</code>
 			</li>
 			<li>
 				<code class="code-colors hljs language-delphi">
-					The MS365 wizard now explains the verified domain setting in more detail.
+					The Microsoft 365 wizard now explains the verified domain setting in more detail.
 				</code>
 			</li>
 		</ul>
