@@ -1,4 +1,21 @@
 <h1>
+	Univention Microsoft 365 Connector v6.5
+	<div>
+		<ul style="font-size: 12px; font-weight: normal;">
+			<li>
+				<code class="code-colors hljs language-delphi">
+					Das Microsoft365 SAML powershell script, welches durch den Einrichtungsassisenten bereitgestellt wird, wurde korrigiert und auf die Microsoft Graph Powershell Bibliothek aktualisiert
+				</code>
+			</li>
+			<li>
+				<code class="code-colors hljs language-delphi">
+					Der Microsoft365 Einrichtungsassistent eklärt die Einstellung "Verifizierte Domäne" nun ausführlicher.
+				</code>
+			</li>
+		</ul>
+	</div>
+</h1>
+<h1>
 	Univention Microsoft 365 Connector v6.4
 	<div>
 		<ul style="font-size: 12px; font-weight: normal;">
