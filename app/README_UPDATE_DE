@@ -4,12 +4,12 @@
 		<ul style="font-size: 12px; font-weight: normal;">
 			<li>
 				<code class="code-colors hljs language-delphi">
-					Das Microsoft365 SAML powershell script, welches durch den Einrichtungsassisenten bereitgestellt wird, wurde korrigiert und auf die Microsoft Graph Powershell Bibliothek aktualisiert
+					Das Microsoft365 SAML powershell Skript, welches durch den Einrichtungsassistenten bereitgestellt wird, wurde korrigiert und auf die Microsoft Graph Powershell Bibliothek aktualisiert
 				</code>
 			</li>
 			<li>
 				<code class="code-colors hljs language-delphi">
-					Der Microsoft365 Einrichtungsassistent eklärt die Einstellung "Verifizierte Domäne" nun ausführlicher.
+					Der Microsoft365 Einrichtungsassistent erklärt die Einstellung "Verifizierte Domäne" nun ausführlicher.
 				</code>
 			</li>
 		</ul>
@@ -82,7 +82,7 @@
 				<a href="https://forge.univention.org/bugzilla/show_bug.cgi?id=">Bug 57755</a>
 			</li>
 			<li>
-				The Microsoft 365 Connector wizard has has been migrated to use the Microsoft Graph Manifest format from now on. The legacy format can not be used in the wizard anymore. <a href="https://forge.univention.org/bugzilla/show_bug.cgi?id=">Bug 57739</a>
+				The Microsoft 365 Connector wizard has been migrated to use the Microsoft Graph Manifest format from now on. The legacy format cannot be used in the wizard anymore. <a href="https://forge.univention.org/bugzilla/show_bug.cgi?id=">Bug 57739</a>
 				<br>
 			</li>
 		</ul>
@@ -215,13 +215,13 @@ extended attribute, that default can also be changed.</code>
 </h1>
 <ul style="font-size: 12px; font-weight: normal;">
 	<li>
-		Der Microsoft 365 Connector wurde vollständig auf die Benutzung der Microsoft Graph API umgestellt. Die bisher genutzt API kann ab Ende 2022 nicht mehr genutzt werden, daher muss die Connector App vorher auf Version 5.1 aktualisiert werden.
+		Der Microsoft 365 Connector wurde vollständig auf die Benutzung der Microsoft Graph API umgestellt. Die bisher genutzte API kann ab Ende 2022 nicht mehr genutzt werden, daher muss die Connector App vorher auf Version 5.1 aktualisiert werden.
 	</li>
 	<li>
 		Falls das Setup des Connectors vor Version 4.0 stattgefunden hat, könnten die Applikationen noch nicht die nötigen Berechtigungen für die Graph API haben
 	</li>
 	<li>
-		<b>Bitte prüfen sie vor dem Upgrade</b> <b>ob jede ihrer Applikationen ausreichende Berechtigungen für die Graph API haben. Diese sind in https://help.univention.com/t/18453 beschrieben</b>
+		<b>Bitte prüfen Sie vor dem Upgrade</b> <b>ob jede ihrer Applikationen ausreichende Berechtigungen für die Graph API haben. Diese sind in https://help.univention.com/t/18453 beschrieben</b>
 		<br>
 	</li>
 </ul>

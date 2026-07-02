@@ -65,7 +65,7 @@
 			</li>
 			<li>
 				<code class="code-colors hljs language-delphi">
-					The Microsoft 365 Connector the last member of a group was not removed from the group in azure AD. This was not intended and has been fixed.
+					The Microsoft 365 Connector did not remove the last member of a group in Azure AD. This was not intended and has been fixed.
 				</code>
 				<a href="https://forge.univention.org/bugzilla/show_bug.cgi?id=57846">Bug 57846</a>
 			</li>
@@ -83,7 +83,7 @@
 				<a href="https://forge.univention.org/bugzilla/show_bug.cgi?id=">Bug 57755</a>
 			</li>
 			<li>
-				The Microsoft 365 Connector wizard has has been migrated to use the Microsoft Graph Manifest format from now on. The legacy format can not be used in the wizard anymore. <a href="https://forge.univention.org/bugzilla/show_bug.cgi?id=">Bug 57739</a>
+				The Microsoft 365 Connector wizard has been migrated to use the Microsoft Graph Manifest format from now on. The legacy format cannot be used in the wizard anymore. <a href="https://forge.univention.org/bugzilla/show_bug.cgi?id=">Bug 57739</a>
 				<br>
 			</li>
 		</ul>
@@ -123,7 +123,7 @@ extended attribute, that default can also be changed.</code>
 			</li>
 			<li>
 				<pre role="region">
-<code class="code-colors hljs language-delphi">There was an Issue where group recreation did not automatically create a new team. This has been fixed </code>
+				<code class="code-colors hljs language-delphi">There was an issue where group recreation did not automatically create a new team. This has been fixed.</code>
 				
 				
 				
@@ -145,7 +145,7 @@ extended attribute, that default can also be changed.</code>
 				A duplicate entry in the connector's logrotate configuration has been fixed. <a href="https://forge.univention.org/bugzilla/show_bug.cgi?id=56915">Bug 56915</a>
 			</li>
 			<li>
-				Expired user accounts are new also deactivated in the Azure domain. <a href="https://forge.univention.org/bugzilla/show_bug.cgi?id=56994">Bug 56994</a>
+				Expired user accounts are now also deactivated in the Azure domain. <a href="https://forge.univention.org/bugzilla/show_bug.cgi?id=56994">Bug 56994</a>
 			</li>
 			<li>
 				Deactivated accounts are now also deleted in the Azure domain when the UCS user account is deleted. <a href="https://forge.univention.org/bugzilla/show_bug.cgi?id=56815">Bug 56815</a>
@@ -158,7 +158,7 @@ extended attribute, that default can also be changed.</code>
 	<div>
 		<ul style="font-size: 12px; font-weight: normal;">
 			<li>
-				The connector was not able to modify the mobilePhone attribut, because it was filtered from the modlist. This has been fixed. <a href="https://forge.univention.org/bugzilla/show_bug.cgi?id=55984">Bug 55984</a>
+				The connector was not able to modify the mobilePhone attribute, because it was filtered from the modlist. This has been fixed. <a href="https://forge.univention.org/bugzilla/show_bug.cgi?id=55984">Bug 55984</a>
 				<br>
 			</li>
 		</ul>
@@ -169,7 +169,7 @@ extended attribute, that default can also be changed.</code>
 	<div>
 		<ul style="font-size: 12px; font-weight: normal;">
 			<li>
-				The Azure Graph API subscription response was changed and now includes additional attributes. This lead to Tracebacks during the license assignments in the Microsoft 365 Connector.&nbsp;<a href="https://forge.univention.org/bugzilla/show_bug.cgi?id=56091">Bug 56091</a>
+				The Azure Graph API subscription response was changed and now includes additional attributes. 				This led to Tracebacks during the license assignments in the Microsoft 365 Connector.&nbsp;<a href="https://forge.univention.org/bugzilla/show_bug.cgi?id=56091">Bug 56091</a>
 				<br>
 			</li>
 		</ul>
