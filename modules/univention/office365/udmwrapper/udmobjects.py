@@ -47,7 +47,7 @@ class GroupVisibility(Enum):
     '''
     PRIVATE = "Private"
     PUBLIC = "Public"
-    # HIDDENMEMBER = "HiddenMembership"  # Currently we don't support this, yet.
+    HIDDENMEMBER = "HiddenMembership"
 
 
 class Version(Enum):
@@ -475,6 +475,7 @@ class UDMOfficeGroup(UDMOfficeObject):
                 self.udm_object_reference['UniventionOffice365ADConnectionAlias'].append(self.current_connection_alias)
             if is_education_class:
                 group_type = GroupType.EDUCATION_CLASS.value
+                visibility = GroupVisibility.HIDDENMEMBER.value
             elif is_security_group:
                 group_type = GroupType.SECURITY.value
             else:
@@ -795,8 +796,6 @@ class UDMOfficeGroup(UDMOfficeObject):
 
         :return:
         """
-        if self.is_education_class():
-            return "HiddenMembership"
         return self.get("UniventionMicrosoft365GroupVisibility") or None
 
     def visibility_is_not_set(self):

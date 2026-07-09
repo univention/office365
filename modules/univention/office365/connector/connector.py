@@ -24,7 +24,7 @@ from univention.office365.microsoft.exceptions.exceptions import NoAllocatableSu
 from univention.office365.connector import utils
 from univention.office365.microsoft.manifest import permissions_needed_name, ApplicationPermissions
 from univention.office365.microsoft.objects.azureobjects import UserAzure, AzureObject, GroupAzure, SubscriptionAzure, TeamAzure, EducationClassAzure
-from univention.office365.udmwrapper.udmobjects import UDMOfficeUser, UDMOfficeGroup, UDMOfficeObject, GroupType
+from univention.office365.udmwrapper.udmobjects import UDMOfficeUser, UDMOfficeGroup, UDMOfficeObject, GroupType, GroupVisibility
 from univention.office365.utils.utils import create_random_pw
 from univention.office365.asyncqueue.queues.jsonfilesqueue import JsonFilesQueue
 from univention.office365.logging2udebug import get_logger
@@ -906,8 +906,7 @@ class GroupConnector(Connector):
 
         group_azure = self.parse(udm_object, core)
         group_azure.id = edu_class.id
-        group_azure.visibility = "HiddenMembership"
-        udm_object.modify_azure_attributes(self.prepare_azure_attributes(group_azure), is_security_group=group_azure.is_security_group(), visibility=group_azure.visibility, is_education_class=True)
+        udm_object.modify_azure_attributes(self.prepare_azure_attributes(group_azure), is_security_group=group_azure.is_security_group(), visibility=GroupVisibility.HIDDENMEMBER.value, is_education_class=True)
         self.add_ldap_members_to_azure_group(udm_object, group_azure, core)
         return group_azure
 
@@ -1090,13 +1089,14 @@ class GroupConnector(Connector):
                         self.logger.info("Changing visibility of MS365 group %r...", azure_group.displayName)
                         new_azure_group = self.parse(new_udm_group, core)
                         azure_group.update(new_azure_group)
+                else:
+                    new_udm_group.set_visibility(azure_group.visibility)
 
                 # If the azure group is deactivated, reactivate it.
                 if azure_group.is_delete():
                     self.logger.info('Reactivating azure group %r...', azure_group.displayName)
                     if new_udm_group.is_education_class():
-                        edu_class = self._create_education_class(new_udm_group, core)
-                        azure_group = GroupAzure(id=edu_class.id, displayName=edu_class.displayName, groupTypes=['Unified'])
+                        azure_group = self._create_education_class(new_udm_group, core)
                         azure_group.set_core(core)
                     else:
                         new_azure_group = self.parse(new_udm_group, core)
