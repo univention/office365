@@ -1,0 +1,9 @@
+[office365/education/enabled]
+Type = Bool
+Description = Enable support for Microsoft 365 educational classes
+Description[de] = Unterstützung für Microsoft 365 Education-Klassen aktivieren
+InitialValue = false
+Show = Settings
+Scope = outside
+Group = Features
+Group[de] = Funktionen

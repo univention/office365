@@ -1,0 +1,132 @@
+#!/usr/share/ucs-test/runner python3
+## -*- coding: utf-8 -*-
+## desc: modify education class attributes via UDM and verify changes in Azure
+## tags: [apptest]
+## exposure: dangerous
+## packages:
+##   - univention-office365
+
+"""
+This test modifies education class attributes via UDM and verifies
+that the changes are reflected in Azure.
+
+- enable group sync via UCR
+- create a UDM user (teacher/owner)
+- create a UDM education class group
+- modify the class code and grade
+- verify the education class attributes were updated in Azure
+- modify the description
+- verify the backing M365 group description was updated in Azure
+"""
+
+from __future__ import print_function
+
+import univention.testing.strings as uts
+import univention.testing.ucr as ucr_test
+import univention.testing.udm as udm_test
+import univention.testing.utils as utils
+
+from univention.config_registry import handler_set
+
+import helpers.office365_test_helpers as o365helpers
+from univention.office365.microsoft.account import AzureAccount
+from univention.office365.microsoft.core import MSGraphApiCore
+from univention.office365.microsoft.objects.azureobjects import GroupAzure, EducationClassAzure
+from univention.office365.udmwrapper.udmobjects import UDMOfficeGroup, GroupType
+
+
+with utils.AutomaticListenerRestart():
+    with udm_test.UCSTestUDM() as udm:
+        with ucr_test.UCSTestConfigRegistry() as ucr:
+            ucr.load()
+
+            adconnection_alias = 'defaultADconnection'
+            core = MSGraphApiCore(AzureAccount(adconnection_alias))
+
+            handler_set(['office365/groups/sync=yes'])
+            utils.restart_listener()
+
+            print('*** Creating teacher (owner) user ***')
+            user_args = o365helpers.udm_user_args(ucr, minimal=True)
+            user_args['set']['UniventionOffice365Enabled'] = 1
+            user_args['set']['UniventionOffice365ADConnectionAlias'] = adconnection_alias
+            user_dn, username = udm.create_user(wait_for_listener_and_postrun=True, **user_args)
+
+            print('*** Creating education class group ***')
+            class_name = 'EduMod {}'.format(uts.random_name())
+            original_class_code = 'CODE_ORIG'
+            original_grade = 'Grade 5'
+            group_dn = udm.create_object(
+                'groups/group',
+                set=dict(
+                    name=class_name,
+                    description='Original description',
+                    UniventionMicrosoft365GroupType=GroupType.EDUCATION_CLASS.value,
+                    UniventionMicrosoft365GroupOwners=user_dn,
+                    users=[user_dn],
+                    UniventionMicrosoft365EducationClassCode=original_class_code,
+                    UniventionMicrosoft365EducationClassGrade=original_grade,
+                ),
+                position='cn=groups,{}'.format(ucr.get('ldap/base')),
+                wait_for_listener_and_postrun=True,
+            )
+
+            udm_group = UDMOfficeGroup({}, None, dn=group_dn)
+            with udm_group.set_current_alias(adconnection_alias):
+                group_objectid = udm_group.azure_object_id
+            if not group_objectid:
+                utils.fail('Education class group has no objectId.')
+            
+            print('*** Checking that education class exists in Azure ***')
+            edu_class = o365helpers.check_education_class_created(core, group_objectid)
+            if not edu_class:
+                utils.fail('Education class was not created in Azure.')
+
+            print('*** Modifying education class grade ***')
+            new_grade = 'Grade 12'
+            udm.modify_object(
+                modulename='groups/group',
+                dn=group_dn,
+                set=dict(UniventionMicrosoft365EducationClassGrade=new_grade),
+                wait_for_listener_and_postrun=True,
+            )
+
+            edu_class = o365helpers.check_education_class_modified(core, group_objectid, 'grade', new_grade)
+            if not edu_class:
+                utils.fail('Education grade not updated: expected {!r}'.format(new_grade))
+            print('*** Grade updated successfully to {!r}'.format(new_grade))
+            
+            print('*** Checking that backing group exists in Azure ***')
+            azure_group = o365helpers.check_group_created_by_id(core, group_objectid)
+            if not azure_group:
+                utils.fail('Backing M365 group was not created.')
+
+            print('*** Modifying education class code ***')
+            new_class_code = 'CODE_NEW'
+            udm.modify_object(
+                modulename='groups/group',
+                dn=group_dn,
+                set=dict(UniventionMicrosoft365EducationClassCode=new_class_code),
+                wait_for_listener_and_postrun=True,
+            )
+
+            edu_class = o365helpers.check_education_class_modified(core, group_objectid, 'classCode', new_class_code)
+            if not edu_class:
+                utils.fail('Education class code not updated: expected {!r}'.format(new_class_code))
+            print('*** Class code updated successfully to {!r}'.format(new_class_code))
+
+            print('*** Modifying group description ***')
+            new_description = 'Updated description {}'.format(uts.random_string())
+            udm.modify_object(
+                modulename='groups/group',
+                dn=group_dn,
+                set=dict(description=new_description),
+                wait_for_listener_and_postrun=True,
+            )
+
+            azure_group = o365helpers.check_group_modified(core, group_objectid, 'description', new_description)
+            if not azure_group:
+                utils.fail('Group description not updated: expected {!r}'.format(new_description))
+            print('*** Description updated successfully')
+
+            print('*** All went well.')

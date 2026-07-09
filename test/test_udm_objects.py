@@ -678,3 +678,91 @@ class TestUdmOfficeGroup:
         assert udm_group_object.udm_object_reference['UniventionMicrosoft365GroupVisibility'] == GroupVisibility.PUBLIC.value
         udm_group_object.set_visibility(None)  # The Azure default for Security Groups
         assert udm_group_object.udm_object_reference['UniventionMicrosoft365GroupVisibility'] == None  # But currently this seems to cause an issue in UDM
+
+    def test_is_education_class(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """is_education_class() returns True only when the group type is 'Education Class'."""
+        from univention.office365.udmwrapper.udmobjects import GroupType
+
+        udm_group_object = create_udm_group_object()
+        # Default is Security Group
+        assert not udm_group_object.is_education_class()
+        udm_group_object.udm_object_reference['UniventionMicrosoft365GroupType'] = 'Microsoft 365 Group'
+        assert not udm_group_object.is_education_class()
+        udm_group_object.udm_object_reference['UniventionMicrosoft365GroupType'] = GroupType.EDUCATION_CLASS.value
+        assert udm_group_object.is_education_class()
+
+    def test_get_education_class_code(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """get_education_class_code() returns the class code or None when not set."""
+        udm_group_object = create_udm_group_object()
+        assert udm_group_object.get_education_class_code() is None
+        udm_group_object.udm_object_reference['UniventionMicrosoft365EducationClassCode'] = 'CS101'
+        assert udm_group_object.get_education_class_code() == 'CS101'
+        udm_group_object.udm_object_reference['UniventionMicrosoft365EducationClassCode'] = ''
+        assert udm_group_object.get_education_class_code() is None
+
+    def test_get_object_identifier(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """get_object_identifier() returns the built-in univentionObjectIdentifier UUID or None."""
+        udm_group_object = create_udm_group_object()
+        # Not present by default
+        udm_group_object.udm_object_reference.oldattr.pop('univentionObjectIdentifier', None)
+        assert udm_group_object.get_object_identifier() is None
+        # Bytes value (as returned by python-ldap)
+        test_uuid = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+        udm_group_object.udm_object_reference.oldattr['univentionObjectIdentifier'] = [test_uuid.encode('ASCII')]
+        assert udm_group_object.get_object_identifier() == test_uuid
+        # String value
+        udm_group_object.udm_object_reference.oldattr['univentionObjectIdentifier'] = [test_uuid]
+        assert udm_group_object.get_object_identifier() == test_uuid
+
+    def test_get_education_grade(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """get_education_grade() returns the grade level or None when not set."""
+        udm_group_object = create_udm_group_object()
+        assert udm_group_object.get_education_grade() is None
+        udm_group_object.udm_object_reference['UniventionMicrosoft365EducationClassGrade'] = 'Grade 10'
+        assert udm_group_object.get_education_grade() == 'Grade 10'
+        udm_group_object.udm_object_reference['UniventionMicrosoft365EducationClassGrade'] = ''
+        assert udm_group_object.get_education_grade() is None
+
+    def test_get_education_term_display_name(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """get_education_term_display_name() returns the term display name or None when not set."""
+        udm_group_object = create_udm_group_object()
+        assert udm_group_object.get_education_term_display_name() is None
+        udm_group_object.udm_object_reference['UniventionMicrosoft365EducationTermDisplayName'] = 'Fall 2026'
+        assert udm_group_object.get_education_term_display_name() == 'Fall 2026'
+        udm_group_object.udm_object_reference['UniventionMicrosoft365EducationTermDisplayName'] = ''
+        assert udm_group_object.get_education_term_display_name() is None
+
+    def test_get_education_term_external_id(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """get_education_term_external_id() returns the term external ID or None when not set."""
+        udm_group_object = create_udm_group_object()
+        assert udm_group_object.get_education_term_external_id() is None
+        udm_group_object.udm_object_reference['UniventionMicrosoft365EducationTermExternalId'] = 'term-ext-001'
+        assert udm_group_object.get_education_term_external_id() == 'term-ext-001'
+        udm_group_object.udm_object_reference['UniventionMicrosoft365EducationTermExternalId'] = ''
+        assert udm_group_object.get_education_term_external_id() is None
+
+    def test_get_education_term_start_date(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """get_education_term_start_date() returns the term start date or None when not set."""
+        udm_group_object = create_udm_group_object()
+        assert udm_group_object.get_education_term_start_date() is None
+        udm_group_object.udm_object_reference['UniventionMicrosoft365EducationTermStartDate'] = '2026-09-01'
+        assert udm_group_object.get_education_term_start_date() == '2026-09-01'
+        udm_group_object.udm_object_reference['UniventionMicrosoft365EducationTermStartDate'] = ''
+        assert udm_group_object.get_education_term_start_date() is None
+
+    def test_get_education_term_end_date(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """get_education_term_end_date() returns the term end date or None when not set."""
+        udm_group_object = create_udm_group_object()
+        assert udm_group_object.get_education_term_end_date() is None
+        udm_group_object.udm_object_reference['UniventionMicrosoft365EducationTermEndDate'] = '2027-01-15'
+        assert udm_group_object.get_education_term_end_date() == '2027-01-15'
+        udm_group_object.udm_object_reference['UniventionMicrosoft365EducationTermEndDate'] = ''
+        assert udm_group_object.get_education_term_end_date() is None

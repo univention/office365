@@ -46,6 +46,13 @@ Description[en]=Should groups that contain users with a Microsoft 365 account be
 Type=bool
 Categories=service-collaboration
 
+[office365/education/enabled]
+Description[de]=Aktiviert die Eingabefelder und den Gruppentyp für Microsoft 365 Education-Klassen. Standard ist 'false'.
+Description[en]=Enables the input fields and group type for Microsoft 365 educational classes. Defaults to 'false'.
+Type=bool
+Default=false
+Categories=service-collaboration
+
 [office365/subscriptions/service_plan_names]
 Description[de]=Kommaseparierte Liste an Lizenznamen, die zur Erkennung der zu wählenden Subskriptionen verwendet wird. Standard, wenn nicht gesetzt, ist 'SHAREPOINTWAC, SHAREPOINTWAC_DEVELOPER, OFFICESUBSCRIPTION, OFFICEMOBILE_SUBSCRIPTION, SHAREPOINTWAC_EDU'.
 Description[en]=Comma separated list of service plans. Will be used to detect which subscriptions to use. Defaults, if not set, to 'SHAREPOINTWAC, SHAREPOINTWAC_DEVELOPER, OFFICESUBSCRIPTION, OFFICEMOBILE_SUBSCRIPTION, SHAREPOINTWAC_EDU'.

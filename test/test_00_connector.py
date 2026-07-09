@@ -581,7 +581,7 @@ class TestGroupConnector:
 
             self.gc.convert_group_to_team(udm_fake_group, azure_group)
             azure_group.add_owner.assert_has_calls([call(ANY, async_task=False) for x in owners])
-            mock_team.create_from_group.assert_called_once_with(ANY, azure_group.id)
+            mock_team.create_from_group.assert_called_once_with(ANY, azure_group.id, education_class=False)
 
     def test_create(self, create_udm_group_object):
         # type: (Callable) -> None
@@ -917,3 +917,1087 @@ class TestGroupConnector:
         # type: () -> None
         azure_user = mock.MagicMock(id='test_id', userPrincipalName='test_display_name')
         assert self.gc.prepare_azure_attributes(azure_user) == {'objectId': 'test_id'}
+
+    # ------------------------------------------------------------------
+    # Education Class tests
+    # ------------------------------------------------------------------
+
+    def test_parse_education_class(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """parse_education_class() should produce an EducationClassAzure with
+        the correct fields taken from the UDM group object.
+        externalId must come from univentionObjectIdentifier, not a custom attribute."""
+        from univention.office365.microsoft.objects.azureobjects import EducationClassAzure
+
+        core = mock.MagicMock()
+        udm_fake_group = create_udm_group_object()
+        udm_fake_group.udm_object_reference['UniventionMicrosoft365EducationClassCode'] = 'CS101'
+        udm_fake_group.udm_object_reference['UniventionMicrosoft365EducationClassGrade'] = 'Grade 5'
+        # Simulate the built-in UDM univentionObjectIdentifier attribute
+        test_uuid = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+        udm_fake_group.udm_object_reference.oldattr['univentionObjectIdentifier'] = [test_uuid.encode('ASCII')]
+
+        edu_class = self.gc.parse_education_class(udm_fake_group, core)
+
+        assert isinstance(edu_class, EducationClassAzure)
+        assert edu_class.displayName == udm_fake_group.cn
+        assert edu_class.classCode == 'CS101'
+        assert edu_class.externalId == test_uuid
+        assert edu_class.grade == 'Grade 5'
+
+    def test__create_education_class(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """_create_education_class() should call create_or_modify, write back
+        the Azure ID to UDM, add teachers, and add members."""
+        from univention.office365.microsoft.objects.azureobjects import EducationClassAzure, GroupAzure
+
+        alias = 'o365domain'
+        core = mock.MagicMock()
+        core.account.alias = alias
+
+        udm_fake_group = create_udm_group_object()
+        udm_fake_group.current_connection_alias = alias
+        udm_fake_group.get_owners = mock.MagicMock(return_value=[])
+        udm_fake_group.modify_azure_attributes = mock.MagicMock()
+
+        edu_class_mock = mock.MagicMock(spec=EducationClassAzure)
+        edu_class_mock.id = 'edu-class-azure-id'
+
+        group_azure_mock = mock.MagicMock(spec=GroupAzure)
+        group_azure_mock.id = 'edu-class-azure-id'
+        group_azure_mock.is_security_group.return_value = False
+        group_azure_mock.visibility = None
+
+        self.gc.parse_education_class = mock.MagicMock(return_value=edu_class_mock)
+        self.gc.parse = mock.MagicMock(return_value=group_azure_mock)
+        self.gc.add_ldap_members_to_azure_group = mock.MagicMock()
+
+        result = self.gc._create_education_class(udm_fake_group, core)
+
+        assert isinstance(result, GroupAzure)
+        assert result.id == 'edu-class-azure-id'
+        edu_class_mock.create_or_modify.assert_called_once()
+        udm_fake_group.modify_azure_attributes.assert_called_once()
+        self.gc.add_ldap_members_to_azure_group.assert_called_once()
+
+    def test__create_education_class_falls_back_to_m365_group_on_error(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """When the Education Roster API raises MSGraphError, _create_education_class()
+        must fall back to creating a regular Microsoft 365 group via _create_group()."""
+        from univention.office365.microsoft.objects.azureobjects import EducationClassAzure
+        from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError
+
+        alias = 'o365domain'
+        core = mock.MagicMock()
+        core.account.alias = alias
+
+        udm_fake_group = create_udm_group_object()
+        udm_fake_group.current_connection_alias = alias
+        udm_fake_group.get_owners = mock.MagicMock(return_value=[])
+        udm_fake_group.modify_azure_attributes = mock.MagicMock()
+
+        # Simulate an API failure during education class creation
+        edu_class_mock = mock.MagicMock(spec=EducationClassAzure)
+        edu_class_mock.create_or_modify.side_effect = MSGraphError(mock.MagicMock(status_code=403), 'Edu API not available')
+
+        fallback_group = mock.MagicMock()
+        fallback_group.id = 'm365-group-id'
+
+        self.gc.parse_education_class = mock.MagicMock(return_value=edu_class_mock)
+        self.gc._create_group = mock.MagicMock(return_value=fallback_group)
+        self.gc.add_ldap_members_to_azure_group = mock.MagicMock()
+
+        result = self.gc._create_education_class(udm_fake_group, core)
+
+        # Should have attempted the Education API
+        edu_class_mock.create_or_modify.assert_called_once()
+        # Should have fallen back to the regular group path
+        self.gc._create_group.assert_called_once_with(udm_fake_group, core)
+        # The returned object is the fallback group
+        assert result is fallback_group
+        # UDM attributes should NOT have been written for the education class
+        udm_fake_group.modify_azure_attributes.assert_not_called()
+
+    def test_create_education_class_route(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """GroupConnector.create() calls _create_education_class() directly
+        when the group is an Education Class."""
+        alias = 'o365domain'
+        core = mock.MagicMock()
+        self.gc._cores[alias] = core
+
+        udm_fake_group = create_udm_group_object()
+        udm_fake_group.in_azure = mock.MagicMock(return_value=True)
+        udm_fake_group.is_team = mock.MagicMock(return_value=False)
+        udm_fake_group.is_education_class = mock.MagicMock(return_value=True)
+
+        edu_class_mock = mock.MagicMock()
+        edu_class_mock.id = 'edu-class-azure-id'
+        edu_class_mock.displayName = 'TestClass'
+        self.gc._create_education_class = mock.MagicMock(return_value=edu_class_mock)
+        self.gc._create_group = mock.MagicMock()
+
+        self.gc.create(udm_fake_group)
+
+        # create() calls _create_education_class() directly for Education Class groups
+        self.gc._create_education_class.assert_called_once()
+        self.gc._create_group.assert_not_called()
+
+    def test_delete_education_class_route(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """GroupConnector.delete() currently uses the regular group deactivation
+        path for education classes (the Education-specific path is commented out).
+        Verify the group is deactivated via the standard path."""
+        alias = 'o365domain'
+        self.gc._cores[alias] = mock.MagicMock()
+
+        udm_fake_group = create_udm_group_object()
+        udm_fake_group.is_team = mock.MagicMock(return_value=False)
+        udm_fake_group.is_education_class = mock.MagicMock(return_value=True)
+        udm_fake_group.udm_object_reference['UniventionOffice365Data'] = UniventionOffice365Data(
+            {'o365domain': {'objectId': 'edu-class-azure-id'}}
+        ).to_ldap_str()
+
+        azure_group = mock.MagicMock()
+        self.gc.parse = mock.MagicMock(return_value=azure_group)
+
+        self.gc.delete(udm_fake_group)
+
+        # Education class path is commented out, so it uses regular group deactivation
+        azure_group.remove_direct_members.assert_called_once()
+        azure_group.deactivate.assert_called_once()
+
+    def test_migrate_group_type_to_education_class(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """migrate_group_type() should use _create_education_class() as
+        the recreation step when the target type is Education Class."""
+        alias = 'o365domain'
+        core = mock.MagicMock()
+        self.gc._cores[alias] = core
+
+        udm_fake_group = create_udm_group_object()
+        udm_fake_group.in_azure = mock.MagicMock(return_value=True)
+        udm_fake_group.is_team = mock.MagicMock(return_value=False)
+        udm_fake_group.is_education_class = mock.MagicMock(return_value=True)
+        # Patch azure_object_id as a property to return None (no existing ID -> skip delete branch)
+        type(udm_fake_group).azure_object_id = mock.PropertyMock(return_value=None)
+
+        azure_group = mock.MagicMock()
+        azure_group.is_delete = mock.MagicMock(return_value=True)  # already deactivated
+
+        edu_class_mock = mock.MagicMock()
+        edu_class_mock.id = 'new-edu-id'
+        edu_class_mock.displayName = 'MyClass'
+        self.gc._create_education_class = mock.MagicMock(return_value=edu_class_mock)
+        self.gc._create_group = mock.MagicMock()
+
+        self.gc.migrate_group_type(udm_fake_group, azure_group, core)
+
+        self.gc._create_education_class.assert_called_once_with(udm_fake_group, core)
+        self.gc._create_group.assert_not_called()
+
+    def test_migrate_group_type_from_education_class(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """migrate_group_type() should call existing_edu.delete() when the
+        existing Azure object is an education class and recreate as a normal group."""
+        alias = 'o365domain'
+        core = mock.MagicMock()
+        self.gc._cores[alias] = core
+
+        udm_fake_group = create_udm_group_object()
+        udm_fake_group.in_azure = mock.MagicMock(return_value=True)
+        udm_fake_group.is_team = mock.MagicMock(return_value=False)
+        udm_fake_group.is_education_class = mock.MagicMock(return_value=False)
+        # Give it a non-None azure_object_id so the edu-detection branch is entered
+        type(udm_fake_group).azure_object_id = mock.PropertyMock(return_value='old-edu-id')
+
+        azure_group = mock.MagicMock()
+        azure_group.is_delete = mock.MagicMock(return_value=False)
+
+        new_azure_group = mock.MagicMock()
+        self.gc._create_group = mock.MagicMock(return_value=new_azure_group)
+        self.gc._create_education_class = mock.MagicMock()
+
+        existing_edu = mock.MagicMock()
+        with mock.patch('univention.office365.connector.connector.EducationClassAzure') as mock_edu_cls:
+            mock_edu_cls.get.return_value = existing_edu
+            result = self.gc.migrate_group_type(udm_fake_group, azure_group, core)
+
+        existing_edu.delete.assert_called_once()
+        self.gc._create_group.assert_called_once_with(udm_fake_group, core)
+        assert result is new_azure_group
+
+    # ------------------------------------------------------------------
+    # Education Class CRUD lifecycle tests (via UDM object modifications)
+    # ------------------------------------------------------------------
+
+    def test_crud_create_education_class_full(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """Full create flow: UDM group with Education Class type triggers
+        _create_education_class, which creates via Education Roster API,
+        writes Azure ID back to UDM, and adds members."""
+        from univention.office365.microsoft.objects.azureobjects import EducationClassAzure, GroupAzure
+
+        alias = 'o365domain'
+        core = mock.MagicMock()
+        core.account.alias = alias
+        self.gc._cores[alias] = core
+
+        udm_fake_group = create_udm_group_object()
+        udm_fake_group.in_azure = mock.MagicMock(return_value=True)
+        udm_fake_group.is_team = mock.MagicMock(return_value=False)
+        udm_fake_group.is_education_class = mock.MagicMock(return_value=True)
+        udm_fake_group.get_owners = mock.MagicMock(return_value=[])
+        udm_fake_group.modify_azure_attributes = mock.MagicMock()
+        udm_fake_group.udm_object_reference['UniventionMicrosoft365EducationClassCode'] = 'MATH201'
+        udm_fake_group.udm_object_reference['UniventionMicrosoft365EducationClassGrade'] = 'Grade 12'
+        test_uuid = 'edu-uuid-1234-5678'
+        udm_fake_group.udm_object_reference.oldattr['univentionObjectIdentifier'] = [test_uuid.encode('ASCII')]
+
+        edu_class_mock = mock.MagicMock(spec=EducationClassAzure)
+        edu_class_mock.id = 'edu-azure-id'
+
+        group_azure_mock = mock.MagicMock(spec=GroupAzure)
+        group_azure_mock.id = 'edu-azure-id'
+        group_azure_mock.is_security_group.return_value = False
+        group_azure_mock.visibility = None
+
+        self.gc.parse_education_class = mock.MagicMock(return_value=edu_class_mock)
+        self.gc.parse = mock.MagicMock(return_value=group_azure_mock)
+        self.gc.add_ldap_members_to_azure_group = mock.MagicMock()
+
+        result = self.gc._create_education_class(udm_fake_group, core)
+
+        # Verify education class was created via Education Roster API
+        edu_class_mock.create_or_modify.assert_called_once()
+        # Verify Azure attributes were written back to UDM with education class flag
+        udm_fake_group.modify_azure_attributes.assert_called_once()
+        call_args = udm_fake_group.modify_azure_attributes.call_args
+        assert call_args[1].get('is_education_class') is True
+        assert call_args[1].get('is_security_group') is False
+        # Verify members were added
+        self.gc.add_ldap_members_to_azure_group.assert_called_once()
+        assert isinstance(result, GroupAzure)
+
+    def test_crud_read_education_class_via_parse(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """parse() returns a minimal GroupAzure stub for education classes,
+        while parse_education_class() returns the full EducationClassAzure."""
+        from univention.office365.microsoft.objects.azureobjects import EducationClassAzure, GroupAzure
+
+        core = mock.MagicMock()
+        udm_fake_group = create_udm_group_object()
+        udm_fake_group.udm_object_reference['UniventionMicrosoft365GroupType'] = 'Education Class'
+        udm_fake_group.udm_object_reference['UniventionMicrosoft365EducationClassCode'] = 'CS202'
+        udm_fake_group.udm_object_reference['UniventionMicrosoft365EducationClassGrade'] = 'Grade 10'
+        test_uuid = 'read-test-uuid'
+        udm_fake_group.udm_object_reference.oldattr['univentionObjectIdentifier'] = [test_uuid.encode('ASCII')]
+
+        # parse() should return a minimal GroupAzure stub
+        azure_stub = self.gc.parse(udm_fake_group, core)
+        assert isinstance(azure_stub, GroupAzure)
+        assert azure_stub.displayName == udm_fake_group.cn
+        assert azure_stub.id == udm_fake_group.azure_object_id
+
+        # parse_education_class() should return the full EducationClassAzure
+        edu_class = self.gc.parse_education_class(udm_fake_group, core)
+        assert isinstance(edu_class, EducationClassAzure)
+        assert edu_class.displayName == udm_fake_group.cn
+        assert edu_class.classCode == 'CS202'
+        assert edu_class.grade == 'Grade 10'
+        assert edu_class.externalId == test_uuid
+
+    def test_crud_modify_education_class_attributes(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """When education class-specific attributes (classCode, grade, description)
+        change, check_and_modify_attributes() should detect and apply them."""
+        from univention.office365.microsoft.objects.azureobjects import EducationClassAzure
+
+        alias = 'o365domain'
+        core = mock.MagicMock()
+        core.account.alias = alias
+
+        udm_fake_group_new = create_udm_group_object()
+        udm_fake_group_new.in_azure = mock.MagicMock(return_value=True)
+        udm_fake_group_new.is_education_class = mock.MagicMock(return_value=True)
+
+        azure_group = mock.MagicMock()
+        azure_group.id = 'edu-azure-id'
+
+        # parse() returns a stub with no group-level differences
+        stub = mock.MagicMock()
+        stub.get_not_none_values_as_dict.return_value = {}
+        self.gc.parse = mock.MagicMock(return_value=stub)
+        azure_group.__sub__ = mock.MagicMock(return_value=mock.MagicMock(get_not_none_values_as_dict=mock.MagicMock(return_value={})))
+
+        # Education class from Azure has a different classCode
+        existing_edu = mock.MagicMock()
+        existing_edu.classCode = 'OLD101'
+        new_edu = mock.MagicMock()
+        new_edu.classCode = 'NEW101'
+        existing_edu.__sub__ = mock.MagicMock(
+            return_value=mock.MagicMock(get_not_none_values_as_dict=mock.MagicMock(return_value={'classCode': 'NEW101'}))
+        )
+
+        with mock.patch('univention.office365.connector.connector.EducationClassAzure') as mock_edu_cls:
+            mock_edu_cls.get.return_value = existing_edu
+            self.gc.parse_education_class = mock.MagicMock(return_value=new_edu)
+
+            self.gc.check_and_modify_attributes(udm_fake_group_new, azure_group, core)
+
+            # EducationClassAzure.get should have been called
+            mock_edu_cls.get.assert_called_once_with(core, 'edu-azure-id')
+            # parse_education_class should have been called
+            self.gc.parse_education_class.assert_called_once_with(udm_fake_group_new, core)
+            # edu_class.update should have been called with the diff
+            existing_edu.update.assert_called_once()
+
+    def test_crud_delete_education_class(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """Deleting an education class group uses the regular group deactivation
+        path (Education-specific delete path is currently commented out)."""
+        alias = 'o365domain'
+        self.gc._cores[alias] = mock.MagicMock()
+
+        udm_fake_group = create_udm_group_object()
+        udm_fake_group.is_team = mock.MagicMock(return_value=False)
+        udm_fake_group.is_education_class = mock.MagicMock(return_value=True)
+        udm_fake_group.udm_object_reference['UniventionOffice365Data'] = UniventionOffice365Data(
+            {'o365domain': {'objectId': 'edu-class-delete-id'}}
+        ).to_ldap_str()
+
+        azure_group = mock.MagicMock()
+        self.gc.parse = mock.MagicMock(return_value=azure_group)
+
+        self.gc.delete(udm_fake_group)
+
+        # Uses regular group deactivation path
+        azure_group.remove_direct_members.assert_called_once()
+        azure_group.deactivate.assert_called_once()
+
+    def test_crud_delete_education_class_with_team(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """When an education class group is also a Team, deleting should first
+        archive the Team, then deactivate the group."""
+        alias = 'o365domain'
+        self.gc._cores[alias] = mock.MagicMock()
+
+        udm_fake_group = create_udm_group_object()
+        udm_fake_group.is_team = mock.MagicMock(return_value=True)
+        udm_fake_group.is_education_class = mock.MagicMock(return_value=True)
+        udm_fake_group.udm_object_reference['UniventionOffice365Data'] = UniventionOffice365Data(
+            {'o365domain': {'objectId': 'edu-team-delete-id'}}
+        ).to_ldap_str()
+
+        azure_group = mock.MagicMock()
+        self.gc.parse = mock.MagicMock(return_value=azure_group)
+
+        with mock.patch('univention.office365.connector.connector.TeamAzure') as mock_team:
+            self.gc.delete(udm_fake_group)
+            # Team should be archived first
+            mock_team.return_value.deactivate.assert_called_once()
+            # Group should be deactivated via regular path
+            azure_group.remove_direct_members.assert_called_once()
+            azure_group.deactivate.assert_called_once()
+
+    # ------------------------------------------------------------------
+    # Team creation from education class group
+    # ------------------------------------------------------------------
+
+    def test_create_team_from_education_class_group(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """When a group is both an education class and a team, create()
+        calls _create_education_class() and then convert_group_to_team()."""
+        from univention.office365.microsoft.objects.azureobjects import EducationClassAzure, GroupAzure
+
+        alias = 'o365domain'
+        core = mock.MagicMock()
+        self.gc._cores[alias] = core
+
+        udm_fake_group = create_udm_group_object()
+        udm_fake_group.in_azure = mock.MagicMock(return_value=True)
+        udm_fake_group.is_team = mock.MagicMock(return_value=True)
+        udm_fake_group.is_education_class = mock.MagicMock(return_value=True)
+        udm_fake_group.get_owners = mock.MagicMock(return_value=[])
+        udm_fake_group.modify_azure_attributes = mock.MagicMock()
+
+        # _create_education_class returns a GroupAzure (from self.parse())
+        group_azure_mock = mock.MagicMock(spec=GroupAzure)
+        group_azure_mock.id = 'edu-team-id'
+        group_azure_mock.displayName = 'TeamClass'
+
+        self.gc._create_education_class = mock.MagicMock(return_value=group_azure_mock)
+        self.gc.convert_group_to_team = mock.MagicMock()
+
+        self.gc.create(udm_fake_group)
+
+        # _create_education_class is called because is_education_class() is True
+        self.gc._create_education_class.assert_called_once_with(udm_fake_group, core)
+        # convert_group_to_team should be called with the result
+        self.gc.convert_group_to_team.assert_called_once_with(udm_fake_group, group_azure_mock)
+
+    def test_convert_group_to_team_with_education_class(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """convert_group_to_team() should add owners and create a team
+        from the education class backing group. Uses async_task=False
+        to exercise the synchronous create_from_group path."""
+        alias = 'o365domain'
+        udm_fake_group = create_udm_group_object()
+        udm_fake_group.in_azure = mock.MagicMock(return_value=True)
+        udm_fake_group.is_team = mock.MagicMock(return_value=True)
+        udm_fake_group.current_connection_alias = alias
+        owners = [mock.MagicMock(dn='owner1'), mock.MagicMock(dn='owner2')]
+        udm_fake_group.get_owners = mock.MagicMock(return_value=owners)
+        udm_fake_group.is_education_class = mock.MagicMock(return_value=True)
+
+        azure_group = mock.MagicMock()
+        azure_group.id = 'edu-team-backing-group-id'
+
+        self.gc.async_task = False
+
+        with mock.patch('univention.office365.connector.connector.TeamAzure') as mock_team, \
+             mock.patch('univention.office365.connector.connector.GroupAzure') as mock_group:
+            mock_team.create_from_group = mock.MagicMock()
+            mock_group.get = mock.MagicMock(return_value=azure_group)
+
+            self.gc.convert_group_to_team(udm_fake_group, azure_group)
+
+            # Owners should be added
+            assert azure_group.add_owner.call_count == len(owners)
+            # Team should be created from the backing group
+            mock_team.create_from_group.assert_called_once_with(ANY, azure_group.id, education_class=True)
+
+    # ------------------------------------------------------------------
+    # Group type migration: Security Group -> Education Class -> Security
+    # ------------------------------------------------------------------
+
+    def test_migrate_group_type_security_to_education_class(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """Migrating from Security Group to Education Class should detect
+        the existing object is not an edu class, delete it, and recreate
+        via _create_education_class."""
+        alias = 'o365domain'
+        core = mock.MagicMock()
+        self.gc._cores[alias] = core
+
+        udm_fake_group = create_udm_group_object()
+        udm_fake_group.in_azure = mock.MagicMock(return_value=True)
+        udm_fake_group.is_team = mock.MagicMock(return_value=False)
+        udm_fake_group.is_education_class = mock.MagicMock(return_value=True)
+        udm_fake_group.current_connection_alias = alias
+        type(udm_fake_group).azure_object_id = mock.PropertyMock(return_value='old-security-group-id')
+
+        azure_group = mock.MagicMock()
+        azure_group.id = 'old-security-group-id'
+        azure_group.is_delete = mock.MagicMock(return_value=False)
+
+        edu_class = mock.MagicMock()
+        edu_class.id = 'new-edu-class-id'
+        edu_class.displayName = 'TestClass'
+
+        self.gc._create_education_class = mock.MagicMock(return_value=edu_class)
+        self.gc._create_group = mock.MagicMock()
+
+        existing_edu = mock.MagicMock()
+        with mock.patch('univention.office365.connector.connector.EducationClassAzure') as mock_edu_cls:
+            mock_edu_cls.get.side_effect = MSGraphError(mock.MagicMock(status_code=404), 'Not an edu class')
+            result = self.gc.migrate_group_type(udm_fake_group, azure_group, core)
+
+        # Old group should be deleted (via standard path since it's not an edu class)
+        azure_group.remove_all_assigned_licenses.assert_called_once()
+        azure_group.delete.assert_called_once()
+        # New education class should be created
+        self.gc._create_education_class.assert_called_once_with(udm_fake_group, core)
+        self.gc._create_group.assert_not_called()
+        # Result should wrap the education class
+        assert result.id == 'new-edu-class-id'
+
+    def test_migrate_group_type_education_class_to_security(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """Migrating from Education Class to Security Group should detect
+        the old education class via EducationClassAzure.get(), delete it,
+        and recreate as a regular group."""
+        alias = 'o365domain'
+        core = mock.MagicMock()
+        self.gc._cores[alias] = core
+
+        udm_fake_group = create_udm_group_object()
+        udm_fake_group.in_azure = mock.MagicMock(return_value=True)
+        udm_fake_group.is_team = mock.MagicMock(return_value=False)
+        udm_fake_group.is_education_class = mock.MagicMock(return_value=False)
+        type(udm_fake_group).azure_object_id = mock.PropertyMock(return_value='old-edu-id')
+
+        azure_group = mock.MagicMock()
+        azure_group.is_delete = mock.MagicMock(return_value=False)
+
+        new_group = mock.MagicMock()
+        new_group.id = 'new-security-group-id'
+        self.gc._create_group = mock.MagicMock(return_value=new_group)
+        self.gc._create_education_class = mock.MagicMock()
+
+        existing_edu = mock.MagicMock()
+        with mock.patch('univention.office365.connector.connector.EducationClassAzure') as mock_edu_cls:
+            mock_edu_cls.get.return_value = existing_edu
+            result = self.gc.migrate_group_type(udm_fake_group, azure_group, core)
+
+        # Old education class should be deleted
+        existing_edu.delete.assert_called_once()
+        # New security group should be created
+        self.gc._create_group.assert_called_once_with(udm_fake_group, core)
+        self.gc._create_education_class.assert_not_called()
+        assert result is new_group
+
+    def test_migrate_group_type_education_class_to_m365(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """Migrating from Education Class to M365 Group should detect the old
+        education class, delete it, and recreate as an M365 group."""
+        alias = 'o365domain'
+        core = mock.MagicMock()
+        self.gc._cores[alias] = core
+
+        udm_fake_group = create_udm_group_object()
+        udm_fake_group.in_azure = mock.MagicMock(return_value=True)
+        udm_fake_group.is_team = mock.MagicMock(return_value=False)
+        udm_fake_group.is_education_class = mock.MagicMock(return_value=False)
+        type(udm_fake_group).azure_object_id = mock.PropertyMock(return_value='old-edu-id')
+
+        azure_group = mock.MagicMock()
+        azure_group.is_delete = mock.MagicMock(return_value=False)
+
+        new_group = mock.MagicMock()
+        new_group.id = 'new-m365-group-id'
+        self.gc._create_group = mock.MagicMock(return_value=new_group)
+        self.gc._create_education_class = mock.MagicMock()
+
+        existing_edu = mock.MagicMock()
+        with mock.patch('univention.office365.connector.connector.EducationClassAzure') as mock_edu_cls:
+            mock_edu_cls.get.return_value = existing_edu
+            result = self.gc.migrate_group_type(udm_fake_group, azure_group, core)
+
+        existing_edu.delete.assert_called_once()
+        self.gc._create_group.assert_called_once_with(udm_fake_group, core)
+        assert result is new_group
+
+    def test_migrate_group_type_education_class_to_team(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """Migrating from Education Class when the group is also a Team should
+        first archive the team, then delete the education class, then recreate."""
+        alias = 'o365domain'
+        core = mock.MagicMock()
+        self.gc._cores[alias] = core
+
+        udm_fake_group = create_udm_group_object()
+        udm_fake_group.is_team = mock.MagicMock(return_value=True)
+        udm_fake_group.is_education_class = mock.MagicMock(return_value=True)
+        udm_fake_group.current_connection_alias = alias
+        type(udm_fake_group).azure_object_id = mock.PropertyMock(return_value='edu-team-id')
+
+        azure_group = mock.MagicMock()
+        azure_group.is_delete = mock.MagicMock(return_value=False)
+
+        edu_class = mock.MagicMock()
+        edu_class.id = 'new-edu-team-id'
+        edu_class.displayName = 'NewEduTeam'
+        self.gc._create_education_class = mock.MagicMock(return_value=edu_class)
+        self.gc._create_group = mock.MagicMock()
+
+        existing_edu = mock.MagicMock()
+        with mock.patch('univention.office365.connector.connector.TeamAzure') as mock_team, \
+             mock.patch('univention.office365.connector.connector.EducationClassAzure') as mock_edu_cls:
+            mock_edu_cls.get.return_value = existing_edu
+            self.gc.migrate_group_type(udm_fake_group, azure_group, core)
+            # Team should be archived first
+            mock_team.return_value.deactivate.assert_called_once()
+            # Old education class should be deleted
+            existing_edu.delete.assert_called_once()
+
+    # ------------------------------------------------------------------
+    # check_and_modify_attributes for education classes
+    # ------------------------------------------------------------------
+
+    def test_check_and_modify_attributes_education_class(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """check_and_modify_attributes() should detect education-specific
+        attribute changes and call EducationClassAzure.update()."""
+        alias = 'o365domain'
+        core = mock.MagicMock()
+        core.account.alias = alias
+
+        udm_fake_group_new = create_udm_group_object()
+        udm_fake_group_new.in_azure = mock.MagicMock(return_value=True)
+        udm_fake_group_new.is_education_class = mock.MagicMock(return_value=True)
+
+        azure_group = mock.MagicMock()
+        azure_group.id = 'edu-azure-id'
+
+        # parse() returns a stub with no group-level differences
+        stub = mock.MagicMock()
+        stub.get_not_none_values_as_dict.return_value = {}
+        self.gc.parse = mock.MagicMock(return_value=stub)
+        azure_group.__sub__ = mock.MagicMock(return_value=mock.MagicMock(get_not_none_values_as_dict=mock.MagicMock(return_value={})))
+
+        # Education class from Azure has different classCode
+        existing_edu = mock.MagicMock()
+        existing_edu.classCode = 'OLD101'
+        new_edu = mock.MagicMock()
+        new_edu.classCode = 'NEW101'
+        existing_edu.__sub__ = mock.MagicMock(
+            return_value=mock.MagicMock(get_not_none_values_as_dict=mock.MagicMock(return_value={'classCode': 'NEW101'}))
+        )
+
+        with mock.patch('univention.office365.connector.connector.EducationClassAzure') as mock_edu_cls:
+            mock_edu_cls.get.return_value = existing_edu
+            self.gc.parse_education_class = mock.MagicMock(return_value=new_edu)
+
+            self.gc.check_and_modify_attributes(udm_fake_group_new, azure_group, core)
+
+            mock_edu_cls.get.assert_called_once_with(core, 'edu-azure-id')
+            self.gc.parse_education_class.assert_called_once_with(udm_fake_group_new, core)
+            existing_edu.update.assert_called_once()
+
+    def test_check_and_modify_attributes_education_class_no_change(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """check_and_modify_attributes() should not call update when there are
+        no education-specific attribute changes."""
+        alias = 'o365domain'
+        core = mock.MagicMock()
+        core.account.alias = alias
+
+        udm_fake_group_new = create_udm_group_object()
+        udm_fake_group_new.in_azure = mock.MagicMock(return_value=True)
+        udm_fake_group_new.is_education_class = mock.MagicMock(return_value=True)
+
+        azure_group = mock.MagicMock()
+        azure_group.id = 'edu-azure-id'
+
+        stub = mock.MagicMock()
+        stub.get_not_none_values_as_dict.return_value = {}
+        self.gc.parse = mock.MagicMock(return_value=stub)
+        azure_group.__sub__ = mock.MagicMock(return_value=mock.MagicMock(get_not_none_values_as_dict=mock.MagicMock(return_value={})))
+
+        existing_edu = mock.MagicMock()
+        existing_edu.__sub__ = mock.MagicMock(
+            return_value=mock.MagicMock(get_not_none_values_as_dict=mock.MagicMock(return_value={}))
+        )
+        new_edu = mock.MagicMock()
+
+        with mock.patch('univention.office365.connector.connector.EducationClassAzure') as mock_edu_cls:
+            mock_edu_cls.get.return_value = existing_edu
+            self.gc.parse_education_class = mock.MagicMock(return_value=new_edu)
+
+            self.gc.check_and_modify_attributes(udm_fake_group_new, azure_group, core)
+
+            existing_edu.update.assert_not_called()
+
+    # ------------------------------------------------------------------
+    # Modify flow: education class type change via modify()
+    # ------------------------------------------------------------------
+
+    def test_modify_triggers_migrate_on_education_class_type_change(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """modify() should call migrate_group_type() when the education class
+        flag changes between old and new UDM groups."""
+        alias = 'o365domain'
+        core = mock.MagicMock()
+        core.account.alias = alias
+        self.gc._cores[alias] = core
+
+        udm_fake_group_old = create_udm_group_object()
+        udm_fake_group_old.in_azure = mock.MagicMock(return_value=True)
+        udm_fake_group_old.is_team = mock.MagicMock(return_value=False)
+        udm_fake_group_old.is_education_class = mock.MagicMock(return_value=True)
+        udm_fake_group_old.current_connection_alias = alias
+
+        udm_fake_group_new = create_udm_group_object()
+        udm_fake_group_new.in_azure = mock.MagicMock(return_value=True)
+        udm_fake_group_new.is_team = mock.MagicMock(return_value=False)
+        udm_fake_group_new.is_education_class = mock.MagicMock(return_value=False)
+        udm_fake_group_new.udm_object_reference.oldattr['description'] = b'new-desc'
+
+        azure_group = mock.MagicMock()
+        azure_group.id = 'some-azure-id'
+        azure_group.is_delete = mock.MagicMock(return_value=False)
+
+        created_group = mock.MagicMock(name='created_group')
+        created_group.id = 'some-azure-id'
+        created_group.is_security_group = mock.MagicMock(return_value=False)
+        created_group.is_delete = mock.MagicMock(return_value=False)
+        self.gc._create_group = mock.MagicMock(return_value=created_group)
+
+        self.gc.migrate_group_type = mock.MagicMock(return_value=azure_group)
+        self.gc.check_and_modify_owners = mock.MagicMock()
+        self.gc.check_and_modify_teams = mock.MagicMock()
+        self.gc.check_and_modify_members = mock.MagicMock()
+        self.gc.check_and_modify_attributes = mock.MagicMock()
+
+        with mock.patch('univention.office365.connector.connector.GroupAzure') as mock_group_azure:
+            mock_group_azure.get.return_value = created_group
+            self.gc.modify(udm_fake_group_old, udm_fake_group_new)
+
+        self.gc.migrate_group_type.assert_called_once_with(udm_fake_group_new, created_group, core)
+
+    def test_modify_education_class_to_team(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """modify() should call check_and_modify_teams() to create a team
+        when a group becomes a team during modification."""
+        alias = 'o365domain'
+        core = mock.MagicMock()
+        core.account.alias = alias
+        self.gc._cores[alias] = core
+
+        udm_fake_group_old = create_udm_group_object()
+        udm_fake_group_old.in_azure = mock.MagicMock(return_value=True)
+        udm_fake_group_old.is_team = mock.MagicMock(return_value=False)
+        udm_fake_group_old.is_education_class = mock.MagicMock(return_value=True)
+        udm_fake_group_old.current_connection_alias = alias
+
+        udm_fake_group_new = create_udm_group_object()
+        udm_fake_group_new.in_azure = mock.MagicMock(return_value=True)
+        udm_fake_group_new.is_team = mock.MagicMock(return_value=True)
+        udm_fake_group_new.is_education_class = mock.MagicMock(return_value=True)
+        udm_fake_group_new.udm_object_reference.oldattr['description'] = b'new-desc'
+
+        azure_group = mock.MagicMock()
+        azure_group.id = 'edu-team-id'
+        azure_group.is_delete = mock.MagicMock(return_value=False)
+
+        created_group = mock.MagicMock(name='created_group')
+        created_group.id = 'edu-team-id'
+        created_group.is_security_group = mock.MagicMock(return_value=False)
+        created_group.is_delete = mock.MagicMock(return_value=False)
+        self.gc._create_group = mock.MagicMock(return_value=created_group)
+
+        self.gc.check_and_modify_owners = mock.MagicMock()
+        self.gc.check_and_modify_teams = mock.MagicMock()
+        self.gc.check_and_modify_members = mock.MagicMock()
+        self.gc.check_and_modify_attributes = mock.MagicMock()
+
+        with mock.patch('univention.office365.connector.connector.GroupAzure') as mock_group_azure:
+            mock_group_azure.get.return_value = created_group
+            self.gc.modify(udm_fake_group_old, udm_fake_group_new)
+
+        self.gc.check_and_modify_teams.assert_called_once_with(
+            udm_fake_group_old, udm_fake_group_new, created_group, alias
+        )
+
+    # ------------------------------------------------------------------
+    # Education class with owners (teachers) and members (students)
+    # ------------------------------------------------------------------
+
+    def test_create_education_class_with_teachers_and_students(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """_create_education_class() should add teachers (owners) and students
+        (members) to the education class backing group."""
+        from univention.office365.microsoft.objects.azureobjects import EducationClassAzure, GroupAzure
+
+        alias = 'o365domain'
+        core = mock.MagicMock()
+        core.account.alias = alias
+
+        udm_fake_group = create_udm_group_object()
+        udm_fake_group.current_connection_alias = alias
+        owner1 = mock.MagicMock(dn='uid=teacher1,cn=users,dc=test,dc=test')
+        owner2 = mock.MagicMock(dn='uid=teacher2,cn=users,dc=test,dc=test')
+        udm_fake_group.get_owners = mock.MagicMock(return_value=[owner1, owner2])
+        udm_fake_group.modify_azure_attributes = mock.MagicMock()
+
+        edu_class_mock = mock.MagicMock(spec=EducationClassAzure)
+        edu_class_mock.id = 'edu-class-with-staff'
+
+        group_azure_mock = mock.MagicMock(spec=GroupAzure)
+        group_azure_mock.id = 'edu-class-with-staff'
+        group_azure_mock.is_security_group.return_value = False
+        group_azure_mock.visibility = None
+
+        self.gc.parse_education_class = mock.MagicMock(return_value=edu_class_mock)
+        self.gc.parse = mock.MagicMock(return_value=group_azure_mock)
+        self.gc.add_ldap_members_to_azure_group = mock.MagicMock()
+
+        result = self.gc._create_education_class(udm_fake_group, core)
+
+        edu_class_mock.create_or_modify.assert_called_once()
+        udm_fake_group.modify_azure_attributes.assert_called_once()
+        self.gc.add_ldap_members_to_azure_group.assert_called_once_with(
+            udm_fake_group, mock.ANY, core
+        )
+        assert isinstance(result, GroupAzure)
+        assert result.id == 'edu-class-with-staff'
+
+    def test_modify_education_class_grade_change(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """Modifying the grade attribute of an education class should propagate
+        through check_and_modify_attributes."""
+        alias = 'o365domain'
+        core = mock.MagicMock()
+        core.account.alias = alias
+
+        udm_fake_group = create_udm_group_object()
+        udm_fake_group.in_azure = mock.MagicMock(return_value=True)
+        udm_fake_group.is_education_class = mock.MagicMock(return_value=True)
+
+        azure_group = mock.MagicMock()
+        azure_group.id = 'edu-grade-test-id'
+
+        stub = mock.MagicMock()
+        stub.get_not_none_values_as_dict.return_value = {}
+        self.gc.parse = mock.MagicMock(return_value=stub)
+        azure_group.__sub__ = mock.MagicMock(return_value=mock.MagicMock(get_not_none_values_as_dict=mock.MagicMock(return_value={})))
+
+        existing_edu = mock.MagicMock()
+        existing_edu.grade = 'Grade 5'
+        new_edu = mock.MagicMock()
+        new_edu.grade = 'Grade 10'
+        existing_edu.__sub__ = mock.MagicMock(
+            return_value=mock.MagicMock(get_not_none_values_as_dict=mock.MagicMock(return_value={'grade': 'Grade 10'}))
+        )
+
+        with mock.patch('univention.office365.connector.connector.EducationClassAzure') as mock_edu_cls:
+            mock_edu_cls.get.return_value = existing_edu
+            self.gc.parse_education_class = mock.MagicMock(return_value=new_edu)
+
+            self.gc.check_and_modify_attributes(udm_fake_group, azure_group, core)
+
+            existing_edu.update.assert_called_once()
+
+    # ------------------------------------------------------------------
+    # Education class creation with fallback on error
+    # ------------------------------------------------------------------
+
+    def test_create_education_class_full_flow_with_fallback(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """Full create flow when education class creation fails should
+        fall back to regular M365 group and still add members."""
+        from univention.office365.microsoft.objects.azureobjects import EducationClassAzure
+
+        alias = 'o365domain'
+        core = mock.MagicMock()
+        core.account.alias = alias
+        self.gc._cores[alias] = core
+
+        udm_fake_group = create_udm_group_object()
+        udm_fake_group.in_azure = mock.MagicMock(return_value=True)
+        udm_fake_group.is_team = mock.MagicMock(return_value=False)
+        udm_fake_group.is_education_class = mock.MagicMock(return_value=True)
+        udm_fake_group.get_owners = mock.MagicMock(return_value=[])
+        udm_fake_group.modify_azure_attributes = mock.MagicMock()
+
+        edu_class_mock = mock.MagicMock(spec=EducationClassAzure)
+        edu_class_mock.create_or_modify.side_effect = MSGraphError(mock.MagicMock(status_code=403), 'Education API unavailable')
+
+        fallback_group = mock.MagicMock()
+        fallback_group.id = 'fallback-m365-group-id'
+
+        self.gc.parse_education_class = mock.MagicMock(return_value=edu_class_mock)
+        self.gc._create_group = mock.MagicMock(return_value=fallback_group)
+        self.gc.add_ldap_members_to_azure_group = mock.MagicMock()
+
+        result = self.gc._create_education_class(udm_fake_group, core)
+
+        # Should have attempted education class creation
+        edu_class_mock.create_or_modify.assert_called_once()
+        # Should have fallen back to M365 group
+        self.gc._create_group.assert_called_once_with(udm_fake_group, core)
+        # Members are handled inside _create_group (which is mocked here)
+        # so add_ldap_members_to_azure_group is not called from _create_education_class
+        # UDM attributes should NOT be written for the education class
+        udm_fake_group.modify_azure_attributes.assert_not_called()
+        assert result is fallback_group
+
+    def test_create_education_class_is_also_team_full_flow(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """When a group is both an education class and a team, the full create
+        flow through _create_group() should: create education class, then the
+        remaining group creation, and finally convert_group_to_team is called."""
+        from univention.office365.microsoft.objects.azureobjects import EducationClassAzure
+
+        alias = 'o365domain'
+        core = mock.MagicMock()
+        core.account.alias = alias
+        self.gc._cores[alias] = core
+
+        udm_fake_group = create_udm_group_object()
+        udm_fake_group.in_azure = mock.MagicMock(return_value=True)
+        udm_fake_group.is_team = mock.MagicMock(return_value=True)
+        udm_fake_group.is_education_class = mock.MagicMock(return_value=True)
+        udm_fake_group.get_owners = mock.MagicMock(return_value=[mock.MagicMock()])
+        udm_fake_group.modify_azure_attributes = mock.MagicMock()
+
+        edu_class = mock.MagicMock(spec=EducationClassAzure)
+        edu_class.id = 'edu-team-combo-id'
+        edu_class.displayName = 'TeamClass'
+
+        # Mock _create_education_class to be called within _create_group
+        self.gc.parse_education_class = mock.MagicMock(return_value=edu_class)
+        self.gc.add_ldap_members_to_azure_group = mock.MagicMock()
+        self.gc.convert_group_to_team = mock.MagicMock()
+
+        self.gc.create(udm_fake_group)
+
+        # create() calls _create_group() which calls _create_education_class()
+        # because is_education_class() is True
+        self.gc.convert_group_to_team.assert_called()
+        # The education class mock should have been passed to convert_group_to_team
+        call_args = self.gc.convert_group_to_team.call_args
+        assert call_args[0][0] is udm_fake_group
+
+    # ------------------------------------------------------------------
+    # Education term attribute getter methods
+    # ------------------------------------------------------------------
+
+    def test_get_education_term_display_name(self, create_udm_group_object):
+        # type: (Callable) -> None
+        udm_fake_group = create_udm_group_object()
+        udm_fake_group.udm_object_reference['UniventionMicrosoft365EducationTermDisplayName'] = 'Fall 2025'
+        assert udm_fake_group.get_education_term_display_name() == 'Fall 2025'
+
+    def test_get_education_term_display_name_none(self, create_udm_group_object):
+        # type: (Callable) -> None
+        udm_fake_group = create_udm_group_object()
+        assert udm_fake_group.get_education_term_display_name() is None
+
+    def test_get_education_term_external_id(self, create_udm_group_object):
+        # type: (Callable) -> None
+        udm_fake_group = create_udm_group_object()
+        udm_fake_group.udm_object_reference['UniventionMicrosoft365EducationTermExternalId'] = 'term-ext-123'
+        assert udm_fake_group.get_education_term_external_id() == 'term-ext-123'
+
+    def test_get_education_term_external_id_none(self, create_udm_group_object):
+        # type: (Callable) -> None
+        udm_fake_group = create_udm_group_object()
+        assert udm_fake_group.get_education_term_external_id() is None
+
+    def test_get_education_term_start_date(self, create_udm_group_object):
+        # type: (Callable) -> None
+        udm_fake_group = create_udm_group_object()
+        udm_fake_group.udm_object_reference['UniventionMicrosoft365EducationTermStartDate'] = '2025-09-01'
+        assert udm_fake_group.get_education_term_start_date() == '2025-09-01'
+
+    def test_get_education_term_start_date_none(self, create_udm_group_object):
+        # type: (Callable) -> None
+        udm_fake_group = create_udm_group_object()
+        assert udm_fake_group.get_education_term_start_date() is None
+
+    def test_get_education_term_end_date(self, create_udm_group_object):
+        # type: (Callable) -> None
+        udm_fake_group = create_udm_group_object()
+        udm_fake_group.udm_object_reference['UniventionMicrosoft365EducationTermEndDate'] = '2026-01-31'
+        assert udm_fake_group.get_education_term_end_date() == '2026-01-31'
+
+    def test_get_education_term_end_date_none(self, create_udm_group_object):
+        # type: (Callable) -> None
+        udm_fake_group = create_udm_group_object()
+        assert udm_fake_group.get_education_term_end_date() is None
+
+    def test_get_education_class_code(self, create_udm_group_object):
+        # type: (Callable) -> None
+        udm_fake_group = create_udm_group_object()
+        udm_fake_group.udm_object_reference['UniventionMicrosoft365EducationClassCode'] = 'CS101'
+        assert udm_fake_group.get_education_class_code() == 'CS101'
+
+    def test_get_education_class_code_none(self, create_udm_group_object):
+        # type: (Callable) -> None
+        udm_fake_group = create_udm_group_object()
+        assert udm_fake_group.get_education_class_code() is None
+
+    def test_get_education_grade(self, create_udm_group_object):
+        # type: (Callable) -> None
+        udm_fake_group = create_udm_group_object()
+        udm_fake_group.udm_object_reference['UniventionMicrosoft365EducationClassGrade'] = 'Grade 10'
+        assert udm_fake_group.get_education_grade() == 'Grade 10'
+
+    def test_get_education_grade_none(self, create_udm_group_object):
+        # type: (Callable) -> None
+        udm_fake_group = create_udm_group_object()
+        assert udm_fake_group.get_education_grade() is None
+
+    # ------------------------------------------------------------------
+    # parse_education_class with term attributes
+    # ------------------------------------------------------------------
+
+    def test_parse_education_class_with_term_attributes(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """parse_education_class() should populate the term dict when
+        term-related attributes are set on the UDM group."""
+        from univention.office365.microsoft.objects.azureobjects import EducationClassAzure
+
+        core = mock.MagicMock()
+        udm_fake_group = create_udm_group_object()
+        udm_fake_group.udm_object_reference['UniventionMicrosoft365EducationClassCode'] = 'MATH301'
+        udm_fake_group.udm_object_reference['UniventionMicrosoft365EducationClassGrade'] = 'Grade 12'
+        udm_fake_group.udm_object_reference['UniventionMicrosoft365EducationTermDisplayName'] = 'Spring 2026'
+        udm_fake_group.udm_object_reference['UniventionMicrosoft365EducationTermExternalId'] = 'term-spring-2026'
+        udm_fake_group.udm_object_reference['UniventionMicrosoft365EducationTermStartDate'] = '2026-02-01'
+        udm_fake_group.udm_object_reference['UniventionMicrosoft365EducationTermEndDate'] = '2026-06-30'
+        test_uuid = 'term-test-uuid'
+        udm_fake_group.udm_object_reference.oldattr['univentionObjectIdentifier'] = [test_uuid.encode('ASCII')]
+
+        edu_class = self.gc.parse_education_class(udm_fake_group, core)
+
+        assert isinstance(edu_class, EducationClassAzure)
+        assert edu_class.term is not None
+        assert edu_class.term['displayName'] == 'Spring 2026'
+        assert edu_class.term['externalId'] == 'term-spring-2026'
+        assert edu_class.term['startDate'] == '2026-02-01'
+        assert edu_class.term['endDate'] == '2026-06-30'
+
+    def test_parse_education_class_without_term_attributes(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """parse_education_class() should set term to None when no
+        term-related attributes are set on the UDM group."""
+        from univention.office365.microsoft.objects.azureobjects import EducationClassAzure
+
+        core = mock.MagicMock()
+        udm_fake_group = create_udm_group_object()
+        udm_fake_group.udm_object_reference['UniventionMicrosoft365EducationClassCode'] = 'CS101'
+        udm_fake_group.udm_object_reference['UniventionMicrosoft365EducationClassGrade'] = 'Grade 5'
+        test_uuid = 'no-term-uuid'
+        udm_fake_group.udm_object_reference.oldattr['univentionObjectIdentifier'] = [test_uuid.encode('ASCII')]
+
+        edu_class = self.gc.parse_education_class(udm_fake_group, core)
+
+        assert isinstance(edu_class, EducationClassAzure)
+        assert edu_class.term is None
+
+    def test_parse_education_class_with_partial_term_attributes(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """parse_education_class() should only include the term dict keys
+        for attributes that are actually set."""
+        from univention.office365.microsoft.objects.azureobjects import EducationClassAzure
+
+        core = mock.MagicMock()
+        udm_fake_group = create_udm_group_object()
+        udm_fake_group.udm_object_reference['UniventionMicrosoft365EducationTermStartDate'] = '2026-01-15'
+        test_uuid = 'partial-term-uuid'
+        udm_fake_group.udm_object_reference.oldattr['univentionObjectIdentifier'] = [test_uuid.encode('ASCII')]
+
+        edu_class = self.gc.parse_education_class(udm_fake_group, core)
+
+        assert isinstance(edu_class, EducationClassAzure)
+        assert edu_class.term is not None
+        assert edu_class.term == {'startDate': '2026-01-15'}
+        assert 'displayName' not in edu_class.term
+        assert 'externalId' not in edu_class.term
+        assert 'endDate' not in edu_class.term
+
+    # ------------------------------------------------------------------
+    # GroupConnector.attrs includes term attributes
+    # ------------------------------------------------------------------
+
+    def test_group_connector_attrs_includes_term_attributes(self):
+        # type: () -> None
+        """GroupConnector.attrs must include the term-related LDAP
+        attributes so that changes to them trigger a sync."""
+        gc = GroupConnector({'o365domain': 'initialized'})
+        assert 'univentionMicrosoft365EducationTermDisplayName' in gc.attrs
+        assert 'univentionMicrosoft365EducationTermExternalId' in gc.attrs
+        assert 'univentionMicrosoft365EducationTermStartDate' in gc.attrs
+        assert 'univentionMicrosoft365EducationTermEndDate' in gc.attrs
+
+    def test_group_connector_attrs_includes_class_attributes(self):
+        # type: () -> None
+        """GroupConnector.attrs must include classCode and grade attributes."""
+        gc = GroupConnector({'o365domain': 'initialized'})
+        assert 'univentionMicrosoft365EducationClassCode' in gc.attrs
+        assert 'univentionMicrosoft365EducationClassGrade' in gc.attrs
+
+

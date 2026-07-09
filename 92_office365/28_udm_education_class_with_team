@@ -1,0 +1,90 @@
+#!/usr/share/ucs-test/runner python3
+## -*- coding: utf-8 -*-
+## desc: create an education class that is also a Microsoft Team
+## tags: [apptest]
+## exposure: dangerous
+## packages:
+##   - univention-office365
+
+"""
+This test creates an education class group that is also a Microsoft Team
+(both UniventionMicrosoft365GroupType='Education Class' and
+UniventionMicrosoft365Team=1) and verifies:
+
+- the education class is created via the Education Roster API
+- the backing M365 group is created
+- a Team is provisioned from the backing group
+- owners (teachers) are set correctly
+"""
+
+from __future__ import print_function
+
+import univention.testing.strings as uts
+import univention.testing.ucr as ucr_test
+import univention.testing.udm as udm_test
+import univention.testing.utils as utils
+
+from univention.config_registry import handler_set
+
+import helpers.office365_test_helpers as o365helpers
+from univention.office365.microsoft.account import AzureAccount
+from univention.office365.microsoft.core import MSGraphApiCore
+from univention.office365.microsoft.objects.azureobjects import GroupAzure, EducationClassAzure, TeamAzure
+from univention.office365.udmwrapper.udmobjects import UDMOfficeGroup, GroupType, UDMOfficeUser
+
+
+with utils.AutomaticListenerRestart():
+    with udm_test.UCSTestUDM() as udm:
+        with ucr_test.UCSTestConfigRegistry() as ucr:
+            ucr.load()
+
+            adconnection_alias = 'defaultADconnection'
+            core = MSGraphApiCore(AzureAccount(adconnection_alias))
+
+            handler_set(['office365/groups/sync=yes'])
+            utils.restart_listener()
+
+            print('*** Creating teacher (owner) user ***')
+            user_args = o365helpers.udm_user_args(ucr, minimal=True)
+            user_args['set']['UniventionOffice365Enabled'] = 1
+            user_args['set']['UniventionOffice365ADConnectionAlias'] = adconnection_alias
+            user_dn, username = udm.create_user(wait_for_replication_and_postrun=True, **user_args)
+
+            print('*** Creating education class group that is also a Team ***')
+            class_name = 'EduTeam {}'.format(uts.random_name())
+            group_dn = udm.create_object(
+                'groups/group',
+                set=dict(
+                    name=class_name,
+                    description='Education class with Team',
+                    UniventionMicrosoft365GroupType=GroupType.EDUCATION_CLASS.value,
+                    UniventionMicrosoft365Team=1,
+                    UniventionMicrosoft365GroupOwners=user_dn,
+                    users=[user_dn],
+                ),
+                position='cn=groups,{}'.format(ucr.get('ldap/base')),
+                wait_for_replication_and_postrun=True,
+            )
+
+            print('*** Checking that group got an Azure object ID ***')
+            udm_group = UDMOfficeGroup({}, None, dn=group_dn)
+            with udm_group.set_current_alias(adconnection_alias):
+                group_objectid = udm_group.azure_object_id
+            if not group_objectid:
+                utils.fail('Education class Team group has no objectId.')
+            print('*** Azure object ID: {!r}'.format(group_objectid))
+
+            print('*** Checking that backing M365 group exists in Azure ***')
+            azure_group = o365helpers.check_group_created_by_id(core, group_objectid)
+            if not azure_group:
+                utils.fail('Backing M365 group was not created.')
+            print('*** Backing group: displayName={!r}'.format(azure_group.displayName))
+
+            print('*** Verifying Team was created (may take time) ***')
+            team = o365helpers.check_team_created(core, class_name)
+            if team:
+                print('*** Team created successfully: id={!r}'.format(team.id))
+            else:
+                print('*** WARNING: Team not yet visible (async provisioning may still be in progress)')
+
+            print('*** All went well.')

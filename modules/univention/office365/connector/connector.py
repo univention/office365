@@ -23,8 +23,8 @@ from univention.office365.microsoft.exceptions.core_exceptions import MSGraphErr
 from univention.office365.microsoft.exceptions.exceptions import NoAllocatableSubscriptions, GraphRessourceNotFroundError
 from univention.office365.connector import utils
 from univention.office365.microsoft.manifest import permissions_needed_name, ApplicationPermissions
-from univention.office365.microsoft.objects.azureobjects import UserAzure, AzureObject, GroupAzure, SubscriptionAzure, TeamAzure
-from univention.office365.udmwrapper.udmobjects import UDMOfficeUser, UDMOfficeGroup, UDMOfficeObject
+from univention.office365.microsoft.objects.azureobjects import UserAzure, AzureObject, GroupAzure, SubscriptionAzure, TeamAzure, EducationClassAzure
+from univention.office365.udmwrapper.udmobjects import UDMOfficeUser, UDMOfficeGroup, UDMOfficeObject, GroupType
 from univention.office365.utils.utils import create_random_pw
 from univention.office365.asyncqueue.queues.jsonfilesqueue import JsonFilesQueue
 from univention.office365.logging2udebug import get_logger
@@ -232,7 +232,7 @@ class Connector(object):
         if app_rol_name_not_present:
             self.logger.warning('Alias %r need consent %r', alias, app_rol_name_not_present)
             self.logger.warning(
-                'Authorization Error. Your application may not have the correct permissions for the Microsoft Graph API.Please check https://help.univention.com/t/18453.'
+                'Your application may not have the correct permissions for the Microsoft Graph API.Please check https://help.univention.com/t/18453.'
             )
             return False
         return True
@@ -261,9 +261,7 @@ class Connector(object):
             )
             self._cores[alias] = 'broken_alias'
             return
-        if not self._check_permissions(alias, core):
-            self._cores[alias] = 'broken_alias'
-            return
+        self._check_permissions(alias, core)
         self._cores[alias] = core
         return core
 
@@ -812,7 +810,21 @@ class GroupConnector(Connector):
     def __init__(self, alias_connections=None, logger=None):
         # type: (Optional[Dict[str, str]], Optional[Logger]) -> None
         super(GroupConnector, self).__init__(alias_connections, logger)
-        self.attrs = {'cn', 'description', 'uniqueMember', 'univentionMicrosoft365Team', 'univentionMicrosoft365GroupOwners', 'univentionMicrosoft365GroupType', 'univentionMicrosoft365GroupVisibility'}
+        self.attrs = {
+            'cn',
+            'description',
+            'uniqueMember',
+            'univentionMicrosoft365Team',
+            'univentionMicrosoft365GroupOwners',
+            'univentionMicrosoft365GroupType',
+            'univentionMicrosoft365GroupVisibility',
+            'univentionMicrosoft365EducationClassCode',
+            'univentionMicrosoft365EducationClassGrade',
+            'univentionMicrosoft365EducationTermDisplayName',
+            'univentionMicrosoft365EducationTermExternalId',
+            'univentionMicrosoft365EducationTermStartDate',
+            'univentionMicrosoft365EducationTermEndDate',
+        }
         self.async_task = True
 
     @staticmethod
@@ -822,7 +834,7 @@ class GroupConnector(Connector):
         return {'objectId': azure_group.id}
 
     def create(self, udm_group):
-        # type: (UDMOfficeGroup) -> None
+        # type: (UDMOfficeGroup) -> Optional[GroupAzure]
         """"""
         """
         if self.udm.group_in_azure(dn):
@@ -836,6 +848,7 @@ class GroupConnector(Connector):
                 self.convert_group_to_team(group=new_group, new=new)
         """
         # Check if group exists in azure
+        result = None
         for alias in udm_group.aliases(self.all_alias_connections):
             if not udm_group.in_azure():
                 continue
@@ -843,21 +856,93 @@ class GroupConnector(Connector):
             if not core:
                 continue
 
-            group_azure = self._create_group(udm_group, core)
+            if udm_group.is_education_class():
+                group_azure = self._create_education_class(udm_group, core)
+            else:
+                group_azure = self._create_group(udm_group, core)
 
+            result = group_azure
             self.logger.info('Created group with displayName: %r (%r) adconnection: %s', group_azure.displayName, group_azure.id, alias)
             # check if the new group is also a team - and needs to be configured as team
             if udm_group.is_team():
                 self.convert_group_to_team(udm_group, group_azure)
-        # TODO: check if we need to add group owners to the team here
+        return result
 
     def _create_group(self, udm_object, core):
         # type: (UDMOfficeGroup, MSGraphApiCore) -> GroupAzure
         group_azure = self.parse(udm_object, core)
         group_azure.create_or_modify()
-        udm_object.modify_azure_attributes(self.prepare_azure_attributes(group_azure), is_security_group=group_azure.is_security_group(), visibility=group_azure.visibility)
+        udm_object.modify_azure_attributes(self.prepare_azure_attributes(group_azure), is_security_group=group_azure.is_security_group(), visibility=group_azure.visibility,)
         self.add_ldap_members_to_azure_group(udm_object, group_azure, core)
         return group_azure
+
+    def _create_education_class(self, udm_object, core):
+        # type: (UDMOfficeGroup, MSGraphApiCore) -> EducationClassAzure
+        """
+        Create (or update) an education class in Azure via the Education Roster API
+        and write the resulting Azure object ID back to UDM.
+
+        The underlying Microsoft 365 group shares the same object ID as the
+        education class, so the same UDM data field is used for storage.
+
+        If the Education Roster API call fails (e.g. because the tenant does not
+        have an Education licence or the required permissions are missing), the
+        method falls back to creating a regular Microsoft 365 group instead so
+        that the group and its members are still provisioned.
+        """
+        try:
+            edu_class = self.parse_education_class(udm_object, core)
+            edu_class.create_or_modify()
+        except MSGraphError as exc:
+            self.logger.warning(
+                'Failed to create education class %r via the Education Roster API (%r). '
+                'Falling back to a regular Microsoft 365 group.',
+                udm_object.cn,
+                exc,
+            )
+            udm_object.set_group_type(security_group=False)
+
+            return self._create_group(udm_object, core)
+
+        group_azure = self.parse(udm_object, core)
+        group_azure.id = edu_class.id
+        group_azure.visibility = "HiddenMembership"
+        udm_object.modify_azure_attributes(self.prepare_azure_attributes(group_azure), is_security_group=group_azure.is_security_group(), visibility=group_azure.visibility, is_education_class=True)
+        self.add_ldap_members_to_azure_group(udm_object, group_azure, core)
+        return group_azure
+
+    def parse_education_class(self, udm_group, core):
+        # type: (UDMOfficeGroup, MSGraphApiCore) -> EducationClassAzure
+        """
+        Convert a UDMOfficeGroup marked as 'Education Class' into an
+        EducationClassAzure object.
+        """
+        term = {}
+        term_display_name = udm_group.get_education_term_display_name()
+        if term_display_name:
+            term['displayName'] = term_display_name
+        term_external_id = udm_group.get_education_term_external_id()
+        if term_external_id:
+            term['externalId'] = term_external_id
+        term_start_date = udm_group.get_education_term_start_date()
+        if term_start_date:
+            term['startDate'] = term_start_date
+        term_end_date = udm_group.get_education_term_end_date()
+        if term_end_date:
+            term['endDate'] = term_end_date
+
+        edu_class = EducationClassAzure(
+            id=udm_group.azure_object_id,
+            displayName=udm_group.cn,
+            description=udm_group.description or None,
+            mailNickname=udm_group.cn.replace(' ', '_-_'),
+            classCode=udm_group.get_education_class_code(),
+            externalId=udm_group.get_object_identifier(),
+            grade=udm_group.get_education_grade(),
+            term=term if term else None,
+        )
+        edu_class.set_core(core)
+        return edu_class
 
     def add_ldap_members_to_azure_group(self, udm_object, azure_object, core):
         # type: (UDMOfficeGroup, GroupAzure, MSGraphApiCore) -> None
@@ -898,7 +983,14 @@ class GroupConnector(Connector):
             try:
                 azure_object.add_members(users_and_groups_to_add)
             except MSGraphError as e:
-                self.logger.error('Added members failed\n%s', e)
+                if e.response.status_code == 404:
+                    self.logger.warning('Adding members failed. Usually this is due to Azure replication delay.')
+                    task = azure_object.add_members(users_and_groups_to_add, async_task=True)
+                    q = JsonFilesQueue('o365asyncqueue')
+                    q.enqueue(task)
+                    self.logger.info('Adding members to group %r asynchronously.', azure_object.id)
+                else:
+                    raise
 
         # search tree upwards, create groups as we go, don't add users
         for group in udm_object.get_groups_member_of_not_in_azure():
@@ -924,6 +1016,12 @@ class GroupConnector(Connector):
                         self.logger.info('Deleted team %r from Azure AD %r', udm_group.get('cn'), alias)
                     except MSGraphError as g_exc:
                         self.logger.error('Error while deleting team %r: %r.', udm_group.get('cn'), g_exc)
+                #if udm_group.is_education_class():
+                #    edu_class = EducationClassAzure(id=udm_group.azure_object_id, displayName=udm_group.cn)
+                #    edu_class.set_core(core)
+                #    edu_class.deactivate(rename=True)
+                #    self.logger.info("Deleted education class %r from Azure AD '%r'", udm_group.get('cn'), alias)
+                #else:
                 azure_group = self.parse(udm_group, core)
                 azure_group.remove_direct_members()
                 azure_group.deactivate()
@@ -965,7 +1063,7 @@ class GroupConnector(Connector):
                 # because it could be removed manually from azure but exists in UDM. In this case
                 # we create the group again in Azure.
                 if not azure_group_id:
-                    # just create a new group
+                    # just create a new group (or education class)
                     self.logger.info('No objectID for group %r found, creating a new azure group...', old_udm_group.dn or new_udm_group.dn)
                     azure_group = self._create_group(new_udm_group, core)
                 # modification_attributes_udm_group = new_udm_group
@@ -978,11 +1076,12 @@ class GroupConnector(Connector):
                     # modification_attributes_udm_group = new_udm_group
                 if new_udm_group.group_type_is_not_set():
                     new_udm_group.set_group_type(security_group=azure_group.is_security_group())
-                elif azure_group.is_security_group() != new_udm_group.is_security_group():
+                elif new_udm_group.is_education_class() != old_udm_group.is_education_class() or \
+                        (not new_udm_group.is_education_class() and azure_group.is_security_group() != new_udm_group.is_security_group()):
                     azure_group = self.migrate_group_type(new_udm_group, azure_group, core)
 
-                if not azure_group.is_security_group():
-                    # Note: by default, if we don't send `visiblity`, then freshly created
+                if not new_udm_group.is_education_class():
+                    # Note: by default, if we don't send `visibility`, then freshly created
                     # * Security Groups return: visibility=None
                     # * MS365 Groups return: visibility='Public'
                     if new_udm_group.visibility_is_not_set():
@@ -992,11 +1091,16 @@ class GroupConnector(Connector):
                         new_azure_group = self.parse(new_udm_group, core)
                         azure_group.update(new_azure_group)
 
-                # If the azure group is deactivated, reactivate it
+                # If the azure group is deactivated, reactivate it.
                 if azure_group.is_delete():
                     self.logger.info('Reactivating azure group %r...', azure_group.displayName)
-                    new_azure_group = self.parse(new_udm_group, core)
-                    azure_group.update(new_azure_group)
+                    if new_udm_group.is_education_class():
+                        edu_class = self._create_education_class(new_udm_group, core)
+                        azure_group = GroupAzure(id=edu_class.id, displayName=edu_class.displayName, groupTypes=['Unified'])
+                        azure_group.set_core(core)
+                    else:
+                        new_azure_group = self.parse(new_udm_group, core)
+                        azure_group.update(new_azure_group)
                 # TODO: unarchive team
                 # modules/univention/office365/listener.py:607
                 # try:
@@ -1024,10 +1128,11 @@ class GroupConnector(Connector):
         # type: (UDMOfficeGroup, GroupAzure, MSGraphApiCore) -> GroupAzure
         """
         Change the group type in Azure AD is not possible. The group must be deleted and created again.
-        :param udm_group: UDMOfficeGroup: new group object
-        :param azure_group: GroupAzure: azure group object
+        This also handles migrations to/from Education Class, which uses a different API.
+        :param udm_group: UDMOfficeGroup: new group object with the desired target type
+        :param azure_group: GroupAzure: current azure group object
         :param core: MSGraphApiCore: core object
-        :return: GroupAzure: new azure group object
+        :return: GroupAzure: new azure group object (stub for education classes)
         """
         self.logger.info('Changing group type of group %r is not possible. Deleting group and creating it again.', udm_group.get('cn'))
         if not azure_group.is_delete():
@@ -1036,13 +1141,35 @@ class GroupConnector(Connector):
                     team = TeamAzure(id=udm_group.azure_object_id)
                     team.set_core(core)
                     team.deactivate()
-                    self.logger.info('Deleted team %r from Azure AD %r', udm_group.get('cn'), core.account.alias)
                 except MSGraphError as g_exc:
                     self.logger.error('Error while deleting team %r: %r.', udm_group.get('cn'), g_exc)
-            # azure_group.remove_direct_members()
-            azure_group.remove_all_assigned_licenses()
-            azure_group.delete()
-        new_azure_group = self._create_group(udm_group, core)
+            # If the old object was an education class, delete via the Education API
+            # (which also removes the backing group).  Otherwise use the standard
+            # group delete path.
+            if udm_group.azure_object_id:
+                old_is_edu = False
+                # Detect whether the existing Azure object is an education class by
+                # checking whether the old UDM group type was Education Class.
+                try:
+                    existing_edu = EducationClassAzure.get(core, udm_group.azure_object_id)
+                    old_is_edu = True
+                except MSGraphError:
+                    old_is_edu = False
+                if old_is_edu:
+                    try:
+                        existing_edu.delete()
+                    except MSGraphError as exc:
+                        self.logger.error('Error while deleting old education class %r: %r', udm_group.get('cn'), exc)
+                else:
+                    azure_group.remove_all_assigned_licenses()
+                    azure_group.delete()
+            else:
+                azure_group.remove_all_assigned_licenses()
+                azure_group.delete()
+        # Recreate with the new type
+        new_azure_group = self.create(udm_group)
+        if new_azure_group is None:
+            self.logger.error('Failed to recreate group %r after type migration.', udm_group.get('cn'))
         return new_azure_group
 
     def delete_empty_group(self, azure_group, udm_group=None):
@@ -1125,11 +1252,11 @@ class GroupConnector(Connector):
                 if self.async_task:
                     sub_task.append(task)
         if self.async_task:
-            task = TeamAzure.create_from_group_async(udm_group.current_connection_alias, azure_group.id, sub_task)
+            task = TeamAzure.create_from_group_async(udm_group.current_connection_alias, azure_group.id, sub_task, education_class=udm_group.is_education_class())
             q = JsonFilesQueue('o365asyncqueue')
             q.enqueue(task)
         else:
-            TeamAzure.create_from_group(azure_group._core, azure_group.id)
+            TeamAzure.create_from_group(azure_group._core, azure_group.id, education_class=udm_group.is_education_class())
 
     def check_and_modify_teams(self, old_udm_group, new_udm_group, azure_group, alias):
         # type: (UDMOfficeGroup, UDMOfficeGroup, GroupAzure) -> None
@@ -1309,11 +1436,19 @@ class GroupConnector(Connector):
     #   - for Removed members:  modules/univention/office365/listener.py:698
 
     def check_and_modify_attributes(self, new_udm_group, azure_group, core):
-        # type: (UDMOfficeGroup, GroupAzure) -> None
+        # type: (UDMOfficeGroup, GroupAzure, MSGraphApiCore) -> None
         new_azure_group = self.parse(new_udm_group, core)
         if (azure_group - new_azure_group).get_not_none_values_as_dict():
             azure_group.update(new_azure_group)
             return None  # TODO ????
+
+        # check education attributes and modify those
+        if new_udm_group.is_education_class():
+            edu_class = EducationClassAzure.get(core, azure_group.id)
+            new_edu_class = self.parse_education_class(new_udm_group, core)
+            if (edu_class - new_edu_class).get_not_none_values_as_dict():
+                edu_class.update(new_edu_class)
+                return None
 
     def add_member(self, udm_office_group, udm_office_user, core):
         # type: (UDMOfficeGroup, UDMOfficeUser, str) -> None
@@ -1356,13 +1491,29 @@ class GroupConnector(Connector):
         # type: (UDMOfficeGroup, MSGraphApiCore, bool) -> GroupAzure
         # anonymize > static > sync
         # get values to sync
+
+        #if udm_group.is_education_class():
+        #    self.logger.warning(
+        #        'parse() called for education class %r — returning minimal GroupAzure stub. '
+        #        'Use parse_education_class() for attribute modifications.',
+        #        udm_group.cn,
+        #    )
+        #    stub = GroupAzure(
+        #        id=udm_group.azure_object_id,
+        #        displayName=udm_group.cn,
+        #        mailNickname=udm_group.cn.replace(' ', '_-_'),
+        #        groupTypes=['Unified'],
+        #    )
+        #    stub.set_core(core)
+        #    return stub
+
         data = dict(
             id=udm_group.azure_object_id,
             description=udm_group.description or None,
             displayName=udm_group.cn,
-            mailEnabled=False,
+            mailEnabled=udm_group.is_education_class(),
             mailNickname=udm_group.cn.replace(' ', '_-_'),
-            securityEnabled=True,
+            securityEnabled=not udm_group.is_education_class(),
             groupTypes=[] if udm_group.is_security_group() else ['Unified'],
             visibility=None if udm_group.is_security_group() else udm_group.get_visibility(),
         )

@@ -69,7 +69,7 @@ class MSGraphCoreTask(Task):
                 # raise TypeError("No valid type %s for args of %s" % (type(self.method_args), self.method_name))
         except MSGraphError as e:
             if self.logger:
-                self.logger.error('Error while procesing task %r:', self.dump())
+                self.logger.error('Error while procesing task %r:\n', self.dump(), e)
                 raise
             return False
         return True

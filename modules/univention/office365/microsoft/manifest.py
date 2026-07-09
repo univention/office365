@@ -297,7 +297,7 @@ class ApplicationPermissions:
     app_rol_id_to_name = dict([(x[1], x[0]) for x in name_to_app_rol_id.items()])
 
 
-permissions_needed_name = ['Directory.ReadWrite.All', 'Group.ReadWrite.All', 'User.ReadWrite.All', 'TeamMember.ReadWrite.All']
+permissions_needed_name = ['Directory.ReadWrite.All', 'Group.ReadWrite.All', 'User.ReadWrite.All', 'TeamMember.ReadWrite.All', 'EduRoster.ReadWrite.All']
 
 resourceAccess = [{'id': ApplicationPermissions.name_to_app_rol_id[name], 'type': 'Role'} for name in permissions_needed_name]
 

@@ -1,0 +1,127 @@
+#!/usr/share/ucs-test/runner python3
+## -*- coding: utf-8 -*-
+## desc: migrate group type between Security Group and Education Class
+## tags: [apptest]
+## exposure: dangerous
+## packages:
+##   - univention-office365
+
+"""
+This test verifies group type migration involving education classes:
+
+1. Create a Security Group in UDM, verify it in Azure
+2. Migrate it to an Education Class (with ForceGroupType), verify the
+   old group is deleted and a new education class is created
+3. Migrate it back to a Security Group, verify the old education class
+   is deleted and a new Security Group is created
+"""
+
+from __future__ import print_function
+
+import univention.testing.strings as uts
+import univention.testing.ucr as ucr_test
+import univention.testing.udm as udm_test
+import univention.testing.utils as utils
+
+from univention.config_registry import handler_set
+
+import helpers.office365_test_helpers as o365helpers
+from univention.office365.microsoft.account import AzureAccount
+from univention.office365.microsoft.core import MSGraphApiCore
+from univention.office365.microsoft.objects.azureobjects import GroupAzure
+from univention.office365.udmwrapper.udmobjects import UDMOfficeGroup, GroupType
+
+
+def check_group_in_azure(core, group_dn, adconnection_alias, expected_group_type):
+    print('*** Checking group Azure object ID in UDM ***')
+    udm_group = UDMOfficeGroup({}, None, dn=group_dn)
+    with udm_group.set_current_alias(adconnection_alias):
+        group_objectid = udm_group.azure_object_id
+    if not group_objectid:
+        utils.fail('Group has no objectId in UDM Data ({!r}).'.format(adconnection_alias))
+
+    print('*** Checking group exists in Azure ***')
+    azure_group = o365helpers.check_group_created_by_id(core, group_objectid)
+    if not azure_group:
+        utils.fail('Group {!r} cannot be retrieved from Azure.'.format(group_objectid))
+
+    assert azure_group.id == group_objectid, 'Azure group ID mismatch'
+    print('*** Group type in UDM: {!r}'.format(udm_group.UniventionMicrosoft365GroupType))
+    print('*** Group found in Azure with ID: {!r}'.format(group_objectid))
+    return group_objectid
+
+
+with utils.AutomaticListenerRestart():
+    with udm_test.UCSTestUDM() as udm:
+        with ucr_test.UCSTestConfigRegistry() as ucr:
+            ucr.load()
+
+            adconnection_alias = 'defaultADconnection'
+            core = MSGraphApiCore(AzureAccount(adconnection_alias))
+
+            handler_set(['office365/groups/sync=yes'])
+            utils.restart_listener()
+
+            print('*** Creating user ***')
+            user_args = o365helpers.udm_user_args(ucr, minimal=True)
+            user_args['set']['UniventionOffice365Enabled'] = 1
+            user_args['set']['UniventionOffice365ADConnectionAlias'] = adconnection_alias
+            user_dn, username = udm.create_user(wait_for_listener_and_postrun=True, **user_args)
+
+            print('*** Creating Security Group ***')
+            group_name = uts.random_name()
+            group_dn = udm.create_object(
+                'groups/group',
+                set=dict(
+                    name=group_name,
+                    description='Migration test group',
+                    UniventionMicrosoft365GroupType=GroupType.SECURITY.value,
+                    users=[user_dn],
+                ),
+                position='cn=groups,{}'.format(ucr.get('ldap/base')),
+                wait_for_listener_and_postrun=True,
+            )
+
+            first_objectid = check_group_in_azure(core, group_dn, adconnection_alias, GroupType.SECURITY)
+            import time; time.sleep(70)
+            print(first_objectid)
+            print('*** Migrating from Security Group to Education Class ***')
+            udm.modify_object(
+                modulename='groups/group',
+                dn=group_dn,
+                set=dict(
+                    UniventionMicrosoft365GroupType=GroupType.EDUCATION_CLASS.value,
+                    UniventionMicrosoft365ForceGroupType=1,
+                    UniventionMicrosoft365GroupVisibility='Private',
+                ),
+                wait_for_listener_and_postrun=True,
+            )
+
+            print('*** Verifying old Security Group is gone ***')
+            if not o365helpers.check_group_deleted(core, first_objectid):
+                utils.fail('Old Security Group was not deleted after migration to Education Class.')
+
+            second_objectid = check_group_in_azure(core, group_dn, adconnection_alias, GroupType.EDUCATION_CLASS)
+            print(second_objectid)
+            assert first_objectid != second_objectid, 'Group ID should change after migration to Education Class'
+
+            import time; time.sleep(80)
+            print('*** Migrating from Education Class back to Security Group ***')
+            udm.modify_object(
+                modulename='groups/group',
+                dn=group_dn,
+                set=dict(
+                    UniventionMicrosoft365GroupType=GroupType.SECURITY.value,
+                    UniventionMicrosoft365ForceGroupType=1,
+                ),
+                wait_for_listener_and_postrun=True,
+            )
+
+            print('*** Verifying old Education Class is gone ***')
+            if not o365helpers.check_group_deleted(core, second_objectid):
+                utils.fail('Old Education Class was not deleted after migration back to Security Group.')
+
+            third_objectid = check_group_in_azure(core, group_dn, adconnection_alias, GroupType.SECURITY)
+            assert second_objectid != third_objectid, 'Group ID should change after migration back to Security Group'
+
+            print('*** All went well.')

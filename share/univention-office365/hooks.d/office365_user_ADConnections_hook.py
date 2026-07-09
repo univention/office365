@@ -19,6 +19,24 @@ msg_require_owner = _('In order to create a Microsoft 365 team from a group, at 
 msg_force_group_type = _(
     "Warning: By changing the group type, the group will be deleted and recreated in Microsoft 365. This can affect the group's permissions and settings. If you want to continue anyway, please tick the 'Force group type' checkbox."
 )
+msg_education_attributes_require_education_group = _(
+    'Education class attributes can only be used with the Education Group type. Clear the education class attributes or select Education Group.'
+)
+msg_education_term_dates_invalid = _('The education term end date must not be earlier than the start date.')
+msg_hidden_membership_only_for_education = _(
+    'HiddenGroupMembership visibility can only be used with the Education Class group type.'
+)
+
+EDUCATION_GROUP_TYPE = 'Education Class'
+HIDDEN_MEMBERSHIP_VISIBILITY = 'HiddenMembership'
+EDUCATION_ATTRIBUTES = (
+    'UniventionMicrosoft365EducationClassCode',
+    'UniventionMicrosoft365EducationClassGrade',
+    'UniventionMicrosoft365EducationTermDisplayName',
+    'UniventionMicrosoft365EducationTermExternalId',
+    'UniventionMicrosoft365EducationTermStartDate',
+    'UniventionMicrosoft365EducationTermEndDate',
+)
 
 
 def decode_o365data(data):
@@ -33,12 +51,31 @@ def str2bool(val):
         return False
 
 
+def validate_education_attributes(module):
+    education_values = [module.get(attribute) for attribute in EDUCATION_ATTRIBUTES]
+    if any(education_values) and module.get('UniventionMicrosoft365GroupType') != EDUCATION_GROUP_TYPE:
+        raise univention.admin.uexceptions.valueError(msg_education_attributes_require_education_group)
+
+    term_start = module.get('UniventionMicrosoft365EducationTermStartDate')
+    term_end = module.get('UniventionMicrosoft365EducationTermEndDate')
+    if term_start and term_end and term_end < term_start:
+        raise univention.admin.uexceptions.valueError(msg_education_term_dates_invalid)
+
+
+def validate_visibility(module):
+    visibility = module.get('UniventionMicrosoft365GroupVisibility')
+    if visibility == HIDDEN_MEMBERSHIP_VISIBILITY and module.get('UniventionMicrosoft365GroupType') != EDUCATION_GROUP_TYPE:
+        raise univention.admin.uexceptions.valueError(msg_hidden_membership_only_for_education)
+
+
 class Microsoft365GroupHook(simpleHook):
     type = 'Microsoft365GroupHook'
 
     def hook_ldap_pre_create(self, module):
         if str2bool(module.get('UniventionMicrosoft365Team')) and not module.get('UniventionMicrosoft365GroupOwners'):
             raise univention.admin.uexceptions.valueError(msg_require_owner)
+        validate_education_attributes(module)
+        validate_visibility(module)
 
     def hook_ldap_addlist(self, module, al=[]):
         al = [a for a in al if a[0] != 'dummyuniventionMicrosoft365ForceGroupType']
@@ -47,6 +84,8 @@ class Microsoft365GroupHook(simpleHook):
     def hook_ldap_pre_modify(self, module):
         if str2bool(module.get('UniventionMicrosoft365Team')) and not module.get('UniventionMicrosoft365GroupOwners'):
             raise univention.admin.uexceptions.valueError(msg_require_owner)
+        validate_education_attributes(module)
+        validate_visibility(module)
         if module.hasChanged('UniventionMicrosoft365GroupType') and not str2bool(module.get('UniventionMicrosoft365ForceGroupType')):
             has_been_synced = module.get('UniventionOffice365Data')
             group_type_is_set = module.oldinfo.get('UniventionMicrosoft365GroupType')

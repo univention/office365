@@ -52,6 +52,18 @@ then
 		--dn "cn=UniventionMicrosoft365ForceGroupType,$ea_base"
 	udm settings/extended_attribute remove "$@" \
 		--dn "cn=UniventionMicrosoft365GroupVisibility,$ea_base"
+	udm settings/extended_attribute remove "$@" \
+		--dn "cn=UniventionMicrosoft365EducationClassCode,$ea_base"
+	udm settings/extended_attribute remove "$@" \
+		--dn "cn=UniventionMicrosoft365EducationClassGrade,$ea_base"
+	udm settings/extended_attribute remove "$@" \
+		--dn "cn=UniventionMicrosoft365EducationTermDisplayName,$ea_base"
+	udm settings/extended_attribute remove "$@" \
+		--dn "cn=UniventionMicrosoft365EducationTermExternalId,$ea_base"
+	udm settings/extended_attribute remove "$@" \
+		--dn "cn=UniventionMicrosoft365EducationTermStartDate,$ea_base"
+	udm settings/extended_attribute remove "$@" \
+		--dn "cn=UniventionMicrosoft365EducationTermEndDate,$ea_base"
 
 	udm settings/usertemplate remove "$@" \
 		--dn "cn=Office 365 Account,cn=templates,cn=univention,$ldap_base"

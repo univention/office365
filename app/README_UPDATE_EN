@@ -1,4 +1,16 @@
 <h1>
+	Univention Microsoft 365 Connector v6.7
+	<div>
+		<ul style="font-size: 12px; font-weight: normal;">
+			<li>
+				<code class="code-colors hljs language-delphi">
+					Added support for Education Classes. Groups of type "Education Class" are provisioned via the Microsoft Graph Education Roster API, with attributes for class code, grade, and academic term. Requires an Azure Education License and School Data Sync. The feature is hidden by default and can be enabled via the app setting office365/education/enabled.
+				</code>
+			</li>
+		</ul>
+	</div>
+</h1>
+<h1>
 	Univention Microsoft 365 Connector v6.6
 	<div>
 		<ul style="font-size: 12px; font-weight: normal;">

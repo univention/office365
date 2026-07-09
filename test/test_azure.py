@@ -802,3 +802,81 @@ class TestAzure:
     def test_get_permissions(self):
         # type: () -> None
         self.core.get_permissions()
+
+    # ------------------------------------------------------------------
+    # Education Roster API tests
+    # These tests use mocked HTTP calls because real tenant fixtures with
+    # Education licences are not available in the standard test environment.
+    # ------------------------------------------------------------------
+
+    @mock.patch.object(requests, 'request')
+    def test_create_education_class(self, mock_request):
+        # type: () -> None
+        """create_education_class() should POST to /education/classes and return the response."""
+        mock_response = mock.MagicMock()
+        mock_response.status_code = 201
+        mock_response.headers = {'Content-Type': 'application/json'}
+        mock_response.json.return_value = {'id': 'edu-class-id', 'displayName': 'TestClass'}
+        mock_request.return_value = mock_response
+
+        result = self.core.create_education_class({'displayName': 'TestClass', 'mailNickname': 'TestClass'})
+        assert result['id'] == 'edu-class-id'
+        assert 'education/classes' in mock_request.call_args[1]['url']
+
+    @mock.patch.object(requests, 'request')
+    def test_get_education_class(self, mock_request):
+        # type: () -> None
+        """get_education_class() should GET /education/classes/{id}."""
+        mock_response = mock.MagicMock()
+        mock_response.status_code = 200
+        mock_response.headers = {'Content-Type': 'application/json'}
+        mock_response.json.return_value = {'id': 'edu-class-id', 'displayName': 'TestClass'}
+        mock_request.return_value = mock_response
+
+        result = self.core.get_education_class('edu-class-id')
+        assert result['id'] == 'edu-class-id'
+        assert 'education/classes/edu-class-id' in mock_request.call_args[1]['url']
+
+    @mock.patch.object(requests, 'request')
+    def test_modify_education_class(self, mock_request):
+        # type: () -> None
+        """modify_education_class() should PATCH /education/classes/{id}."""
+        mock_response = mock.MagicMock()
+        mock_response.status_code = 200
+        mock_response.headers = {'Content-Type': 'application/json'}
+        mock_response.json.return_value = {'id': 'edu-class-id', 'displayName': 'UpdatedClass'}
+        mock_request.return_value = mock_response
+
+        self.core.modify_education_class('edu-class-id', {'displayName': 'UpdatedClass'})
+        assert mock_request.call_args[1]['method'] == 'PATCH'
+        assert 'education/classes/edu-class-id' in mock_request.call_args[1]['url']
+
+    @mock.patch.object(requests, 'request')
+    def test_delete_education_class(self, mock_request):
+        # type: () -> None
+        """delete_education_class() should DELETE /education/classes/{id}."""
+        mock_response = mock.MagicMock()
+        mock_response.status_code = 204
+        mock_response.headers = {'Content-Type': 'application/json'}
+        mock_response.json.return_value = {}
+        mock_request.return_value = mock_response
+
+        self.core.delete_education_class('edu-class-id')
+        assert mock_request.call_args[1]['method'] == 'DELETE'
+        assert 'education/classes/edu-class-id' in mock_request.call_args[1]['url']
+
+    @mock.patch.object(requests, 'request')
+    def test_list_education_classes(self, mock_request):
+        # type: () -> None
+        """list_education_classes() should GET /education/classes."""
+        mock_response = mock.MagicMock()
+        mock_response.status_code = 200
+        mock_response.headers = {'Content-Type': 'application/json'}
+        mock_response.json.return_value = {'value': [{'id': 'edu-class-id'}]}
+        mock_request.return_value = mock_response
+
+        result = self.core.list_education_classes()
+        assert 'value' in result
+        assert 'education/classes' in mock_request.call_args[1]['url']
+
+

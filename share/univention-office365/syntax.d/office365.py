@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import univention.admin.localization
+from univention.admin import configRegistry
 from univention.admin.syntax import string, complex, UDM_Objects, select
 import univention.admin.uexceptions
 
@@ -58,11 +59,55 @@ class univentionOffice365ADConnections(complex):
 class univentionMicrosoft365GroupType(select):
     """Syntax for selecting the azure group type."""
 
+    education_feature_ucr = 'office365/education/enabled'
+    udm_property_prefix = 'directory/manager/web/modules/groups/group/properties'
+    education_attributes = (
+        'UniventionMicrosoft365EducationClassCode',
+        'UniventionMicrosoft365EducationClassGrade',
+        'UniventionMicrosoft365EducationTermDisplayName',
+        'UniventionMicrosoft365EducationTermExternalId',
+        'UniventionMicrosoft365EducationTermStartDate',
+        'UniventionMicrosoft365EducationTermEndDate',
+    )
     empty_value = False
     choices = [
         ('Security Group', _('Security Group')),
         ('Microsoft 365 Group', _('Microsoft 365 Group')),
+        ('Education Class', _('Education Class')),
     ]
+
+    def __init__(self):
+        # UDM creates the syntax before applying UCR-based layout overrides.
+        # Refresh both choices and field visibility from the same feature flag.
+        self._education_enabled()
+        super().__init__()
+
+    @classmethod
+    def _education_enabled(cls):
+        configRegistry.load()
+        enabled = configRegistry.is_true(cls.education_feature_ucr)
+        for attribute in cls.education_attributes:
+            hidden_ucr = '%s/%s/__hidden' % (cls.udm_property_prefix, attribute)
+            configRegistry[hidden_ucr] = str(not enabled).lower()
+        return enabled
+
+    @classmethod
+    def _available_choices(cls):
+        if cls._education_enabled():
+            return cls.choices
+        return [choice for choice in cls.choices if choice[0] != 'Education Group']
+
+    @classmethod
+    def get_choices(cls, lo, options):
+        return cls.sort_choices(cls._available_choices())
+
+    def get_widget_choices_options(self, udm_property):
+        return {
+            'staticValues': [
+                {'id': choice_id, 'label': label}
+                for choice_id, label in self._available_choices()
+            ],
+        }
 
 
 class univentionMicrosoft365GroupVisibility(select):
@@ -81,5 +126,5 @@ class univentionMicrosoft365GroupVisibility(select):
     choices = [
         ('Private', _('Private')),
         ('Public', _('Public')),
-        # ('HiddenMembership', _('HiddenMembership')),
+        ('HiddenMembership', _('HiddenMembership')),
     ]

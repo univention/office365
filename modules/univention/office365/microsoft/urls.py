@@ -112,3 +112,11 @@ class URLs(object):
         path = '/' + path if path else ''
         params = '?' + params if params else ''
         return cls.__ms_graph + 'servicePrincipals' + path + params
+
+    @classmethod
+    def education_classes(cls, params=None, path=None):
+        # type: (Optional[str],Optional[str]) -> str
+        """https://graph.microsoft.com/v1.0/education/classes"""
+        path = '/' + path if path else ''
+        params = '?' + params if params else ''
+        return cls.__ms_graph + 'education/classes' + path + params

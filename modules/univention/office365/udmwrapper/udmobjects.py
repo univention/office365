@@ -32,6 +32,7 @@ from univention.office365.utils.utils import jsonify
 class GroupType(Enum):
     SECURITY = 'Security Group'
     M365 = 'Microsoft 365 Group'
+    EDUCATION_CLASS = 'Education Class'
 
 
 class GroupVisibility(Enum):
@@ -466,13 +467,18 @@ class UDMOfficeGroup(UDMOfficeObject):
         if udm_objs:
             return UDMOfficeGroup(udm_objs.oldattr, ldap_cred, udm_objs['dn'])
 
-    def modify_azure_attributes(self, azure_group_dict, is_security_group=True, visibility=''):
-        # type: (Optional[Mapping[str, Any]], Optional[bool]) -> None
+    def modify_azure_attributes(self, azure_group_dict, is_security_group=True, visibility='', is_education_class=False):
+        # type: (Optional[Mapping[str, Any]], Optional[bool], str, bool) -> None
         """ """
         if azure_group_dict is not None:
             if self.current_connection_alias not in self.udm_object_reference['UniventionOffice365ADConnectionAlias']:
                 self.udm_object_reference['UniventionOffice365ADConnectionAlias'].append(self.current_connection_alias)
-            group_type = GroupType.SECURITY.value if is_security_group else GroupType.M365.value
+            if is_education_class:
+                group_type = GroupType.EDUCATION_CLASS.value
+            elif is_security_group:
+                group_type = GroupType.SECURITY.value
+            else:
+                group_type = GroupType.M365.value
             if group_type != self.udm_object_reference.get('UniventionMicrosoft365GroupType'):
                 self.udm_object_reference['UniventionMicrosoft365GroupType'] = group_type
                 self.udm_object_reference['UniventionMicrosoft365ForceGroupType'] = '1'
@@ -672,6 +678,82 @@ class UDMOfficeGroup(UDMOfficeObject):
         """
         return self.get('UniventionMicrosoft365GroupType', 'Security Group') == 'Security Group'
 
+    def is_education_class(self):
+        # type: () -> bool
+        """
+        Return True if the group is an Education Class.
+        Education classes are provisioned via the Microsoft Education Roster API
+        (POST /education/classes) rather than the standard groups endpoint.
+        :return:
+        """
+        return self.get('UniventionMicrosoft365GroupType') == GroupType.EDUCATION_CLASS.value
+
+    def get_education_class_code(self):
+        # type: () -> Optional[str]
+        """
+        Return the school-assigned class code stored in
+        UniventionMicrosoft365EducationClassCode, or None if not set.
+        """
+        return self.get('UniventionMicrosoft365EducationClassCode') or None
+
+    def get_object_identifier(self):
+        # type: () -> Optional[str]
+        """
+        Return the built-in UDM univentionObjectIdentifier (a UUID) for this
+        group object, or None if the attribute is not present.
+
+        This is used as the externalId when provisioning education classes so
+        that the external system can correlate the Azure object back to the
+        UDM group without requiring a dedicated extended attribute.
+        """
+        raw = self.udm_object_reference.oldattr.get('univentionObjectIdentifier')
+        if raw:
+            value = raw[0]
+            if isinstance(value, bytes):
+                return value.decode('ASCII')
+            return value
+        return None
+
+    def get_education_grade(self):
+        # type: () -> Optional[str]
+        """
+        Return the grade level stored in
+        UniventionMicrosoft365EducationClassGrade, or None if not set.
+        """
+        return self.get('UniventionMicrosoft365EducationClassGrade') or None
+
+    def get_education_term_display_name(self):
+        # type: () -> Optional[str]
+        """
+        Return the term display name stored in
+        UniventionMicrosoft365EducationTermDisplayName, or None if not set.
+        """
+        return self.get('UniventionMicrosoft365EducationTermDisplayName') or None
+
+    def get_education_term_external_id(self):
+        # type: () -> Optional[str]
+        """
+        Return the term external ID stored in
+        UniventionMicrosoft365EducationTermExternalId, or None if not set.
+        """
+        return self.get('UniventionMicrosoft365EducationTermExternalId') or None
+
+    def get_education_term_start_date(self):
+        # type: () -> Optional[str]
+        """
+        Return the term start date stored in
+        UniventionMicrosoft365EducationTermStartDate, or None if not set.
+        """
+        return self.get('UniventionMicrosoft365EducationTermStartDate') or None
+
+    def get_education_term_end_date(self):
+        # type: () -> Optional[str]
+        """
+        Return the term end date stored in
+        UniventionMicrosoft365EducationTermEndDate, or None if not set.
+        """
+        return self.get('UniventionMicrosoft365EducationTermEndDate') or None
+
     def group_type_is_not_set(self):
         # type: () -> bool
         """
@@ -713,6 +795,8 @@ class UDMOfficeGroup(UDMOfficeObject):
 
         :return:
         """
+        if self.is_education_class():
+            return "HiddenMembership"
         return self.get("UniventionMicrosoft365GroupVisibility") or None
 
     def visibility_is_not_set(self):

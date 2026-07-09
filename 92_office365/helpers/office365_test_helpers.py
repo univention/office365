@@ -39,7 +39,7 @@ from univention.office365.microsoft.account import AzureAccount
 
 from univention.office365.microsoft.core import MSGraphApiCore
 from univention.office365.microsoft.exceptions.core_exceptions import MSGraphError
-from univention.office365.microsoft.objects.azureobjects import AzureObject, GroupAzure, UserAzure, TeamAzure
+from univention.office365.microsoft.objects.azureobjects import AzureObject, EducationClassAzure, GroupAzure, UserAzure, TeamAzure
 from univention.office365.udm_helper import UDMHelper
 from univention.office365.udmwrapper.udmobjects import UDMOfficeUser, UniventionOffice365Data
 from univention.office365.utils.utils import create_random_pw
@@ -614,6 +614,85 @@ def check_user_office365_data_updated(user_dn):
         return True
     else:
         return False
+
+
+@wait_for_seconds
+def check_education_class_created(core, object_id):
+    # type: (MSGraphApiCore, str) -> Optional[EducationClassAzure]
+    """Check that an education class has been provisioned in Azure by its object ID."""
+    try:
+        edu_class = EducationClassAzure.get(core, object_id)
+        if edu_class and edu_class.id:
+            return edu_class
+    except MSGraphError:
+        return False
+    return False
+
+
+@wait_for_seconds
+def check_education_class_modified(core, object_id, attr_name, expected_value):
+    # type: (MSGraphApiCore, str, str, Any) -> EducationClassAzure
+    """Check that an education class attribute in Azure matches the expected value."""
+    try:
+        edu_class = EducationClassAzure.get(core, object_id)
+        if edu_class and getattr(edu_class, attr_name, None) == expected_value:
+            return edu_class
+    except MSGraphError:
+        return False
+    return False
+
+
+@wait_for_seconds
+def check_group_created_by_id(core, object_id):
+    # type: (MSGraphApiCore, str) -> Optional[GroupAzure]
+    """Check that a group has been provisioned in Azure by its object ID."""
+    try:
+        azure_group = GroupAzure.get(core, object_id)
+        if azure_group and azure_group.id:
+            return azure_group
+    except MSGraphError:
+        return False
+    return False
+
+
+@wait_for_seconds
+def check_group_modified(core, object_id, attr_name, expected_value):
+    # type: (MSGraphApiCore, str, str, Any) -> GroupAzure
+    """Check that a group attribute in Azure matches the expected value."""
+    try:
+        azure_group = GroupAzure.get(core, object_id)
+        if azure_group and getattr(azure_group, attr_name, None) == expected_value:
+            return azure_group
+    except MSGraphError:
+        return False
+    return False
+
+
+@wait_for_seconds
+def check_group_deleted(core, object_id):
+    # type: (MSGraphApiCore, str) -> bool
+    """Check that a group has been deleted or soft-deleted (ZZZ_deleted_ prefix) in Azure."""
+    try:
+        azure_group = GroupAzure.get(core, object_id)
+        if azure_group.displayName.startswith('ZZZ_deleted_'):
+            return True
+        return False
+    except MSGraphError:
+        return True
+
+
+@wait_for_seconds
+def check_group_owners(core, object_id, owner_id):
+    # type: (MSGraphApiCore, str, str) -> bool
+    """Check that the expected owner is set on the Azure group."""
+    try:
+        group_data = core.get_group(object_id, selection='owners')
+        owner_ids = [o['id'] for o in group_data.get('owners', [])]
+        if owner_id in owner_ids:
+            return True
+    except MSGraphError:
+        return False
+    return False
 
 
 def check_user_location(office_listener, user_id, ucr_usageLocation, fail_msg):

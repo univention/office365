@@ -200,7 +200,7 @@ class MSGraphApiCore(object):
             ],
         )
 
-    def create_team_from_group(self, object_id):
+    def create_team_from_group(self, object_id, education_class=False):
         # type: (str) -> Dict
         """https://docs.microsoft.com/en-us/graph/api/team-put-teams
 
@@ -209,13 +209,13 @@ class MSGraphApiCore(object):
         with a 404 error code due to replication delays. The recommended pattern is to retry the Create team
         call three times, with a 10 second delay between calls.
         """
-
+        template = 'educationClass' if education_class else 'standard'
         return self._call_graph_api(
             'POST',
             URLs.teams(),
             data=json.dumps(
                 {
-                    'template@odata.bind': "https://graph.microsoft.com/v1.0/teamsTemplates('standard')",
+                    'template@odata.bind': "https://graph.microsoft.com/v1.0/teamsTemplates('{template}')".format(template=template),
                     'group@odata.bind': "https://graph.microsoft.com/v1.0/groups('{object_id}')".format(object_id=object_id),
                 }
             ),
@@ -528,6 +528,48 @@ class MSGraphApiCore(object):
         # type: (str) -> Dict
         return self._call_graph_api('DELETE', URLs.groups(path=group_id), data=json.dumps({}), expected_status=[204])
 
+    # ------------------------------------------------------------------
+    # Education Roster API  (https://graph.microsoft.com/v1.0/education/)
+    # ------------------------------------------------------------------
+
+    def create_education_class(self, data):
+        # type: (Dict) -> Dict
+        """https://learn.microsoft.com/en-us/graph/api/educationroot-post-classes
+        Create a new education class via the Education Roster API.
+        Returns the created educationClass resource (HTTP 201).
+        """
+        return self._call_graph_api('POST', URLs.education_classes(), data=json.dumps(data), headers={'Content-Type': 'application/json'}, expected_status=[201])
+
+    def get_education_class(self, class_id, selection=None):
+        # type: (str, Optional[str]) -> Dict
+        """https://learn.microsoft.com/en-us/graph/api/educationclass-get
+        Retrieve a single education class by its object ID.
+        """
+        params = '$select={}'.format(selection) if selection else None
+        return self._call_graph_api('GET', URLs.education_classes(path=class_id, params=params), expected_status=[200, 204])
+
+    def modify_education_class(self, class_id, data):
+        # type: (str, Dict) -> Dict
+        """https://learn.microsoft.com/en-us/graph/api/educationclass-update
+        Update properties of an education class (HTTP 200).
+        """
+        return self._call_graph_api('PATCH', URLs.education_classes(path=class_id), data=json.dumps(data), headers={'Content-Type': 'application/json'}, expected_status=[200, 204])
+
+    def delete_education_class(self, class_id):
+        # type: (str) -> Dict
+        """https://learn.microsoft.com/en-us/graph/api/educationclass-delete
+        Permanently delete an education class (HTTP 204).
+        Note: this also deletes the underlying Microsoft 365 group.
+        """
+        return self._call_graph_api('DELETE', URLs.education_classes(path=class_id), data=json.dumps({}), expected_status=[200, 204])
+
+    def list_education_classes(self, params=''):
+        # type: (str) -> Dict
+        """https://learn.microsoft.com/en-us/graph/api/educationroot-list-classes
+        List all education classes in the tenant.
+        """
+        return self._call_graph_api('GET', URLs.education_classes(params=params if params else None), expected_status=[200, 204])
+
     def list_group_members(self, group_id, links=False, filter=None):  # TODO: añadir bool para sacar los enlaces
         # type: (str, bool, Optional[str]) -> Dict
         """
@@ -537,11 +579,11 @@ class MSGraphApiCore(object):
         :return:
         """
         ref = '/$ref' if links else ''
-        return self._call_graph_api('GET', URLs.groups(path=group_id + '/members' + ref, params=filter), expected_status=[200])
+        return self._call_graph_api('GET', URLs.groups(path=group_id + '/members' + ref, params=filter), expected_status=[200, 204])
 
     def list_group_owners(self, group_id):
         # type: (str) -> Dict
-        return self._call_graph_api('GET', URLs.groups(path=group_id + '/owners'), expected_status=[200])
+        return self._call_graph_api('GET', URLs.groups(path=group_id + '/owners'), expected_status=[200, 204])
 
     def test_list_team(self):
         # type: () -> Dict

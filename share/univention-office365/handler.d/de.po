@@ -51,6 +51,19 @@ msgstr ""
 "Um ein Microsoft 365 Team aus einer Gruppe zu erstellen, muss mindestens ein"
 " Gruppen-/Team-Eigentümer angegeben werden."
 
+#: share/univention-office365/hooks.d/office365_user_ADConnections_hook.py:24
+msgid ""
+"Education class attributes can only be used with the Education Group type. "
+"Clear the education class attributes or select Education Group."
+msgstr ""
+"Attribute der Education-Klasse können nur mit dem Gruppentyp Education-Gruppe "
+"verwendet werden. Entfernen Sie die Attribute der Education-Klasse oder "
+"wählen Sie Education-Gruppe aus."
+
+#: share/univention-office365/hooks.d/office365_user_ADConnections_hook.py:27
+msgid "The education term end date must not be earlier than the start date."
+msgstr "Das Enddatum des Education-Zeitraums darf nicht vor dem Startdatum liegen."
+
 #: share/univention-office365/handler.d/profile.py:41
 msgid "Internal Name of the subscription, as shown by cli tool"
 msgstr "Interner Name der Subskription, wie vom cli Programm angezeigt"

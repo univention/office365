@@ -467,259 +467,127 @@ class UserAzure(AzureObject):
 
 
 @attr.s
-class GroupAzure(AzureObject):
+class EducationClassAzure(AzureObject):
     """
-    https://docs.microsoft.com/en-us/graph/api/resources/group?view=graph-rest-1.0
-    Represents a Group in Azure AD.
-    The valid Azure Group attributes are defined in the class attributes.
+    https://learn.microsoft.com/en-us/graph/api/resources/educationclass?view=graph-rest-1.0
+    Represents an Education Class in Microsoft 365 Education.
+
+    An education class corresponds to an underlying Microsoft 365 group that
+    shares the same object ID.  Students are regular members of the class and
+    teachers are owners.  CRUD operations use the Education Roster API
+    (POST/GET/PATCH/DELETE /education/classes) rather than the standard
+    /groups endpoint.
+
     Methods:
-        - create: create a new group in Azure AD
-        - delete: delete a group in Azure AD
-        - update: update a group in Azure AD
-        - deactivate: deactivate a group in Azure AD
-        - reactivate: reactivate a group in Azure AD
-        - get: get a group from Azure AD by its id (class method)
-        - add_member: add a member to a group in Azure AD
-        - add_owner: add an owner to a group in Azure AD
-        - remove_owner: remove an owner from a group in
-        - list_members: list the members of a group in Azure AD
-        - list_owners: list the owners of a group in Azure AD
-        - remove_member: remove a member from a group in Azure AD
-        - list: list all the groups in Azure AD (static)
+        - create: create a new education class via the Education Roster API
+        - create_or_modify: create if it does not exist yet, otherwise update
+        - exist: check whether a class with the same displayName already exists
+        - update: update changed attributes of the class
+        - delete: permanently delete the education class (and its backing group)
+        - deactivate: rename to ZZZ_deleted_... (soft-delete, same as GroupAzure)
+        - reactivate: not supported
+        - get: retrieve a class by object ID (classmethod)
+        - list: list all education classes in the tenant (staticmethod)
+        - add_member: add a student to the class
+        - remove_member: remove a student from the class
+        - add_teacher: add a teacher to the class
+        - remove_teacher: remove a teacher from the class
     """
 
-    odataType = '#microsoft.graph.group'
-    acceptedSenders = attr.ib(validator=attr.validators.instance_of((List, type(None))), default=None)  # List[Dict[str, str]]
-    allowExternalSenders = attr.ib(validator=attr.validators.instance_of((bool, type(None))), default=None)  # bool
-    autoSubscribeNewMembers = attr.ib(validator=attr.validators.instance_of((bool, type(None))), default=None)  # bool
-    classification = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
-    conversations = attr.ib(validator=attr.validators.instance_of((List, type(None))), default=None)  # List[Dict[str, str]]
-    createdOnBehalfOf = attr.ib(validator=attr.validators.instance_of((Dict, type(None))), default=None)  # Dict[str, str]
+    odataType = '#microsoft.graph.educationClass'
+
+    # Education-class-specific attributes
+    classCode = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
     description = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
-    groupTypes = attr.ib(validator=attr.validators.instance_of((List, type(None))), default=None)  # List[str]
-    hasMembersWithLicenseErrors = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
-    hideFromAddressLists = attr.ib(validator=attr.validators.instance_of((bool, type(None))), default=None)  # bool
-    hideFromOutlookClients = attr.ib(validator=attr.validators.instance_of((bool, type(None))), default=None)  # bool
-    isAssignableRole = attr.ib(validator=attr.validators.instance_of((bool, type(None))), default=None)  # bool
-    isSubscribedByMail = attr.ib(validator=attr.validators.instance_of((bool, type(None))), default=None)  # bool
-    licenseProcessingState = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
-    mailEnabled = attr.ib(validator=attr.validators.instance_of((bool, type(None))), default=None)  # bool
-    members = attr.ib(validator=attr.validators.instance_of((List, type(None))), default=None)  # List[Dict[str, str]]
-    membersWithLicenseErrors = attr.ib(validator=attr.validators.instance_of((List, type(None))), default=None)  # List[Dict[str, str]]
-    owners = attr.ib(validator=attr.validators.instance_of((List, type(None))), default=None)  # List[Dict[str, str]]
-    rejectedSenders = attr.ib(validator=attr.validators.instance_of((List, type(None))), default=None)  # List[Dict[str, str]]
-    renewedDateTime = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
-    resourceBehaviorOptions = attr.ib(validator=attr.validators.instance_of((List, type(None))), default=None)  # List[str]
-    resourceProvisioningOptions = attr.ib(validator=attr.validators.instance_of((List, type(None))), default=None)  # List[str]
-    securityEnabled = attr.ib(validator=attr.validators.instance_of((bool, type(None))), default=None)  # bool
-    securityIdentifier = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
-    sites = attr.ib(validator=attr.validators.instance_of((List, type(None))), default=None)  # List[Dict[str, str]]
-    threads = attr.ib(validator=attr.validators.instance_of((List, type(None))), default=None)  # List[Dict[str, str]]
-    unseenCount = attr.ib(validator=attr.validators.instance_of((int, type(None))), default=None)  # None
-    visibility = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
-    deletedDateTime = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  #: str
-    creationOptions = attr.ib(validator=attr.validators.instance_of((List, type(None))), default=None)  #: List
-    expirationDateTime = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  #: str
-    isAssignableToRole = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  #: str
-    membershipRule = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  #: str
-    membershipRuleProcessingState = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  #: str
-    onPremisesDomainName = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  #: str
-    onPremisesNetBiosName = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  #: str
-    onPremisesSamAccountName = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  #: str
-    theme = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  #: str
+    externalId = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
+    externalName = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
+    externalSource = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
+    externalSourceDetail = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
+    grade = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
+    term = attr.ib(validator=attr.validators.instance_of((Dict, type(None))), default=None)  # Dict (educationTerm)
 
-    def create(self):
-        # type: () -> None
-        """"""
-        response = self._core.create_group(self.get_not_none_values_as_dict())
-        self._update_from_dict(response)
-
-    def create_or_modify(self):
-        # type: () -> None
-        """"""
-        if not self.exist():
-            response = self._core.create_group(self.get_not_none_values_as_dict())
-            self._update_from_dict(response)
-        else:
-            desire_state = self.get_not_none_values_as_dict()
-            desire_state.setdefault('description', ' ')
-            self._core.modify_group(self.id, desire_state)
-
-    @classmethod
-    def get_by_name(cls, core, displayName):
-        # type: (MSGraphApiCore, str) -> GroupAzure
-        response = core.list_groups("$filter=displayName eq '{value}'".format(value=displayName))
-        if response['value']:
-            group = cls()
-            group._update_from_dict(response['value'][0])
-            group.set_core(core)
-            return group
-        raise GraphRessourceNotFroundError('Object with displayName: %r not found in azure %r' % (displayName, core.account.alias))
-
-    # TODO update user with the response ??
     def exist(self):
         # type: () -> bool
-        response = self._core.list_groups("$filter=displayName eq '{value}'".format(value=self.displayName))
-        if response['value']:
+        """
+        Check whether an education class with the same displayName already
+        exists.  If found, self.id is populated.
+        """
+        response = self._core.list_education_classes(
+            params="$filter=displayName eq '{value}'".format(value=self.displayName)
+        )
+        if response.get('value'):
             self.id = response['value'][0]['id']
             return True
         return False
 
-    def delete(self):
+    def create(self):
         # type: () -> None
-        """"""
-        # TODO if the team exist it should be archive first.
-        self._core.delete_group(self.id)
+        response = self._core.create_education_class(self.get_not_none_values_as_dict())
+        self._update_from_dict(response)
+
+    def create_or_modify(self):
+        # type: () -> None
+        if not self.exist():
+            response = self._core.create_education_class(self.get_not_none_values_as_dict())
+            self._update_from_dict(response)
+        else:
+            desire_state = self.get_not_none_values_as_dict()
+            desire_state.setdefault('description', ' ')
+            self._core.modify_education_class(self.id, desire_state)
 
     def update(self, other):
-        # type: ("AzureObject") -> None
-        """"""
+        # type: (AzureObject) -> None
         data = (self - other).get_not_none_values_as_dict()
-        response = self._core.modify_group(self.id, data)
-        self._update_from_dict(response)
+        if data:
+            response = self._core.modify_education_class(self.id, data)
+            if response:
+                self._update_from_dict(response)
+
+    def delete(self):
+        # type: () -> None
+        """Permanently delete the education class and its backing M365 group."""
+        self._core.delete_education_class(self.id)
 
     def deactivate(self, rename=False):
         # type: (bool) -> None
-        """"""
-        name = 'ZZZ_deleted_{time}_{orig}'.format(time=time.time(), orig=self.displayName)
-        data = {'displayName': name, 'description': 'deleted group', 'mailEnabled': False, 'mailNickname': name[:63].replace(' ', '_-_')}
-        self._core.modify_group(self.id, data)
-        self._update_from_dict(data)
+        """
+        Soft-delete: rename to ZZZ_deleted_...
+        """
+        if rename:
+            name = 'ZZZ_deleted_{time}_{orig}'.format(time=time.time(), orig=self.displayName)
+            try:
+                self._core.modify_education_class(self.id, {'displayName': name, 'description': 'deleted education class'})
+                self._update_from_dict({'displayName': name})
+            except MSGraphError:
+                self._logger.warning('Could not rename education class %r before deletion', self.displayName)
+        #self._core.delete_education_class(self.id)
 
     def reactivate(self):
         # type: () -> None
-        """"""
-        raise NotImplementedError()
+        raise NotImplementedError('Education classes cannot be reactivated; create a new class instead.')
 
     @classmethod
     def get(cls, core, object_id, selection=None):
-        # type: (MSGraphApiCore, str, Optional[List[str]]) -> GroupAzure
-        """"""
-        attrs = [
-            x.name
-            for x in attr.fields(cls)
-            if x.name
-            not in [
-                'hasMembersWithLicenseErrors',
-                'allowExternalSenders',
-                'autoSubscribeNewMembers',
-                'hideFromAddressLists',
-                'hideFromOutlookClients',
-                'isSubscribedByMail',
-                'unseenCount',
-            ]
-        ]
-        response = core.get_group(group_id=object_id, selection=','.join(attrs))
-        group = cls()
-        group._update_from_dict(response)
-        group.set_core(core)
-        return group
-
-    def add_member(self, object_id):
-        # type: (str) -> None
-        """"""
-        self._core.add_group_member(self.id, object_id)
-
-    def add_members(self, object_ids):
-        # type: (List[str]) -> None
-        """"""
-        self._core.add_group_members(self.id, object_ids)
-
-    def add_owner(self, owner_id, async_task=False):
-        # type: (str, bool) -> Optional[MSGraphCoreTask]
-        """"""
-        if async_task:
-            return MSGraphCoreTask(self._core.account.alias, 'add_group_owner', dict(group_id=self.id, owner_id=owner_id))
-        self._core.add_group_owner(group_id=self.id, owner_id=owner_id)
-
-    def remove_owner(self, owner_id):
-        # type: () -> None
-        """"""
-        self._core.remove_group_owner(self.id, owner_id)
-
-    def list_members(self):
-        # type: () -> List[Union[UserAzure, GroupAzure]]
-        """"""
-        members_response = self._core.list_group_members(self.id)
-        members = []
-        for member_response in members_response['value']:
-            if 'user' in member_response['@odata.type']:
-                member = UserAzure()
-            elif 'group' in member_response['@odata.type']:
-                member = GroupAzure()
-            else:
-                member = AzureObject()
-                member_response = dict(id=member_response['id'])
-            member._update_from_dict(member_response)
-            member.set_core(self._core)
-            members.append(member)
-        return members
-
-    def list_members_id(self):
-        # type: () -> List[str]
-        """"""
-        members_response = self._core.list_group_members(self.id, filter='$select=id')
-        return [x['id'] for x in members_response['value']]
-
-    def remove_direct_members(self):
-        # type: () -> None
-        """"""
-        for member_id in self.list_members_id():
-            self.remove_member(member_id)
-
-    def list_owners(self):
-        # type: () -> List[UserAzure]
-        users_response = self._core.list_group_owners(self.id)
-        users = []
-        for user_response in users_response['value']:
-            user = UserAzure()
-            user._update_from_dict(user_response)
-            user.set_core(self._core)
-            users.append(user)
-        return users
-
-    def remove_member(self, user_id):
-        # type: (str) -> None
-        """"""
-        self._core.remove_group_member(group_id=self.id, object_id=user_id)
+        # type: (MSGraphApiCore, str, Optional[List[str]]) -> EducationClassAzure
+        response = core.get_education_class(
+            object_id,
+            selection=','.join(selection) if selection else None,
+        )
+        edu_class = cls()
+        edu_class._update_from_dict(response)
+        edu_class.set_core(core)
+        return edu_class
 
     @staticmethod
     def list(core):
-        # type: (MSGraphApiCore) -> List['GroupAzure']
-        """"""
-        groups_response = core.list_groups()
-        groups_value = groups_response.get('value', [])
-        if groups_value:
-            groups = [GroupAzure.from_dict(x) for x in groups_value]
-            [x.set_core(core) for x in groups]
-            return groups
-        return groups_value
-
-    def is_delete(self):
-        # type: () -> bool
-        return self.mailNickname.startswith('ZZZ_deleted_') if self.mailNickname else False
-
-    def is_security_group(self):
-        # type: () -> bool
-        return not 'Unified' in self.groupTypes
-
-    def get_assignedLicenses(self):
-        for _license in self._core.get_group(self.id, selection='assignedLicenses')['assignedLicenses']:
-            yield SubscriptionAzure(skuId=_license['skuId'])
-
-    def add_license(self, subs_sku, deactivated_plans=None):
-        # type: (SubscriptionAzure, List) -> None
-        """"""
-        try:
-            self._core.add_license(self.id, subs_sku.skuId, deactivated_plans, self.odataType)
-        except MSGraphError as exc:
-            reraise(AddLicenseError, AddLicenseError(str(exc), self.id, subs_sku.skuId, exc), sys.exc_info()[2])
-
-    def remove_all_assigned_licenses(self):
-        # type: () -> None
-        """"""
-        for _license in self.get_assignedLicenses():
-            self._core.remove_license(self.id, _license.skuId, self.odataType)
+        # type: (MSGraphApiCore) -> List[EducationClassAzure]
+        response = core.list_education_classes()
+        classes_value = response.get('value', [])
+        if classes_value:
+            edu_classes = [EducationClassAzure.from_dict(x) for x in classes_value]
+            [x.set_core(core) for x in edu_classes]
+            return edu_classes
+        return []
 
 
 @attr.s
@@ -803,9 +671,9 @@ class TeamAzure(AzureObject):
                         raise e
 
     @staticmethod
-    def create_from_group_async(alias, group_id, sub_tacks):
+    def create_from_group_async(alias, group_id, sub_tacks, education_class=False):
         # type: (str, str, List[MSGraphCoreTask]) -> MSGraphCoreTask
-        return MSGraphCoreTask(alias, 'create_team_from_group', dict(object_id=group_id), sub_tasks=sub_tacks)
+        return MSGraphCoreTask(alias, 'create_team_from_group', dict(object_id=group_id, education_class=education_class), sub_tasks=sub_tacks)
 
     @classmethod
     def create_from_group(cls, core, group_id):
@@ -829,8 +697,9 @@ class TeamAzure(AzureObject):
         # type: (AzureObject) -> None
         """"""
         data = (self - other).get_not_none_values_as_dict()
-        response = self._core.modify_team(self.id, data)
-        self._update_from_dict(response)
+        if data:
+            response = self._core.modify_team(self.id, data)
+            self._update_from_dict(response)
 
     def deactivate(self, rename=False):
         # type: (bool) -> None
@@ -894,6 +763,272 @@ class TeamAzure(AzureObject):
         team._update_from_dict(response)
         team.set_core(core)
         return team
+
+
+@attr.s
+class GroupAzure(AzureObject):
+    """
+    https://docs.microsoft.com/en-us/graph/api/resources/group?view=graph-rest-1.0
+    Represents a Group in Azure AD.
+    The valid Azure Group attributes are defined in the class attributes.
+    Methods:
+        - create: create a new group in Azure AD
+        - delete: delete a group in Azure AD
+        - update: update a group in Azure AD
+        - deactivate: deactivate a group in Azure AD
+        - reactivate: reactivate a group in Azure AD
+        - get: get a group from Azure AD by its id (class method)
+        - add_member: add a member to a group in Azure AD
+        - add_owner: add an owner to a group in Azure AD
+        - remove_owner: remove an owner from a group in
+        - list_members: list the members of a group in Azure AD
+        - list_owners: list the owners of a group in Azure AD
+        - remove_member: remove a member from a group in Azure AD
+        - list: list all the groups in Azure AD (static)
+    """
+
+    # Different types of "Application" specific objects can be derived from Groups. Namely Azure Teams and
+    # Education classes.
+
+    odataType = '#microsoft.graph.group'
+    acceptedSenders = attr.ib(validator=attr.validators.instance_of((List, type(None))), default=None)  # List[Dict[str, str]]
+    allowExternalSenders = attr.ib(validator=attr.validators.instance_of((bool, type(None))), default=None)  # bool
+    autoSubscribeNewMembers = attr.ib(validator=attr.validators.instance_of((bool, type(None))), default=None)  # bool
+    classification = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
+    conversations = attr.ib(validator=attr.validators.instance_of((List, type(None))), default=None)  # List[Dict[str, str]]
+    createdOnBehalfOf = attr.ib(validator=attr.validators.instance_of((Dict, type(None))), default=None)  # Dict[str, str]
+    description = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
+    groupTypes = attr.ib(validator=attr.validators.instance_of((List, type(None))), default=None)  # List[str]
+    hasMembersWithLicenseErrors = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
+    hideFromAddressLists = attr.ib(validator=attr.validators.instance_of((bool, type(None))), default=None)  # bool
+    hideFromOutlookClients = attr.ib(validator=attr.validators.instance_of((bool, type(None))), default=None)  # bool
+    isAssignableRole = attr.ib(validator=attr.validators.instance_of((bool, type(None))), default=None)  # bool
+    isSubscribedByMail = attr.ib(validator=attr.validators.instance_of((bool, type(None))), default=None)  # bool
+    licenseProcessingState = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
+    mailEnabled = attr.ib(validator=attr.validators.instance_of((bool, type(None))), default=None)  # bool
+    members = attr.ib(validator=attr.validators.instance_of((List, type(None))), default=None)  # List[Dict[str, str]]
+    membersWithLicenseErrors = attr.ib(validator=attr.validators.instance_of((List, type(None))), default=None)  # List[Dict[str, str]]
+    owners = attr.ib(validator=attr.validators.instance_of((List, type(None))), default=None)  # List[Dict[str, str]]
+    rejectedSenders = attr.ib(validator=attr.validators.instance_of((List, type(None))), default=None)  # List[Dict[str, str]]
+    renewedDateTime = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
+    resourceBehaviorOptions = attr.ib(validator=attr.validators.instance_of((List, type(None))), default=None)  # List[str]
+    resourceProvisioningOptions = attr.ib(validator=attr.validators.instance_of((List, type(None))), default=None)  # List[str]
+    securityEnabled = attr.ib(validator=attr.validators.instance_of((bool, type(None))), default=None)  # bool
+    securityIdentifier = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
+    sites = attr.ib(validator=attr.validators.instance_of((List, type(None))), default=None)  # List[Dict[str, str]]
+    threads = attr.ib(validator=attr.validators.instance_of((List, type(None))), default=None)  # List[Dict[str, str]]
+    unseenCount = attr.ib(validator=attr.validators.instance_of((int, type(None))), default=None)  # None
+    visibility = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  # str
+    deletedDateTime = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  #: str
+    creationOptions = attr.ib(validator=attr.validators.instance_of((List, type(None))), default=None)  #: List
+    expirationDateTime = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  #: str
+    isAssignableToRole = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  #: str
+    membershipRule = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  #: str
+    membershipRuleProcessingState = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  #: str
+    onPremisesDomainName = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  #: str
+    onPremisesNetBiosName = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  #: str
+    onPremisesSamAccountName = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  #: str
+    theme = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  #: str
+
+
+    def create(self):
+        # type: () -> None
+        """"""
+        response = self._core.create_group(self.get_not_none_values_as_dict())
+        self._update_from_dict(response)
+
+    def create_or_modify(self):
+        # type: () -> None
+        """"""
+        if not self.exist():
+            response = self._core.create_group(self.get_not_none_values_as_dict())
+            self._update_from_dict(response)
+        else:
+            desire_state = self.get_not_none_values_as_dict()
+            desire_state.setdefault('description', ' ')
+            self._core.modify_group(self.id, desire_state)
+
+    @classmethod
+    def get_by_name(cls, core, displayName):
+        # type: (MSGraphApiCore, str) -> GroupAzure
+        response = core.list_groups("$filter=displayName eq '{value}'".format(value=displayName))
+        if response['value']:
+            group = cls()
+            group._update_from_dict(response['value'][0])
+            group.set_core(core)
+            return group
+        raise GraphRessourceNotFroundError('Object with displayName: %r not found in azure %r' % (displayName, core.account.alias))
+
+    # TODO update user with the response ??
+    def exist(self):
+        # type: () -> bool
+        response = self._core.list_groups("$filter=displayName eq '{value}'".format(value=self.displayName))
+        if response['value']:
+            self.id = response['value'][0]['id']
+            return True
+        return False
+
+    def delete(self):
+        # type: () -> None
+        """"""
+        # TODO if the team exist it should be archive first.
+        self._core.delete_group(self.id)
+
+    def update(self, other):
+        # type: ("AzureObject") -> None
+        """"""
+        data = (self - other).get_not_none_values_as_dict()
+        if data:
+            response = self._core.modify_group(self.id, data)
+            self._update_from_dict(response)
+
+    def deactivate(self, rename=False):
+        # type: (bool) -> None
+        """"""
+        name = 'ZZZ_deleted_{time}_{orig}'.format(time=time.time(), orig=self.displayName)
+        data = {'displayName': name, 'description': 'deleted group', 'mailEnabled': False, 'mailNickname': name[:63].replace(' ', '_-_')}
+        self._core.modify_group(self.id, data)
+        self._update_from_dict(data)
+
+    def reactivate(self):
+        # type: () -> None
+        """"""
+        raise NotImplementedError()
+
+    @classmethod
+    def get(cls, core, object_id, selection=None):
+        # type: (MSGraphApiCore, str, Optional[List[str]]) -> GroupAzure
+        """"""
+        attrs = [
+            x.name
+            for x in attr.fields(cls)
+            if x.name
+            not in [
+                'hasMembersWithLicenseErrors',
+                'allowExternalSenders',
+                'autoSubscribeNewMembers',
+                'hideFromAddressLists',
+                'hideFromOutlookClients',
+                'isSubscribedByMail',
+                'unseenCount',
+            ]
+        ]
+        response = core.get_group(group_id=object_id, selection=','.join(attrs))
+        group = cls()
+        group._update_from_dict(response)
+        group.set_core(core)
+        return group
+
+    def add_member(self, object_id):
+        # type: (str) -> None
+        """"""
+        self._core.add_group_member(self.id, object_id)
+
+    def add_members(self, object_ids, async_task=False):
+        # type: (List[str]) -> None
+        """"""
+        if async_task:
+            return MSGraphCoreTask(self._core.account.alias, 'add_group_members', dict(group_id=self.id, object_ids=object_ids))
+        self._core.add_group_members(self.id, object_ids)
+
+    def add_owner(self, owner_id, async_task=False):
+        # type: (str, bool) -> Optional[MSGraphCoreTask]
+        """"""
+        if async_task:
+            return MSGraphCoreTask(self._core.account.alias, 'add_group_owner', dict(group_id=self.id, owner_id=owner_id))
+        self._core.add_group_owner(group_id=self.id, owner_id=owner_id)
+
+    def remove_owner(self, owner_id):
+        # type: () -> None
+        """"""
+        self._core.remove_group_owner(self.id, owner_id)
+
+    def list_members(self):
+        # type: () -> List[Union[UserAzure, GroupAzure]]
+        """"""
+        members_response = self._core.list_group_members(self.id)
+        members = []
+        for member_response in members_response['value']:
+            if 'user' in member_response['@odata.type']:
+                member = UserAzure()
+            elif 'group' in member_response['@odata.type']:
+                member = GroupAzure()
+            else:
+                member = AzureObject()
+                member_response = dict(id=member_response['id'])
+            member._update_from_dict(member_response)
+            member.set_core(self._core)
+            members.append(member)
+        return members
+
+    def list_members_id(self):
+        # type: () -> List[str]
+        """"""
+        members_response = self._core.list_group_members(self.id, filter='$select=id')
+        return [x['id'] for x in members_response['value']]
+
+    def remove_direct_members(self):
+        # type: () -> None
+        """"""
+        for member_id in self.list_members_id():
+            self.remove_member(member_id)
+
+    def list_owners(self):
+        # type: () -> List[UserAzure]
+        users_response = self._core.list_group_owners(self.id)
+        users = []
+        for user_response in users_response['value']:
+            user = UserAzure()
+            user._update_from_dict(user_response)
+            user.set_core(self._core)
+            users.append(user)
+        return users
+
+    def remove_member(self, user_id):
+        # type: (str) -> None
+        """"""
+        self._core.remove_group_member(group_id=self.id, object_id=user_id)
+
+    @staticmethod
+    def list(core):
+        # type: (MSGraphApiCore) -> List['GroupAzure']
+        """"""
+        groups_response = core.list_groups()
+        groups_value = groups_response.get('value', [])
+        if groups_value:
+            groups = [GroupAzure.from_dict(x) for x in groups_value]
+            [x.set_core(core) for x in groups]
+            return groups
+        return groups_value
+
+    def is_delete(self):
+        # type: () -> bool
+        return self.mailNickname.startswith('ZZZ_deleted_') if self.mailNickname else False
+
+    def is_security_group(self):
+        # type: () -> bool
+        #if self.is_educlass():
+        #    return True
+        #else:
+        return 'Unified' not in self.groupTypes
+
+    def get_assignedLicenses(self):
+        for _license in self._core.get_group(self.id, selection='assignedLicenses')['assignedLicenses']:
+            yield SubscriptionAzure(skuId=_license['skuId'])
+
+    def add_license(self, subs_sku, deactivated_plans=None):
+        # type: (SubscriptionAzure, List) -> None
+        """"""
+        try:
+            self._core.add_license(self.id, subs_sku.skuId, deactivated_plans, self.odataType)
+        except MSGraphError as exc:
+            reraise(AddLicenseError, AddLicenseError(str(exc), self.id, subs_sku.skuId, exc), sys.exc_info()[2])
+
+    def remove_all_assigned_licenses(self):
+        # type: () -> None
+        """"""
+        for _license in self.get_assignedLicenses():
+            self._core.remove_license(self.id, _license.skuId, self.odataType)
 
 
 @attr.s
@@ -996,3 +1131,5 @@ class SubscriptionAzure(AzureObject):
         # type: (List) -> List
         """"""
         return [plan['servicePlanId'] for plan in self.servicePlans if plan['servicePlanName'] in plan_names]
+
+
