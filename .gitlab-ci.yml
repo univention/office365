@@ -1,3 +1,6 @@
+include:
+  - component: "$CI_SERVER_FQDN/univention/dev/tooling/ci-components/ai-review@2.8.1"
+
 workflow:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
