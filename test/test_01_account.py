@@ -34,7 +34,7 @@ sys.modules['univention.lib.i18n'] = mock.MagicMock()
 sys.modules['univention.config_registry.frontend'] = mock.MagicMock()
 sys.modules['os'].chown = mock.MagicMock()
 
-from univention.office365.microsoft import account as accound_M
+from univention.office365.microsoft import account as account_M
 from test import ALIASDOMAIN, DOMAIN_PATH, DOMAIN_2
 
 CURRENT_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -43,10 +43,10 @@ CURRENT_PATH = os.path.dirname(os.path.abspath(__file__))
 @contextlib.contextmanager
 def mock_JsonStorage():
     # type: () -> mock.MagicMock
-    old_j = accound_M.JsonStorage
-    accound_M.JsonStorage = mock.MagicMock()
-    yield accound_M.JsonStorage
-    accound_M.JsonStorage = old_j
+    old_j = account_M.JsonStorage
+    account_M.JsonStorage = mock.MagicMock()
+    yield account_M.JsonStorage
+    account_M.JsonStorage = old_j
 
 
 class TestAzureAccount:
@@ -54,7 +54,7 @@ class TestAzureAccount:
         # type: () -> None
         diff = all_methods_called(
             self.__class__,
-            accound_M.AzureAccount,
+            account_M.AzureAccount,
             [
                 'update',
                 'check_token',
@@ -80,7 +80,7 @@ class TestAzureAccount:
         # type: () -> None
         """Test Azure account"""
 
-        account = accound_M.AzureAccount(alias=ALIASDOMAIN, config_base_path=DOMAIN_PATH)
+        account = account_M.AzureAccount(alias=ALIASDOMAIN, config_base_path=DOMAIN_PATH)
         account.load_ids_from_file()
         assert account['domain'] == DOMAIN_2
         assert account['application_id']
@@ -93,7 +93,7 @@ class TestAzureAccount:
     def test_client_assertion(self):
         # type: () -> None
         """Test Azure account"""
-        account = accound_M.AzureAccount(alias=ALIASDOMAIN, config_base_path=DOMAIN_PATH)
+        account = account_M.AzureAccount(alias=ALIASDOMAIN, config_base_path=DOMAIN_PATH)
         account.load_ids_from_file()
         assert account.client_assertion()
         assert isinstance(account.client_assertion(), str)
@@ -101,19 +101,19 @@ class TestAzureAccount:
     def test_get_authorization_url(self):
         # type: () -> None
         """"""
-        account = accound_M.AzureAccount(alias=ALIASDOMAIN, config_base_path=DOMAIN_PATH)
+        account = account_M.AzureAccount(alias=ALIASDOMAIN, config_base_path=DOMAIN_PATH)
         url = account.get_authorization_url()
         assert url.startswith('https://login.microsoftonline.com/{}/oauth2/authorize?'.format(account.get('adconnection_id')))
 
     def test_get_domain(self):
         # type: () -> None
         """"""
-        account = accound_M.AzureAccount(alias=ALIASDOMAIN, config_base_path=DOMAIN_PATH)
+        account = account_M.AzureAccount(alias=ALIASDOMAIN, config_base_path=DOMAIN_PATH)
         assert account.get_domain() == account['domain']
 
     def test_write_saml_setup_script_uses_proxy_subprocess_env(self):
         # type: () -> None
-        account = accound_M.AzureAccount(alias=ALIASDOMAIN, config_base_path=DOMAIN_PATH)
+        account = account_M.AzureAccount(alias=ALIASDOMAIN, config_base_path=DOMAIN_PATH)
         env = {'http_proxy': 'http://proxy.example:3128'}
         script_template = (
             '__ENTRA_DOMAIN__\n'
@@ -123,7 +123,7 @@ class TestAzureAccount:
             '__SAML_SIGNING_CERTIFICATE__\n'
         )
 
-        with mock.patch.object(accound_M.UCRHelper, 'get_proxy_subprocess_env', return_value=env) as get_proxy_subprocess_env, mock.patch(
+        with mock.patch.object(account_M.UCRHelper, 'get_proxy_subprocess_env', return_value=env) as get_proxy_subprocess_env, mock.patch(
             'univention.office365.microsoft.account.subprocess.check_output',
             side_effect=[b'https://sso.example.invalid', b'SIGNING_CERT'],
         ) as check_output, mock.patch('builtins.open', mock.mock_open(read_data=script_template)) as open_mock, mock.patch('univention.office365.microsoft.account.os.chmod'):
@@ -132,17 +132,17 @@ class TestAzureAccount:
         get_proxy_subprocess_env.assert_called_once_with(account.logger)
         check_output.assert_has_calls(
             [
-                mock.call(['univention-keycloak', 'get-keycloak-base-url'], stderr=accound_M.subprocess.PIPE, env=env),
-                mock.call(['univention-keycloak', 'saml/idp/cert', 'get', '--realm-id', ALIASDOMAIN, '--output', '/dev/stdout'], stderr=accound_M.subprocess.PIPE, env=env),
+                mock.call(['univention-keycloak', 'get-keycloak-base-url'], stderr=account_M.subprocess.PIPE, env=env),
+                mock.call(['univention-keycloak', 'saml/idp/cert', 'get', '--realm-id', ALIASDOMAIN, '--output', '/dev/stdout'], stderr=account_M.subprocess.PIPE, env=env),
             ]
         )
-        open_mock.assert_any_call(accound_M.SAML_SETUP_SCRIPT_TEMPLATE_PATH, 'r')
+        open_mock.assert_any_call(account_M.SAML_SETUP_SCRIPT_TEMPLATE_PATH, 'r')
 
     # @pytest.mark.skip
     # def test_parse_id_token(self):
     # # type: () -> None
     # 	""""""
-    # 	account = accound_M.AzureAccount(alias=ALIASDOMAIN, config_base_path=DOMAIN_PATH)
+    # 	account = account_M.AzureAccount(alias=ALIASDOMAIN, config_base_path=DOMAIN_PATH)
     # 	account.parse_id_token()
     # 	raise NotImplementedError
 
@@ -150,15 +150,15 @@ class TestAzureAccount:
         # type: () -> None
         """"""
         with mock_JsonStorage():
-            account = accound_M.AzureAccount(alias=ALIASDOMAIN, config_base_path=DOMAIN_PATH)
+            account = account_M.AzureAccount(alias=ALIASDOMAIN, config_base_path=DOMAIN_PATH)
             account.uninitialize()
-            accound_M.JsonStorage.return_value.purge.assert_called()
+            account_M.JsonStorage.return_value.purge.assert_called()
 
     def test_store_ids(self):
         # type: () -> None
         """"""
         with mock_JsonStorage() as JsonStorage_mocked:
-            account = accound_M.AzureAccount(alias=ALIASDOMAIN, config_base_path=DOMAIN_PATH)
+            account = account_M.AzureAccount(alias=ALIASDOMAIN, config_base_path=DOMAIN_PATH)
             data = {'test': 'test'}
             account.store_ids(**data)
             JsonStorage_mocked.return_value.write.assert_called_with(**data)
@@ -166,7 +166,7 @@ class TestAzureAccount:
     def test_is_initialized(self):
         # type: () -> None
         """"""
-        account = accound_M.AzureAccount(alias=ALIASDOMAIN, config_base_path=DOMAIN_PATH)
+        account = account_M.AzureAccount(alias=ALIASDOMAIN, config_base_path=DOMAIN_PATH)
         assert account.is_initialized()
 
     def test_store_manifest(self):
@@ -175,7 +175,7 @@ class TestAzureAccount:
         with mock.patch('univention.office365.microsoft.account.json', mock.MagicMock()) as json_mocked, mock.patch(
             'univention.office365.microsoft.account.JsonStorage', mock.MagicMock()
         ) as JsonStorage_mocked:
-            account = accound_M.AzureAccount(alias=ALIASDOMAIN, config_base_path=DOMAIN_PATH)
+            account = account_M.AzureAccount(alias=ALIASDOMAIN, config_base_path=DOMAIN_PATH)
             manifest = mock.MagicMock(app_id='app_id', adconnection_id='common', reply_url='reply_url', domain='domain')
             account.store_manifest(manifest)
             json_mocked.dump.assert_called()
