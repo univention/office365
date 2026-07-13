@@ -1,4 +1,16 @@
 <h1>
+	Univention Microsoft 365 Connector v6.6
+	<div>
+		<ul style="font-size: 12px; font-weight: normal;">
+			<li>
+				<code class="code-colors hljs language-delphi">
+					Es wurde ein Fehler behoben, der bei der Ausführung des Microsoft 365 Einrichtungsassistenten zu einem Abbruch führte, wenn man ihn mit einem Proxy ausgeführt hat.
+				</code>
+			</li>
+		</ul>
+	</div>
+</h1>
+<h1>
 	Univention Microsoft 365 Connector v6.5
 	<div>
 		<ul style="font-size: 12px; font-weight: normal;">
