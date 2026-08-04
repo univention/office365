@@ -1,5 +1,7 @@
 include:
-  - component: "$CI_SERVER_FQDN/univention/dev/tooling/ci-components/ai-review@2.8.1"
+  - component: "$CI_SERVER_FQDN/univention/dev/tooling/ci-components/ai-review@2.13.1"
+    inputs:
+      clear_previous_comments: true
 
 workflow:
   rules:
