@@ -4,7 +4,7 @@
 		<ul style="font-size: 12px; font-weight: normal;">
 			<li>
 				<code class="code-colors hljs language-delphi">
-					Added support for Education Classes. Groups of type "Education Class" are provisioned via the Microsoft Graph Education Roster API, with attributes for class code, grade, and academic term. Requires an Azure Education License and School Data Sync. The feature is hidden by default and can be enabled via the app setting office365/education/enabled.
+					Added support for Education Classes. Groups of type "Education Class" are provisioned via the Microsoft Graph Education Roster API, with attributes for class code, grade, and academic term. Requires an Azure Education License and School Data Sync. The feature is hidden by default and can be enabled via the app setting office365/education/enabled. See the <a href="https://docs.software-univention.de/manual/5.2/en/idm-cloud/office-365.html#education-classes" target="_blank">documentation</a> for details.
 				</code>
 			</li>
 			<li>

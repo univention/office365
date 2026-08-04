@@ -12,7 +12,7 @@
 		To create, modify and delete accounts, this app needs administrative access to the Azure Active Directory account. A <a href="javascript:void(0)" onclick="require('umc/app').openModule('office365')">setup wizard</a> will guide you through the configuration process.
 	</li>
 	<li>
-		Education Class support: Groups of type "Education Class" can be provisioned via the Microsoft Graph Education Roster API, with attributes for class code, grade, and academic term. Requires an Azure Education License and School Data Sync. Enable via the app setting office365/education/enabled.
+		Education Class support: Groups of type "Education Class" can be provisioned via the Microsoft Graph Education Roster API, with attributes for class code, grade, and academic term. Requires an Azure Education License and School Data Sync. Enable via the app setting office365/education/enabled. See the <a href="https://docs.software-univention.de/manual/5.2/en/idm-cloud/office-365.html#education-classes" target="_blank">documentation</a> for details.
 	</li>
 </ul>
 <p>
