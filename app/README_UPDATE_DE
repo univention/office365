@@ -4,6 +4,11 @@
 		<ul style="font-size: 12px; font-weight: normal;">
 			<li>
 				<code class="code-colors hljs language-delphi">
+					Unterstützung für Education-Klassen hinzugefügt. Gruppen vom Typ "Education Class" werden über die Microsoft Graph Education Roster API bereitgestellt, mit Attributen für Klassencode, Jahrgang und akademischen Zeitraum. Erfordert eine Azure Education Lizenz und School Data Sync. Die Funktion ist standardmäßig ausgeblendet und kann über die App-Einstellung office365/education/enabled aktiviert werden.
+				</code>
+			</li>
+			<li>
+				<code class="code-colors hljs language-delphi">
 					Es wurde ein Fehler behoben, der bei der Ausführung des Microsoft 365 Einrichtungsassistenten zu einem Abbruch führte, wenn man ihn mit einem Proxy ausgeführt hat.
 				</code>
 			</li>

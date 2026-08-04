@@ -11,6 +11,9 @@
 	<li>
 		Diese App benötigt, um Benutzer anzulegen, modifizieren und löschen zu können, administrative Berechtigungen für das Azure Active Directory Konto. Ein <a href="javascript:void(0)" onclick="require('umc/app').openModule('office365')">Einrichtungsassistent</a> wird Sie durch den Konfigurationsprozess begleiten.
 	</li>
+	<li>
+		Unterstützung für Education-Klassen: Gruppen vom Typ "Education Class" können über die Microsoft Graph Education Roster API bereitgestellt werden, mit Attributen für Klassencode, Jahrgang und akademischen Zeitraum. Erfordert eine Azure Education Lizenz und School Data Sync. Aktivierbar über die App-Einstellung office365/education/enabled.
+	</li>
 </ul>
 <p>
 	Benutzer müssen in der <a href="javascript:void(0)" onclick="require('umc/app').openModule('udm', 'users/user')">Domänenadministration</a> für diesen Dienst freigeschaltet werden.
