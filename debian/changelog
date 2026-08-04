@@ -1,4 +1,4 @@
-univention-office365 (5.0.11) unstable; urgency=medium
+univention-office365 (5.0.12) unstable; urgency=medium
 
   * Issue univention/dev/projects/office365#20: Add EducationClass option to groups
 

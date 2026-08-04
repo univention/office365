@@ -389,6 +389,9 @@ udm settings/extended_attribute create "$@" --ignore_exists \
 	--set translationLongDescription='"de_DE" "Legt fest, ob die Gruppe als Sicherheitsgruppe, Microsoft 365 Gruppe oder Education-Gruppe erstellt wird. Das Ändern des Gruppentyps wird die Gruppe in Microsoft 365 löschen und sie neu erstellen. Warnung: Microsoft 365 Gruppen können keine Gruppenmitgliedschaft in anderen Microsoft 365 Gruppen haben."' \
 	--set module="groups/group" \
 	--set tabAdvanced=0 \
+	--set groupName="General" \
+	--set translationGroupName='"de_DE" "Allgemein"' \
+	--set groupPosition=1 \
 	--set tabName="Microsoft 365" \
 	--set tabPosition=5 \
 	--set translationTabName='"de_DE" "Microsoft 365"' \
