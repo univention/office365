@@ -33,7 +33,7 @@ if [ "$1" = "configure" ]; then
 				office365/attributes/mapping/sn?surname \
 				office365/attributes/mapping/telephoneNumber?businessPhones \
 				office365/attributes/sync?displayName,employeeType,givenName,l,mailPrimaryAddress,mobile,mailAlternativeAddress,mail,postalCode,roomNumber,c,street,sn,telephoneNumber \
-				office365/groups/sync?no || die
+				office365/groups/sync?no
 		fi
 
 

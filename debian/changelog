@@ -1,3 +1,9 @@
+univention-office365 (5.0.13) unstable; urgency=medium
+
+  * Issue univention/dev/projects/office365#27: Move UCR default config to postinst
+
+ -- Julia Bremer <bremer@univention.de>  Mon, 28 Sep 2026 16:31:36 +0200
+
 univention-office365 (5.0.12) unstable; urgency=medium
 
   * Issue univention/dev/projects/office365#20: Add EducationClass option to groups
