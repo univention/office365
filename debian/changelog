@@ -1,3 +1,9 @@
+univention-office365 (5.0.14) unstable; urgency=medium
+
+  * Issue univention/dev/projects/office365#27: Add refint configuration for team owners
+
+ -- Julia Bremer <bremer@univention.de>  Thu, 19 Nov 2026 13:14:27 +0100
+
 univention-office365 (5.0.13) unstable; urgency=medium
 
   * Issue univention/dev/projects/office365#27: Move UCR default config to postinst
