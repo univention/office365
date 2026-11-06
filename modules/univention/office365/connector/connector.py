@@ -1170,6 +1170,20 @@ class GroupConnector(Connector):
         new_azure_group = self.create(udm_group)
         if new_azure_group is None:
             self.logger.error('Failed to recreate group %r after type migration.', udm_group.get('cn'))
+            return new_azure_group
+
+        # The group was just recreated from scratch in Azure, so it has no owners yet.
+        # check_and_modify_owners() (called right after this, back in modify()) only ever
+        # adds/removes the diff between the old and new UDM state of *this* listener event,
+        # which is empty unless the owners attribute itself also changed as part of the type
+        # migration - so attach all of the group's current (valid) owners here unconditionally
+        # instead of relying on that diff.
+        for owner in udm_group.get_owners():
+            try:
+                with owner.set_current_alias(core.account.alias):
+                    new_azure_group.add_owner(owner.azure_object_id)
+            except MSGraphError as exc:
+                self.logger.error('Error while adding owner %r to recreated group %r: %r', owner.dn, udm_group.get('cn'), exc)
         return new_azure_group
 
     def delete_empty_group(self, azure_group, udm_group=None):
