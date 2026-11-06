@@ -1,4 +1,21 @@
 <h1>
+	Univention Microsoft 365 Connector v6.8
+	<div>
+		<ul style="font-size: 12px; font-weight: normal;">
+			<li>
+				<code class="code-colors hljs language-delphi">
+					Gruppenbesitzer verwiesen weiterhin auf einen Benutzer, der in UCS gelöscht, umbenannt oder verschoben wurde. Dieser Verweis wird nun automatisch in LDAP konsistent gehalten.
+				</code>
+			</li>
+			<li>
+				<code class="code-colors hljs language-delphi">
+					Beim Ändern des Gruppentyps (zum Beispiel zu "Education Class") verlor die Gruppe in Azure dabei bisher alle Besitzer. Dies wurde behoben.
+				</code>
+			</li>
+		</ul>
+	</div>
+</h1>
+<h1>
 	Univention Microsoft 365 Connector v6.6
 	<div>
 		<ul style="font-size: 12px; font-weight: normal;">

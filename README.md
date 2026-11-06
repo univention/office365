@@ -45,6 +45,16 @@ which can only be installed on UCS Systems with role Primary Directory Node or B
    Group synchronization may put some load on the server, because the selection
    of which groups to synchronize happens automatically, by checking nested group
    memberships of user accounts that are enabled for synchronization.
+1. Group owners (teachers, for *Education Class* groups) are stored as a multivalued DN
+   reference in the extended attribute `UniventionMicrosoft365GroupOwners`. This reference is
+   kept consistent with LDAP by extending the OpenLDAP `refint` overlay (alongside the
+   `uniqueMember` attribute UCS already tracks there) to also track
+   `UniventionMicrosoft365GroupOwners`. It's shipped as a `settings/ldapacl` LDAP extension, so
+   it takes effect on the Primary Directory Node automatically, regardless of which Directory
+   Node this app is installed on: a deleted, renamed, or moved owner's DN is removed or updated
+   without manual intervention. When a group's type is migrated (e.g. to `Education Class`), its
+   current owners are re-attached to the newly created Azure object, since that object starts
+   out without any owners.
 1. In LDAP, enabled user accounts are marked by the attribute
    `univentionOffice365Enabled`. The target Azure ADs can be seen in the
    multivalued LDAP attribute `univentionOffice365ADConnectionAlias`.
