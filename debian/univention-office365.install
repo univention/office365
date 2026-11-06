@@ -6,6 +6,7 @@ share/univention-office365/hooks.d/*.py usr/share/univention-office365/hooks.d/
 listeners/office365-user.py usr/lib/univention-directory-listener/system/
 listeners/office365-group.py usr/lib/univention-directory-listener/system/
 share/univention-office365/office365.schema usr/share/univention-office365/
+share/univention-office365/65univention-office365_refint.acl usr/share/univention-office365/
 scripts/generate_office365_saml_powershell_script usr/sbin
 umc/icons/office365.png var/www
 share/univention-office365/scripts/print_subscriptions usr/share/univention-office365/scripts/

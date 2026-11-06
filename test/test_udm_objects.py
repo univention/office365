@@ -22,6 +22,12 @@ from univention.office365 import bool_from_bytes
 
 sys.modules['univention.admin'] = mock.MagicMock()
 sys.modules['univention.admin'].uldap.getAdminConnection.return_value = mock.MagicMock(), mock.MagicMock()
+# Pre-populating sys.modules directly (above) bypasses the import machinery's usual step of
+# setting the submodule as an attribute on its parent package, unlike a real `import
+# univention.admin` - so code doing `univention.admin.uexceptions.noObject` (e.g.
+# UDMOfficeGroup.get_owners) would hit an AttributeError on `univention.admin` in tests
+# without this.
+univention.admin = sys.modules['univention.admin']
 sys.modules['univention.debug'] = mock.MagicMock()
 sys.modules['univention.config_registry'] = mock.MagicMock()
 sys.modules['univention.config_registry.frontend'] = mock.MagicMock()
@@ -441,6 +447,39 @@ class TestUdmOfficeGroup:
         user_owners = udm_group_object.get_owners()
         assert all([isinstance(x, UDMOfficeUser) for x in user_owners])
         assert all([x.dn in owners for x in user_owners])
+
+    def test_get_owners_skips_deleted_owner(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """
+        Bug: owner DNs are not cleaned up from UniventionMicrosoft365GroupOwners when the
+        referenced user is deleted. Until refint (or a race with it) catches up, get_owners()
+        must not crash on a stale/dangling owner DN - it should skip it and return the rest.
+        """
+        udm_group_object = create_udm_group_object()
+        stale_dn = 'uid=removeduser,cn=users,dc=test-idelgado-com,dc=intranet'
+        good_dn = 'uid=qye80535ks,cn=users,dc=test-idelgado-com,dc=intranet'
+        udm_group_object.udm_object_reference['UniventionMicrosoft365GroupOwners'] = [stale_dn, good_dn]
+
+        class FakeNoObject(Exception):
+            pass
+
+        bk_exc = udmobjects.univention.admin.uexceptions.noObject
+        bk_cls = udmobjects.UDMOfficeUser
+        udmobjects.univention.admin.uexceptions.noObject = FakeNoObject
+
+        def fake_user(ldap_fields, ldap_cred, dn):
+            if dn == stale_dn:
+                raise FakeNoObject('no such object: %r' % (dn,))
+            return mock.MagicMock(dn=dn)
+
+        udmobjects.UDMOfficeUser = mock.MagicMock(side_effect=fake_user)
+        try:
+            owners = udm_group_object.get_owners()
+        finally:
+            udmobjects.UDMOfficeUser = bk_cls
+            udmobjects.univention.admin.uexceptions.noObject = bk_exc
+
+        assert [o.dn for o in owners] == [good_dn]
 
     def test_get_nested_group(self, create_udm_group_object):
         # type: (Callable) -> None

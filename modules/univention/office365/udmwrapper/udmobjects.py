@@ -521,7 +521,13 @@ class UDMOfficeGroup(UDMOfficeObject):
 
     def get_owners(self):
         # type: () -> List[UDMOfficeUser]
-        return [UDMOfficeUser({}, self.ldap_cred, dn=owner_dn) for owner_dn in self.get_owners_dn()]
+        owners = []
+        for owner_dn in self.get_owners_dn():
+            try:
+                owners.append(UDMOfficeUser({}, self.ldap_cred, dn=owner_dn))
+            except univention.admin.uexceptions.noObject:
+                self.logger.warning('UDM User: %r (owner of group %r) has been removed.', owner_dn, self.dn)
+        return owners
 
     def get_members(self):
         # type: () -> List[str]

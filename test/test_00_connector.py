@@ -687,6 +687,30 @@ class TestGroupConnector:
         self.gc.check_and_modify_owners(udm_fake_group_old, udm_fake_group_new, azure_group, alias)
         azure_group.add_owner.assert_called_once()
 
+    def test_check_and_modify_owners_last_owner_removal_error(self, create_udm_group_object):
+        # type: (Callable) -> None
+        """
+        Azure rejects removing the last owner of a group. check_and_modify_owners must log
+        that error and not raise, rather than crash the whole group sync.
+        """
+        alias = 'o365domain'
+        udm_fake_group_old = create_udm_group_object()
+        udm_fake_group_old.current_connection_alias = alias
+        udm_fake_group_new = create_udm_group_object()
+
+        azure_group = mock.MagicMock()
+        azure_group.id = 'azure_object_id'
+        azure_group.remove_owner.side_effect = MSGraphError(mock.MagicMock(status_code=400), 'The group must have at least one owner.')
+
+        last_owner = mock.MagicMock(dn='uid=lastowner,cn=users,dc=test-idelgado-com,dc=intranet')
+        udm_fake_group_old.get_owners = mock.MagicMock(return_value=[last_owner])
+        udm_fake_group_new.get_owners = mock.MagicMock(return_value=[])
+
+        # Should not raise, despite Azure rejecting the removal of the last owner.
+        self.gc.check_and_modify_owners(udm_fake_group_old, udm_fake_group_new, azure_group, alias)
+        azure_group.remove_owner.assert_called_once()
+        azure_group.add_owner.assert_not_called()
+
     def test_delete_empty_group(self, create_udm_group_object):
         # type: (Callable) -> None
         udm_fake_group_new = create_udm_group_object()

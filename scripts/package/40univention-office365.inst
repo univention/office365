@@ -9,7 +9,7 @@
 
 ## joinscript api: bindpwdfile
 
-VERSION=23
+VERSION=24
 
 . /usr/share/univention-join/joinscripthelper.lib
 . /usr/share/univention-lib/all.sh
@@ -54,6 +54,15 @@ fi
 ucs_addServiceToLocalhost "univention-office365" "$@" || die
 
 ucs_registerLDAPExtension "$@" --ucsversionstart 4.4-0 --ucsversionend 5.99-0 --schema /usr/share/univention-office365/office365.schema || die
+
+# Bug: M365 Group Owners DNs are not updated by LDAP when the referenced user is deleted/
+# renamed/moved. Extend the refint overlay to also track univentionMicrosoft365GroupOwners,
+# analogous to how core already tracks uniqueMember. Registered via --acl (rather than shipped
+# as a static package conffile) because that's the only mechanism that replicates this
+# domain-wide and activates it on the Primary Directory Node regardless of which host this app
+# is installed on.
+ucs_registerLDAPExtension "$@" --ucsversionstart 4.4-0 --ucsversionend 5.99-0 --acl /usr/share/univention-office365/65univention-office365_refint.acl || die
+
 ucs_registerLDAPExtension "$@" --ucsversionstart 4.4-0 --ucsversionend 5.99-0 --udm_syntax /usr/share/univention-office365/syntax.d/office365.py  || die
 ucs_registerLDAPExtension "$@" --ucsversionstart 4.4-0 --ucsversionend 5.99-0 --udm_hook /usr/share/univention-office365/hooks.d/office365_user_ADConnections_hook.py || die
 ucs_registerLDAPExtension "$@" --ucsversionstart 4.4-0 --ucsversionend 5.99-0 --udm_module /usr/share/univention-office365/handler.d/profile.py \
