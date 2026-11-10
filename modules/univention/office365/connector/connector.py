@@ -1181,6 +1181,9 @@ class GroupConnector(Connector):
         for owner in udm_group.get_owners():
             try:
                 with owner.set_current_alias(core.account.alias):
+                    if not owner.azure_object_id:
+                        self.logger.warning('UDM User: %r is not enabled/synced for Microsoft 365 (%r). Not adding as owner of recreated group %r.', owner.dn, core.account.alias, udm_group.get('cn'))
+                        continue
                     new_azure_group.add_owner(owner.azure_object_id)
             except MSGraphError as exc:
                 self.logger.error('Error while adding owner %r to recreated group %r: %r', owner.dn, udm_group.get('cn'), exc)
