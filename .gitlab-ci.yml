@@ -1,5 +1,10 @@
 include:
-  - component: "$CI_SERVER_FQDN/univention/dev/tooling/ci-components/ai-review@2.8.1"
+  - component: "$CI_SERVER_FQDN/univention/dev/tooling/ci-components/ai-review@2.16.2"
+    inputs:
+      model: "litellm/internal-code"
+      llm_api_url: "https://litellm-internal.knut.univention.de/v1"
+      llm_api_token: "$LITELLM_INTERNAL_API_KEY"
+      clear_previous_comments: true
 
 workflow:
   rules:
