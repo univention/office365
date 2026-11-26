@@ -822,7 +822,7 @@ class GroupAzure(AzureObject):
     deletedDateTime = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  #: str
     creationOptions = attr.ib(validator=attr.validators.instance_of((List, type(None))), default=None)  #: List
     expirationDateTime = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  #: str
-    isAssignableToRole = attr.ib(validator=attr.validators.instance_of((bool, type(None))), default=None)  #: str
+    isAssignableToRole = attr.ib(validator=attr.validators.instance_of((bool, type(None))), default=None)  #: bool
     membershipRule = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  #: str
     membershipRuleProcessingState = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  #: str
     onPremisesDomainName = attr.ib(validator=attr.validators.instance_of((str, type(None))), default=None)  #: str
