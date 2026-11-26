@@ -1,3 +1,9 @@
+univention-office365 (5.0.15) unstable; urgency=medium
+
+  * Issue univention/dev/projects/office365#28: fix group listing type mismatch
+
+ -- Juan Pedro Torres Munoz <juan.torres-munoz@univention.de>  Thu, 26 Nov 2026 15:18:52 +0100
+
 univention-office365 (5.0.14) unstable; urgency=medium
 
   * Issue univention/dev/projects/office365#27: Add refint configuration for team owners
