@@ -4,6 +4,18 @@
 		<ul style="font-size: 12px; font-weight: normal;">
 			<li>
 				<code class="code-colors hljs language-delphi">
+					Fixed a type mismatch that could cause errors when listing groups from Azure.
+				</code>
+			</li>
+		</ul>
+	</div>
+</h1>
+<h1>
+	Univention Microsoft 365 Connector v6.7
+	<div>
+		<ul style="font-size: 12px; font-weight: normal;">
+			<li>
+				<code class="code-colors hljs language-delphi">
 					Group owners are no longer left pointing to a user that was deleted, renamed, or moved in UCS. This reference is now kept consistent in LDAP automatically.
 				</code>
 			</li>
